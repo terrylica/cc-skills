@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-107 regression test for the shared escape-hatch-marker detection helper. Verifies (1) helper file exists with all 3 documented exports (config type, single-line detector, file-wide detector); (2) iter-78 layer3-stripped-path-guard has migrated to the helper (its hand-rolled regex + window loop replaced by a single helper call); (3) iter-78 regression test still PASSES (behavior-preserving migration confirmed); (4) inventory audit exists + is executable + reports the iter-78 migration; (5) helper SAME_LINE_ONLY mode works (programmatic probe); (6) helper SAME_LINE_OR_PRECEDING_N_LINES mode honors the N-line window boundary; (7) helper FILE_WIDE mode + hasFileWideEscapeHatchMarkerInContent convenience wrapper work; (8) reason-policy gate enforces ≥10-char reason after colon when configured (rejects bare marker, accepts marker-with-reason).
+# Iter-107 regression test for the shared escape-hatch-marker detection helper. Verifies the helper exports its documented API, and probes each mode directly: SAME_LINE_ONLY, SAME_LINE_OR_PRECEDING_N_LINES (window boundary), FILE_WIDE plus hasFileWideEscapeHatchMarkerInContent, the >=10-char reason policy, case sensitivity, and multi-marker composition. (The original Cases 2-4 proved the iter-78 guard's migration; iter-78 was deleted on 2026-10-01.)
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -7,9 +7,6 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER107_SHARED_HELPER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts"
-ITER78_GUARD_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts"
-ITER78_REGRESSION_TEST_ABSOLUTE_PATH="$REPO_ROOT/tasks/tests/test-pretooluse-iter78-layer3-stripped-path-edit-time-guard-classifies-allowlisted-vs-stripped-segments-honors-escape-hatch-with-belt-and-suspenders-github37210-defense.sh"
-ITER107_INVENTORY_AUDIT_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0
@@ -30,41 +27,6 @@ if [[ -f "$ITER107_SHARED_HELPER_ABSOLUTE_PATH" ]] && \
     assert_passes "Case 1: iter-107 shared helper file exists with all 4 documented exports (window-semantics-mode type + configuration interface + per-line detector + file-wide detector)"
 else
     assert_fails "Case 1: iter-107 shared helper missing or missing required exports"
-fi
-
-# ─── Case 2: iter-78 guard has migrated to the shared helper ─────────────
-if grep -q "from \"./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107" "$ITER78_GUARD_ABSOLUTE_PATH" && \
-   grep -q "detectEscapeHatchMarkerCoveringTargetSourceLine" "$ITER78_GUARD_ABSOLUTE_PATH" && \
-   ! grep -q "ESCAPE_HATCH_MARKER_MIN_TEN_CHAR_REASON_REGEX" "$ITER78_GUARD_ABSOLUTE_PATH"; then
-    assert_passes "Case 2: iter-78 layer3-stripped-path-guard migrated to shared helper (hand-rolled regex constant removed + helper imported + helper invoked)"
-else
-    assert_fails "Case 2: iter-78 migration incomplete (hand-rolled regex still present OR helper import missing OR helper call missing)"
-fi
-
-# ─── Case 3: iter-78 regression test STILL PASSES (behavior-preserving) ──
-set +e
-iter78_regression_output=$(bash "$ITER78_REGRESSION_TEST_ABSOLUTE_PATH" 2>&1)
-iter78_regression_exit_code=$?
-set -e
-if [[ "$iter78_regression_exit_code" == "0" ]] && [[ "$iter78_regression_output" == *"all 7 assertions passed"* ]]; then
-    assert_passes "Case 3: iter-78 regression test still PASSES (behavior-preserving iter-107 migration confirmed)"
-else
-    assert_fails "Case 3: iter-78 regression test broken by iter-107 migration (exit=$iter78_regression_exit_code)"
-fi
-
-# ─── Case 4: iter-107 inventory audit exists + executable + reports iter-78 migration ─
-if [[ -x "$ITER107_INVENTORY_AUDIT_ABSOLUTE_PATH" ]]; then
-    set +e
-    inventory_audit_output=$(bash "$ITER107_INVENTORY_AUDIT_ABSOLUTE_PATH" 2>&1)
-    inventory_audit_exit_code=$?
-    set -e
-    if [[ "$inventory_audit_exit_code" == "0" ]] && [[ "$inventory_audit_output" == *"pretooluse-iter78-layer3-stripped-path-edit-time-guard"* ]] && [[ "$inventory_audit_output" == *"AUDIT PASSED"* ]]; then
-        assert_passes "Case 4: iter-107 inventory audit exists + reports iter-78 as MIGRATED (informational pass)"
-    else
-        assert_fails "Case 4: iter-107 inventory audit ran but did NOT report iter-78 as MIGRATED (exit=$inventory_audit_exit_code)"
-    fi
-else
-    assert_fails "Case 4: iter-107 inventory audit task missing or not executable"
 fi
 
 # ─── Case 5-8: programmatic probes against the helper API via bun --eval ─
@@ -309,17 +271,4 @@ if [[ "$ASSERTION_FAILED_COUNT" -gt 0 ]]; then
 fi
 echo "  ✓ PASS — all $ASSERTION_PASSED_COUNT assertions passed"
 echo ""
-echo "  🚀 Iter-107 canonical shared escape-hatch-marker detection helper"
-echo "     established. Iter-78 layer3-stripped-path-guard migrated to the"
-echo "     shared helper as proof-of-integration (behavior-preserving: iter-78"
-echo "     regression test still passes 7/7)."
-echo "  🚀 Iter-107 inventory audit task (informational, never blocks release)"
-echo "     enumerates hand-rolled marker detection patterns + recommends"
-echo "     migration. Future iters (108+) migrate the remaining ~8 hand-rolled"
-echo "     consumers (file-size-guard, version-guard, native-binary-guard,"
-echo "     process-storm-guard, cwd-deletion-guard, inline-ignore-guard,"
-echo "     cargo-tty-guard, etc.) one by one with the same behavior-preserving"
-echo "     pattern: replace regex literal + window loop with a single helper"
-echo "     call configured from a per-hook configuration object."
-echo "  🚀 Iter-108+ candidate: promote inventory audit from informational to"
-echo "     strict-block once all hand-rolled implementations are migrated."
+echo "  Helper API covered: per-line window modes, FILE_WIDE, reason policy, case sensitivity, multi-marker."
