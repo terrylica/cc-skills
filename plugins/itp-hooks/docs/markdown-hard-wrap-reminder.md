@@ -26,14 +26,14 @@ Sources: [GFM §6.13](https://github.github.com/gfm/#soft-line-breaks), [communi
 
 Three cover the **publish** boundary. The authoring boundary is covered three ways, because Markdown is authored three ways: by the Write/Edit tools (this hook), by a shell command (a heredoc, `python3 - <<EOF`, a generator script), and finally by the commit that every path ends in. Until 2026-10-01 only the first existed, and a session rewrote dozens of `.md` files through Bash and Python, all hard-wrapped, with this reminder enabled and silent throughout: its matcher is `Write|Edit|MultiEdit`, and a Bash command is not a file edit.
 
-| Boundary                           | Mechanism                                                                                            | Escape hatch      |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------- |
-| `gh release \| issue \| pr \| api` | [`pretooluse-github-hard-wrap-guard.ts`](../hooks/pretooluse-github-hard-wrap-guard.ts) — denies     | `GH-HARD-WRAP-OK` |
-| semantic-release → GitHub Releases | `release.config.cjs` → `reflowCommitBodyForGfm()` → `scripts/reflow-release-notes.ts` — auto-reflows | —                 |
-| Gmail draft bodies                 | [`pretooluse-gmail-body-guard.ts`](../hooks/pretooluse-gmail-body-guard.ts) — denies                 | `GMAIL-BODY-OK`   |
-| **Authoring a `.md`** (Write/Edit) | **this hook — reminds**                                                                              | `MD-HARD-WRAP-OK` |
+| Boundary                           | Mechanism                                                                                                               | Escape hatch      |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `gh release \| issue \| pr \| api` | [`pretooluse-github-hard-wrap-guard.ts`](../hooks/pretooluse-github-hard-wrap-guard.ts) — denies                        | `GH-HARD-WRAP-OK` |
+| semantic-release → GitHub Releases | `release.config.cjs` → `reflowCommitBodyForGfm()` → `scripts/reflow-release-notes.ts` — auto-reflows                    | —                 |
+| Gmail draft bodies                 | [`pretooluse-gmail-body-guard.ts`](../hooks/pretooluse-gmail-body-guard.ts) — denies                                    | `GMAIL-BODY-OK`   |
+| **Authoring a `.md`** (Write/Edit) | **this hook — reminds**                                                                                                 | `MD-HARD-WRAP-OK` |
 | Authoring a `.md` (Bash)           | [`posttooluse-bash-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-bash-markdown-hard-wrap-reminder.ts) — reminds | `MD-HARD-WRAP-OK` |
-| `git commit` of a `.md`            | [`pretooluse-markdown-commit-hard-wrap-guard.ts`](../hooks/pretooluse-markdown-commit-hard-wrap-guard.ts) — denies | `MD-HARD-WRAP-OK` |
+| `git commit` of a `.md`            | [`pretooluse-markdown-commit-hard-wrap-guard.ts`](../hooks/pretooluse-markdown-commit-hard-wrap-guard.ts) — denies      | `MD-HARD-WRAP-OK` |
 
 All of them share the one detector, [`lib/hard-wrap-detector.ts`](../hooks/lib/hard-wrap-detector.ts). The three authoring surfaces also share the net-new layer above it, [`lib/markdown-net-new-hard-wraps.ts`](../hooks/lib/markdown-net-new-hard-wraps.ts): the joiner filter, the shape signature, the multiset diff, the escape marker and the repair command, so they cannot disagree about what counts as a new wrap.
 
@@ -121,6 +121,17 @@ bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts" --check file.md    # exi
 The reminder emits that exact form, resolved through [`cc-plugin-root`](../../../scripts/cc-plugin-root). It used to emit a bare `bun scripts/reflow-release-notes.ts …`, which resolves **only from inside cc-skills** — and the near-miss is what makes it dangerous rather than merely broken: a consumer repo with its own `scripts/reflow-commit-body.cjs` invites an agent to substitute a publish-boundary-only tool for an authoring-boundary one (issue #106 finding 2).
 
 `gfm-unwrap` preserves fenced code, **4-space-indented code**, hand-aligned blocks, tables, headings, blockquote markers, and explicit two-space hard breaks; it joins wrapped prose, wrapped list items and wrapped blockquotes. It refuses to write anything if the transformation would change a single non-whitespace character (`assertContentPreserved`). The older `scripts/reflow-release-notes.ts` remains the semantic-release publish-boundary reflow; it does **not** understand indented code blocks, which is one reason the reminder no longer points at it. The Stop-hook formatter is still `--prose-wrap preserve` rather than auto-reflow — silently rewriting every edited `.md` has a blast radius a reminder does not.
+
+### Bulk reflow: not every `.md` is prose
+
+Reflowing a whole repository is safe only for authored prose. Measured 2026-10-01, across six repositories: content-preservation held on every file, and the reflow still broke two gates, because a `.md` file can be something other than a document. Leave these classes alone:
+
+- **Model prompts** (`prompts/*.md`, `.claude/commands/`, skills under eval). They are runtime inputs. Code cites them by line number (`extract.system.v23.md:616-623`), and a prompt-version test failed once their bytes changed.
+- **Generated files.** A gate compares them byte for byte against their generator, so reflow the generator's output format instead; a generator that writes wrapped prose will also trip the commit guard whenever it adds lines.
+- **Verbatim records**: email threads, chat logs, transcripts, contracts, raw exports. Their line breaks are part of the record.
+- **Test fixtures and frozen trees** (`archive/`, `tmp/`, `data/`).
+
+Prove the result twice: per file before writing, and with `git diff --word-diff=porcelain --word-diff-regex='[^[:space:]]+'` afterwards. The only non-whitespace change allowed is a dropped blockquote `>` continuation marker. Then run the repository's own gate before committing, because it knows which `.md` files are not prose. A whitespace check does not.
 
 ## Escape hatch — invoking it, not naming it
 
