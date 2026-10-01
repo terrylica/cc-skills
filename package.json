@@ -1,6 +1,6 @@
 {
   "name": "cc-skills",
-  "version": "32.3.4",
+  "version": "32.4.0",
   "private": true,
   "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code",
   "scripts": {

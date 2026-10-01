@@ -1,3 +1,25 @@
+# [32.4.0](https://github.com/terrylica/cc-skills/compare/v32.3.4...v32.4.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* **gh-tools:** ship issue-create's image uploader; playwright-core 1.63 ([470574a](https://github.com/terrylica/cc-skills/commit/470574a8b74b004078a110026403a8e614b100f9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+The uploader issue-create documents lived only in an unrelated private repo; it now ships with the skill (scripts/gh-issue-image-upload.ts), on playwright-core with a neutral profile path (GH_ISSUE_IMAGE_PROFILE). The skill's outdated 'CDP fails on Chrome 136+' note becomes a pointer to chrome-profiles. playwright-core ^1.58 expected Chromium build 1208, which is no longer installed; 1.63 matches build 1243. The stale npm package-lock.json (no playwright-core, untouched since 2025-12, unused: bun.lock is authoritative) is removed.
+
+* **itp-hooks:** chrome-debug-port guard points at chrome-profiles, not a private path ([3667ec9](https://github.com/terrylica/cc-skills/commit/3667ec9ab50c490e0218bb9528d3d4a8960800e3))
+* **scripts:** git-hook installers look for proto's bun before Homebrew and ~/.bun ([3a1dc29](https://github.com/terrylica/cc-skills/commit/3a1dc299659011e338c4f113756ada43b521c370))
+
+On a machine that manages Bun with proto only, the fixed fallback list (used when bun is not on the hook's PATH) found nothing. $HOME/.proto/bin/bun, proto's link to the machine-wide pin, is now tried first; the Homebrew and ~/.bun paths stay for machines without proto.
+
+
+
+### Features
+
+* **chrome-profiles:** drive everyday Chrome by account email ([08395e3](https://github.com/terrylica/cc-skills/commit/08395e372885b5c706ddcdca9f15fe5cda3b6012))
+
+New plugin, the SSoT for browser automation from Claude Code on macOS: the route ladder (no browser > hermetic launch > your real Chrome), choosing a profile by account email instead of a drifting folder name, and one-command setup (extension, Keychain-stored token, pinned MCP server) so a fresh Mac reaches no-click control of a signed-in profile. doctor checks Chrome against what the update server will actually offer, the chrome://inspect toggle, and every browser MCP registration. No personal data: accounts are arguments.
+
 ## [32.3.4](https://github.com/terrylica/cc-skills/compare/v32.3.3...v32.3.4) (2026-09-28)
 
 
