@@ -65,7 +65,7 @@ function readNotesFile(path: string, cwd?: string): string | null {
   }
 }
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow(HOOK_NAME);
   if (!input) return;
 
@@ -143,7 +143,8 @@ async function main() {
   deny(buildNotesDenyMessage(segment, measurement));
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError(HOOK_NAME, err instanceof Error ? err.message : String(err));
   allow();
 });

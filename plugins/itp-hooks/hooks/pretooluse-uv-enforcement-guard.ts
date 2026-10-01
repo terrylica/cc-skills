@@ -143,7 +143,7 @@ Escape hatch: # UV-OK`;
 // Main
 // ============================================================================
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow("UV-ENFORCEMENT-GUARD");
   if (!input) return;
 
@@ -194,7 +194,8 @@ async function main() {
   allow();
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError("pretooluse-uv-enforcement-guard", err instanceof Error ? err.message : String(err));
   allow();
 });
