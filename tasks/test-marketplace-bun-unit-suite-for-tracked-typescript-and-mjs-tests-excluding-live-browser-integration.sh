@@ -12,20 +12,10 @@
 #     automatically — no task edit required.
 set -euo pipefail
 
-# git exports GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ... into hooks (githooks(5)). The suites
-# below create throwaway repos and run git in them; with these inherited, those git commands hit
-# THIS repository instead. Observed 2026-09-30 from the first gated push: fixture commits on the
-# pushed branch, a staged mass deletion, core.bare=true and a probe identity in .git/config.
-# `git rev-parse --local-env-vars` is git's own list of exactly these variables.
-read -ra git_local_env_vars <<<"$(git rev-parse --local-env-vars 2>/dev/null | tr '\n' ' ')"
-if (( ${#git_local_env_vars[@]} > 0 )); then unset "${git_local_env_vars[@]}"; fi
-# Fixture repos must not run the developer's global git hooks. `git init` copies hooks from
-# init.templateDir (here: a pre-commit that spawns bash, git diff and linters), so every fixture
-# commit ran them, and under repo:check's parallel load a fixture `git commit` blew bun's 5 s
-# test budget (2026-10-01, review-round-state.test.ts). $GIT_TEMPLATE_DIR outranks
-# init.templateDir (git-init(1), "TEMPLATE DIRECTORY"), so an empty one makes fixtures hermetic.
-GIT_TEMPLATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cc-skills-empty-git-template.XXXXXX")"
-export GIT_TEMPLATE_DIR
+# Fixture git must not touch this repository or run the developer's global hooks: see the helper.
+# shellcheck source=lib/hermetic-fixture-git.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/hermetic-fixture-git.sh"
+hermetic_fixture_git_setup
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"

@@ -92,6 +92,8 @@ mkdir -p "$SANDBOX/tasks"
 # REPO_ROOT is dirname(runner)/.. — the copy must sit in tasks/ so it resolves
 # to the sandbox root rather than the sandbox's parent.
 cp "$REAL_RUNNER" "$SANDBOX/tasks/runner-green"
+# The runner sources tasks/lib/hermetic-fixture-git.sh beside it, so the sandbox needs that too.
+mkdir -p "$SANDBOX/tasks/lib" && cp "$REPO_ROOT/tasks/lib/hermetic-fixture-git.sh" "$SANDBOX/tasks/lib/"
 GREEN_OUT="$(cd "$SANDBOX/tasks" && bash ./runner-green 2>&1)"; GREEN_EXIT=$?
 assert_equals "green run still exits 0" "$GREEN_EXIT" "0"
 assert_substring_present "green run reports an executed count, not just a discovered one" \
@@ -143,6 +145,7 @@ fi
 EMPTY_SANDBOX="$(mktemp -d)"
 mkdir -p "$EMPTY_SANDBOX/tasks/tests"
 cp "$REAL_RUNNER" "$EMPTY_SANDBOX/tasks/runner-empty"
+mkdir -p "$EMPTY_SANDBOX/tasks/lib" && cp "$REPO_ROOT/tasks/lib/hermetic-fixture-git.sh" "$EMPTY_SANDBOX/tasks/lib/"
 EMPTY_OUT="$(cd "$EMPTY_SANDBOX/tasks" && bash ./runner-empty 2>&1)"; EMPTY_EXIT=$?
 rm -rf "$EMPTY_SANDBOX"
 if [[ "$EMPTY_EXIT" == "0" ]]; then
