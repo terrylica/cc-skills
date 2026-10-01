@@ -291,7 +291,7 @@ export function readVisibility(gitDir: string): Visibility {
   }
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow("PII-PUSH-GATE");
   if (!input) return;
 
@@ -367,7 +367,8 @@ async function main(): Promise<void> {
   deny(explainPiiFindings(findings, visibility));
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   // Fail OPEN. A gate that blocks every push when its own logic throws is worse than the
   // leak it prevents — it gets disabled wholesale, and then it prevents nothing.
   trackHookError(

@@ -184,7 +184,7 @@ export function explainTccOrderingViolations(
   return parts.join("\n\n");
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow("TCC-GRANT-ORDERING-GUARD");
   if (!input) return;
 
@@ -215,7 +215,8 @@ async function main(): Promise<void> {
   deny(explainTccOrderingViolations(violations));
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   // Fail OPEN. A guard that blocks work when its own logic throws is worse than the bug it prevents.
   trackHookError(
     "pretooluse-tcc-grant-ordering-guard",

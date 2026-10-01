@@ -162,7 +162,7 @@ function buildSafeWrapper(command: string, cwd: string): string {
   );
 }
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow("CARGO-TTY-GUARD");
   if (!input) return;
 
@@ -212,7 +212,8 @@ async function main() {
   allowWithInput("CARGO-TTY-GUARD", tool_name, { command: wrappedCommand });
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError(
     "pretooluse-cargo-tty-guard",
     err instanceof Error ? err.message : String(err),

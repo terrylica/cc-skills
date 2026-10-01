@@ -28,7 +28,7 @@ import { trackHookError } from "./lib/hook-error-tracker.ts";
 // MAIN LOGIC
 // ============================================================================
 
-async function main() {
+export async function main() {
   // Parse stdin JSON input (allow-on-error semantics)
   const input = await parseStdinOrAllow("PROCESS-STORM-GUARD");
   if (!input) return;
@@ -77,7 +77,8 @@ async function main() {
 }
 
 // Run with error handling (always allow on error to avoid blocking)
-main().catch((unhandledError) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((unhandledError) => {
   trackHookError("pretooluse-process-storm-guard", `Unhandled error: ${unhandledError.message}`);
   allow();
 });

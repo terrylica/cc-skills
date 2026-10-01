@@ -301,7 +301,7 @@ export async function classifyTypeScriptLegacyInstallCommandForOrchestrator(
 // Standalone CLI entry point (with stdin/stdout/exit)
 // ────────────────────────────────────────────────────────────────────────
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow("pretooluse-typescript-legacy-install-command-guard");
   if (!input) return;
 

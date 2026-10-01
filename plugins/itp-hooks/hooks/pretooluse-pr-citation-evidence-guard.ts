@@ -277,7 +277,7 @@ function buildReminder(findings: readonly CitationFinding[]): string {
   return lines.join("\n");
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow(HOOK_NAME);
   if (!input) return;
 
