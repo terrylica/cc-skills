@@ -58,7 +58,6 @@ async function cmdLaunch() {
   }
 
   const { execSync } = await import("child_process");
-  const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
   console.log(`Launching Chrome with --remote-debugging-port=${CDP_PORT}...`);
   console.log("A new Chrome window will open. Please:");
@@ -66,8 +65,9 @@ async function cmdLaunch() {
   console.log("  2. Log in with your Google account (Gemini Advanced subscription)");
   console.log("  3. Come back here and run: npx tsx dom-inspector.ts probe");
 
+  // Launch through the chrome-profiles plugin's port script (the SSoT for debug-port launches).
   execSync(
-    `"${chromePath}" --remote-debugging-port=${CDP_PORT} --user-data-dir="/tmp/gemini-probe-profile" "${GEMINI_URL}" &`,
+    `CHROME_DEBUG_PORT=${CDP_PORT} CHROME_DEBUG_PROFILE="$HOME/.local/share/gemini-research-profile" bash "$(cc-plugin-root chrome-profiles)/scripts/chrome-debug-port-control.sh" up`,
     { stdio: "ignore", shell: "/bin/zsh" },
   );
 

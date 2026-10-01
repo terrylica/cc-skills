@@ -62,7 +62,7 @@ running). Never author one monolithic script against an unseen UI.
    accidentally captured, purge the file AND treat the secret as context-exposed (rotate if the
    transcript leaves the machine).
 6. **End-of-run hygiene.** `purgeShots()` (breadcrumbs can show near-secret state), then
-   `teardown(site)` — kills the SPECIFIC pid on the CDP port, never `pkill -f` (process-storm
+   `teardown(site)` — shuts down through chrome-profiles' port script (exact port flag), never `pkill -f` (process-storm
    policy, `~/.claude/CLAUDE.md`).
 
 ## Hybrid rule — forge the key, then use the door

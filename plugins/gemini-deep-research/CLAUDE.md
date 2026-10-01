@@ -24,7 +24,7 @@ plugins/gemini-deep-research/
 
 ## Prerequisites
 
-- **Chrome**: Running with `--remote-debugging-port=9222`
+- **Chrome**: Running with `--remote-debugging-port=9222`, launched through the [`chrome-profiles`](../chrome-profiles/skills/browser-automation/SKILL.md) port script (see the skill)
 - **Auth**: Logged into gemini.google.com with Gemini Advanced subscription
 - **Runtime**: `playwright-core` (Bun or npm)
 
