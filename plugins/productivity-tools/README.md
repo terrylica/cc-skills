@@ -1,8 +1,8 @@
 # productivity-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)](<>)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
+![Skills](https://img.shields.io/badge/Skills-2-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Productivity and automation tools for Claude Code.
 

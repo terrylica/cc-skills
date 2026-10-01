@@ -1,8 +1,8 @@
 # TTS Telegram Sync (TTS only)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-8-blue.svg)](<>)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
+![Skills](https://img.shields.io/badge/Skills-8-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Hotkey-driven text-to-speech for macOS: read the clipboard aloud through Kokoro (via `claude-tts-companion`) with a Supertonic fallback, change the speech rate, stop playback, and audition Kokoro voices.
 

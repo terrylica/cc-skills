@@ -1,9 +1,9 @@
 # minimax
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-1-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
-[![Source](https://img.shields.io/badge/Source-41--iter%20campaign-orange.svg)]()
+![Skills](https://img.shields.io/badge/Skills-1-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
+![Source](https://img.shields.io/badge/Source-41--iter%20campaign-orange.svg)
 
 MiniMax M-series production wiring patterns for the OpenAI-compatible API at `api.minimax.io`. Distilled from a 41-iteration `MiniMax-M2.7-highspeed` exploration campaign that produced 40 verified hands-on pattern docs, ~155 Non-Obvious Learnings, and 11 documented failure modes.
 
