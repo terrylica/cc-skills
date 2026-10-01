@@ -42,7 +42,6 @@ plugins/my-plugin/
 │       ├── CLAUDE.md     # (Optional) per-skill SSoT for maintainers — file table, edit policy,
 │       │                 #   critical invariants, recent-change log. Add when SKILL.md starts
 │       │                 #   mixing "what to do when invoked" with "what to know before editing".
-│       │                 #   First adopter: macro-keyboard's 3 skills.
 │       └── references/   # Supporting docs (loaded on-demand by SKILL.md)
 ├── hooks/                # Hook scripts + hooks.json
 └── scripts/              # Installation/management
@@ -60,29 +59,16 @@ plugins/my-plugin/
 
 **Why**: A plugin's skills are installed under `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/skills/`, and the **version segment changes on every release** — so any absolute path a skill hardcodes is stale by the next update. Relative links resolve against the skill's own directory wherever that lands.
 
-> **Corrected 2026-09-05.** This used to read "Skill files are installed to `~/.claude/skills/`". That directory does exist, but it holds only hand-authored personal skills — **no marketplace plugin ships anything there**. Measured: `cc-plugin-root gh-tools` → `/Users/terryli/.claude/plugins/cache/cc-skills/gh-tools/30.0.0`, while the same cache dir also retains seven orphaned versions (`29.0.0` … `30.1.0`). That is exactly why `scripts/cc-plugin-root` reads `installed_plugins.json` instead of globbing. The **rule is unchanged** — use relative links — only the reason was wrong.
-
 ## Shell Compatibility
 
-Claude Code's Bash tool runs **zsh** on macOS (measured 2026-09-05: `$ZSH_VERSION` = `5.9`). Wrap only syntax zsh genuinely does not implement — bash-only parameter expansion (`${var,,}`, `${var^^}`, `${var@Q}`), `mapfile`/`readarray`, `declare -n`, and code that assumes 0-indexed arrays:
+Claude Code's Bash tool runs **zsh** on macOS. Wrap only syntax zsh genuinely does not implement — bash-only parameter expansion (`${var,,}`, `${var^^}`, `${var@Q}`), `mapfile`/`readarray`, `declare -n`, and code that assumes 0-indexed arrays:
 
 ```bash
 # Genuinely bash-only. Unwrapped, zsh answers: (eval):1: bad substitution
 /usr/bin/env bash -c 'V=ABC; echo "${V,,}"'
 ```
 
-**Superseded 2026-09-05 — command substitution does NOT need a wrapper.** The [Shell Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md) recorded the root cause as `VAR=$(cmd) another-cmd` failing in zsh's eval with ``(eval):1: parse error near `('``, and this section accordingly told authors to wrap every `$(...)`. That failure **does not reproduce** on the current Bash tool. Re-measured verbatim, unwrapped:
-
-```
-$ FOO=$(echo bar) env | grep '^FOO='
-FOO=bar
-$ if [[ -f /etc/hosts ]]; then echo "ok"; fi
-ok
-$ VAR=$(echo hello) && echo "got $VAR"
-got hello
-```
-
-Prefix assignment, `$(...)` and `[[ ]]` are all native zsh and need no wrapper — and note the ADR's own two examples were never bash-specific in the first place (`[[ ]]` is a zsh builtin, and `VAR=$(cmd) && ...` is plain assignment, not the prefix-assignment form the ADR blamed). Keep the ADR: it is the dated record of the 2025-12-06 decision and its 97-file sweep. But its blanket "wrap all command substitution" conclusion is retired — wrap for real bash-only syntax, nothing more.
+Prefix assignment (`FOO=$(cmd) other`), `$(...)` and `[[ ]]` are native zsh and need **no** wrapper. The [Shell Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md)'s blanket "wrap all command substitution" rule is retired: its ``(eval):1: parse error near `('`` failure does not reproduce on the current Bash tool.
 
 ## Validation
 
@@ -130,7 +116,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [media-tools](./media-tools/CLAUDE.md)
 - [minimax](./minimax/CLAUDE.md)
 - [mql5](./mql5/CLAUDE.md)
-- [notes-commander](./notes-commander/CLAUDE.md) — absorbs the retired draft-hold plugin (2026-07-18) as its `draft-park` skill (renamed from `draft-hold` 2026-08-12)
+- [notes-commander](./notes-commander/CLAUDE.md) — includes the `draft-park` skill (formerly the draft-hold plugin)
 - [openwolf](./openwolf/CLAUDE.md)
 - [plugin-dev](./plugin-dev/CLAUDE.md)
 - [productivity-tools](./productivity-tools/CLAUDE.md)
