@@ -791,9 +791,13 @@ iter166_end_to_end_aggregator_probe_setup_captured_stderr_text=$(
         git init -q
         git config user.email "iter166-doctor-probe@example.com"
         git config user.name "iter166-doctor-probe"
-        git commit --allow-empty -q -m "baseline before tag"
+        # core.hooksPath=/dev/null: `git init` copied the developer's init.templateDir hooks into
+        # this probe repo, and under load the global pre-commit made this critical check fail
+        # intermittently (#117; same mechanism as #173). The override adds no process, so the
+        # fork count pinned by iter-174's A6 shim is unchanged.
+        git -c core.hooksPath=/dev/null commit --allow-empty -q -m "baseline before tag"
         git tag v1.0.0
-        git commit --allow-empty -q -m "feat: synthetic iter-166 doctor probe commit"
+        git -c core.hooksPath=/dev/null commit --allow-empty -q -m "feat: synthetic iter-166 doctor probe commit"
     ) 2>&1 >/dev/null
 ) || iter166_end_to_end_aggregator_probe_setup_exit_code=$?
 iter160_normalize_captured_stderr_to_single_line_within_length_budget "$iter166_end_to_end_aggregator_probe_setup_captured_stderr_text"
