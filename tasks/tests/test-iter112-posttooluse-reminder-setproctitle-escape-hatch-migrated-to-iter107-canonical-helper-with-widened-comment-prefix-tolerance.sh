@@ -64,7 +64,8 @@ fi
 # Cohort size grew 8 (pre-iter-112) → 9 (iter-112 setproctitle) → 10
 # (2026-07-21 release-notes-extensiveness-guard) → 11 (2026-09-03
 # askuserquestion-option-line-terminator-guard) → 12 (2026-09-08
-# chrome-debug-port-guard). Assert on the current count.
+# chrome-debug-port-guard) → 10 (2026-10-01: the deleted iter-78 and inline-ignore
+# guards left it). Assert on the current count.
 # NOTE: the askuserquestion guard is a workaround for upstream claude-code#88836
 # and is meant to be DELETED once upstream fixes the renderer — when it goes, this
 # expectation drops by one along with the cohort member.
@@ -72,7 +73,7 @@ set +e
 iter110_audit_output=$(bash "$ITER110_STRICT_INVENTORY_AUDIT_ABSOLUTE_PATH" 2>&1)
 iter110_audit_exit_code=$?
 set -e
-if [[ "$iter110_audit_exit_code" == "0" ]] && [[ "$iter110_audit_output" == *"all 12 canonical cohort members import the shared helper"* ]]; then
+if [[ "$iter110_audit_exit_code" == "0" ]] && [[ "$iter110_audit_output" == *"all 10 canonical cohort members import the shared helper"* ]]; then
     assert_passes "Case 5: iter-110 strict audit passes with the current 12-member canonical cohort"
 else
     assert_fails "Case 5: iter-110 strict audit did not recognize 12-member cohort (exit=$iter110_audit_exit_code)"

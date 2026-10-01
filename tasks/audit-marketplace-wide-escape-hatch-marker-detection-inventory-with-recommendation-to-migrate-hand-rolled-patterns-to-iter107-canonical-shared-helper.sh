@@ -105,9 +105,7 @@ echo ""
 #   1. Remove it from this curated cohort
 
 declare -a ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_COHORT_RELATIVE_PATHS=(
-    "plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts"
     "plugins/itp-hooks/hooks/pretooluse-version-guard.ts"
-    "plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts"
     "plugins/itp-hooks/hooks/pretooluse-native-binary-guard.ts"
     "plugins/itp-hooks/hooks/process-storm-patterns.mjs"
     "plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs"

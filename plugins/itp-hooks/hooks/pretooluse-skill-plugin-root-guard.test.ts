@@ -1,7 +1,6 @@
 /**
  * Tests for the skill-plugin-root guard (2026-08-05 draft-hold exit-127 incident).
  *
- * LAYER3-STRIPPED-PATH-OK: fixtures deliberately embed plugin-root paths
  * SKILL-PLUGIN-ROOT-OK: fixtures deliberately embed the broken spellings
  *
  * The three deniable shapes are each grounded in a verified fact about the

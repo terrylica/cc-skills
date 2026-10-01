@@ -60,7 +60,7 @@
  *   (2) stderr diagnostic: "[orchestrator] DENY: <subhook> — <reason>"
  *   (3) process.exit(2)
  *
- * This matches the iter-78 layer3-stripped-path-edit-time-guard pattern.
+ * (The pattern was first used by the iter-78 guard, since deleted.)
  *
  * ════════════════════════════════════════════════════════════════════════
  *  Iter-84 registry contents (PROOF-OF-CONCEPT — single subhook)

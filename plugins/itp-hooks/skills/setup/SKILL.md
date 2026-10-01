@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Check and install dependencies for itp-hooks (silent failure detection + fake-data-guard).
+description: Check and install dependencies for itp-hooks (bun runtime, jq, and the optional linters its checks call).
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--install|--check]"
 model: haiku
@@ -21,7 +21,7 @@ disable-model-invocation: false
 Verify and install dependencies for the itp-hooks plugin:
 
 - **jq** (required) - JSON processing for hook input/output
-- **bun** or **node** (required) - Runtime for fake-data-guard.mjs hook
+- **bun** (required) - Runtime for every TypeScript hook in the plugin
 - **ruff** (optional) - Python silent failure detection
 - **shellcheck** (optional) - Shell script analysis
 - **oxlint** (optional) - JavaScript/TypeScript linting
@@ -57,7 +57,7 @@ After running the check, present the findings to the user:
 | Tool       | Status | Purpose                       |
 | ---------- | ------ | ----------------------------- |
 | jq         | ?      | Required for hook I/O         |
-| bun/node   | ?      | Required for fake-data-guard  |
+| bun        | ?      | Required for every TS hook    |
 | ruff       | ?      | Python silent failure rules   |
 | shellcheck | ?      | Shell script analysis         |
 | oxlint     | ?      | JavaScript/TypeScript linting |
@@ -113,13 +113,13 @@ No hook installation step exists. `hooks/hooks.json` in this plugin is what Clau
 
 ## Troubleshooting
 
-| Issue                | Cause                 | Solution                            |
-| -------------------- | --------------------- | ----------------------------------- |
-| jq not found         | jq not installed      | `brew install jq`                   |
-| bun/node not found   | Runtime not installed | `proto install bun`                 |
-| ruff version error   | Outdated ruff         | `brew upgrade ruff`                 |
-| Plugin dir not found | Plugin not installed  | Re-install plugin via marketplace   |
-| PATH issues          | Shims not in PATH     | Add proto shims to ~/.zshenv        |
+| Issue                | Cause                 | Solution                          |
+| -------------------- | --------------------- | --------------------------------- |
+| jq not found         | jq not installed      | `brew install jq`                 |
+| bun/node not found   | Runtime not installed | `proto install bun`               |
+| ruff version error   | Outdated ruff         | `brew upgrade ruff`               |
+| Plugin dir not found | Plugin not installed  | Re-install plugin via marketplace |
+| PATH issues          | Shims not in PATH     | Add proto shims to ~/.zshenv      |
 
 ## Post-Execution Reflection
 
