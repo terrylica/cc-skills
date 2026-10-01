@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Audit every plugins/*/hooks/pretooluse-*.{sh,ts,mjs,py} for the SILENT-FAILURE risk of using the DEPRECATED top-level 'decision: block|deny' schema instead of the MODERN 'hookSpecificOutput.permissionDecision' schema. Per the Claude Code v2.0.10+ spec, PreToolUse top-level decision/reason fields are deprecated — hooks using them silently FAIL TO BLOCK. Exits non-zero if any deprecated-schema PreToolUse hook is found (release:preflight gate candidate). Reports MODERN-CORRECT, HELPER-WRAPPED, NO-DECISION-EMITTED counts informationally.
 #
-# audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision
+# tasks/hook-lint/pretooluse-decision-schema.sh
 #
 # Iter-60 self-explanatory-scaffolding audit — companion to iter-57's
 # async-eligibility audit. Background:
@@ -50,7 +50,7 @@
 # audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `bash tasks/audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision`
+#   - Manual: `bash tasks/hook-lint/pretooluse-decision-schema.sh`
 #   - Automatic: candidate for release:preflight (gate publish on
 #     DEPRECATED-WARNING). Iter-61 work.
 
@@ -61,7 +61,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # this audit task itself. Always resolved from BASH_SOURCE, never
 # overridden. Used to locate the shared awk scanner script which
 # travels with the audit, not with the scanned fleet.
-AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # REPO_ROOT defaults to the cc-skills working tree. Override via
 # AUDIT_REPO_ROOT_OVERRIDE for testing the audit against a synthetic-

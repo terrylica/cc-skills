@@ -2,9 +2,7 @@
 # test-audit-pueue-wrap-guard-last-entry-ordering-detects-violation-when-soft-nudge-hook-follows-pueue-wrap-guard-in-hooks-json.sh
 #
 # Regression test for the iter-61 pueue-wrap-guard ordering audit at
-# tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-
-# entry-in-hooks-json-to-mitigate-github-15897-multi-hook-
-# updatedInput-aggregation-last-writer-wins-bug.
+# tasks/hook-lint/pueue-wrap-last.sh.
 #
 # WHY this is load-bearing:
 #
@@ -43,7 +41,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_TASK="$SCRIPT_DIR/../audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh"
+AUDIT_TASK="$SCRIPT_DIR/../hook-lint/pueue-wrap-last.sh"
 
 if [ ! -x "$AUDIT_TASK" ]; then
   echo "FATAL: audit task not executable: $AUDIT_TASK" >&2

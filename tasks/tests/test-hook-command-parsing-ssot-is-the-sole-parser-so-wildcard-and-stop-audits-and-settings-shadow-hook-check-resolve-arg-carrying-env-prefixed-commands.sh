@@ -40,8 +40,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE_ROOT="$(mktemp -d -t hook-command-parsing-ssot.XXXXXX)"
 trap 'rm -rf "$FIXTURE_ROOT"' EXIT
 
-WILDCARD_AUDIT="$REPO_ROOT/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
-STOP_AUDIT="$REPO_ROOT/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh"
+WILDCARD_AUDIT="$REPO_ROOT/tasks/hook-lint/wildcard-matcher.sh"
+STOP_AUDIT="$REPO_ROOT/tasks/hook-lint/stop-additional-context.sh"
 PARSING_SSOT="$REPO_ROOT/tasks/lib/hook-command-parsing.sh"
 PLUGIN_VALIDATOR="$REPO_ROOT/scripts/validate-plugins.mjs"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Audit every plugins/*/hooks/hooks.json that registers PreToolUse or PostToolUse hooks for the WILDCARD-MATCHER anti-pattern: matcher = '*' or null/missing. Per iter-63 + iter-64 forensic findings, wildcard matchers cause Claude Code to cold-start bun on EVERY tool call (~12-17ms each), even when the hook only does meaningful work for a subset of tools. PreToolUse wildcard hooks add user-visible latency (block the tool); PostToolUse wildcard hooks waste CPU+battery (async or sync). Exits non-zero on any wildcard-matcher hook lacking the WILDCARD-MATCHER-OK escape-hatch comment in source. Symmetric scaling of iter-63 (PreToolUse stdin-inlet-guard fix) and iter-64 (PostToolUse orphan-cleanup fix) into preventive infrastructure.
 #
-# audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation
+# tasks/hook-lint/wildcard-matcher.sh
 #
 # Iter-65 self-explanatory-scaffolding audit — preventive companion to
 # iter-63 (PreToolUse stdin-inlet-guard matcher narrowing) and iter-64
@@ -72,7 +72,7 @@
 # "iter-63", "iter-64", or "bun cold-start waste" surface this audit.
 #
 # Re-run cadence:
-#   - Manual: `bash tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh`
+#   - Manual: `bash tasks/hook-lint/wildcard-matcher.sh`
 #   - Automatic: release:preflight Check 4i (iter-65 wire-up).
 
 set -euo pipefail
@@ -81,14 +81,14 @@ shopt -u patsub_replacement 2>/dev/null || true
 # REPO_ROOT defaults to the cc-skills working tree (resolved from this
 # task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
 # the audit against a synthetic-fixture fleet.
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 # Hook-command parsing SSoT. Resolved from THIS FILE's location, not from
 # REPO_ROOT — AUDIT_REPO_ROOT_OVERRIDE points at a synthetic fixture tree that
 # has no tasks/lib/.
 AUDIT_TASK_DIRECTORY_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tasks/lib/hook-command-parsing.sh
-source "$AUDIT_TASK_DIRECTORY_ABSOLUTE/lib/hook-command-parsing.sh"
+source "$AUDIT_TASK_DIRECTORY_ABSOLUTE/../lib/hook-command-parsing.sh"
 
 # Minimum length of WILDCARD-MATCHER-OK justification to count as valid.
 # Prevents low-effort opt-outs like "// WILDCARD-MATCHER-OK: ok".
