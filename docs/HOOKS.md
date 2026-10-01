@@ -558,7 +558,7 @@ The iter-84 cooperative-timeout used a unique `Symbol` sentinel + manual `setTim
 
 Cooperative-timeout semantic unchanged: classifiers still cannot be forcibly killed (no subprocess); AbortSignal merely signals the orchestrator to move on and log the laggard.
 
-**(3) Empirical microbenchmark CORRECTS iter-80/iter-81 savings projection** ([benchmark task](../tasks/benchmark-pretooluse-edit-time-orchestrator-amortized-bun-cold-start-savings-curve-versus-pre-orchestration-baseline-per-iter81-ranker-projection.sh))
+**(3) Empirical microbenchmark CORRECTS iter-80/iter-81 savings projection** (benchmark task retired 2026-10-01; recover from git history)
 
 The benchmark measures wall-clock latency of:
 
@@ -846,7 +846,7 @@ That meant the iter-93 orchestrator's `Promise.all` over N subhooks yielded **ze
 3. **Orchestrator aggregator enhancement**: every aggregated section now carries a `[orchestrator-subhook: <name>]` provenance prefix; the function rename encodes the invariant.
 4. **`hooks.json` rewiring**: standalone `posttooluse-tsc-type-check.ts` PostToolUse entry removed (iter-126 update: the iter-94 tsgo entry was renamed tsc); orchestrator entry's description updated to reflect 2/15 and the iter-94 async-Bun.spawn rule.
 5. **Iter-94 static audit task** (`audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh`): parses the orchestrator's import graph, scans every classifier source file for `Bun.spawnSync(` invocations, filters out JSDoc continuation / `//` line comments / backtick-template-literal mentions (emission-pattern audit, not prose-mention audit — mirrors iter-90's PreToolUse additionalContext NON-USE audit pattern), and exits non-zero on any real invocation. Informational gate; release:preflight Check 4n candidate.
-6. **Iter-94 microbenchmark task** (`benchmark-posttooluse-orchestrator-async-bun-spawn-parallelism-gain-versus-hypothetical-spawnsync-serialization-iter94-empirical-confirmation.sh`): median-of-N=5 orchestrator wall-clock across 3 synthetic payloads (.txt non-applicable baseline / .py applicable / .ts applicable). On dev hardware (Apple Silicon M1 Max, 2026-05-21): all medians ≈ 22-26ms — the bun cold-start floor — because both subhooks short-circuit via O(1) extension+existsSync filters. The wall-clock gain from async vs sync becomes visible only when MULTIPLE subhooks actually spawn real subprocesses on the same payload (future state when oxlint, biome, etc. inline).
+6. **Iter-94 microbenchmark task** (retired 2026-10-01; in git history): median-of-N=5 orchestrator wall-clock across 3 synthetic payloads (.txt non-applicable baseline / .py applicable / .ts applicable). On dev hardware (Apple Silicon M1 Max, 2026-05-21): all medians ≈ 22-26ms — the bun cold-start floor — because both subhooks short-circuit via O(1) extension+existsSync filters. The wall-clock gain from async vs sync becomes visible only when MULTIPLE subhooks actually spawn real subprocesses on the same payload (future state when oxlint, biome, etc. inline).
 7. **Iter-94 regression test** ([14 assertions, all pass](../tasks/tests/test-posttooluse-edit-time-orchestrator-iter94-tsgo-inlined-as-second-subhook-plus-async-bun-spawn-refactor-defeats-the-spawnsync-promise-all-anti-pattern-with-provenance-prefix-aggregation-and-static-audit-gate.sh)): orchestrator imports BOTH classifiers, registry ≥ 2 entries, dual-export naming present, NEITHER classifier uses `Bun.spawnSync`, static audit task passes cleanly, hooks.json no longer wires standalone tsc, provenance-prefix-emitting aggregator function present, both classifiers use the shared async-spawn helper, both retain `import.meta.main` guard, orchestrator silent-noops on .txt, microbenchmark runs to completion.
 8. **Iter-92 regression test follow-on update**: Case 3b now accepts EITHER standalone OR orchestrator-via-import as satisfying the [C] CONTEXT-INJECTING invariant — same migration-arc-decoupling pattern applied to Case 3a in iter-93.
 
@@ -869,7 +869,7 @@ Iter-95 is a **2-subhook migration + a DRY refactor + a usability refinement + a
 
 **Issue 2 (usability — conditional provenance prefix)**: iter-94 unconditionally prefixed every aggregated section with `[orchestrator-subhook: <name>]`. For the common single-subhook case (a `.py` edit only triggers `ty`), the prefix was noise. Iter-95 renames the aggregator to `aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixOnlyWhenMultipleSectionsContribute` and emits the prefix ONLY when ≥2 sections contribute. Single-section payloads now match the legacy standalone-hook UX. Multi-section payloads still get unambiguous provenance.
 
-**Issue 3 (empirical confirmation gap)**: iter-94's microbenchmark deliberately fed non-existent files so subhooks short-circuited via existsSync/tsconfig-presence — that measured only the bun cold-start floor, not the parallelism gain. Iter-95 adds a second benchmark variant (`benchmark-posttooluse-orchestrator-real-subprocess-firing-with-actual-typescript-file-empirically-confirms-async-bun-spawn-parallelism-gain-iter95.sh`) that creates a REAL `.ts` file in a tsconfig-rooted dir so multiple subprocesses (tsgo + oxlint + biome) actually fire. Empirical median wall-clock on dev hardware (Apple Silicon M1 Max, 2026-05-21):
+**Issue 3 (empirical confirmation gap)**: iter-94's microbenchmark deliberately fed non-existent files so subhooks short-circuited via existsSync/tsconfig-presence — that measured only the bun cold-start floor, not the parallelism gain. Iter-95 adds a second benchmark variant (the iter-95 benchmark (retired 2026-10-01)) that creates a REAL `.ts` file in a tsconfig-rooted dir so multiple subprocesses (tsgo + oxlint + biome) actually fire. Empirical median wall-clock on dev hardware (Apple Silicon M1 Max, 2026-05-21):
 
 | Payload                         | Median wall-clock | Notes                                                                                                |
 | ------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
@@ -2410,9 +2410,7 @@ Source on Bun's `.mjs` ↔ `.ts` cross-format module resolution (used by `proces
 
 The forensic baseline above can be reproduced (and regression-watched) via:
 
-```bash
-bash tasks/profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-non-applicable-payload-to-surface-high-overhead-outliers-above-bun-startup-floor.sh
-```
+The profiler that produced these numbers was retired on 2026-10-01; recover it from git history to re-measure.
 
 ### Orchestration-candidacy ranker (iter-81, retired)
 

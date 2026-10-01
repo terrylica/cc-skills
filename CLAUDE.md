@@ -40,7 +40,6 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Cargo TTY Fix             | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
 | Claude Code Proxy         | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
 | Release                   | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
-| Migration (v23)           | [docs/MIGRATING-TO-V23.md](./docs/MIGRATING-TO-V23.md)                                                                       |
 | Plugin Lifecycle          | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
 | Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
