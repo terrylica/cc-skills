@@ -55,7 +55,6 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | [pueue-wrap-guard.md](./pueue-wrap-guard.md)                     | Auto-wrapping long-running commands with pueue; why it MUST stay the last PreToolUse entry (iter-61 audit)                         |
 | [cargo-tty-guard.md](./cargo-tty-guard.md)                       | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md)) |
 | [memory-efficiency-reminder.md](./memory-efficiency-reminder.md) | Memory-efficiency reminder + iter-98 silent-drop fix                                                                               |
-| [mini-inngest-doctrine.md](./mini-inngest-doctrine.md)           | Mini-Inngest doctrine hook: nudge toward Mac Mini + Inngest for external/web-facing services; trigger heuristics, escape hatch     |
 
 ## Linters, type checkers and correctness
 
