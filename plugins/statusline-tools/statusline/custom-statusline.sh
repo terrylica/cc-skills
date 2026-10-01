@@ -1462,7 +1462,7 @@ fi
 # value verbatim per the NATIVE-FIELDS-ONLY invariant. Starts with the model
 # token directly (no leading " | " — that separator existed only when this
 # was appended to git_changes).
-# === ccmax sub2api group (rendered immediately LEFT of the model token) =======
+# === ccmax sub2api group (rendered at the START of line 1) ======================
 #   Which pool this session SPENDS FROM. Sourced from CCMAX_WRAPPER_REQUESTED_GROUP,
 #   the ground-truth env var the ccmax wrapper injects into the child process.
 #
@@ -1489,7 +1489,7 @@ case "${CCMAX_WRAPPER_REQUESTED_GROUP:-}" in
 [!A-Za-z0-9]*) ;;       # must start alphanumeric: reject
 *)
     if [ "${#CCMAX_WRAPPER_REQUESTED_GROUP}" -le 64 ]; then
-        group_inline="${BRIGHT_BLACK}${CCMAX_WRAPPER_REQUESTED_GROUP}${RESET}${BRIGHT_BLACK} · ${RESET}"
+        group_inline="${BRIGHT_BLACK}${CCMAX_WRAPPER_REQUESTED_GROUP}${RESET} ${BRIGHT_BLACK}|${RESET} "
     fi
     ;;
 esac
@@ -1497,7 +1497,7 @@ esac
 model_inline=""
 model_token="${model_id:-$model_raw}"
 if [ -n "$model_token" ]; then
-    model_inline="${group_inline}${BRIGHT_BLACK}${model_token}${RESET}"
+    model_inline="${BRIGHT_BLACK}${model_token}${RESET}"
     [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · ${effort_level}${RESET}"
     [ -n "$thinking_enabled" ] && model_inline="${model_inline}${BRIGHT_BLACK} · thinking:${thinking_enabled}${RESET}"
     [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast_mode${RESET}"
@@ -1597,7 +1597,11 @@ if [ -n "$ctx_window_size" ] && \
     ctx_bar_segment="${BRIGHT_BLACK}ctx ▕${RESET}${_bc}${_bf}${RESET}${BRIGHT_BLACK}${_be}${RESET}${_sc}|${RESET}${_bc}${_bdf}${RESET}${_dc}${_bde}${RESET}${BRIGHT_BLACK}▏ ${ctx_used_pct}% · ${ctx_tok_compact}/${ctx_win_compact} · ${_until_part}${RESET}"
 fi
 
-line1="${git_changes}"
+# The group leads line 1 (moved from beside the model token, 2026-09-24): line 1 is
+# the first thing read and the model line was already the most crowded, while the
+# group is the one fact on screen that decides WHICH stakeholder is billed. Omitted
+# entirely when empty, so a default-pool or non-ccmax session renders as before.
+line1="${group_inline}${git_changes}"
 
 # Line 3: path | GitHub URL (visibility)
 vis_label=""

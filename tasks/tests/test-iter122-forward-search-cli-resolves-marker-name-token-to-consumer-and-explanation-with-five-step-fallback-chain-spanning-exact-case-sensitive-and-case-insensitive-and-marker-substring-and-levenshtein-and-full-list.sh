@@ -7,7 +7,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER122_FORWARD_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-forward-search-accessor-by-marker-name-token-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter122.ts"
-ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-explanation-by-marker-name-token-via-iter122-forward-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-explanation-by-marker-name-token-via-iter122-forward-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0
@@ -43,7 +43,7 @@ fi
 
 # ─── Case 2: Step 1 — exact case-sensitive resolves FILE-SIZE-OK ────────
 set +e
-STEP1_EXACT_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "FILE-SIZE-OK" 2>&1)
+STEP1_EXACT_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "FILE-SIZE-OK" 2>&1)
 STEP1_EXACT_EXIT_CODE=$?
 set -e
 if [[ "$STEP1_EXACT_EXIT_CODE" -eq 0 ]] && \
@@ -57,7 +57,7 @@ fi
 
 # ─── Case 3: Step 2 — case-insensitive fallback ──────────────────────────
 set +e
-STEP2_CI_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "file-size-ok" 2>&1)
+STEP2_CI_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "file-size-ok" 2>&1)
 STEP2_CI_EXIT_CODE=$?
 set -e
 if [[ "$STEP2_CI_EXIT_CODE" -eq 0 ]] && \
@@ -70,7 +70,7 @@ fi
 
 # ─── Case 4: Step 3 — substring search on marker tokens ─────────────────
 set +e
-STEP3_SUBSTR_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "TTY" 2>&1)
+STEP3_SUBSTR_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "TTY" 2>&1)
 STEP3_SUBSTR_EXIT_CODE=$?
 set -e
 if [[ "$STEP3_SUBSTR_EXIT_CODE" -eq 0 ]] && \
@@ -84,7 +84,7 @@ fi
 
 # ─── Case 5: Step 4 — Levenshtein Did-You-Mean ──────────────────────────
 set +e
-STEP4_LEV_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "FIEL-SIZE-OK" 2>&1)
+STEP4_LEV_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "FIEL-SIZE-OK" 2>&1)
 STEP4_LEV_EXIT_CODE=$?
 set -e
 if [[ "$STEP4_LEV_EXIT_CODE" -eq 2 ]] && \
@@ -97,7 +97,7 @@ fi
 
 # ─── Case 6: Step 5 — full-list dump on truly-unrelated query ───────────
 set +e
-STEP5_UNRELATED_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "ZZZ-XYZZY-NEVER-REGISTERED-OK" 2>&1)
+STEP5_UNRELATED_OUTPUT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "ZZZ-XYZZY-NEVER-REGISTERED-OK" 2>&1)
 STEP5_UNRELATED_EXIT_CODE=$?
 set -e
 if [[ "$STEP5_UNRELATED_EXIT_CODE" -eq 2 ]] && \
@@ -113,10 +113,10 @@ if ! command -v jq >/dev/null 2>&1; then
     assert_fails "Case 7: jq required to verify --json output but not on PATH"
 else
     set +e
-    JSON_EXACT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "FILE-SIZE-OK" 2>/dev/null)
-    JSON_EXACT_CI=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "file-size-ok" 2>/dev/null)
-    JSON_SUBSTR=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "TTY" 2>/dev/null)
-    JSON_TYPO=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "FIEL-SIZE-OK" 2>/dev/null)
+    JSON_EXACT=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "FILE-SIZE-OK" 2>/dev/null)
+    JSON_EXACT_CI=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "file-size-ok" 2>/dev/null)
+    JSON_SUBSTR=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "TTY" 2>/dev/null)
+    JSON_TYPO=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "FIEL-SIZE-OK" 2>/dev/null)
     set -e
     MATCHTYPE_EXACT=$(echo "$JSON_EXACT" | jq -r '.matchType' 2>/dev/null)
     MATCHTYPE_EXACT_CI=$(echo "$JSON_EXACT_CI" | jq -r '.matchType' 2>/dev/null)
@@ -151,7 +151,7 @@ fi
 # Pick an audit-task marker (SPAWN-SYNC-OK lives only in iter-114). Verify
 # Step 1 resolves it AND --json reports lifecycleLayer=audit-task.
 set +e
-JSON_AUDIT_MARKER=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "SPAWN-SYNC-OK" 2>/dev/null)
+JSON_AUDIT_MARKER=$(bash "$ITER122_FORWARD_SEARCH_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "SPAWN-SYNC-OK" 2>/dev/null)
 JSON_AUDIT_MARKER_EXIT_CODE=$?
 set -e
 AUDIT_LIFECYCLE_LAYER=$(echo "$JSON_AUDIT_MARKER" | jq -r '.matchingMarkers[0].lifecycleLayer' 2>/dev/null)

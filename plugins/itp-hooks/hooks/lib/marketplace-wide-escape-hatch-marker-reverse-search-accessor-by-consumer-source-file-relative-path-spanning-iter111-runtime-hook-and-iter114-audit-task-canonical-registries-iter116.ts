@@ -62,7 +62,7 @@ import {
 import {
   MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY,
   type MarketplaceWideAuditTaskEscapeHatchMarkerCanonicalRegistryEntry,
-} from "./marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts";
+} from "./marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts";
 
 /**
  * Discriminated-union shape encoding which canonical registry the hit

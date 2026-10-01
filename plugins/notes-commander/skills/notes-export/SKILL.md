@@ -19,7 +19,7 @@ bun "$NC" export --out /path/to/dir  # explicit destination
 What a snapshot contains:
 
 - **One markdown file per note**, under `<account>/<folder>/…` mirroring the Notes hierarchy. Each file has YAML frontmatter (`account`, `folder`, `id`, `modified`) and the note body as plain text (decoded via `textutil`, UTF-8-safe, CJK-safe).
-- **`manifest.json`** — every folder (with counts) and every note (id, name, modified, relative file path, char count). This is the machine-readable index for audits and diffs.
+- **`manifest.json`** — every folder (with counts) and every note (id, name, modified, relative file path, char count). This is the machine-readable index for audits and diffs. It also carries `complete` (false when anything was skipped) and `skipped.folders` / `skipped.notes` with the reason for each, so the manifest alone tells a full backup from a partial one — check `complete` before trusting a snapshot, not just that `manifest.json` exists.
 - Filenames are sanitized (`safeFilename`) and suffixed with the note's core-data id (`.p1234.md`), so same-titled notes never collide.
 
 ## Rules
@@ -39,8 +39,12 @@ command -v mempalace >/dev/null && mempalace mine "<snapshot-dir>" --wing apple-
 
 Idempotent (unchanged notes are skipped). Recall then works via `mempalace search "<query>" --wing apple-notes`. Skip silently when mempalace isn't installed — the bridge is an enhancement, not a dependency.
 
-- A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). Transient `-600`/`-1712` launch races retry automatically.
+- A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). The same holds for a note whose text conversion fails (`⚠ note skipped (text conversion failed)`): it is skipped, the rest of the snapshot and `manifest.json` are still written. Transient `-600`/`-1712` launch races retry automatically.
 
 ## Post-Execution Reflection
 
-After an export, check: (1) exit code 0 and note count ≈ live inventory total? Exit 3 means some notes were skipped — read the `⚠` lines and investigate before trusting the snapshot as a backup. (2) Spot-check one CJK/emoji-titled file — mojibake means the `<meta charset="utf-8">` textutil prefix or `safeFilename` drifted. (3) New `-1741`s despite chunking → shrink the chunk size in `OSA_EXPORT`. Update this SKILL.md only for real, reproducible drift.
+After an export, check: (1) exit code 0, `manifest.json` `complete: true`, and note count ≈ live inventory total? Exit 3 / `complete: false` means some notes were skipped — read `skipped` (or the `⚠` lines) and investigate before trusting the snapshot as a backup. (2) Spot-check one CJK/emoji-titled file — mojibake means the `<meta charset="utf-8">` textutil prefix or `safeFilename` drifted. (3) New `-1741`s despite chunking → shrink the chunk size in `OSA_EXPORT`. Update this SKILL.md only for real, reproducible drift.
+
+## Evolution log
+
+- **2026-09-27 — a note was silently exported empty, and the manifest could not say so.** _Trigger_: a live export of 637 notes after v32.3.1 exited 3 with one `⚠ note skipped (text conversion failed) … exit null`. _Measured_: that note is 1.7 KB of plain HTML and converted 80 of 80 times in isolation, so `textutil` had been killed by a signal once in over 600 conversions. Before v32.3.1 the same death returned `""`, and the note went into the backup as an empty file with no warning. v32.3.1 made that loud, but the manifest still named only the notes it wrote, so a caller trusting `manifest.json` could not see the gap. _Fix_: `htmlToText()` makes two attempts (not for `ENOBUFS`, which is deterministic) and names the signal when a run is killed. `manifest.json` gains `complete` and `skipped.folders` / `skipped.notes`, each with a reason. _Evidence_: a second full export returned 638 notes, `complete: true`, exit 0, with the previously skipped note exported with its text.

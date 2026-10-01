@@ -104,13 +104,13 @@ Not yet formally evaluated. Needs audition assessment.
 
 ### zf_xiaobei -- Default Chinese Voice
 
-Configured via `TTS_VOICE_ZH`. Used when CJK character ratio exceeds 20% (detected by `detect_language` in `tts-common.sh`). Not included in the English audition rotation.
+The Chinese voice the companion and `tts-common.sh` default to (`ZH_VOICE`). `tts-common.sh`'s `detect_language` would pick it when the CJK character ratio exceeds 20%, though no script currently calls that helper. Not included in the English audition rotation.
 
 ## Voice Selection Guidance
 
-### For Default TTS (TTS_VOICE_EN)
+### For Default TTS
 
-Use **af_heart** (Grade A). It provides the best naturalness and listener comfort for the primary use case of reading Claude Code responses aloud via Telegram.
+Use **af_heart** (Grade A). It provides the best naturalness and listener comfort for the primary use case of reading Claude Code responses and copied text aloud.
 
 ### For Variety or Rotation
 
@@ -126,14 +126,8 @@ The male voice catalog is currently weak. am_michael and am_puck are unrated and
 
 ## Configuration
 
-Voices are configured in `~/.claude/automation/claude-telegram-sync/moon.yml` `env:` (the launchd service reads overrides from that directory's `.env`):
+The voice the read-aloud hotkey uses is owned by `claude-tts-companion` (its persisted settings), not by this plugin; change it there. The Supertonic fallback always uses style `M3`.
 
-```yaml
-env:
-  TTS_VOICE_EN: "af_heart"      # Kokoro English voice ID
-  TTS_VOICE_ZH: "zf_xiaobei"    # Kokoro Chinese voice ID
-  TTS_VOICE_SAY_EN: "Samantha"  # macOS say fallback (English)
-  TTS_VOICE_SAY_ZH: "Ting-Ting" # macOS say fallback (Chinese)
-```
+The audition plays the `VOICES` array in `scripts/tts_kokoro_audition.sh`; edit that list to audition a different set. `lib/tts-common.sh` defines `EN_VOICE` (default `af_heart`) and `ZH_VOICE` (default `zf_xiaobei`) for its language-detection helper.
 
-The shell library `tts-common.sh` also reads `EN_VOICE` and `ZH_VOICE` environment variables, defaulting to af_heart and zf_xiaobei respectively.
+Until 2026-09-26 this section pointed at the retired Telegram bot's `moon.yml` `env:` block (`TTS_VOICE_EN`, `TTS_VOICE_ZH`, `TTS_VOICE_SAY_*`). Those variables configured the bot only and no longer exist.

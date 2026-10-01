@@ -10,11 +10,11 @@
 # Forwards (kept inline so this file is the single source of truth for ports):
 #   localhost:18123 → <host>:8123  (ClickHouse HTTP)
 #   localhost:18081 → <host>:8081  (SSE sidecar — crypto ODB live bars)
-#   localhost:18082 → <host>:8082  (fxview-sidecar — forex live tick SSE)
-#   localhost:5900  → <host>:5900  (VNC — x11vnc, MT5/WINE on display :99)
 #
 # A fifth forward (:18095) was removed 2026-08-15 after the service behind it was
-# retired. The lesson generalises, which is why it is recorded here:
+# retired. :18082 (fxview-sidecar) and :5900 (x11vnc/MT5) followed on 2026-09-27:
+# the tunnel host had no listener and no unit for either, loaded or not.
+# The lesson generalises, which is why it is recorded here:
 #
 # `-L` binds the LOCAL port EAGERLY and only dials the remote on first use, so a
 # dead remote never trips ExitOnForwardFailure. The port simply sits there
@@ -67,8 +67,6 @@ SSH_ARGS=(
   -o ConnectTimeout=8
   -L 18123:localhost:8123
   -L 18081:localhost:8081
-  -L 18082:localhost:8082
-  -L 5900:localhost:5900
   "$TARGET_HOST"
 )
 

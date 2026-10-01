@@ -7,7 +7,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts"
-ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0
@@ -101,7 +101,7 @@ fi
 
 # ─── Case 4: CLI catches basename-substring query before Levenshtein ────
 set +e
-CLI_BASENAME_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "file-size-guard" 2>&1)
+CLI_BASENAME_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "file-size-guard" 2>&1)
 CLI_BASENAME_EXIT_CODE=$?
 set -e
 if [[ "$CLI_BASENAME_EXIT_CODE" -eq 0 ]] && \
@@ -122,7 +122,7 @@ fi
 # pretooluse-file-size-guard.ts) WOULD match basename-substring if not
 # skipped. The Levenshtein branch should fire instead.
 set +e
-CLI_SLASH_QUERY_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "wrong/dir/file-size-guard.ts" 2>&1)
+CLI_SLASH_QUERY_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "wrong/dir/file-size-guard.ts" 2>&1)
 CLI_SLASH_QUERY_EXIT_CODE=$?
 set -e
 if [[ "$CLI_SLASH_QUERY_EXIT_CODE" -eq 2 ]] && \
@@ -137,7 +137,7 @@ if ! command -v jq >/dev/null 2>&1; then
     assert_fails "Case 6: jq is required to verify --json output but was not found on PATH"
 else
     set +e
-    JSON_BASENAME_STDOUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "file-size" 2>/dev/null)
+    JSON_BASENAME_STDOUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "file-size" 2>/dev/null)
     JSON_BASENAME_EXIT_CODE=$?
     set -e
     JSON_BASENAME_STATUS=$(echo "$JSON_BASENAME_STDOUT" | jq -r '.status' 2>/dev/null || echo "JQ_PARSE_ERROR")
@@ -157,7 +157,7 @@ fi
 
 # ─── Case 7: JSON mode on exact match emits matchType=exact ──────────────
 set +e
-JSON_EXACT_STDOUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>/dev/null)
+JSON_EXACT_STDOUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>/dev/null)
 JSON_EXACT_EXIT_CODE=$?
 set -e
 JSON_EXACT_STATUS=$(echo "$JSON_EXACT_STDOUT" | jq -r '.status' 2>/dev/null || echo "JQ_PARSE_ERROR")
@@ -172,7 +172,7 @@ fi
 
 # ─── Case 8: iter-118 Levenshtein not regressed on full-path typo ───────
 set +e
-CLI_LEVENSHTEIN_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts" 2>&1)
+CLI_LEVENSHTEIN_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts" 2>&1)
 CLI_LEVENSHTEIN_EXIT_CODE=$?
 set -e
 if [[ "$CLI_LEVENSHTEIN_EXIT_CODE" -eq 2 ]] && \

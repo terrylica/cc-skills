@@ -29,8 +29,6 @@
   copy; if the two ever disagree, the runner is right):
     localhost:18123 → $TUNNEL_HOST:8123  (ClickHouse HTTP)
     localhost:18081 → $TUNNEL_HOST:8081  (SSE sidecar — crypto ODB live bars)
-    localhost:18082 → $TUNNEL_HOST:8082  (fxview-sidecar — forex live tick SSE)
-    localhost:5900  → $TUNNEL_HOST:5900  (VNC — x11vnc, MT5/WINE on display :99)
 
   ⚠️ THIS TUNNEL IS LOAD-BEARING — DO NOT STOP OR UNINSTALL IT.
     A fifth forward, localhost:18095 → $TUNNEL_HOST:8095 (a monitoring service's dashboard

@@ -184,11 +184,9 @@ async function runHealthCheck(cdpUrl: string): Promise<boolean> {
   } catch {
     console.log(`  CDP: UNREACHABLE at ${cdpUrl}`);
     console.log(
-      "\n  Launch Chrome with:\n" +
-        "  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\\n" +
-        "    --remote-debugging-port=9222 \\\n" +
-        '    --user-data-dir="$HOME/.local/share/gemini-profile" \\\n' +
-        '    "https://gemini.google.com/app"',
+      "\n  Launch Chrome with (chrome-profiles plugin):\n" +
+        '  CHROME_DEBUG_PROFILE="$HOME/.local/share/gemini-research-profile" bash "$(cc-plugin-root chrome-profiles)/scripts/chrome-debug-port-control.sh" up\n' +
+        "  then open https://gemini.google.com/app in that window and sign in once",
     );
   }
 

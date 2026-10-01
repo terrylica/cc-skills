@@ -16,17 +16,23 @@
 #   handler branches). This test locks in BOTH the Bash behavior AND
 #   the defensive guard so neither regresses.
 #
-# Coverage matrix (7 assertions, 4 inputs):
+# Coverage matrix (9 assertions, 6 inputs):
 #
 #   # | Input                                | Expected hookSpecificOutput          | Bash STDIN wrap?
 #   --|--------------------------------------|--------------------------------------|------------------
-#   01| Bash with simple command             | allow + updatedInput.command wrapped | YES — < /dev/null
+#   01| Bash with simple command             | allow + `exec < /dev/null` prefix    | YES — prefix line
 #   02| Bash with SSH remote command         | bare allow (no updatedInput)         | NO — SSH skip
-#   03| Bash already containing < /dev/null  | bare allow (no double-wrap)          | NO — already wrapped
+#   03| Bash already containing < /dev/null  | allow, command unchanged             | NO — already redirected
 #   04| Bash with no `command` field         | bare allow                           | n/a — defensive
 #   05| non-Bash (Read) → defensive exit     | bare allow (no updatedInput)         | n/a — iter-63 guard
 #   06| stderr emits the diagnostic emoji    | "🛡️  Subprocess Inlet Guard"           | only on Bash
 #   07| Non-Bash emits no stderr diagnostic  | (silent)                             | n/a
+#   08| Bash ending in a `# comment`         | rewritten command still runs         | YES
+#   09| compound `cat; echo done | cat`      | every part reads /dev/null           | YES
+#
+# The prefix replaced a `( … ) < /dev/null` subshell wrap on 2026-09-28: Claude
+# Code's worktree isolation cannot verify git inside that construct and refused
+# every git command in worktree sessions (details in the hook source).
 #
 # Verbose filename encodes: WHAT (subprocess-stdin-inlet-guard), WHEN
 # (iter-63), HOW (matcher narrowed to Bash), and WHICH defensive
@@ -71,11 +77,15 @@ run_hook_capture_stdout_and_stderr_separately \
   '{"tool_name":"Bash","tool_input":{"command":"echo hello"}}' \
   STDOUT_01 STDERR_01
 
-# Assertion: updatedInput.command must contain "< /dev/null"
-if grep -q '"updatedInput":{"command":"(echo hello) < /dev/null"}' <<<"$STDOUT_01"; then
-  assert_pass "Bash command wrapped with parenthesized < /dev/null redirect"
+# Assertion: updatedInput.command is the `exec < /dev/null` PREFIX form.
+# INVERTED 2026-09-28: this asserted the old `(echo hello) < /dev/null` subshell
+# wrap, which made Claude Code's worktree isolation refuse every git command
+# (it cannot verify git inside a subshell with a redirect) and broke any
+# command ending in a `#` comment. See the hook source for the measurements.
+if grep -qF '"updatedInput":{"command":"exec < /dev/null\necho hello"}' <<<"$STDOUT_01"; then
+  assert_pass "Bash command prefixed with 'exec < /dev/null' on its own line"
 else
-  assert_fail "Bash command not wrapped correctly. Got: $STDOUT_01"
+  assert_fail "Bash command not prefixed correctly. Got: $STDOUT_01"
 fi
 
 # Assertion #06: stderr emits the diagnostic emoji
@@ -110,12 +120,43 @@ run_hook_capture_stdout_and_stderr_separately \
   '{"tool_name":"Bash","tool_input":{"command":"echo x < /dev/null"}}' \
   STDOUT_03 STDERR_03
 
-# The hook DOES still emit allowWithInput (it wraps once but does not double-wrap).
-# Check: command does NOT contain "(echo x < /dev/null) < /dev/null"
-if ! grep -q '< /dev/null) < /dev/null' <<<"$STDOUT_03"; then
-  assert_pass "Command containing < /dev/null is not double-wrapped"
+# The hook still emits allowWithInput, with the command passed through unchanged.
+if grep -qF '"updatedInput":{"command":"echo x < /dev/null"}' <<<"$STDOUT_03"; then
+  assert_pass "Command containing < /dev/null is passed through unchanged (no prefix)"
 else
-  assert_fail "Double-wrap detected. Got: $STDOUT_03"
+  assert_fail "Command containing < /dev/null was altered. Got: $STDOUT_03"
+fi
+
+# ---------------------------------------------------------------------------
+# Test #08: a command ending in a `#` comment still yields a valid command.
+# The old `( … ) < /dev/null` wrap put the closing parenthesis inside the
+# comment, so bash saw an unterminated subshell.
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test #08: trailing '# comment' survives the rewrite ==="
+run_hook_capture_stdout_and_stderr_separately \
+  '{"tool_name":"Bash","tool_input":{"command":"echo ok # trailing note"}}' \
+  STDOUT_08 STDERR_08
+REWRITTEN_08=$(jq -r '.hookSpecificOutput.updatedInput.command' <<<"$STDOUT_08" 2>/dev/null || true)
+if [ -n "$REWRITTEN_08" ] && [ "$(bash -c "$REWRITTEN_08" 2>&1)" = "ok" ]; then
+  assert_pass "Rewritten command with a trailing comment parses and runs"
+else
+  assert_fail "Rewritten command with a trailing comment failed. Got: $REWRITTEN_08"
+fi
+
+# ---------------------------------------------------------------------------
+# Test #09: the rewrite really disconnects stdin for a compound command.
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test #09: stdin is /dev/null for every part of a compound command ==="
+run_hook_capture_stdout_and_stderr_separately \
+  '{"tool_name":"Bash","tool_input":{"command":"cat; echo done | cat"}}' \
+  STDOUT_09 STDERR_09
+REWRITTEN_09=$(jq -r '.hookSpecificOutput.updatedInput.command' <<<"$STDOUT_09" 2>/dev/null || true)
+if [ "$(echo SHOULD-NOT-BE-READ | bash -c "$REWRITTEN_09" 2>&1)" = "done" ]; then
+  assert_pass "Compound command reads /dev/null, not the caller's stdin"
+else
+  assert_fail "Compound command still read the caller's stdin. Rewritten: $REWRITTEN_09"
 fi
 
 # ---------------------------------------------------------------------------

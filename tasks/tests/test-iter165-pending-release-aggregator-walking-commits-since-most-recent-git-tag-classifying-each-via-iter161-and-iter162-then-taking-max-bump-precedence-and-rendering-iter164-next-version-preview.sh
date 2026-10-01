@@ -6,7 +6,7 @@ ITER165_TEST_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-tople
 cd "$ITER165_TEST_REPO_ROOT"
 
 ITER165_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
-ITER165_MISE_TASK_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/tasks/commits/pending-release"
+ITER165_TASK_WRAPPER_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/tasks/commits/pending-release"
 
 ITER165_TOTAL_ASSERTIONS_EVALUATED=0
 ITER165_TOTAL_ASSERTIONS_FAILED=0
@@ -259,24 +259,24 @@ fi
 
 rm -rf "$ITER165_GROUP_F_REPO"
 
-# ─── Group G: mise task wrapper delegates correctly ──────────────────────────
+# ─── Group G: task wrapper delegates correctly ──────────────────────────
 echo ""
-echo "GROUP G (2 assertions): mise task wrapper delegates correctly to underlying script"
+echo "GROUP G (2 assertions): task wrapper delegates correctly to underlying script"
 
 ITER165_TOTAL_ASSERTIONS_EVALUATED=$((ITER165_TOTAL_ASSERTIONS_EVALUATED + 1))
-if [[ -x "$ITER165_MISE_TASK_ABSOLUTE_PATH" ]]; then
-    echo "  ✓ G1: mise task file commits/pending-release exists and is executable"
+if [[ -x "$ITER165_TASK_WRAPPER_ABSOLUTE_PATH" ]]; then
+    echo "  ✓ G1: task file commits/pending-release exists and is executable"
 else
-    echo "  ✗ G1: mise task missing or not executable"
+    echo "  ✗ G1: task wrapper missing or not executable"
     ITER165_TOTAL_ASSERTIONS_FAILED=$((ITER165_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
-ITER165_GROUP_G_OUTPUT=$(bash "$ITER165_MISE_TASK_ABSOLUTE_PATH" --json 2>/dev/null || true)
+ITER165_GROUP_G_OUTPUT=$(bash "$ITER165_TASK_WRAPPER_ABSOLUTE_PATH" --json 2>/dev/null || true)
 ITER165_TOTAL_ASSERTIONS_EVALUATED=$((ITER165_TOTAL_ASSERTIONS_EVALUATED + 1))
 if printf '%s' "$ITER165_GROUP_G_OUTPUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "iter165_schema_version" in d' 2>/dev/null; then
-    echo "  ✓ G2: mise task wrapper emits parseable JSON matching schema (delegation contract intact)"
+    echo "  ✓ G2: task wrapper emits parseable JSON matching schema (delegation contract intact)"
 else
-    echo "  ✗ G2: mise task wrapper JSON delegation failed"
+    echo "  ✗ G2: task wrapper JSON delegation failed"
     ITER165_TOTAL_ASSERTIONS_FAILED=$((ITER165_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 

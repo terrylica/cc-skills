@@ -270,7 +270,12 @@ private extension CompanionApp {
                 return
             }
 
-            // The stop hook (telegram-notify-stop.ts) writes camelCase keys
+            // Writers use camelCase keys; snake_case is accepted as a fallback.
+            // The one writer left in the repo is tts-tg-sync's notification-tts-hook.sh
+            // (source "notification-hook"), which hooks.json does not register. The
+            // Stop-hook writer, telegram-notify-stop.ts, was deleted on 2026-09-26
+            // (recover: git show e4097baf:plugins/tts-tg-sync/hooks/telegram-notify-stop.ts).
+            // It wrote no source field, which is why a missing source logs as "stop-hook".
             let sessionId = json["sessionId"] as? String ?? json["session_id"] as? String ?? "unknown"
             let transcriptPath = json["transcriptPath"] as? String ?? json["transcript_path"] as? String
             let cwd = json["cwd"] as? String

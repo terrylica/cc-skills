@@ -44,7 +44,8 @@ export function escapeHtml(s: string): string {
  * Scheme allow-list is deliberate: an unrecognised scheme (`javascript:`, `data:`, a bare path)
  * renders as literal text rather than becoming a live link in a document a human will click.
  */
-const INLINE_LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s()<>"]+|mailto:[^\s()<>"]+)\)/g;
+const INLINE_LINK_RE =
+	/\[([^\]\n]+)\]\((https?:\/\/[^\s()<>"]+|mailto:[^\s()<>"]+)\)/g;
 
 /**
  * Inline emphasis Notes renders as RICH TEXT rather than as literal characters.
@@ -356,7 +357,9 @@ function renderTextBlock(lines: string[]): string[] {
 		const firstMarker = p.findIndex((l) => LIST_RE.test(l));
 		if (firstMarker > 0) {
 			// lead-in prose, then the list
-			html.push(`<div>${renderInline(reflowJoin(p.slice(0, firstMarker)))}</div>`);
+			html.push(
+				`<div>${renderInline(reflowJoin(p.slice(0, firstMarker)))}</div>`,
+			);
 			html.push(...renderListItems(p.slice(firstMarker)));
 		} else if (firstMarker === 0) {
 			html.push(...renderListItems(p));
@@ -510,11 +513,13 @@ export function runOsa(
 		const r = spawnSync("osascript", ["-", ...args], {
 			input: script,
 			encoding: "utf8",
+			maxBuffer: SPAWN_MAX_BUFFER,
 		});
 		last = {
-			ok: r.status === 0,
+			// `error` covers a spawn failure and ENOBUFS, where status can still read 0.
+			ok: r.status === 0 && !r.error,
 			stdout: (r.stdout ?? "").replace(/\n$/, ""),
-			stderr: r.stderr ?? "",
+			stderr: r.error ? `${r.error.message}\n` : (r.stderr ?? ""),
 			attempts: attempt,
 		};
 		if (last.ok) return last;
@@ -532,7 +537,10 @@ export function runOsaOrDie(
 ): string {
 	const r = runOsa(script, args, maxAttempts);
 	if (!r.ok) {
-		process.stderr.write(r.stderr || "osascript failed\n");
+		const hint = sandboxHint(process.env);
+		process.stderr.write(
+			(r.stderr || "osascript failed\n") + (hint ? `✗${hint}\n` : ""),
+		);
 		process.exit(1);
 	}
 	return r.stdout;
@@ -563,18 +571,77 @@ export function terminateLegacyEntities(bodyHtml: string): string {
 	return bodyHtml.replace(/&(quot|amp|lt|gt|apos|nbsp)/g, "&$1;");
 }
 
-/** Decode Notes body HTML to plain text with a real HTML parser (never sed). */
-export function htmlToText(bodyHtml: string): string {
-	// textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
-	const r = spawnSync(
-		"textutil",
-		["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
-		{
-			input: `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`,
-			encoding: "utf8",
-		},
+/**
+ * spawnSync output ceiling. Without it Bun's default (~1 MiB) applies, and past it Bun returns
+ * status 0 with `error: ENOBUFS` and TRUNCATED stdout (measured 2026-09-27: 1,114,112 of 1,126,400
+ * bytes) — a silent truncation unless `error` is checked, which every caller below now does.
+ */
+export const SPAWN_MAX_BUFFER = 256 * 1024 * 1024;
+
+/** textutil attempts per conversion (see htmlToText). */
+export const HTML_TO_TEXT_ATTEMPTS = 2;
+
+/** True when the HTML carries characters a reader would see (tags stripped, nbsp as space). */
+export function hasVisibleText(bodyHtml: string): boolean {
+	return (
+		bodyHtml
+			.replace(/<[^>]*>/g, "")
+			.replace(/&(nbsp|#160|#x0*a0);?/gi, " ")
+			.trim() !== ""
 	);
-	return r.stdout ?? "";
+}
+
+export class HtmlToTextError extends Error {}
+
+/** The reason a Notes/textutil call fails inside Claude Code's sandbox, or "" outside one. */
+export function sandboxHint(env: Record<string, string | undefined>): string {
+	return env.SANDBOX_RUNTIME
+		? " — this is running inside Claude Code's sandbox, which blocks Apple Events and textutil's helper; run it outside the sandbox"
+		: "";
+}
+
+/**
+ * Decode Notes body HTML to plain text with a real HTML parser (never sed).
+ *
+ * An empty result for a note with visible text is an ERROR, never a value (2026-09-27): textutil
+ * whose helper service is unavailable prints "Couldn't communicate with a helper application",
+ * writes nothing and still exits 0, and returning that "" made a saved note look lost and would
+ * have made `get --body-only` hand a human blank text to send. Measured inside Claude Code's
+ * sandbox; the check holds everywhere because nothing about it depends on where it runs.
+ */
+export function htmlToText(
+	bodyHtml: string,
+	env: Record<string, string | undefined> = process.env,
+): string {
+	// textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
+	const input = `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`;
+	let why = "";
+	// Two attempts: a real export (637 notes, 2026-09-27) had ONE textutil run killed by a signal
+	// (status null, no stderr) on a 1.7 KB note that then converted 80/80 times in isolation. A
+	// transient death must not drop a note from a backup. A buffer overflow is not transient, so it
+	// is not retried.
+	for (let attempt = 1; attempt <= HTML_TO_TEXT_ATTEMPTS; attempt++) {
+		const r = spawnSync(
+			"textutil",
+			["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
+			{ input, encoding: "utf8", maxBuffer: SPAWN_MAX_BUFFER },
+		);
+		const out = r.stdout ?? "";
+		const failed =
+			Boolean(r.error) ||
+			r.status !== 0 ||
+			(out.trim() === "" && hasVisibleText(bodyHtml));
+		if (!failed) return out;
+		why =
+			r.error?.message ||
+			(r.stderr ?? "").trim() ||
+			(r.signal ? `killed by ${r.signal}` : `exit ${r.status}`);
+		if ((r.error as NodeJS.ErrnoException | undefined)?.code === "ENOBUFS")
+			break;
+	}
+	throw new HtmlToTextError(
+		`HTML-to-text conversion (textutil) returned nothing for a note with text: ${why}${sandboxHint(env)}`,
+	);
 }
 
 /** Collapse runs of blank lines to single blanks (read-back cosmetics). */

@@ -182,6 +182,8 @@ if [[ "$benchmark_exit" == "0" ]] && [[ "$benchmark_output" == *'median:'* ]]; t
     assert_passes "Case 10: iter-95 empirical-parallelism benchmark task runs to completion (real .ts file + multi-subprocess fire)"
 else
     assert_fails "Case 10: benchmark failed; exit=$benchmark_exit"
+    # Print the benchmark's own output: the exit code alone never said why (2026-09-27).
+    printf '%s\n' "$benchmark_output" | tail -25 | sed 's/^/      | /'
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-153 regression test pinning the pre-commit dry-run advisor. Asserts (a) advisor + mise wrapper exist + executable + bash-clean + shellcheck-clean, (b) reuses iter-82/iter-151 grammar (recognized type set, regex patterns, 50/72 thresholds) — single source of truth invariant, (c) all 4 verdicts emit correctly (COMMIT_READY, COMMIT_READY_WITH_READABILITY_WARNING, SILENT_FAIL_RISK on COMPOUND-PREFIX, SILENT_FAIL_RISK on MISSING-TYPE), (d) --json mode emits stable iter-153 schema fields, (e) --strict mode exits non-zero on silent-fail-class violations only — long-subject overlay remains informational even in strict mode per iter-151 design invariant, (f) breaking-change indicator detected via ! suffix, (g) scope extraction via parenthesized capture group, (h) remediation hints surface for each silent-fail-class subtype.
+# Iter-153 regression test pinning the pre-commit dry-run advisor. Asserts (a) advisor + task wrapper exist + executable + bash-clean + shellcheck-clean, (b) reuses iter-82/iter-151 grammar (recognized type set, regex patterns, 50/72 thresholds) — single source of truth invariant, (c) all 4 verdicts emit correctly (COMMIT_READY, COMMIT_READY_WITH_READABILITY_WARNING, SILENT_FAIL_RISK on COMPOUND-PREFIX, SILENT_FAIL_RISK on MISSING-TYPE), (d) --json mode emits stable iter-153 schema fields, (e) --strict mode exits non-zero on silent-fail-class violations only — long-subject overlay remains informational even in strict mode per iter-151 design invariant, (f) breaking-change indicator detected via ! suffix, (g) scope extraction via parenthesized capture group, (h) remediation hints surface for each silent-fail-class subtype.
 set -euo pipefail
 
 ITER153_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -7,8 +7,8 @@ cd "$ITER153_REPO_ROOT"
 
 ITER153_ADVISOR_SCRIPT_RELATIVE_PATH="scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
 ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH="$ITER153_REPO_ROOT/$ITER153_ADVISOR_SCRIPT_RELATIVE_PATH"
-ITER153_MISE_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/advise"
-ITER153_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER153_REPO_ROOT/$ITER153_MISE_TASK_WRAPPER_RELATIVE_PATH"
+ITER153_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/advise"
+ITER153_TASK_WRAPPER_ABSOLUTE_PATH="$ITER153_REPO_ROOT/$ITER153_TASK_WRAPPER_RELATIVE_PATH"
 
 ITER153_TOTAL_ASSERTIONS_EVALUATED=0
 ITER153_TOTAL_ASSERTIONS_FAILED=0
@@ -69,19 +69,19 @@ echo "════════════════════════�
 
 # ─── Group A: Structural validity ────────────────────────────────────────────
 echo ""
-echo "GROUP A (4 assertions): advisor + mise wrapper structurally valid"
+echo "GROUP A (4 assertions): advisor + task wrapper structurally valid"
 
 ITER153_TOTAL_ASSERTIONS_EVALUATED=$((ITER153_TOTAL_ASSERTIONS_EVALUATED + 1))
-if [[ -x "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" ]] && [[ -x "$ITER153_MISE_TASK_WRAPPER_ABSOLUTE_PATH" ]]; then
-    echo "  ✓ A1: both advisor + mise wrapper exist and are executable"
+if [[ -x "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" ]] && [[ -x "$ITER153_TASK_WRAPPER_ABSOLUTE_PATH" ]]; then
+    echo "  ✓ A1: both advisor + task wrapper exist and are executable"
 else
-    echo "  ✗ A1: advisor or mise wrapper missing or not executable"
+    echo "  ✗ A1: advisor or task wrapper missing or not executable"
     ITER153_TOTAL_ASSERTIONS_FAILED=$((ITER153_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
 ITER153_TOTAL_ASSERTIONS_EVALUATED=$((ITER153_TOTAL_ASSERTIONS_EVALUATED + 1))
-if bash -n "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" 2>/dev/null && bash -n "$ITER153_MISE_TASK_WRAPPER_ABSOLUTE_PATH" 2>/dev/null; then
-    echo "  ✓ A2: both advisor + mise wrapper pass bash -n syntax check"
+if bash -n "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" 2>/dev/null && bash -n "$ITER153_TASK_WRAPPER_ABSOLUTE_PATH" 2>/dev/null; then
+    echo "  ✓ A2: both advisor + task wrapper pass bash -n syntax check"
 else
     echo "  ✗ A2: bash -n syntax check failed"
     ITER153_TOTAL_ASSERTIONS_FAILED=$((ITER153_TOTAL_ASSERTIONS_FAILED + 1))
@@ -89,8 +89,8 @@ fi
 
 ITER153_TOTAL_ASSERTIONS_EVALUATED=$((ITER153_TOTAL_ASSERTIONS_EVALUATED + 1))
 if command -v shellcheck >/dev/null 2>&1; then
-    if shellcheck "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1 && shellcheck "$ITER153_MISE_TASK_WRAPPER_ABSOLUTE_PATH" >/dev/null 2>&1; then
-        echo "  ✓ A3: both advisor + mise wrapper pass shellcheck (zero warnings)"
+    if shellcheck "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1 && shellcheck "$ITER153_TASK_WRAPPER_ABSOLUTE_PATH" >/dev/null 2>&1; then
+        echo "  ✓ A3: both advisor + task wrapper pass shellcheck (zero warnings)"
     else
         echo "  ✗ A3: shellcheck warnings detected"
         ITER153_TOTAL_ASSERTIONS_FAILED=$((ITER153_TOTAL_ASSERTIONS_FAILED + 1))
@@ -102,8 +102,8 @@ fi
 
 # shellcheck disable=SC2016
 iter153_assert_substring_present_in_file \
-    "A4: mise wrapper delegates via exec for clean signal propagation" \
-    "$ITER153_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
+    "A4: task wrapper delegates via exec for clean signal propagation" \
+    "$ITER153_TASK_WRAPPER_ABSOLUTE_PATH" \
     'exec "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH"'
 
 # ─── Group B: Single source of truth invariant (iter-82/iter-151 grammar reuse)

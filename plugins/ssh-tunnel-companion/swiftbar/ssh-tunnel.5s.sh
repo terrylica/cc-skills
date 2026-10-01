@@ -131,8 +131,6 @@ echo "---"
 echo "Ports | sfimage=network"
 echo "-- :18123 → ${HOST_LABEL}:8123 (ClickHouse)"
 echo "-- :18081 → ${HOST_LABEL}:8081 (SSE sidecar — crypto ODB)"
-echo "-- :18082 → ${HOST_LABEL}:8082 (fxview-sidecar — forex ticks)"
-echo "-- :5900  → ${HOST_LABEL}:5900 (VNC — MT5/WINE)"
 
 echo "---"
 

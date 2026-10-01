@@ -76,7 +76,7 @@ const child = Bun.spawn(['bun', '$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH'],
 await child.exited;
 const elapsedNanos = process.hrtime.bigint() - startNanos;
 console.log(Number(elapsedNanos) / 1_000_000);
-" 2>/dev/null)
+")  # stderr NOT discarded: when one replicate fails, the reason must reach the log
         wall_clock_milliseconds_samples+=("$elapsed_ms")
     done
 

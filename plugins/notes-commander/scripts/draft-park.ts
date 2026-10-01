@@ -14,7 +14,7 @@
  *     prose reflows (blank line = paragraph), lists stay per-item, ``` fences verbatim.
  *
  * Commands (unchanged surface):
- *   draft-park.ts new "<title>" [--session UUID] [--project NAME] [--folder NAME] [--no-verify]
+ *   draft-park.ts new "<title>" [--session UUID] [--project NAME] [--folder NAME] [--no-verify] [--allow-empty]
  *   draft-park.ts get "<title>" [--folder NAME] [--body-only]
  *   draft-park.ts list [--folder NAME]
  *   draft-park.ts sticky "<title>" [--folder NAME]
@@ -28,6 +28,7 @@ import {
 	entityLeaks,
 	escapeHtml,
 	FOLDER_DEFAULT,
+	HtmlToTextError,
 	htmlToText,
 	isNoteId,
 	matchNoteIds,
@@ -135,8 +136,8 @@ export function bodyOnly(full: string): string {
 // stays exactly the sendable text so `--copy` and shell pipelines are unaffected.
 
 export interface ChannelRenderResult {
-  text: string;
-  warnings: string[];
+	text: string;
+	warnings: string[];
 }
 
 /**
@@ -144,42 +145,55 @@ export interface ChannelRenderResult {
  * and nothing else — it has no headings, no inline code, and no link syntax at all.
  */
 export function renderForWhatsApp(markdown: string): ChannelRenderResult {
-  const warnings: string[] = [];
-  const lines = markdown.split("\n");
-  let inFence = false;
-  const out = lines.map((line) => {
-    if (/^\s*```/.test(line)) {
-      inFence = !inFence;
-      return line;
-    }
-    // Inside a fence the text is verbatim by contract — rewriting it would corrupt the very thing the
-    // author fenced to protect.
-    if (inFence) return line;
+	const warnings: string[] = [];
+	const lines = markdown.split("\n");
+	let inFence = false;
+	const out = lines.map((line) => {
+		if (/^\s*```/.test(line)) {
+			inFence = !inFence;
+			return line;
+		}
+		// Inside a fence the text is verbatim by contract — rewriting it would corrupt the very thing the
+		// author fenced to protect.
+		if (inFence) return line;
 
-    let l = line;
-    // `**bold**` → `*bold*`. Done before any single-asterisk handling so the pair is consumed first.
-    if (l.includes("**")) l = l.replace(/\*\*(.+?)\*\*/g, "*$1*");
-    // A markdown heading has no WhatsApp equivalent; bold is the closest honest rendering.
-    const heading = /^(#{1,6})\s+(.*)$/.exec(l);
-    if (heading) l = `*${heading[2]}*`;
-    // `[label](url)` — WhatsApp would show the literal brackets and the URL would not be clickable,
-    // so the URL is promoted to visible text. Losing it silently is the failure worth preventing.
-    if (/\[[^\]]*\]\([^)]*\)/.test(l)) {
-      l = l.replace(/\[([^\]]*)\]\(([^)]*)\)/g, (_m, label: string, url: string) => (label.trim() === "" ? url : `${label}: ${url}`));
-      warnings.push("markdown links were flattened to 'label: url' — WhatsApp has no link syntax");
-    }
-    if (/`[^`]+`/.test(l)) warnings.push("inline `code` has no WhatsApp equivalent; the backticks will show literally");
-    if (/^\s*\|.*\|\s*$/.test(l)) warnings.push("a markdown TABLE will render as raw pipes in WhatsApp");
-    return l;
-  });
-  return { text: out.join("\n"), warnings: [...new Set(warnings)] };
+		let l = line;
+		// `**bold**` → `*bold*`. Done before any single-asterisk handling so the pair is consumed first.
+		if (l.includes("**")) l = l.replace(/\*\*(.+?)\*\*/g, "*$1*");
+		// A markdown heading has no WhatsApp equivalent; bold is the closest honest rendering.
+		const heading = /^(#{1,6})\s+(.*)$/.exec(l);
+		if (heading) l = `*${heading[2]}*`;
+		// `[label](url)` — WhatsApp would show the literal brackets and the URL would not be clickable,
+		// so the URL is promoted to visible text. Losing it silently is the failure worth preventing.
+		if (/\[[^\]]*\]\([^)]*\)/.test(l)) {
+			l = l.replace(
+				/\[([^\]]*)\]\(([^)]*)\)/g,
+				(_m, label: string, url: string) =>
+					label.trim() === "" ? url : `${label}: ${url}`,
+			);
+			warnings.push(
+				"markdown links were flattened to 'label: url' — WhatsApp has no link syntax",
+			);
+		}
+		if (/`[^`]+`/.test(l))
+			warnings.push(
+				"inline `code` has no WhatsApp equivalent; the backticks will show literally",
+			);
+		if (/^\s*\|.*\|\s*$/.test(l))
+			warnings.push("a markdown TABLE will render as raw pipes in WhatsApp");
+		return l;
+	});
+	return { text: out.join("\n"), warnings: [...new Set(warnings)] };
 }
 
-export const CHANNEL_RENDERERS: Record<string, (s: string) => ChannelRenderResult> = {
-  whatsapp: renderForWhatsApp,
-  // `plain` strips nothing and warns about nothing — the explicit "I know what I am doing" choice, so
-  // that omitting --for is not silently equivalent to asserting the channel is markdown-aware.
-  plain: (s: string) => ({ text: s, warnings: [] }),
+export const CHANNEL_RENDERERS: Record<
+	string,
+	(s: string) => ChannelRenderResult
+> = {
+	whatsapp: renderForWhatsApp,
+	// `plain` strips nothing and warns about nothing — the explicit "I know what I am doing" choice, so
+	// that omitting --for is not silently equivalent to asserting the channel is markdown-aware.
+	plain: (s: string) => ({ text: s, warnings: [] }),
 };
 
 /**
@@ -214,35 +228,39 @@ export const CHANNEL_RENDERERS: Record<string, (s: string) => ChannelRenderResul
  * rather than announcing it. `--allow-lossy-links` keeps the door open for a note meant to be READ in
  * Notes rather than sent.
  */
-export function findLossyMarkdownLinks(body: string): { label: string; url: string }[] {
-  const found: { label: string; url: string }[] = [];
-  let inFence = false;
-  for (const line of body.split("\n")) {
-    if (/^\s*```/.test(line)) {
-      inFence = !inFence;
-      continue;
-    }
-    // A fenced link is literal text by contract and is never turned into an anchor, so its URL
-    // survives read-back intact. Flagging it would be a false positive.
-    if (inFence) continue;
-    for (const m of line.matchAll(/\[([^\]]*)\]\((https?:\/\/[^)]+|mailto:[^)]+)\)/g)) {
-      found.push({ label: m[1] ?? "", url: m[2] ?? "" });
-    }
-  }
-  return found;
+export function findLossyMarkdownLinks(
+	body: string,
+): { label: string; url: string }[] {
+	const found: { label: string; url: string }[] = [];
+	let inFence = false;
+	for (const line of body.split("\n")) {
+		if (/^\s*```/.test(line)) {
+			inFence = !inFence;
+			continue;
+		}
+		// A fenced link is literal text by contract and is never turned into an anchor, so its URL
+		// survives read-back intact. Flagging it would be a false positive.
+		if (inFence) continue;
+		for (const m of line.matchAll(
+			/\[([^\]]*)\]\((https?:\/\/[^)]+|mailto:[^)]+)\)/g,
+		)) {
+			found.push({ label: m[1] ?? "", url: m[2] ?? "" });
+		}
+	}
+	return found;
 }
 
 export class ProvenanceLeakError extends Error {}
 
 export function assertNoProvenanceLeak(sendable: string): void {
-  if (sendable.includes(FOOTER_LEAD)) {
-    // THROWS rather than calling die(). A guard that exits the process is a guard no test can assert
-    // on in both directions, which is the exact failure class this hardening pass exists to remove.
-    // The CLI catches it and dies there, so the operator-facing behaviour is unchanged.
-    throw new ProvenanceLeakError(
-      `the sendable text still contains "${FOOTER_LEAD}" — that is internal provenance and must never reach a recipient`,
-    );
-  }
+	if (sendable.includes(FOOTER_LEAD)) {
+		// THROWS rather than calling die(). A guard that exits the process is a guard no test can assert
+		// on in both directions, which is the exact failure class this hardening pass exists to remove.
+		// The CLI catches it and dies there, so the operator-facing behaviour is unchanged.
+		throw new ProvenanceLeakError(
+			`the sendable text still contains "${FOOTER_LEAD}" — that is internal provenance and must never reach a recipient`,
+		);
+	}
 }
 
 // ---- AppleScript payloads ----
@@ -302,13 +320,16 @@ function die(msg: string): never {
 	process.exit(2);
 }
 
+// ---- how draft-park reaches Notes: osascript, and nothing else ----
+// A one-folder broker that carried drafts into Claude Code's sandbox shipped in v32.3.0 and was
+// retired with the managed sandbox policy the same day (operator ruling 2026-09-27); it is
+// recoverable from the tag archive/pre-retire-managed-sandbox-policy. Inside a sandbox with Apple
+// Events blocked, runOsaOrDie() now says so rather than leaving a bare -10810.
+
 /** All (id, name) pairs for a folder's notes (empty if the folder is missing). */
 function folderNoteIndex(folder: string): Array<{ id: string; name: string }> {
 	return parseRecords(runOsaOrDie(OSA_FOLDER_NOTE_INDEX, [folder])).map(
-		([id, name]) => ({
-			id: id ?? "",
-			name: name ?? "",
-		}),
+		([id, name]) => ({ id: id ?? "", name: name ?? "" }),
 	);
 }
 
@@ -317,10 +338,46 @@ function resolveNoteIdInFolder(folder: string, title: string): string | null {
 	return matchNoteIds(folderNoteIndex(folder), title)[0] ?? null;
 }
 
-/** Body HTML of the note whose (possibly truncated) name matches `title`, or the sentinel if none. */
+const NO_SUCH_DRAFT = "(no such draft)"; // what OSA_GET_BY_ID returns if the note vanished mid-call
+
+/**
+ * A Notes body read that can be trusted. A Notes body is always HTML, so "" and "missing value"
+ * (the macOS 26 osascript no-op, see the header), the vanished-note sentinel, and anything with no
+ * tag at all are FAILED reads. Before 2026-09-27 each of them reached `get --body-only`, which
+ * stripped the one line as the title heading and printed nothing with exit 0.
+ */
+export function isReadableNoteBody(raw: string): boolean {
+	const t = raw.trim();
+	return (
+		t !== "" && t !== NO_SUCH_DRAFT && t !== "missing value" && t.includes("<")
+	);
+}
+
+/**
+ * The older same-title copies self-heal may delete: NONE unless the new note is itself listed.
+ * Deleting "every match except the new id" without that check removes the only real copy whenever
+ * Notes hands back an id it then cannot list — a draft orphaned by the step meant to tidy it.
+ */
+export function selfHealTargets(matches: string[], newId: string): string[] {
+	return matches.includes(newId) ? matches.filter((m) => m !== newId) : [];
+}
+
+const folderFlag = (folder: string): string =>
+	folder === FOLDER_DEFAULT ? "" : ` --folder "${folder}"`;
+
+/** Body HTML of the note whose (possibly truncated) name matches `title`; a missing or unreadable draft DIES. */
 function getBodyByTitle(folder: string, title: string): string {
 	const id = resolveNoteIdInFolder(folder, title);
-	return id ? runOsaOrDie(OSA_GET_BY_ID, [id]) : "(no such draft)";
+	const body = id ? runOsaOrDie(OSA_GET_BY_ID, [id]) : NO_SUCH_DRAFT;
+	if (body.trim() === NO_SUCH_DRAFT)
+		die(
+			`✗ no draft titled "${title}" in Notes -> ${folder} (check the exact title with: draft-park list${folderFlag(folder)})`,
+		);
+	if (!isReadableNoteBody(body))
+		die(
+			`✗ READ-FAILED: Notes returned no readable body for "${title}" (got: "${body.trim().slice(0, 40)}"). Open Notes once, re-grant Automation permission if asked, then retry.`,
+		);
+	return body;
 }
 
 function main(): void {
@@ -342,6 +399,7 @@ function main(): void {
 	let channel = "";
 	let copyToClipboard = false;
 	let allowLossyLinks = false;
+	let allowEmpty = false;
 	for (let i = idx; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === "--session") session = argv[++i] ?? "";
@@ -351,6 +409,7 @@ function main(): void {
 		else if (a === "--for") channel = argv[++i] ?? "";
 		else if (a === "--copy") copyToClipboard = true;
 		else if (a === "--allow-lossy-links") allowLossyLinks = true;
+		else if (a === "--allow-empty") allowEmpty = true;
 		else if (a === "--no-verify") verify = false;
 	}
 
@@ -358,6 +417,12 @@ function main(): void {
 		case "new": {
 			if (!title) die("usage: draft-park.ts new <title>  (body on stdin)");
 			const raw = readFileSync(0, "utf8");
+			// An empty body is almost always an upstream failure (`cat missing | draft-park new T`
+			// without pipefail), and parking it would later copy "0 chars" to a human as a success.
+			if (raw.trim() === "" && !allowEmpty)
+				die(
+					"✗ REFUSING: the body on stdin is empty, so there is nothing to park. Pass --allow-empty to park a title-only note deliberately.",
+				);
 			const lossy = findLossyMarkdownLinks(raw);
 			if (lossy.length > 0 && !allowLossyLinks) {
 				die(
@@ -379,7 +444,12 @@ function main(): void {
 			if (verify) {
 				// Read back BY ID (not by title): macOS truncates a long note's derived NAME, so a title
 				// lookup would spuriously miss it and report a false CONTENT-MISMATCH.
-				const back = htmlToText(runOsaOrDie(OSA_GET_BY_ID, [id]));
+				const backRaw = runOsaOrDie(OSA_GET_BY_ID, [id]);
+				if (!isReadableNoteBody(backRaw))
+					die(
+						`✗ READ-BACK FAILED: Notes returned no readable body for the new note ${id}. Older copies were left untouched; check Notes -> ${folder} before trusting it.`,
+					);
+				const back = htmlToText(backRaw);
 				const leaks = entityLeaks(back);
 				if (leaks.length)
 					die(
@@ -389,29 +459,47 @@ function main(): void {
 				// round-tripping, so the content check must not then fail for that very reason. It is
 				// relaxed only for that flag, and said out loud — a silently skipped verify is how the
 				// original defect stayed hidden.
-				if (allowLossyLinks) console.error("⚠ content-presence check relaxed: --allow-lossy-links was passed, so the read-back is expected to differ");
+				if (allowLossyLinks)
+					console.error(
+						"⚠ content-presence check relaxed: --allow-lossy-links was passed, so the read-back is expected to differ",
+					);
 				else if (!contentPresent(raw, back))
 					die(
 						"✗ CONTENT-MISMATCH: the saved note does not contain the drafted text. Check the note in Notes before trusting it.",
 					);
 			}
-			// Self-heal: remove any OLDER note in this folder sharing the (possibly truncated) title.
-			for (const otherId of matchNoteIds(folderNoteIndex(folder), title)) {
-				if (otherId !== id) runOsa(OSA_DELETE_BY_ID, [otherId]);
-			}
+			// Self-heal: remove any OLDER note in this folder sharing the (possibly truncated) title —
+			// but only once the new note is itself listed there, so it can never orphan the draft.
+			const matches = matchNoteIds(folderNoteIndex(folder), title);
+			if (!matches.includes(id))
+				console.error(
+					`⚠ the new note ${id} is not listed under "${title}" in ${folder} yet; older copies were left in place`,
+				);
+			for (const otherId of selfHealTargets(matches, id))
+				runOsa(OSA_DELETE_BY_ID, [otherId]);
 			console.log(id);
 			break;
 		}
 		case "get": {
-			if (!title) die("usage: draft-park.ts get <title> [--body-only] [--for whatsapp|plain] [--copy]");
+			if (!title)
+				die(
+					"usage: draft-park.ts get <title> [--body-only] [--for whatsapp|plain] [--copy]",
+				);
 			const full = htmlToText(getBodyByTitle(folder, title));
 			// --for and --copy both imply the SENDABLE text: rendering the title heading and the
 			// provenance footer for a channel, or onto the clipboard, is never what anyone wants.
 			const wantsSendable = bodyOnlyFlag || channel !== "" || copyToClipboard;
 			let text = wantsSendable ? bodyOnly(full) : collapseBlanks(full);
+			if (wantsSendable && text.trim() === "")
+				die(
+					`✗ the draft "${title}" has no sendable text below its title — nothing was printed or copied`,
+				);
 			if (channel !== "") {
 				const render = CHANNEL_RENDERERS[channel];
-				if (!render) die(`✗ unknown --for channel '${channel}'; known: ${Object.keys(CHANNEL_RENDERERS).join(", ")}`);
+				if (!render)
+					die(
+						`✗ unknown --for channel '${channel}'; known: ${Object.keys(CHANNEL_RENDERERS).join(", ")}`,
+					);
 				const rendered = render(text);
 				text = rendered.text;
 				// stderr, so stdout stays exactly the sendable bytes for piping and --copy.
@@ -429,20 +517,31 @@ function main(): void {
 				// stderr rather than done quietly: the clipboard is global state, and silently replacing
 				// whatever the human had copied is its own small betrayal.
 				const p = spawnSync("pbcopy", { input: text });
-				if (p.status !== 0) die("✗ pbcopy failed — the text was NOT copied; paste manually from the printed output");
-				console.error(`✓ ${text.length} chars copied to the clipboard — your previous clipboard contents were replaced`);
+				if (p.status !== 0)
+					die(
+						"✗ pbcopy failed — the text was NOT copied; paste manually from the printed output",
+					);
+				console.error(
+					`✓ ${text.length} chars copied to the clipboard — your previous clipboard contents were replaced`,
+				);
 			}
 			console.log(text);
 			break;
 		}
 		case "list": {
-			console.log(runOsaOrDie(OSA_LIST, [folder]));
+			const listing = runOsaOrDie(OSA_LIST, [folder]);
+			// OSA_LIST reports a missing folder as text; to a script that read as a one-note listing.
+			if (listing.startsWith("(folder not found:")) die(`✗ ${listing}`);
+			console.log(listing);
 			break;
 		}
 		case "sticky": {
 			if (!title) die("usage: draft-park.ts sticky <title>");
 			const plain = `Draft (edit in Notes -> ${folder} -> ${title})\n\n${htmlToText(getBodyByTitle(folder, title))}`;
-			spawnSync("pbcopy", [], { input: plain });
+			// Stickies is fed by pasting, so a failed pbcopy would paste whatever was already on the
+			// clipboard and label it as this draft.
+			if (spawnSync("pbcopy", [], { input: plain }).status !== 0)
+				die("✗ pbcopy failed — nothing was mirrored to Stickies");
 			const gui = `tell application "Stickies" to activate
 delay 0.6
 tell application "System Events" to tell process "Stickies"
@@ -470,4 +569,12 @@ end tell`;
 }
 
 // Only run the CLI when executed directly (bun draft-park.ts …), not when imported by tests.
-if (import.meta.main) main();
+if (import.meta.main) {
+	try {
+		main();
+	} catch (e) {
+		// A failed conversion must stop the run loudly: its old silent "" read as a lost note.
+		if (e instanceof HtmlToTextError) die(`✗ ${e.message}`);
+		throw e;
+	}
+}

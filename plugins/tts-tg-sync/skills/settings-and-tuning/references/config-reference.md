@@ -1,147 +1,71 @@
 # Configuration Reference
 
-Complete reference for all environment variables in `~/.claude/automation/claude-telegram-sync/moon.yml` `env:`.
+Every knob the text-to-speech scripts read, where it lives, its default and valid range. There is no central config file: each value is read by the script that needs it, from a BetterTouchTool variable, the companion's persisted settings, or the environment of the hotkey command.
 
-## Config SSoT
-
-Defaults live in the `env:` block of `moon.yml`, which reaches `moon run telegram-sync:<task>`. The launchd service does not receive it (proto shims do not inject project env) and reads overrides from the bot directory's `.env` instead. The bot and shell scripts read these as environment variables, with built-in fallback defaults. Quote every value as a string in `moon.yml`. See [config-architecture.md](./config-architecture.md).
+The Telegram bot's variables that used to fill this page (notification rate limiting, summarizer and prompt-executor throttling, session picker, bot TTS queue and timeouts, audit retention, `HAIKU_MODEL`) and the `moon.yml` / `.env` layering that carried them were removed on 2026-09-26 with the retired bot.
 
 ---
 
-## TTS Voice Configuration
+## Speech Rate
 
-| Variable           | Default      | Valid Values             | Component              |
-| ------------------ | ------------ | ------------------------ | ---------------------- |
-| `TTS_VOICE_EN`     | `af_heart`   | Any Kokoro voice name    | tts_kokoro.sh, bot TTS |
-| `TTS_VOICE_ZH`     | `zf_xiaobei` | Any Kokoro Chinese voice | tts_kokoro.sh, bot TTS |
-| `TTS_VOICE_SAY_EN` | `Samantha`   | macOS `say` voice name   | tts_read_clipboard.sh  |
-| `TTS_VOICE_SAY_ZH` | `Ting-Ting`  | macOS `say` voice name   | tts_read_clipboard.sh  |
+| Setting                     | Default | Valid Range       | Read by                                                                 |
+| --------------------------- | ------- | ----------------- | ----------------------------------------------------------------------- |
+| `TTS_SPEECH_RATE` (BTT var) | `220`   | `90` to `500` WPM | `tts_read_clipboard_wrapper.sh`, `tts_speed_up.sh`, `tts_speed_down.sh` |
+| Companion `speed`           | `1.0`   | `0.5` to `3.0`    | `claude-tts-companion` (set via `POST /settings/tts`)                   |
 
 **Notes**:
 
-- Kokoro voices are case-sensitive. Use `tts_kokoro_audition.sh` to preview voices.
-- macOS `say` voices: list available with `say -v '?'`
-- `TTS_VOICE_EN` and `TTS_VOICE_ZH` are used by the Kokoro engine (higher quality)
-- `TTS_VOICE_SAY_EN` and `TTS_VOICE_SAY_ZH` are fallback voices using macOS `say`
+- Change the rate only through `tts_speed_set.sh <wpm>` (or the up/down/reset scripts that call it). It is the one place that updates both engines: the BetterTouchTool variable for Supertonic, and `speed = wpm / 220` for the companion.
+- 220 WPM is Kokoro speed 1.0. Because WPM is clamped to 90-500 first, the companion never receives more than ~2.27.
+- Without BetterTouchTool the variable cannot be read or written, and every script falls back to 220 WPM.
+- `tts_read_clipboard.sh` also honours a `SPEECH_RATE` environment variable, but the wrapper always sets it from the BetterTouchTool variable, so on the hotkey path the variable wins.
 
-## TTS Speed
+## Engine Selection
 
-| Variable    | Default | Valid Range    | Component              |
-| ----------- | ------- | -------------- | ---------------------- |
-| `TTS_SPEED` | `1.25`  | `0.5` to `2.0` | tts_kokoro.sh, bot TTS |
-
-**Notes**:
-
-- `1.0` is normal speed
-- `1.25` is the default (slightly faster for efficiency)
-- Values below `0.5` or above `2.0` may produce distorted audio
-
-## TTS Timeouts
-
-| Variable                  | Default | Valid Range         | Component         |
-| ------------------------- | ------- | ------------------- | ----------------- |
-| `TTS_GENERATE_TIMEOUT_MS` | `15000` | `5000` to `60000`   | bot kokoro-client |
-| `TTS_SAY_TIMEOUT_MS`      | `60000` | `10000` to `300000` | bot kokoro-client |
+| Variable     | Default | Valid Values                   | Read by                         |
+| ------------ | ------- | ------------------------------ | ------------------------------- |
+| `TTS_ENGINE` | `auto`  | `auto`, `kokoro`, `supertonic` | `tts_read_clipboard_wrapper.sh` |
 
 **Notes**:
 
-- `TTS_GENERATE_TIMEOUT_MS`: Maximum time to wait for Kokoro to generate a WAV chunk
-- `TTS_SAY_TIMEOUT_MS`: Maximum time for the entire TTS playback (all chunks)
-- First-run generation is slower due to model warmup; subsequent calls are faster
+- `auto` uses the companion when `http://[::1]:8780/health` answers within 2s, otherwise Supertonic.
+- `kokoro` fails loudly if the companion is down; `supertonic` never contacts it.
 
-## TTS Queue
+## Voices
 
-| Variable              | Default  | Valid Range         | Component     |
-| --------------------- | -------- | ------------------- | ------------- |
-| `TTS_MAX_QUEUE_DEPTH` | `5`      | `1` to `20`         | bot TTS queue |
-| `TTS_STALE_TTL_MS`    | `120000` | `30000` to `600000` | bot TTS queue |
-| `TTS_MAX_TEXT_LEN`    | `800`    | `100` to `5000`     | bot TTS queue |
+| What                  | Where                                                 |
+| --------------------- | ----------------------------------------------------- |
+| Hotkey (Kokoro) voice | The companion's own settings (`claude-tts-companion`) |
+| Supertonic voice      | Fixed to style `M3` in `tts_supertonic_speak.py`      |
+| Audition voices       | The `VOICES` array in `tts_kokoro_audition.sh`        |
 
-**Notes**:
+See the [voice catalog](../../voice-quality-audition/references/voice-catalog.md) for grades.
 
-- `TTS_MAX_QUEUE_DEPTH`: Maximum pending TTS jobs. New requests are dropped if queue is full.
-- `TTS_STALE_TTL_MS`: Time-to-live for queued items. Stale items are discarded (2 min default).
-- `TTS_MAX_TEXT_LEN`: Maximum text length accepted for TTS. Longer text is truncated.
+## Supertonic Fallback
 
-## TTS Signal Sound
+| Variable             | Default  | Valid Range    | Read by                                                                    |
+| -------------------- | -------- | -------------- | -------------------------------------------------------------------------- |
+| `MAX_CONTENT_LENGTH` | `100000` | characters     | `tts_read_clipboard.sh`                                                    |
+| `DEBUG`              | `0`      | `0` or `1`     | `tts_read_clipboard.sh` (writes `/tmp/tts_debug.log`)                      |
+| `TTS_SPEED`          | derived  | `0.5` to `3.0` | `tts_supertonic_speak.py` (set by the caller from WPM: `wpm × 1.25 / 220`) |
 
-| Variable           | Default                            | Valid Range                       | Component     |
-| ------------------ | ---------------------------------- | --------------------------------- | ------------- |
-| `TTS_SIGNAL_SOUND` | `/System/Library/Sounds/Tink.aiff` | Any `.aiff`/`.wav` path, or empty | tts-common.sh |
+## Local Kokoro (audition)
 
-**Notes**:
+| Variable        | Default                                 | Read by                  |
+| --------------- | --------------------------------------- | ------------------------ |
+| `KOKORO_VENV`   | `~/.local/share/kokoro/.venv`           | `tts_kokoro_audition.sh` |
+| `KOKORO_SCRIPT` | `~/.local/share/kokoro/tts_generate.py` | `tts_kokoro_audition.sh` |
+| `TTS_LOCK`      | `/tmp/kokoro-tts.lock`                  | `lib/tts-common.sh`      |
+| `LOG`           | `/tmp/kokoro-tts.log`                   | `lib/tts-common.sh`      |
 
-- Plays a short sound to indicate TTS is processing (non-blocking)
-- Set to empty string `""` to disable the signal sound
-- macOS system sounds are in `/System/Library/Sounds/`
+## Defined But Not Currently Read
 
-## Notification Rate Limiting
+These exist in the scripts but no entry script uses them today, so setting them changes nothing:
 
-| Variable                        | Default  | Valid Range          | Component                |
-| ------------------------------- | -------- | -------------------- | ------------------------ |
-| `NOTIFICATION_MIN_INTERVAL_MS`  | `5000`   | `1000` to `60000`    | bot notification-watcher |
-| `SUMMARIZER_MIN_INTERVAL_MS`    | `10000`  | `5000` to `120000`   | bot summarizer           |
-| `SUMMARIZER_CIRCUIT_BREAKER_MS` | `300000` | `60000` to `3600000` | bot summarizer           |
-| `SUMMARIZER_MAX_FAILURES`       | `3`      | `1` to `10`          | bot summarizer           |
+| Variable               | Where defined           | Why inert                                       |
+| ---------------------- | ----------------------- | ----------------------------------------------- |
+| `TTS_SIGNAL_SOUND`     | `lib/tts-common.sh`     | `play_tts_signal()` is not called by any script |
+| `EN_VOICE`, `ZH_VOICE` | `lib/tts-common.sh`     | `detect_language()` is not called by any script |
+| `PAUSE_DURATION`       | `tts_read_clipboard.sh` | Assigned, never used                            |
 
-**Notes**:
-
-- `NOTIFICATION_MIN_INTERVAL_MS`: Minimum gap between Telegram notifications (prevents spam)
-- `SUMMARIZER_MIN_INTERVAL_MS`: Minimum gap between summarization API calls
-- `SUMMARIZER_CIRCUIT_BREAKER_MS`: Cooldown period after `SUMMARIZER_MAX_FAILURES` consecutive failures (5 min default)
-- Circuit breaker resets after the cooldown period, allowing retries
-
-## Prompt Executor
-
-| Variable                      | Default  | Valid Range          | Component           |
-| ----------------------------- | -------- | -------------------- | ------------------- |
-| `PROMPT_MIN_INTERVAL_MS`      | `30000`  | `10000` to `300000`  | bot prompt-executor |
-| `PROMPT_EXECUTION_TIMEOUT_MS` | `120000` | `30000` to `600000`  | bot prompt-executor |
-| `PROMPT_EDIT_THROTTLE_MS`     | `1500`   | `500` to `10000`     | bot prompt-executor |
-| `PROMPT_CIRCUIT_BREAKER_MS`   | `600000` | `60000` to `3600000` | bot prompt-executor |
-| `PROMPT_MAX_FAILURES`         | `3`      | `1` to `10`          | bot prompt-executor |
-
-**Notes**:
-
-- `PROMPT_MIN_INTERVAL_MS`: Minimum gap between prompt executions (30s default)
-- `PROMPT_EXECUTION_TIMEOUT_MS`: Maximum time for a single prompt execution (2 min default)
-- `PROMPT_EDIT_THROTTLE_MS`: Debounce for edit detection (prevents rapid re-execution)
-- `PROMPT_CIRCUIT_BREAKER_MS`: Cooldown after consecutive failures (10 min default)
-
-## Session Picker
-
-| Variable                 | Default  | Valid Range          | Component          |
-| ------------------------ | -------- | -------------------- | ------------------ |
-| `SESSION_SCAN_LIMIT`     | `200`    | `50` to `1000`       | bot session-lister |
-| `SESSION_DISPLAY_LIMIT`  | `30`     | `5` to `100`         | bot session-lister |
-| `SESSION_MAX_AGE_DAYS`   | `7`      | `1` to `90`          | bot session-lister |
-| `SESSION_PENDING_TTL_MS` | `300000` | `60000` to `3600000` | bot session-lister |
-
-**Notes**:
-
-- `SESSION_SCAN_LIMIT`: Maximum sessions to scan from filesystem
-- `SESSION_DISPLAY_LIMIT`: Maximum sessions shown in Telegram picker UI
-- `SESSION_MAX_AGE_DAYS`: Sessions older than this are excluded
-- `SESSION_PENDING_TTL_MS`: Time to wait for user to pick a session before timing out (5 min default)
-
-## Audit Logging
-
-| Variable               | Default | Valid Range  | Component |
-| ---------------------- | ------- | ------------ | --------- |
-| `AUDIT_RETENTION_DAYS` | `14`    | `1` to `365` | bot audit |
-
-**Notes**:
-
-- Audit logs older than this are eligible for cleanup
-- Logs are stored in `~/.claude/automation/claude-telegram-sync/logs/audit/`
-
-## Model Configuration
-
-| Variable      | Default                     | Valid Range              | Component           |
-| ------------- | --------------------------- | ------------------------ | ------------------- |
-| `HAIKU_MODEL` | `claude-haiku-4-5-20251001` | Valid Anthropic model ID | bot Agent SDK calls |
-
-**Notes**:
-
-- Used for summarization and other Agent SDK calls in the bot
-- Change this when a newer Haiku model is released
+The speed keys' confirmation sound is hard-coded to `/System/Library/Sounds/Tink.aiff` in `tts_speed_set.sh`.

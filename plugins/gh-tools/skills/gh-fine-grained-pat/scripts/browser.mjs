@@ -2,10 +2,9 @@
 //
 // Hard-won lessons codified here:
 //   • Bun's connectOverCDP times out — this MUST run under node (the skill docs say so).
-//   • Chrome 111+ rejects the CDP websocket without --remote-allow-origins=* .
 //   • Attach by resolving the webSocketDebuggerUrl from /json/version (retry loop),
 //     mirroring plugins/gemini-deep-research/scripts/client.ts.
-//   • Teardown kills a SPECIFIC pid (lsof on the port), never `pkill -f`
+//   • Launch and teardown go through chrome-profiles' chrome-debug-port-control.sh, never `pkill -f`
 //     (process-storm policy in ~/.claude/CLAUDE.md).
 //
 // The persistent --user-data-dir holds the GitHub *session cookie*: treat it as
@@ -14,8 +13,37 @@
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
+
+// ── launch / shutdown: the chrome-profiles plugin's chrome-debug-port-control.sh is the SSoT ──────
+// It pins a non-default --user-data-dir (Chrome 136+ ignores the debug port otherwise), waits for the
+// port, reports the profile ACTUALLY attached, and shuts down by the exact port flag. This harness keeps
+// only what is its own: which profile and port, and the CDP attach.
+function portControlScript() {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    process.env.CHROME_PROFILES_PORT_CONTROL,
+    join(here, "../../../..", "chrome-profiles", "scripts", "chrome-debug-port-control.sh"), // repo / marketplace checkout
+    join(homedir(), ".claude", "plugins", "marketplaces", "cc-skills", "plugins", "chrome-profiles", "scripts", "chrome-debug-port-control.sh"),
+  ].filter(Boolean);
+  const found = candidates.find((p) => existsSync(p));
+  if (!found) throw new Error("chrome-profiles plugin not found (needed for chrome-debug-port-control.sh); install it from cc-skills");
+  return found;
+}
+function portControl(action, { port, profile, chrome }) {
+  return execFileSync("bash", [portControlScript(), action], {
+    encoding: "utf8",
+    env: { ...process.env, CHROME_DEBUG_PORT: String(port), CHROME_DEBUG_PROFILE: profile, ...(chrome ? { CHROME_DEBUG_BINARY: chrome } : {}) },
+  });
+}
+/** Open a URL as a tab in the already-running instance on that profile. */
+function openInProfile(chrome, profile, url) {
+  if (!url) return;
+  const child = spawn(chrome, [`--user-data-dir=${profile}`, url], { detached: true, stdio: "ignore" });
+  child.unref();
+}
 
 // Multi-account: each account gets its OWN isolated profile + CDP port (derived
 // from GH_PAT_ACCOUNT), matching the per-account gh-config isolation. The
@@ -78,31 +106,16 @@ async function cdpReady() {
 }
 
 /**
- * Launch a visible Chrome with the persistent profile + CDP, unless one is
+ * Launch a visible Chrome with the persistent profile + CDP, through the shared port script, unless one is
  * already listening on the port (reuse it). Returns { pid, reused }.
  */
 export async function launchChrome(openUrl = "https://github.com/settings/personal-access-tokens") {
   ensureDirs();
-  const existing = chromePidOnPort();
-  if (existing && (await cdpReady())) return { pid: existing, reused: true };
-
-  const args = [
-    `--remote-debugging-port=${port()}`,
-    "--remote-allow-origins=*",
-    `--user-data-dir=${profileDir()}`,
-    "--no-first-run",
-    "--no-default-browser-check",
-    openUrl,
-  ];
-  const child = spawn(CHROME_BIN, args, { detached: true, stdio: "ignore" });
-  child.unref();
-
-  for (let i = 0; i < 60; i++) {
-    if (await cdpReady()) break;
-    await sleep(500);
-  }
-  if (!(await cdpReady())) throw new Error(`Chrome CDP did not come up on ${cdpUrl()} within 30s`);
-  return { pid: chromePidOnPort(), reused: false };
+  const reused = Boolean(chromePidOnPort() && (await cdpReady()));
+  if (!reused) portControl("up", { port: port(), profile: profileDir(), chrome: CHROME_BIN });
+  if (!(await cdpReady())) throw new Error(`Chrome CDP did not come up on ${cdpUrl()}`);
+  openInProfile(CHROME_BIN, profileDir(), openUrl);
+  return { pid: chromePidOnPort(), reused };
 }
 
 /** Resolve the webSocketDebuggerUrl (retrying) then attach Playwright. */
@@ -190,22 +203,10 @@ export async function loggedInLoginViaRequest(ctx) {
   }
 }
 
-/** Kill Chrome by its specific PID (TERM, then KILL). Never pkill -f. */
-export async function teardown(pid = chromePidOnPort()) {
+/** Shut Chrome down through the shared port script (matches the exact port flag; never pkill -f). */
+export async function teardown() {
+  const pid = chromePidOnPort();
   if (!pid) return { killed: false, reason: "no listener on port" };
-  try {
-    process.kill(pid, "SIGTERM");
-  } catch {
-    return { killed: false, reason: "process already gone" };
-  }
-  await sleep(1500);
-  if (chromePidOnPort() === pid) {
-    try {
-      process.kill(pid, "SIGKILL");
-    } catch {
-      /* gone */
-    }
-    await sleep(500);
-  }
+  portControl("down", { port: port(), profile: profileDir() });
   return { killed: chromePidOnPort() !== pid, pid };
 }

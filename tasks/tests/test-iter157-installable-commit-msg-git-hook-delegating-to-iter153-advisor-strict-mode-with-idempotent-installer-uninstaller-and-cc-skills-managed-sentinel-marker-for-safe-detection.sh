@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-157 regression test pinning the installable commit-msg git hook + idempotent installer/uninstaller. Asserts (a) hook source script exists + executable + bash-clean + shellcheck-clean, (b) installer + uninstaller scripts exist + bash-clean + shellcheck-clean, (c) mise task shims exist + bash-clean + shellcheck-clean, (d) end-to-end in a sandbox git repo: install creates .git/hooks/commit-msg with sentinel marker + sentinel-keyed status detection + idempotent re-install no-op + pre-existing-hook backup-and-restore + refuse-to-remove-non-cc-skills-hook + git commit rejects COMPOUND-PREFIX subject + git commit accepts STANDARD-CONFORMANT subject + merge-commit subjects bypass classification.
+# Iter-157 regression test pinning the installable commit-msg git hook + idempotent installer/uninstaller. Asserts (a) hook source script exists + executable + bash-clean + shellcheck-clean, (b) installer + uninstaller scripts exist + bash-clean + shellcheck-clean, (c) task shims exist + bash-clean + shellcheck-clean, (d) end-to-end in a sandbox git repo: install creates .git/hooks/commit-msg with sentinel marker + sentinel-keyed status detection + idempotent re-install no-op + pre-existing-hook backup-and-restore + refuse-to-remove-non-cc-skills-hook + git commit rejects COMPOUND-PREFIX subject + git commit accepts STANDARD-CONFORMANT subject + merge-commit subjects bypass classification.
 set -euo pipefail
 
 ITER157_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -9,8 +9,8 @@ ITER157_HOOK_SOURCE_RELATIVE_PATH="scripts/iter157-installable-commit-msg-git-ho
 ITER157_HOOK_SOURCE_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_HOOK_SOURCE_RELATIVE_PATH"
 ITER157_INSTALLER_RELATIVE_PATH="scripts/iter157-idempotent-installer-and-uninstaller-of-the-commit-msg-git-hook-managing-existing-hook-backup-restoration-with-cc-skills-managed-sentinel-marker-for-safe-detection-of-our-own-installs-vs-third-party.sh"
 ITER157_INSTALLER_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_INSTALLER_RELATIVE_PATH"
-ITER157_INSTALL_HOOK_MISE_TASK="$ITER157_REPO_ROOT/tasks/commits/install-hook"
-ITER157_UNINSTALL_HOOK_MISE_TASK="$ITER157_REPO_ROOT/tasks/commits/uninstall-hook"
+ITER157_INSTALL_HOOK_TASK="$ITER157_REPO_ROOT/tasks/commits/install-hook"
+ITER157_UNINSTALL_HOOK_TASK="$ITER157_REPO_ROOT/tasks/commits/uninstall-hook"
 
 ITER157_TOTAL_ASSERTIONS_EVALUATED=0
 ITER157_TOTAL_ASSERTIONS_FAILED=0
@@ -57,12 +57,12 @@ iter157_assert_file_passes_bash_n_syntax_check_and_shellcheck \
     "$ITER157_INSTALLER_ABSOLUTE_PATH"
 
 iter157_assert_file_passes_bash_n_syntax_check_and_shellcheck \
-    "A3: install-hook mise task shim (executable, bash-clean, shellcheck-clean)" \
-    "$ITER157_INSTALL_HOOK_MISE_TASK"
+    "A3: install-hook task shim (executable, bash-clean, shellcheck-clean)" \
+    "$ITER157_INSTALL_HOOK_TASK"
 
 iter157_assert_file_passes_bash_n_syntax_check_and_shellcheck \
-    "A4: uninstall-hook mise task shim (executable, bash-clean, shellcheck-clean)" \
-    "$ITER157_UNINSTALL_HOOK_MISE_TASK"
+    "A4: uninstall-hook task shim (executable, bash-clean, shellcheck-clean)" \
+    "$ITER157_UNINSTALL_HOOK_TASK"
 
 # ─── Group B: End-to-end in sandbox git repo ────────────────────────────────
 #

@@ -62,6 +62,9 @@ done < <(find "$HOOK_DIRECTORY" -maxdepth 1 -type f \( -name '*.ts' -o -name '*.
 if [[ "${#CANDIDATE_SUBHOOK_FILES_WITH_EXPORTED_CLASSIFIER_FUNCTION[@]}" -eq 0 ]]; then
     echo "  ⚠ No subhook files discovered (no files export classify*ForOrchestrator)"
     echo "    This is unexpected — iter-84+ should have at least file-size-guard inlined."
+    # A strict gate that checked nothing must not pass (2026-09-27): exit 0 here let a release
+    # gate report "clean" on zero files. Informational mode still exits 0, as documented.
+    [[ "$STRICT_MODE_GATE_RELEASE_ON_CONTRACT_VIOLATION" == "1" ]] && exit 1
     exit 0
 fi
 
