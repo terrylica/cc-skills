@@ -33,7 +33,7 @@ GitHub has **no API to create fine-grained PATs** (only the web UI). We created 
 - **Teardown kills a specific PID** found via `lsof -iTCP:<port>`; never `pkill -f` (process-storm policy in `~/.claude/CLAUDE.md`).
 - **`browser.close()` after each command** disconnects Playwright only — the externally-launched Chrome keeps running (persistent session). Use `pat quit` to actually kill it.
 
-## The four hard-won gotchas (encoded in `form.mjs`)
+## Hard-won gotchas (encoded in `form.mjs`)
 
 1. **Generate-confirmation overlay — detection, and the trap in the old fix.** After clicking the form's "Generate token", a summary overlay headed "New personal access token" appears with its own "Generate token" button. ⚠️ **Two corrections, measured 2026-09-04.** (a) It IS a `<dialog>` today: `DIALOG#fgpat-confirmation-dialog.Overlay < DIALOG-HELPER < FGPAT-CONFIRMATION-DIALOG`, and the two buttons are distinguishable by `type` — the form's is `type="button"` (`.js-integrations-install-form-submit`, it merely OPENS the overlay), the overlay's is `type="submit"`. (b) The old advice — "click the **last** visible button whose text is exactly Generate token", **unconditionally, 1.6 s after submitting** — was the bug described in GOTCHA #17: the overlay only appears for some specs, so when it does not, the last visible button IS the one already clicked and the form is submitted TWICE. Gate any such click on the overlay actually being present (`SEL.confirmModalHeading`).
 2. **Repo picker intercepts pointer events.** After selecting repos in `#repository-menu-list-dialog`, the dialog stays open and swallows the next click. Fix: close it via `button[aria-label="Close"]` before continuing (`setRepoAccess()`).
