@@ -8,16 +8,13 @@
 # audited like every other Pushover event.
 #
 # Probes (each with short timeout + graceful fallback to "unknown"):
-#   - claude-tts-companion  http://[::1]:8780/health        (uptime, RSS, subsystems)
-#   - kokoro-tts-server      http://127.0.0.1:8779/health    (status, idle, queue)
-#   - github-notifications  ~/.local/state/launchd-logs/    (last cycle line)
 #   - pushover quota         ~/.local/state/pushover/quota.json
 #   - disk                   ~/.local/state/launchd-logs/    (total size)
 #   - failed launchd         launchctl print loop, last_exit != 0
 #
 # Level: INFO (priority -1) — silent, no quiet-hours bypass. Heartbeat is
 # routine; we don't want to wake the user. If a real failure happens, the
-# RELEVANT subsystem (companion afplay alerts, service-watchdog, etc.) is
+# RELEVANT subsystem (service-watchdog, etc.) is
 # expected to fire its own ERROR-level alert. The heartbeat answers
 # "are all subsystems healthy now" once per day.
 #
@@ -59,21 +56,6 @@ done
 # Probes — each safely no-ops to "unknown" on failure
 # ---------------------------------------------------------------------------
 
-# Companion health (FlyingFox HTTP server on IPv6 loopback)
-COMPANION_JSON=$(/usr/bin/curl -sS --max-time 2 'http://[::1]:8780/health' 2>/dev/null || echo '{}')
-COMPANION_STATUS=$(echo "$COMPANION_JSON" | /usr/bin/jq -r '.status // "unreachable"')
-COMPANION_UPTIME=$(echo "$COMPANION_JSON" | /usr/bin/jq -r '.uptime_seconds // 0')
-COMPANION_RSS=$(echo "$COMPANION_JSON" | /usr/bin/jq -r '.rss_mb // 0 | floor')
-COMPANION_AUDIO_CLEAN=$(echo "$COMPANION_JSON" | /usr/bin/jq -r '.audio_routing_clean // false')
-COMPANION_BOT=$(echo "$COMPANION_JSON" | /usr/bin/jq -r '.subsystems.bot // "?"')
-COMPANION_TTS=$(echo "$COMPANION_JSON" | /usr/bin/jq -r '.subsystems.tts // "?"')
-
-# Kokoro health
-KOKORO_JSON=$(/usr/bin/curl -sS --max-time 2 'http://127.0.0.1:8779/health' 2>/dev/null || echo '{}')
-KOKORO_STATUS=$(echo "$KOKORO_JSON" | /usr/bin/jq -r '.status // "unreachable"')
-KOKORO_IDLE=$(echo "$KOKORO_JSON" | /usr/bin/jq -r '.worker_idle_seconds // 0')
-KOKORO_QUEUE=$(echo "$KOKORO_JSON" | /usr/bin/jq -r '.speak_queue // 0')
-
 # Pushover quota (from iter-12b daily monitor)
 QUOTA_FILE="$HOME/.local/state/pushover/quota.json"
 if [ -r "$QUOTA_FILE" ]; then
@@ -102,52 +84,25 @@ done
 FAILED_SERVICES=$(echo "$FAILED_SERVICES" | /usr/bin/sed 's/ $//')
 [ -z "$FAILED_SERVICES" ] && FAILED_SERVICES="none"
 
-# Human-readable uptime (companion seconds → "Nh Mm")
-human_uptime() {
-    local s=$1
-    if [ "$s" -lt 60 ]; then echo "${s}s"
-    elif [ "$s" -lt 3600 ]; then echo "$((s/60))m"
-    elif [ "$s" -lt 86400 ]; then echo "$((s/3600))h $((s%3600/60))m"
-    else echo "$((s/86400))d $((s%86400/3600))h"
-    fi
-}
-
 # ---------------------------------------------------------------------------
 # Compose the message body — terse, dense, single-screen-readable
 # ---------------------------------------------------------------------------
 
-if [ "$COMPANION_AUDIO_CLEAN" = "true" ]; then AUDIO_GLYPH="✓"; else AUDIO_GLYPH="✗"; fi
-
 BODY="🔔 Fleet daily heartbeat
 
-companion: $COMPANION_STATUS · up $(human_uptime "$COMPANION_UPTIME") · ${COMPANION_RSS}MB · audio$AUDIO_GLYPH · bot=$COMPANION_BOT · tts=$COMPANION_TTS
-kokoro: $KOKORO_STATUS · idle=${KOKORO_IDLE}s · queue=$KOKORO_QUEUE
 pushover quota: ${QUOTA_USED}/${QUOTA_LIMIT} (${QUOTA_PCT}%)
 disk: launchd-logs=${LOGS_SIZE_MB}MB · audit days=$AUDIT_DAYS
 failed services: $FAILED_SERVICES"
 
 # Structured JSON for --extra (full machine-readable snapshot)
 EXTRA_JSON=$(/usr/bin/jq -nc \
-    --arg companion_status "$COMPANION_STATUS" \
-    --argjson companion_uptime "${COMPANION_UPTIME:-0}" \
-    --argjson companion_rss_mb "${COMPANION_RSS:-0}" \
-    --argjson companion_audio_clean "$COMPANION_AUDIO_CLEAN" \
-    --arg companion_bot "$COMPANION_BOT" \
-    --arg companion_tts "$COMPANION_TTS" \
-    --arg kokoro_status "$KOKORO_STATUS" \
-    --argjson kokoro_idle_seconds "${KOKORO_IDLE:-0}" \
-    --argjson kokoro_queue "${KOKORO_QUEUE:-0}" \
     --argjson quota_used "${QUOTA_USED:-0}" \
     --argjson quota_limit "${QUOTA_LIMIT:-0}" \
     --argjson quota_pct "${QUOTA_PCT:-0}" \
     --argjson logs_size_mb "${LOGS_SIZE_MB:-0}" \
     --argjson audit_days "${AUDIT_DAYS:-0}" \
     --arg failed_services "$FAILED_SERVICES" \
-    '{companion: {status: $companion_status, uptime_seconds: $companion_uptime,
-                  rss_mb: $companion_rss_mb, audio_routing_clean: $companion_audio_clean,
-                  bot: $companion_bot, tts: $companion_tts},
-      kokoro: {status: $kokoro_status, idle_seconds: $kokoro_idle_seconds, queue: $kokoro_queue},
-      pushover: {used: $quota_used, limit: $quota_limit, used_pct: $quota_pct},
+    '{pushover: {used: $quota_used, limit: $quota_limit, used_pct: $quota_pct},
       disk: {launchd_logs_mb: $logs_size_mb, audit_days_retained: $audit_days},
       failed_services: $failed_services}')
 
@@ -173,7 +128,7 @@ fi
 
 # Determine level: INFO (silent) by default; WARN if anything looks off
 LEVEL=INFO
-if [ "$COMPANION_STATUS" != "ok" ] || [ "$KOKORO_STATUS" != "ok" ] || [ "$FAILED_SERVICES" != "none" ]; then
+if [ "$FAILED_SERVICES" != "none" ]; then
     LEVEL=WARN
 fi
 
