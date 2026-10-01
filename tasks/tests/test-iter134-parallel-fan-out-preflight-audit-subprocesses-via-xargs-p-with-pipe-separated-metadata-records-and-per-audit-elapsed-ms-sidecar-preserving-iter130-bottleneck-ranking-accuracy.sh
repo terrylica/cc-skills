@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-135 regression test for the iter-134 parallel-fan-out-all-preflight-audit-subprocesses-via-xargs-p compressing-2603ms-sequential-into-510ms-wall-clock feature. Two-tier coverage mirroring the iter-132 pattern: (1) source-fingerprint assertions verify the iter134_parallelizable_preflight_audit_metadata_records array exists with exactly 17 records using PIPE separator (NOT TAB — the iter-134 BSD-xargs-collapse-whitespace bug); the pre-warm function, exit-code checker, timing-seed helper, and adaptive lane heuristic functions all exist; the parallel pre-warm is invoked right after Check 4e; and every Check 4f-4v uses the iter-134 helpers (no surviving inline `mise run` audit invocations except in operator-help error-message echoes). (2) Integration assertions invoke release:preflight with PREFLIGHT_TIMING_PROFILE=1 and verify the parallel-execution shape: preflight passes, whole-script wall-clock is below 6000ms (warm cache; pre-iter-134 baseline was ~7000ms), and the iter-130 top-N ranking still emits accurate per-audit milliseconds. Tier-2 self-skips under MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1 to prevent runaway suite recursion when this test runs as part of the suite itself (same recursion-guard pattern as iter-75 / iter-132). Closes the every-iter-N-gets-a-regression-test discipline gap for iter-134.
+# Iter-135 regression test for the iter-134 parallel-fan-out-all-preflight-audit-subprocesses-via-xargs-p compressing-2603ms-sequential-into-510ms-wall-clock feature. Two-tier coverage mirroring the iter-132 pattern: (1) source-fingerprint assertions verify the iter134_parallelizable_preflight_audit_metadata_records array exists with exactly 17 records using PIPE separator (NOT TAB — the iter-134 BSD-xargs-collapse-whitespace bug); the pre-warm function, exit-code checker, timing-seed helper, and adaptive lane heuristic functions all exist; the parallel pre-warm is invoked right after Check 4e; and every Check 4f-4v uses the iter-134 helpers (no surviving inline audit-task invocations outside the parallel pre-warm). (2) Integration assertions run tasks/release/preflight with PREFLIGHT_TIMING_PROFILE=1 and verify the parallel-execution shape: preflight passes and the iter-130 top-N ranking still emits accurate per-audit milliseconds. (A whole-script wall-clock ceiling of 6000ms used to be asserted here too; it was removed once preflight began running two full test suites and takes minutes, so the ceiling measured suite size rather than the iter-134 fan-out.) Tier-2 self-skips under MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1 to prevent runaway suite recursion when this test runs as part of the suite itself (same recursion-guard pattern as iter-75 / iter-132). Closes the every-iter-N-gets-a-regression-test discipline gap for iter-134.
 
 # Iter-135 regression test for iter-134's parallel preflight-audit fan-out.
 #
@@ -29,7 +29,7 @@
 #      audit work time).
 #
 #   4. All 17 inline check blocks must use the iter-134 helpers. A future
-#      "let me add a new audit Check 4w via inline `mise run`" would
+#      "let me add a new audit Check 4w via an inline task call" would
 #      undermine the parallelization (Check 4w would run AFTER the Phase A
 #      pre-warm completes, paying full sequential cost).
 #
@@ -173,7 +173,7 @@ assert_substring_present \
 # ─── Tier 1.E: all 17 Check 4f-4v use iter-134 helpers ───────────────────
 # Count callsites of the iter-134 exit-code checker; should be 17 (one
 # per audit check 4f through 4v). If a maintainer adds a new audit
-# Check 4w via inline `mise run` (bypassing the parallel pre-warm), the
+# Check 4w via an inline task call (bypassing the parallel pre-warm), the
 # count stays at 17 but the new check pays full sequential cost AND
 # emits stderr ordering issues. Conversely, removing a helper invocation
 # from an existing check would drop the count below 17.
@@ -237,7 +237,7 @@ if [[ "${MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD:-0}
     echo "    (recursion guard active; iter-75 / iter-132 parity-test pattern). When"
     echo "    invoked standalone the integration tier exercises the actual preflight."
 else
-    echo "  → Running preflight with PREFLIGHT_TIMING_PROFILE=1 (cache-warm; ~5s expected)..."
+    echo "  → Running preflight with PREFLIGHT_TIMING_PROFILE=1 (runs the full preflight; takes minutes)..."
     iter135_preflight_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
         ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=10 \
         bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
@@ -283,21 +283,6 @@ else
         echo "  ✗ FAIL: Tier 2.C1: slowest batch Check elapsed=${iter135_slowest_batch_check_elapsed_ms:-MISSING}ms (expected >100ms; timing-seed may be broken)"
     fi
 
-    # Tier 2.D: whole-script wall-clock improvement.
-    # Pre-iter-134 baseline ~7000ms; post-iter-134 ~4900ms.
-    # Threshold: <6000ms (conservative; allows 300ms of normal variance).
-    iter135_whole_script_elapsed_ms_extracted=$(echo "$iter135_preflight_integration_output" \
-        | grep -oE 'whole-script elapsed: [0-9]+ms' \
-        | head -1 \
-        | grep -oE '[0-9]+')
-    if [[ -n "$iter135_whole_script_elapsed_ms_extracted" ]] && [[ "$iter135_whole_script_elapsed_ms_extracted" -lt 6000 ]]; then
-        ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-        echo "  ✓ PASS: Tier 2.D1: preflight whole-script wall-clock=${iter135_whole_script_elapsed_ms_extracted}ms (<6000ms threshold; iter-134 30% reduction holding)"
-    else
-        ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-        echo "  ✗ FAIL: Tier 2.D1: preflight whole-script wall-clock=${iter135_whole_script_elapsed_ms_extracted:-MISSING}ms (expected <6000ms; iter-134 parallelization may have regressed)"
-    fi
-
     # Tier 2.E: opt-out path works (--lanes=1 sequential mode).
     # Verifies the ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 escape
     # hatch still routes through xargs (and therefore through the sidecar
@@ -338,5 +323,5 @@ echo "  🚀 Iter-134 parallel-fan-out feature regression-guarded across four in
 echo "     1. PIPE separator (NOT TAB — pins BSD-xargs-collapse-whitespace fix)"
 echo "     2. Adaptive lane heuristic (mirrors iter-128 clamp(ncpu-4, 4, 12))"
 echo "     3. Per-audit timing accuracy (sidecar-seeded phase-start preserves iter-130)"
-echo "     4. All 17 Checks 4f-4v use iter-134 helpers (no inline mise-run regressions)"
-echo "     Plus integration shape (whole-script <6000ms; iter-130 ranking still accurate)."
+echo "     4. All 17 Checks 4f-4v use iter-134 helpers (no inline audit-task regressions)"
+echo "     Plus integration shape (preflight passes; iter-130 ranking still accurate)."

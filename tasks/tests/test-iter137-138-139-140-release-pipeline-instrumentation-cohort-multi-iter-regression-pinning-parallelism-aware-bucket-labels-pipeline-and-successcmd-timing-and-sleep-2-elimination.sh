@@ -204,21 +204,20 @@ __iter141_assert_substring_present \
     "$preflight_script_source" \
     "ABSORBED into Check 4e by iter-138"
 
-# 2.E: preflight no longer invokes `mise run release:test-chronicle-slicing` (regression: re-added the duplicate)
-# Use grep -E with a comment-excluding anchor: matches lines where the task-name
-# appears OUTSIDE of a comment context. The iter-138 ABSORBED stub-comment
-# legitimately references the old task name inside a comment line ("Operators
-# previously running `mise run release:test-chronicle-slicing` can now invoke...");
-# that comment mention must NOT trigger a regression failure. Only an ACTIVE
-# code-form invocation (`if ! mise run ...` or `mise run release:test-chronicle-slicing >/tmp/...`)
-# should fail. Discriminator: line begins with optional whitespace + non-#
-# character + ... + task-name (i.e., not a comment line).
-if grep -E '^[[:space:]]*[^#[:space:]].*mise run release:test-chronicle-slicing' "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1; then
+# 2.E: preflight no longer invokes the chronicle-slicing test as a separate task
+# (regression: re-added the duplicate). The test now lives in tasks/tests/ and
+# runs inside Check 4e. The pattern matches every runner form the task has had:
+# the retired `mise run release:test-chronicle-slicing`, a moon
+# `repo:release-test-chronicle-slicing`, and the old script path
+# `tasks/release/test-chronicle-slicing`. Comment lines are excluded because the
+# iter-138 ABSORBED stub comment legitimately names the old task. Discriminator:
+# line begins with optional whitespace + non-# character + ... + task name.
+if grep -E '^[[:space:]]*[^#[:space:]].*release[:/-]test-chronicle-slicing' "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1; then
     ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✗ FAIL: Iter-138.B5: preflight has an ACTIVE invocation of 'mise run release:test-chronicle-slicing' (would reintroduce ~670ms sequential cost; iter-138 ABSORBED comment mention is fine)"
+    echo "  ✗ FAIL: Iter-138.B5: preflight has an ACTIVE invocation of the release test-chronicle-slicing task (would reintroduce ~670ms sequential cost; comment mentions are fine)"
 else
     ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Iter-138.B5: preflight has NO ACTIVE 'mise run release:test-chronicle-slicing' invocation (comment-only mentions in iter-138 ABSORBED stub are OK)"
+    echo "  ✓ PASS: Iter-138.B5: preflight has NO ACTIVE invocation of the release test-chronicle-slicing task (comment-only mentions are OK)"
 fi
 
 echo ""
