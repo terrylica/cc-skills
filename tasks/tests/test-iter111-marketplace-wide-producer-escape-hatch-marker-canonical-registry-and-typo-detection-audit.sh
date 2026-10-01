@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-111 regression test for the marketplace-wide producer-side escape-hatch-marker canonical registry + typo-detection audit. Verifies (1) registry TypeScript file exists with all 3 documented exports (entry interface + registry array + lookup function); (2) registry contains all 12 iter-111 baseline markers (BASH-LAUNCHD-OK, CARGO-TTY-SKIP, CARGO-TTY-WRAP, CWD-DELETE-OK, FILE-SIZE-OK, INIT-MONOLITH-OK, INLINE-IGNORE-OK, LAYER3-STRIPPED-PATH-OK, PROCESS-STORM-OK, PUEUE-LOCAL-OK, SETPROCTITLE-OK, SSoT-OK); (3) typo-detection audit task exists and is executable; (4) audit passes against the live marketplace (every producer-side marker is registered); (5) audit correctly flags a synthetic injected typo (DELIBERATE-TYPO-FOR-ITER111-REGRESSION-TEST-OK in a temp producer file); (6) lookup helper function correctly resolves known markers + returns undefined for unknown.
+# Iter-111 regression test for the marketplace-wide producer-side escape-hatch-marker canonical registry + typo-detection audit. Verifies (1) registry TypeScript file exists with all 3 documented exports (entry interface + registry array + lookup function); (2) registry contains all 11 iter-111 baseline markers (BASH-LAUNCHD-OK, CARGO-TTY-SKIP, CARGO-TTY-WRAP, CWD-DELETE-OK, FILE-SIZE-OK, INIT-MONOLITH-OK, INLINE-IGNORE-OK, PROCESS-STORM-OK, PUEUE-LOCAL-OK, SETPROCTITLE-OK, SSoT-OK); (3) typo-detection audit task exists and is executable; (4) audit passes against the live marketplace (every producer-side marker is registered); (5) audit correctly flags a synthetic injected typo (DELIBERATE-TYPO-FOR-ITER111-REGRESSION-TEST-OK in a temp producer file); (6) lookup helper function correctly resolves known markers + returns undefined for unknown.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -30,7 +30,7 @@ else
     assert_fails "Case 1: iter-111 registry file missing or missing required exports"
 fi
 
-# ─── Case 2: registry contains all 12 iter-111 baseline markers ──────────
+# ─── Case 2: registry contains all 11 iter-111 baseline markers ──────────
 ITER111_BASELINE_MARKER_TOKENS=(
     "BASH-LAUNCHD-OK"
     "CARGO-TTY-SKIP"
@@ -39,7 +39,6 @@ ITER111_BASELINE_MARKER_TOKENS=(
     "FILE-SIZE-OK"
     "INIT-MONOLITH-OK"
     "INLINE-IGNORE-OK"
-    "LAYER3-STRIPPED-PATH-OK"
     "PROCESS-STORM-OK"
     "PUEUE-LOCAL-OK"
     "SETPROCTITLE-OK"
@@ -55,7 +54,7 @@ for baseline_marker_token in "${ITER111_BASELINE_MARKER_TOKENS[@]}"; do
 done
 
 if [[ "$MISSING_BASELINE_MARKER_COUNT" -eq 0 ]]; then
-    assert_passes "Case 2: registry contains all 12 iter-111 baseline markers"
+    assert_passes "Case 2: registry contains all 11 iter-111 baseline markers"
 else
     assert_fails "Case 2: registry missing $MISSING_BASELINE_MARKER_COUNT baseline marker(s)"
 fi

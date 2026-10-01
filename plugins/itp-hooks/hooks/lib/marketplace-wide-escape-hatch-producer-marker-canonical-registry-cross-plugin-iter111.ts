@@ -8,7 +8,7 @@
  * Pre-iter-111, the marketplace had ~12 production escape-hatch markers
  * (`PROCESS-STORM-OK`, `FILE-SIZE-OK`, `BASH-LAUNCHD-OK`, `SSoT-OK`,
  * `INLINE-IGNORE-OK`, `CARGO-TTY-SKIP`/`CARGO-TTY-WRAP`,
- * `LAYER3-STRIPPED-PATH-OK`, `CWD-DELETE-OK`, `INIT-MONOLITH-OK`,
+ * `CWD-DELETE-OK`, `INIT-MONOLITH-OK`,
  * `PUEUE-LOCAL-OK`, etc.) scattered across producer files in 7+ plugins
  * (gmail-commander, calcom-commander, quality-tools,
  * statusline-tools, itp-hooks, agent-reach) with NO single document
@@ -39,7 +39,7 @@
  *     SAME_LINE_OR_PRECEDING_N_LINES | FILE_WIDE
  *   - `minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional`:
  *     0 if bare marker accepted, else the minimum char count enforced
- *     (e.g., LAYER3-STRIPPED-PATH-OK requires ≥10-char reason)
+ *     (e.g., SKILL-PLUGIN-ROOT-OK requires ≥10-char reason)
  *   - `humanReadableEscapeHatchDescriptionForOperatorDocumentation`:
  *     plain-English explanation an operator can read
  *
@@ -125,7 +125,7 @@ export interface MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry 
 
   /**
    * For markers that require a justification reason after a colon
-   * (e.g., `LAYER3-STRIPPED-PATH-OK: deliberate cache bypass for X reason`),
+   * (e.g., `SKILL-PLUGIN-ROOT-OK: documents the variable itself`),
    * the minimum number of characters required after the colon. 0 means
    * bare marker is accepted (no reason needed).
    */
@@ -243,7 +243,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
     {
       markerNameTokenIncludingSuffix: "INLINE-IGNORE-OK",
       consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts",
+        "plugins/itp-hooks/hooks/code-correctness-guard.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       windowSemanticsModeDeclaredAtConsumerCallSite: "SAME_LINE_ONLY",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
@@ -269,20 +269,6 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite:
-        "SAME_LINE_OR_PRECEDING_N_LINES",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        // Backslash-escaped `\${...}` inside a template string prevents biome's
-        // noTemplateCurlyInString lint from misreading the bash-style env-var
-        // reference as an unintended interpolation placeholder.
-        `Allow a \`\${CLAUDE_PLUGIN_ROOT}/<segment>/\` reference where \`<segment>\` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., \`LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike\`). Marker is honored on the same line OR within the preceding 3 lines.`,
     },
     {
       markerNameTokenIncludingSuffix: "SKILL-PLUGIN-ROOT-OK",

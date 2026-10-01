@@ -10,7 +10,7 @@
  * which the operator can opt OUT of the hook's normal enforcement at a
  * specific source location (e.g., `# BASH-LAUNCHD-OK`, `# SSoT-OK`,
  * `# CWD-DELETE-OK`, `# PROCESS-STORM-OK`, `# FILE-SIZE-OK`,
- * `// INLINE-IGNORE-OK`, `# LAYER3-STRIPPED-PATH-OK: <reason ≥ 10 chars>`,
+ * `// INLINE-IGNORE-OK`, `# SKILL-PLUGIN-ROOT-OK: <reason ≥ 10 chars>`,
  * `// CARGO-TTY-SKIP`, etc.).
  *
  * Pre-iter-107 each hook rolled its own marker detection: a regex
@@ -43,8 +43,8 @@
  *     reason capture, comment-style-agnostic (#, //, <!-- --> all work
  *     because the marker name only appears inside comments by convention)
  *
- * Iter-78 layer3-stripped-path guard is the FIRST migration target —
- * its hand-rolled implementation becomes a single helper call. Iter-108+
+ * The first migration target was the iter-78 guard (deleted 2026-10-01):
+ * its hand-rolled implementation became a single helper call. Iter-108+
  * scope: migrate the remaining 8-10 hand-rolled implementations to the
  * shared helper, then promote the audit task from informational to
  * strict-block once all hooks are migrated.
@@ -78,15 +78,13 @@ import { computeFencedCodeLineMask } from "./markdown-fence-scanner.ts";
 //
 //   - SAME_LINE_ONLY:
 //       The marker must appear on the same line as the offending construct.
-//       Used by: pretooluse-inline-ignore-guard (`// INLINE-IGNORE-OK`
 //       suppresses ignore-comments only on the exact line where they appear).
 //
 //   - SAME_LINE_OR_PRECEDING_N_LINES:
 //       The marker may appear on the offending line OR on any of the N lines
 //       immediately preceding it. Best for editor-friendly opt-outs where
 //       the operator places the marker as a comment above the offending
-//       block. Used by: pretooluse-iter78-layer3-stripped-path-edit-time-
-//       guard (`# LAYER3-STRIPPED-PATH-OK: <reason ≥ 10 chars>` with N=3).
+//       block.
 //
 //   - FILE_WIDE:
 //       The marker anywhere in the file suppresses ALL enforcement for
@@ -104,7 +102,7 @@ export type EscapeHatchMarkerWindowSemanticsMode =
 // ────────────────────────────────────────────────────────────────────────
 //
 // Iter-107 baseline assumed strict UPPER-KEBAB-CASE marker convention (e.g.,
-// `BASH-LAUNCHD-OK`, `LAYER3-STRIPPED-PATH-OK`). Iter-108 audit of the
+// `BASH-LAUNCHD-OK`, `SKILL-PLUGIN-ROOT-OK`). Iter-108 audit of the
 // pre-existing marketplace hand-rolled regexes surfaced that several hooks
 // historically used `/i` (case-insensitive matching) — process-storm-guard
 // (`/#\s*PROCESS-STORM-OK/i`), cwd-deletion-guard (`/#\s*CWD-DELETE-OK/i`),
@@ -142,7 +140,7 @@ export type EscapeHatchMarkerCaseSensitivityMode =
 export interface EscapeHatchMarkerDetectionConfiguration {
   /**
    * The marker token, INCLUDING the conventional `-OK` (or `-SKIP` / `-WRAP`)
-   * suffix. Example: `"BASH-LAUNCHD-OK"`, `"LAYER3-STRIPPED-PATH-OK"`,
+   * suffix. Example: `"BASH-LAUNCHD-OK"`, `"SKILL-PLUGIN-ROOT-OK"`,
    * `"CARGO-TTY-SKIP"`. Marketplace convention is UPPER-KEBAB-CASE; case
    * sensitivity controlled by `caseSensitivityMode`.
    */
@@ -190,7 +188,7 @@ export interface EscapeHatchMarkerDetectionConfiguration {
  *
  * If > 0:
  *   Match `<MARKER-TOKEN>:` optionally-whitespaced reason of ≥N non-whitespace
- *   start char + ≥(N-1) any-char continuation. Mirrors iter-78's existing
+ *   start char + ≥(N-1) any-char continuation. Mirrors the original iter-78
  *   regex shape so the migration is behavior-preserving.
  */
 function buildEscapeHatchMarkerRegexForConfiguration(
@@ -213,7 +211,7 @@ function buildEscapeHatchMarkerRegexForConfiguration(
   if (minimumReasonCharacterCount <= 0) {
     return new RegExp(escapedMarkerToken, regexFlags);
   }
-  // Mirror iter-78 grammar exactly: <MARKER>:\s*[^\s].{(N-1),}
+  // The original iter-78 grammar: <MARKER>:\s*[^\s].{(N-1),}
   // (first non-whitespace char + N-1 more chars = ≥N chars of reason)
   const reasonContinuationCount = Math.max(0, minimumReasonCharacterCount - 1);
   return new RegExp(

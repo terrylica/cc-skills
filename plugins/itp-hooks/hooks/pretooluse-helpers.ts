@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Shared helpers for PreToolUse hooks.
- * Extracted from pretooluse-{fake-data,process-storm,version}-guard.mjs
+ * Originally extracted from the process-storm, version and (since deleted) fake-data guards.
  *
  * Includes plan mode detection for hooks that should behave differently
  * during Claude Code's planning phase.
