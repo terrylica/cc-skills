@@ -280,9 +280,9 @@ When implementing ε and τ calculations, verify against these scenarios:
 
 ## References
 
-- **ε formula**: [epsilon-tolerance.md](epsilon-tolerance.md)
+- **ε formula**: [epsilon-tolerance.md](epsilon-tolerance-detail.md)
 - **τ formula**: [notation-definitions.md#zigzag-reversal-threshold-τ](notation-definitions.md#zigzag-reversal-threshold-τ)
-- **Classification**: [variants-updown.md](variants-updown.md)
+- **Classification**: [two-pivot-variants.md](two-pivot-variants.md)
 - **Implementation**: [data-pipeline.md](data-pipeline.md)
 
 ---

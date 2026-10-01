@@ -149,7 +149,7 @@ if pueue status --json | jq -e ".tasks.\"14\"" >/dev/null; then ...
 pueue status --json | jq -r '.tasks | to_entries[] | select(.value.group == "mygroup") | .value.id'
 ```
 
-Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-8)
+Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-8-monitor-by-stable-identifiers-not-ephemeral-ids)
 
 ### 9. Derived Artifact Filenames Must Include ALL Category Dimensions (INV-9)
 
@@ -179,7 +179,7 @@ assert set(merged_df["strategy"].unique()) == {"standard"}, "Direction contamina
 
 **Relationship to INV-1**: INV-1 ensures checkpoint file uniqueness by job parameters (runtime isolation). INV-9 extends this to derived artifacts that persist across pipeline phases (artifact isolation). Both prevent the same class of bug -- silent cross-contamination from filename collisions.
 
-Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-9)
+Full specification: [references/concurrency-invariants.md](./references/concurrency-invariants.md#inv-9-derived-artifact-category-isolation)
 
 ---
 

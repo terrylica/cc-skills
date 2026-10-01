@@ -34,7 +34,7 @@ Typeless's koffi CGEventTap / Cocoa text field
 
 ## Current Rule
 
-Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules`. Exported verbatim in [`references/karabiner-rule.json`](references/karabiner-rule.json).
+Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules`. Exported verbatim in [`references/karabiner-rule.json`](raw/karabiner-rule.json).
 
 Abridged USB-only view — the full live rule covers USB + Bluetooth in 12 manipulators total. The USB transport (this doc) uses Karabiner-side software detection for all three buttons' tap/double-tap (set_variable + to_delayed_action). The BT transport (see [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md)) uses the same software detection for top + middle, but **the pad's BT firmware does its own double-tap detection on the bottom button only** — single-tap emits `equal_sign`, double-tap emits `Option+Z` — so the BT bottom-button manipulators are simple immediate-translation, not delayed-action pairs. See `raw/karabiner-rule.json` for the verbatim dump.
 

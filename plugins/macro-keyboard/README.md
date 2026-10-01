@@ -1,8 +1,8 @@
 # macro-keyboard
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-3-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+![Skills](https://img.shields.io/badge/Skills-3-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements. Covers Fn emission, device-scoped remaps, HID diagnostics, dual-transport (USB + Bluetooth) rules for pads whose BT firmware emits different keycodes than USB, and **two tap-vs-double-tap techniques**: Karabiner-side software discrimination (`set_variable` + `to_delayed_action`, when the pad emits the same keycode for every press) and pad-firmware-decided keycode translation (when the pad's firmware itself decides single-vs-double-tap and emits two different keycodes — discovered on the worked-example Free3-P bottom button over Bluetooth, 2026-05-02).
 

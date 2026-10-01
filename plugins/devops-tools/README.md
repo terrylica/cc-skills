@@ -1,8 +1,8 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-17-blue.svg)](<>)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
+![Skills](https://img.shields.io/badge/Skills-17-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, MLflow queries, notifications, and session recovery.
 

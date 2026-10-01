@@ -1,6 +1,6 @@
 # Recursive Research Protocol
 
-Step-by-step protocol for the iterative search → extract → recurse → synthesize pattern. Extracted from the working [deep-research Pi extension](~/fork-tools/pi-extensions/extensions/deep-research/).
+Step-by-step protocol for the iterative search → extract → recurse → synthesize pattern. Extracted from the working deep-research Pi extension (`~/fork-tools/pi-extensions/extensions/deep-research/`).
 
 ---
 

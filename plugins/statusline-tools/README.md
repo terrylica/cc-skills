@@ -1,9 +1,9 @@
 # statusline-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)](<>)
-[![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg)](<>)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
+![Skills](https://img.shields.io/badge/Skills-4-blue.svg)
+![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Custom Claude Code status line with git status indicators.
 

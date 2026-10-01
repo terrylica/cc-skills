@@ -4,7 +4,7 @@
 
 ## Metric Tiers for Test Evaluation
 
-Following [rangebar-eval-metrics](../../rangebar-eval-metrics/SKILL.md), compute these metrics on TEST data.
+Following [rangebar-eval-metrics](../../opendeviation-eval-metrics/SKILL.md), compute these metrics on TEST data.
 
 **CRITICAL for Range Bars**: Use time-weighted Sharpe (`sharpe_tw`) instead of simple bar Sharpe. See [range-bar-metrics.md](./range-bar-metrics.md) for the canonical implementation. The metrics below assume time-weighted computation for range bar data.
 

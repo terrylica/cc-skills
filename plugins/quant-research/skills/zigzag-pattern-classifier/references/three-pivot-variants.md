@@ -193,7 +193,7 @@ Each variant's market regime is defined in the [Classification Matrix](#classifi
 - **Neutral** (3): HL+LH (triangle), EL+EH (rectangle), LL+EH (volatile range)
 - **Bearish** (2): EL+LH (lower-high), LL+LH (rally failure)
 
-For detailed trading rules (entry signals, stop loss, targets), see [variants-updown.md Market Regime Mapping](variants-updown.md#market-regime-mapping) which extends these concepts to FD-binned granularity
+For detailed trading rules (entry signals, stop loss, targets), see [two-pivot-variants.md Market Regime Mapping](two-pivot-variants.md#market-regime-mapping) which extends these concepts to FD-binned granularity
 
 ## Implementation Notes
 
@@ -204,7 +204,7 @@ Use your **tolerance band ε** to classify EH and EL:
 - **EH**: |H3 - H1| ≤ ε
 - **EL**: |L2 - L0| ≤ ε
 
-See [epsilon-tolerance.md](epsilon-tolerance.md) for complete ε formula and defaults.
+See [epsilon-tolerance.md](epsilon-tolerance-detail.md) for complete ε formula and defaults.
 
 ### Granular Sub-Classification
 
@@ -383,7 +383,7 @@ These temporal features enhance pattern prediction when combined with the 9-vari
 
 1. **Implement**: Compute all 9 variants on rolling EURUSD data
 2. **Backtest**: Analyze returns per variant across multiple timeframes
-3. **Granularize**: Apply FD binning for sub-variant analysis (see [variants-updown.md](variants-updown.md))
+3. **Granularize**: Apply FD binning for sub-variant analysis (see [two-pivot-variants.md](two-pivot-variants.md))
 4. **Extend**: Combine with volatility, spreads, and trend context
 5. **Model**: Use 9-variant labels as features for ML regime classifiers
 

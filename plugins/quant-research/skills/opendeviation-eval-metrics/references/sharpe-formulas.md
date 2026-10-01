@@ -3,7 +3,7 @@
 > **Note**: This file contains quick-reference formulas for the ρ=0 (IID) special case used in range bar evaluation.
 > For the full non-IID framework (ρ-corrected variance, PSR, DSR, MinTRL, pFDR, oFDR, SFDR with 82 verified equations
 > and Numba JIT implementation), see the dedicated skill:
-> [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md).
+> [sharpe-ratio-non-iid-corrections](../../sharpe-ratio-non-iid-corrections/SKILL.md).
 
 ## Why Standard Sharpe Fails for Range Bars
 

@@ -1,9 +1,9 @@
 # html-showcase Plugin
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)](<>)
-[![Commands](https://img.shields.io/badge/Commands-2-green.svg)](<>)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
+![Skills](https://img.shields.io/badge/Skills-2-blue.svg)
+![Commands](https://img.shields.io/badge/Commands-2-green.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Sitemap-organized **static HTML mini-sites** with a CDN-served CSS kernel and an auto-discovered, auto-fitting navigation rail. **The filesystem layout IS the navigation graph** — drop HTML files in directories, run one script, and the sitemap + per-page rail rewrite themselves.
 
