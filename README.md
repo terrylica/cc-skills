@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revising autonomous-loop primitives for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-42-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-43-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -15,7 +15,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [agent-reach](./plugins/agent-reach/)                   | Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.             | productivity  |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                       | utilities     |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
-| [chrome-profiles](./plugins/chrome-profiles/) | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser | productivity |
+| [chrome-profiles](./plugins/chrome-profiles/)           | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser                                                                 | productivity  |
 | [claude-tts-companion](./plugins/claude-tts-companion/) | Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype                                                                                                                   | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
 | [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
@@ -64,7 +64,7 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 42 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
+# 2. Install all 43 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
 for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macos-font-defaults macos-permissions macro-keyboard media-tools minimax mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
@@ -168,6 +168,17 @@ claude plugin install itp@cc-skills
 ```
 
 ## Troubleshooting
+
+### Windows: `marketplace add` fails with `EPERM ... rename`
+
+**Cause**: Claude Code clones a marketplace into a temporary directory and then renames it into place. On Windows, a transient lock on the freshly cloned tree (antivirus real-time scan, the search indexer, an open Explorer window) makes that rename fail, and the larger the repository, the more likely it is. It is not specific to this repository: the same `Failed to finalize marketplace cache` error is reported for Anthropic's own skills repository in [anthropics/claude-code#12174](https://github.com/anthropics/claude-code/issues/12174). Reported here in #162.
+
+**Fix**: clone it yourself and add the clone as a local-directory marketplace, which skips the clone-and-rename step. Claude Code then reads plugins straight from that directory, so update with `git pull`:
+
+```bash
+git clone https://github.com/terrylica/cc-skills.git ~/cc-skills
+claude plugin marketplace add ~/cc-skills
+```
 
 ### "Source path does not exist" Error
 
@@ -471,8 +482,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (42 plugins) — SSoT
-├── plugins/                      # 42 marketplace plugins (each with its own CLAUDE.md)
+│   └── marketplace.json          # Plugin registry (43 plugins) — SSoT
+├── plugins/                      # 43 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools
