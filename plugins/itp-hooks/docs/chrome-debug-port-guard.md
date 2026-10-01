@@ -33,18 +33,12 @@ echo --remote-debugging-port=9222 >> notes.txt # merely writing the flag down
 
 If you find yourself reaching for the escape marker to unblock one of those, the guard has a bug — the fix is a test, not an opt-out.
 
-## The launch shape it wants instead
+## What to do instead
 
-```bash
-osascript -e 'quit app "Google Chrome"'   # MUST fully quit — relaunching while an instance is alive
-                                          # just opens a tab in it and silently drops every flag
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-  --remote-debugging-port=9222 \
-  --user-data-dir="$HOME/.chrome-debug" &
-curl -s http://127.0.0.1:9222/json/version   # JSON with webSocketDebuggerUrl == live
-```
+Two routes, both in the [`chrome-profiles`](../../chrome-profiles/skills/browser-automation/SKILL.md) plugin, which is the SSoT for driving a browser:
 
-That is a **fresh profile**: no cookies, no logins, no extensions. Sign in once by hand in that window, or copy `Local State` plus the single profile directory you need with Chrome fully quit. **Close the port when done** (`pkill -f "remote-debugging-port=9222"`) — an open 9222 lets any local process drive the browser and read every cookie in that profile, which is the attack Chrome 136 hardened against in the first place.
+- **Your everyday, signed-in Chrome** needs no debug flag at all: `chrome-profile.sh setup <email>` (Playwright Extension, zero clicks) or `setup-main` (the `chrome://inspect` toggle with `--autoConnect`).
+- **A separate profile on a port**: `chrome-debug-port-control.sh up` / `down`. It pins a non-default `--user-data-dir`, which is exactly what this guard requires, and closes the port by its exact flag.
 
 ## Escape hatch
 
