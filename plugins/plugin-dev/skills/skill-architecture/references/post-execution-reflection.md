@@ -151,7 +151,7 @@ These are the kinds of discoveries that the reflection phase captures:
 
 ### Pattern Example
 
-> **Trigger**: During kokoro-tts:install, discovered that checking `sherpa-onnx` version via `python -c "import sherpa_onnx"` is unreliable because the import succeeds even with a broken installation.
+> **Trigger**: During an install skill, discovered that checking a tool's version via `python -c "import sherpa_onnx"` is unreliable because the import succeeds even with a broken installation.
 >
 > **Pattern**: Use `sherpa-onnx --help 2>&1 | head -1` to check the CLI binary directly. This catches broken installations that the Python import misses.
 >
