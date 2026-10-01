@@ -41,7 +41,7 @@ curl -sS -X POST https://api.minimax.io/v1/chat/completions \
   --data @/tmp/mm-req.json
 ```
 
-**File-based body is mandatory** in any non-trivial example: shell escaping for nested JSON quotes is error-prone. See [`../LOOP_CONTRACT.md`](~/own/amonic/minimax/LOOP_CONTRACT.md) Non-Obvious Learnings for the heredoc-traps reasoning. Even small examples should use this pattern for muscle memory.
+**File-based body is mandatory** in any non-trivial example: shell escaping for nested JSON quotes is error-prone. See `../LOOP_CONTRACT.md` (`~/own/amonic/minimax/LOOP_CONTRACT.md`) Non-Obvious Learnings for the heredoc-traps reasoning. Even small examples should use this pattern for muscle memory.
 
 ## Response anatomy (verified)
 
@@ -86,8 +86,8 @@ curl -sS -X POST https://api.minimax.io/v1/chat/completions \
 
 Full fixtures:
 
-- [`fixtures/chat-completion-minimal-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-minimal-2026-04-28.json) — with explicit `max_tokens: 1024`
-- [`fixtures/chat-completion-no-max-tokens-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-no-max-tokens-2026-04-28.json) — `max_tokens` omitted
+- `fixtures/chat-completion-minimal-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-minimal-2026-04-28.json`) — with explicit `max_tokens: 1024`
+- `fixtures/chat-completion-no-max-tokens-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-no-max-tokens-2026-04-28.json`) — `max_tokens` omitted
 
 ## Critical content-parsing pattern: stripping `<think>...</think>`
 

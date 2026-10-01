@@ -80,7 +80,7 @@ o = −z / ATR₁₄ = (L₀ − L₂) / ATR₁₄  ∈ [0, +∞)
 
 ### Tolerance Band (ε)
 
-See **[epsilon-tolerance.md](epsilon-tolerance.md)** for complete specification.
+See **[epsilon-tolerance.md](epsilon-tolerance-detail.md)** for complete specification.
 
 **Core formula**:
 
@@ -232,7 +232,7 @@ Step 2: Apply bounds
 
 ### FD-Binned Variants (9 total: UP–DOWN)
 
-See **[variants-updown.md](variants-updown.md)** for detailed classification and market regimes.
+See **[two-pivot-variants.md](two-pivot-variants.md)** for detailed classification and market regimes.
 
 #### EL Variants
 
@@ -330,7 +330,7 @@ Interpretation:
 
 ## Market Regimes
 
-See **[variants-updown.md](variants-updown.md#market-regime-mapping)** for trading implications per variant.
+See **[two-pivot-variants.md](two-pivot-variants.md#market-regime-mapping)** for trading implications per variant.
 
 | Regime       | Variants     | Characteristics           | Entry Signal                                   |
 | ------------ | ------------ | ------------------------- | ---------------------------------------------- |
@@ -377,19 +377,19 @@ See **[variants-updown.md](variants-updown.md#market-regime-mapping)** for tradi
 
 **Implementation & Methodology**:
 
-- **[epsilon-tolerance.md](epsilon-tolerance.md)** — Complete ε formula, EURUSD defaults, examples
+- **[epsilon-tolerance.md](epsilon-tolerance-detail.md)** — Complete ε formula, EURUSD defaults, examples
 - **[binning-methodology.md](binning-methodology.md)** — FD binning algorithm, worked example
 - **[data-pipeline.md](data-pipeline.md)** — 11-step pipeline using all above terms
 
 **Pattern Analysis**:
 
-- **[variants-updownup.md](variants-updownup.md)** — 9 three-pivot patterns (L₀→H₁→L₂→H₃)
-- **[variants-updown.md](variants-updown.md)** — Granular two-pivot patterns with FD bins
+- **[three-pivot-variants.md](three-pivot-variants.md)** — 9 three-pivot patterns (L₀→H₁→L₂→H₃)
+- **[two-pivot-variants.md](two-pivot-variants.md)** — Granular two-pivot patterns with FD bins
 
 **Development History**:
 
-- **[conversation.md](conversation.md)** — Full 13-part Q&A developing the framework
-- **[README.md](README.md)** — Navigation guide and use cases
+- **conversation.md** — Full 13-part Q&A developing the framework
+- **README.md** — Navigation guide and use cases
 
 ---
 

@@ -162,7 +162,7 @@ with client.chat.completions.create(
 
 Fixtures (each contains raw SSE lines + parsed events + accumulated content):
 
-- [`fixtures/chat-completion-stream-S1-basic-stream-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stream-S1-basic-stream-2026-04-28.json)
-- [`fixtures/chat-completion-stream-S2-stream-stop-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stream-S2-stream-stop-2026-04-28.json)
+- `fixtures/chat-completion-stream-S1-basic-stream-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stream-S1-basic-stream-2026-04-28.json`)
+- `fixtures/chat-completion-stream-S2-stream-stop-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stream-S2-stream-stop-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-8. 2 API calls.

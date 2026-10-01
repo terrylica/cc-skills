@@ -126,9 +126,9 @@ This is the only reliable way to bound output length on MiniMax.
 
 Fixtures:
 
-- [`fixtures/chat-completion-stop-A-count-stop-5-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-A-count-stop-5-2026-04-28.json)
-- [`fixtures/chat-completion-stop-B-stop-think-close-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-B-stop-think-close-2026-04-28.json)
-- [`fixtures/chat-completion-stop-C-stop-end-marker-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-C-stop-end-marker-2026-04-28.json)
-- [`fixtures/chat-completion-stop-D-multi-stop-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-D-multi-stop-2026-04-28.json)
+- `fixtures/chat-completion-stop-A-count-stop-5-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-A-count-stop-5-2026-04-28.json`)
+- `fixtures/chat-completion-stop-B-stop-think-close-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-B-stop-think-close-2026-04-28.json`)
+- `fixtures/chat-completion-stop-C-stop-end-marker-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-C-stop-end-marker-2026-04-28.json`)
+- `fixtures/chat-completion-stop-D-multi-stop-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-stop-D-multi-stop-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-7. 4 API calls.

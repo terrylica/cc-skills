@@ -274,6 +274,6 @@ Wall-clock for 4 parallel probes: 15.7s (M2 dominated).
 
 Fixture:
 
-- [`fixtures/mandarin-iter38-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/mandarin-iter38-2026-04-29.json) — full responses including original Chinese characters
+- `fixtures/mandarin-iter38-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/mandarin-iter38-2026-04-29.json`) — full responses including original Chinese characters
 
 Verifier: autonomous-loop iter-38. 4 API calls.

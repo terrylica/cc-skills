@@ -201,6 +201,6 @@ The iter-19 mechanical audit consumes this file directly — it parses the table
 ## Cross-references
 
 - Top-level skill: [`../skills/minimax/SKILL.md`](../skills/minimax/SKILL.md)
-- Plugin metadata: [`../plugin.json`](../plugin.json)
-- Campaign contract: [`../LOOP_CONTRACT.md`](../LOOP_CONTRACT.md)
+- Plugin metadata: `../plugin.json` (the plugin ships no plugin.json; its marketplace.json entry is the manifest)
+- Campaign contract: `../LOOP_CONTRACT.md` (in the private source repo, not shipped)
 - Source-of-truth (READ-ONLY): `~/own/amonic/minimax/`

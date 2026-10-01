@@ -164,10 +164,10 @@ For Karakeep at scale (thousands of bookmarks per user), don't try to put all bo
 
 Fixtures:
 
-- [`fixtures/context-boundary-C1-50KB-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C1-50KB-2026-04-28.json)
-- [`fixtures/context-boundary-C2-100KB-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C2-100KB-2026-04-28.json)
-- [`fixtures/context-boundary-C3-200KB-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C3-200KB-2026-04-28.json)
-- [`fixtures/context-boundary-C4-500KB-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C4-500KB-2026-04-28.json)
-- [`fixtures/context-boundary-C5-1MB-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C5-1MB-2026-04-28.json)
+- `fixtures/context-boundary-C1-50KB-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C1-50KB-2026-04-28.json`)
+- `fixtures/context-boundary-C2-100KB-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C2-100KB-2026-04-28.json`)
+- `fixtures/context-boundary-C3-200KB-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C3-200KB-2026-04-28.json`)
+- `fixtures/context-boundary-C4-500KB-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C4-500KB-2026-04-28.json`)
+- `fixtures/context-boundary-C5-1MB-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/context-boundary-C5-1MB-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-24. 5 API calls.

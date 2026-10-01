@@ -138,9 +138,9 @@ To find MiniMax's actual maximum output length, send a prompt that forces long o
 
 Fixtures:
 
-- [`fixtures/chat-completion-maxtokens-8-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-8-2026-04-28.json)
-- [`fixtures/chat-completion-maxtokens-200-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-200-2026-04-28.json)
-- [`fixtures/chat-completion-maxtokens-10000-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-10000-2026-04-28.json)
-- [`fixtures/chat-completion-maxtokens-100000-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-100000-2026-04-28.json)
+- `fixtures/chat-completion-maxtokens-8-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-8-2026-04-28.json`)
+- `fixtures/chat-completion-maxtokens-200-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-200-2026-04-28.json`)
+- `fixtures/chat-completion-maxtokens-10000-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-10000-2026-04-28.json`)
+- `fixtures/chat-completion-maxtokens-100000-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-maxtokens-100000-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-6. 4 API calls.

@@ -290,7 +290,7 @@ Wall-clock for 3 parallel codegen + sequential validation: 43.9s.
 
 Fixtures:
 
-- [`fixtures/backtesting-codegen-iter33-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/backtesting-codegen-iter33-2026-04-29.json) — initial 3 probes with full error traces
+- `fixtures/backtesting-codegen-iter33-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/backtesting-codegen-iter33-2026-04-29.json`) — initial 3 probes with full error traces
 - (Retry not saved as fixture — diagnostic-only)
 
 Verifier: autonomous-loop iter-33. 4 API calls (3 initial + 1 retry).

@@ -218,7 +218,7 @@ video_bytes = provider.generate("a sunrise over mountains")
 
 Fixtures:
 
-- [`fixtures/video-V1-t2v-v2-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/video-V1-t2v-v2-2026-04-28.json)
-- [`fixtures/video-V2-video-generation-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/video-V2-video-generation-2026-04-28.json)
+- `fixtures/video-V1-t2v-v2-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/video-V1-t2v-v2-2026-04-28.json`)
+- `fixtures/video-V2-video-generation-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/video-V2-video-generation-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-16. 2 API calls.

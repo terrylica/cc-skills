@@ -153,5 +153,5 @@ if runtime_hours >= config["max_hours"]:
 
 ## References
 
-- [Ralph Plugin README](/plugins/ru/README.md#dual-time-tracking-v790)
+- Ralph Plugin README (the ru plugin has since been removed)
 - [Stop Visibility ADR](/docs/adr/2025-12-22-ralph-stop-visibility-observability.md)

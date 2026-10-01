@@ -237,8 +237,8 @@ audio_bytes = provider.synthesize("hello world")
 
 Fixtures:
 
-- [`fixtures/chat-completion-tts-A1-openai-style-audio-speech-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tts-A1-openai-style-audio-speech-2026-04-28.json)
-- [`fixtures/chat-completion-tts-A2-minimax-t2a-v2-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tts-A2-minimax-t2a-v2-2026-04-28.json)
-- [`fixtures/chat-completion-tts-followup-summary-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tts-followup-summary-2026-04-28.json)
+- `fixtures/chat-completion-tts-A1-openai-style-audio-speech-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tts-A1-openai-style-audio-speech-2026-04-28.json`)
+- `fixtures/chat-completion-tts-A2-minimax-t2a-v2-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tts-A2-minimax-t2a-v2-2026-04-28.json`)
+- `fixtures/chat-completion-tts-followup-summary-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tts-followup-summary-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-15. 7 API calls (2 + 5 in two waves).

@@ -20,7 +20,7 @@ All UP–DOWN triplets fall into exactly one of:
 | **HL** | L₂ > L₀    | Higher Low (pullback) | ~50–60%   |
 | **LL** | L₂ < L₀    | Lower Low (undercut)  | ~10–20%   |
 
-Equality determined by tolerance band ε (see [epsilon-tolerance.md](epsilon-tolerance.md)).
+Equality determined by tolerance band ε (see [epsilon-tolerance.md](epsilon-tolerance-detail.md)).
 
 ## Granular Classification: 9 FD-Binned Variants
 
@@ -271,7 +271,7 @@ See [binning-methodology.md](binning-methodology.md) for complete FD procedure.
 
 ## Implementation Checklist
 
-- [ ] Compute ε (tolerance band) per [epsilon-tolerance.md](epsilon-tolerance.md)
+- [ ] Compute ε (tolerance band) per [epsilon-tolerance.md](epsilon-tolerance-detail.md)
 - [ ] Build UP–DOWN triplet list from ZigZag pivots
 - [ ] Calculate z = (L₂ - L₀) / (H₁ - L₀) for each triplet
 - [ ] Classify EL if |z| ≤ εᵣ; otherwise HL if z > 0 else LL

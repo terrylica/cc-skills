@@ -223,7 +223,7 @@ def select_minimax_model(workload_type: str) -> str:
 
 Fixtures:
 
-- [`fixtures/finmath-iter29-accuracy-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/finmath-iter29-accuracy-2026-04-29.json) — 8 initial probes
-- [`fixtures/finmath-iter29-retry-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/finmath-iter29-retry-2026-04-29.json) — 2 retry probes at higher budget
+- `fixtures/finmath-iter29-accuracy-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/finmath-iter29-accuracy-2026-04-29.json`) — 8 initial probes
+- `fixtures/finmath-iter29-retry-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/finmath-iter29-retry-2026-04-29.json`) — 2 retry probes at higher budget
 
 Verifier: autonomous-loop iter-29. 10 API calls (8 initial + 2 retry).
