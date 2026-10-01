@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# tasks/hook-lint/run — run every tasks/hook-lint/*.sh audit in parallel.
+#
+# The directory listing is the only list: adding a lint means adding a
+# file here. Each audit's output goes to its own temp log; the runner prints
+# one PASS/FAIL line per audit with elapsed ms, then the last 30 log lines
+# of every failure, and exits 1 if any audit failed.
+#
+# Concurrency is bounded (HOOK_LINT_MAX_PARALLEL, default and ceiling 4)
+# because the gate runs on shared, often loaded machines.
+#
+# Wired into `moon run repo:hook-lint`, a dependency of `repo:check`.
+set -euo pipefail
+
+# `wait -n` and EPOCHREALTIME need bash >= 5 (macOS /bin/bash is 3.2).
+if [ "${BASH_VERSINFO[0]}" -lt 5 ]; then
+    echo "hook-lint: needs bash >= 5, got $BASH_VERSION (put Homebrew/proto bash first on PATH)" >&2
+    exit 1
+fi
+
+HOOK_LINT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HOOK_LINT_DIR/../.." && pwd)"
+MAX_PARALLEL="${HOOK_LINT_MAX_PARALLEL:-4}"
+if ! [[ "$MAX_PARALLEL" =~ ^[1-9][0-9]*$ ]] || [ "$MAX_PARALLEL" -gt 4 ]; then
+    MAX_PARALLEL=4
+fi
+
+# Scripts that need arguments. Everything else runs with none.
+audit_args_for() {
+    case "$1" in
+        marker-reference-doc) echo "--check" ;;
+        *) echo "" ;;
+    esac
+}
+
+LOG_DIR="$(mktemp -d -t hook-lint.XXXXXX)"
+trap 'rm -rf "$LOG_DIR"' EXIT
+
+shopt -s nullglob
+audit_scripts=("$HOOK_LINT_DIR"/*.sh)
+shopt -u nullglob
+if [ "${#audit_scripts[@]}" -eq 0 ]; then
+    echo "hook-lint: no audits found in $HOOK_LINT_DIR" >&2
+    exit 1
+fi
+
+# Runs one audit; writes <name>.log, <name>.rc and <name>.ms into LOG_DIR.
+run_one_audit() {
+    local script="$1" name args start end rc=0
+    name="$(basename "$script" .sh)"
+    args="$(audit_args_for "$name")"
+    start="$EPOCHREALTIME"
+    # shellcheck disable=SC2086  # args is a single known flag or empty
+    (cd "$REPO_ROOT" && bash "$script" $args) > "$LOG_DIR/$name.log" 2>&1 || rc=$?
+    end="$EPOCHREALTIME"
+    echo "$rc" > "$LOG_DIR/$name.rc"
+    awk -v s="$start" -v e="$end" 'BEGIN { printf "%.0f", (e - s) * 1000 }' > "$LOG_DIR/$name.ms"
+}
+
+total_start="$EPOCHREALTIME"
+running=0
+for script in "${audit_scripts[@]}"; do
+    if [ "$running" -ge "$MAX_PARALLEL" ]; then
+        wait -n || true
+        running=$((running - 1))
+    fi
+    run_one_audit "$script" &
+    running=$((running + 1))
+done
+wait || true
+
+failed_names=()
+for script in "${audit_scripts[@]}"; do
+    name="$(basename "$script" .sh)"
+    rc="$(cat "$LOG_DIR/$name.rc" 2>/dev/null || echo missing)"
+    ms="$(cat "$LOG_DIR/$name.ms" 2>/dev/null || echo '?')"
+    if [ "$rc" = "0" ]; then
+        printf 'PASS  %-38s %6s ms\n' "$name" "$ms"
+    else
+        printf 'FAIL  %-38s %6s ms  (exit %s)\n' "$name" "$ms" "$rc"
+        failed_names+=("$name")
+    fi
+done
+
+total_ms="$(awk -v s="$total_start" -v e="$EPOCHREALTIME" 'BEGIN { printf "%.0f", (e - s) * 1000 }')"
+echo "hook-lint: ${#audit_scripts[@]} audits, ${#failed_names[@]} failed, ${total_ms} ms wall (max ${MAX_PARALLEL} parallel)"
+
+if [ "${#failed_names[@]}" -gt 0 ]; then
+    for name in "${failed_names[@]}"; do
+        echo ""
+        echo "──── $name: last 30 log lines ────"
+        tail -n 30 "$LOG_DIR/$name.log" 2>/dev/null || echo "(no log captured)"
+    done
+    exit 1
+fi
