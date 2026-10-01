@@ -2,7 +2,7 @@
 
 > Wraps the third-party [openwolf](https://github.com/cytostack/openwolf) npm middleware (Cytostack, AGPL-3.0) — installs/inspects/cleanly removes its `.wolf/` directory, Claude Code hook entries, CLAUDE.md snippet, rules file, and global registry entry per project.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [kokoro-tts CLAUDE.md](../kokoro-tts/CLAUDE.md) | [plugins/CLAUDE.md](../CLAUDE.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [plugins/CLAUDE.md](../CLAUDE.md)
 
 ## What openwolf does
 
