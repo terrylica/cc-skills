@@ -1813,7 +1813,7 @@ function formatDependencyGraph(graph, details) {
  * Validate ~/.claude/settings.json for shadow hooks.
  *
  * A "shadow hook" is a non-cc-skills hook whose script basename matches
- * a cc-skills hook. This causes double-firing (duplicate MiniMax calls,
+ * a cc-skills hook. This causes double-firing (duplicate LLM calls,
  * duplicate log entries, duplicate block/allow decisions).
  *
  * Example: ~/.claude/automation/.../auto-continue-wrapper.sh shadows
