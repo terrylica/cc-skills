@@ -37,7 +37,7 @@ All 6 columns are non-nullable. Schema is identical between EURUSD and XAUUSD fi
 | ask      | Float64    | DOUBLE      | NO       | Ask price                                     |
 | last     | Float64    | DOUBLE      | NO       | Always 0.0 for FXView forex -- IGNORE         |
 | volume   | Int64      | BIGINT      | NO       | Always 0 for FXView forex -- IGNORE           |
-| flags    | UInt8      | UTINYINT    | NO       | MqlTick flags bitmask (3 values: 4, 130, 134) |
+| flags    | UInt8      | UTINYINT    | NO       | MqlTick flags bitmask (6 values over history; mask bits, never match literals) |
 
 ## Parquet Footer Metadata
 
@@ -121,18 +121,26 @@ ORDER BY cnt DESC;
 
 - **Compression:** ZSTD level 3
 - **time_msc encoding:** DELTA_BINARY_PACKED (optimal for monotonic timestamps, dictionary disabled)
-- **flags encoding:** Dictionary encoding (low cardinality -- 3 distinct values)
+- **flags encoding:** Dictionary encoding (low cardinality; six distinct values over full history, three on a typical day)
 - **bid, ask, last, volume:** Default (PLAIN + ZSTD)
 - **Row groups:** ~65,536 rows each (last group has remainder)
 - **File size:** ~1.35 MB for ~416K EURUSD ticks/day
 
 ## Flags Bitmask Reference
 
-| Value | Meaning                                       |
-| ----- | --------------------------------------------- |
-| 4     | Ask price changed (TICK_FLAG_ASK)             |
-| 130   | Bid changed + first tick marker (2+128)       |
-| 134   | Bid+ask changed + first tick marker (2+4+128) |
+**Mask the documented bit; never match a literal value.** Use `flags & 2 <> 0` for a bid update and `flags & 4 <> 0` for an ask update. That is correct under both encodings below and across both historical transitions. `WHERE flags = 130` or `flags IN (130, 134)` returns **zero** bid ticks for the whole 2026-04-23 to 2026-08-13 window.
+
+Census of the whole lake (2018-04 to 2026-08, all symbols, measured 2026-08-29; issue #155). Over full history the column takes six values:
+
+| Event          | Bit-7 form (the norm)                   | Bare form |
+| -------------- | --------------------------------------- | --------- |
+| bid update     | `130` (=128\|2)                         | `2`       |
+| ask update     | `132` (=128\|4), until 2018-06-15 only  | `4`       |
+| bid+ask update | `134` (=128\|6)                         | `6`       |
+
+- Through 2018-06-15 every day's alphabet is exactly `[130, 132, 134]`; from 2018-06-17 it is `[4, 130, 134]`, and `132` never recurs.
+- Bare `2` and `6` first appear on 2021-07-01, recur in short episodes, and run continuously from 2026-04-23 to 2026-08-13. A day whose alphabet is `[2, 4, 6]` (for example 2021-07-02) is **not** an outage or a corrupt file: every tick is present, under the bare encoding.
+- **Bit 7 (128) is undocumented.** MQL5's [`MqlTick` reference](https://www.mql5.com/en/docs/constants/structures/mqltick) defines exactly six tick flags (`TICK_FLAG_BID`, `TICK_FLAG_ASK`, `TICK_FLAG_LAST`, `TICK_FLAG_VOLUME`, `TICK_FLAG_BUY`, `TICK_FLAG_SELL`), and none of them is 128. This broker sets bit 7 on most ticks, but what it means is not established; do not call it a "first tick marker" (there is no `TICK_FLAG_FIRST`).
 
 ## Troubleshooting
 
