@@ -12,6 +12,14 @@
 #     automatically — no task edit required.
 set -euo pipefail
 
+# git exports GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE, ... into hooks (githooks(5)). The suites
+# below create throwaway repos and run git in them; with these inherited, those git commands hit
+# THIS repository instead. Observed 2026-09-30 from the first gated push: fixture commits on the
+# pushed branch, a staged mass deletion, core.bare=true and a probe identity in .git/config.
+# `git rev-parse --local-env-vars` is git's own list of exactly these variables.
+read -ra git_local_env_vars <<<"$(git rev-parse --local-env-vars 2>/dev/null | tr '\n' ' ')"
+if (( ${#git_local_env_vars[@]} > 0 )); then unset "${git_local_env_vars[@]}"; fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
