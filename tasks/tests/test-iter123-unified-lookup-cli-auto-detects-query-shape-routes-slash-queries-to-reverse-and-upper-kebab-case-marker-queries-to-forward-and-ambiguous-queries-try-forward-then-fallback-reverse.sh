@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-123 regression test for the unified lookup CLI that auto-detects query shape and dispatches to iter-116 reverse-search OR iter-122 forward-search without forcing the operator to choose direction. Verifies (1) classifier library exports the documented constants and classification function with discriminated-union return shape; (2) classifier returns REVERSE_SEARCH_ITER116_CONFIDENT for queries containing '/'; (3) classifier returns FORWARD_SEARCH_ITER122_CONFIDENT for strict UPPER-KEBAB-CASE markers ending in OK/SKIP/WRAP; (4) classifier handles grandfathered SSoT-OK mixed-case marker token; (5) classifier returns AMBIGUOUS_TRY_FORWARD_THEN_FALLBACK_REVERSE for queries with no slash and not matching strict marker regex; (6) CLI dispatches path queries to reverse-search backend with routing rationale visible in stderr/stdout; (7) CLI dispatches marker queries to forward-search backend with routing rationale; (8) CLI ambiguous queries try forward first then fall back to reverse when forward returns no hits; (9) --direction=forward and --direction=reverse explicit overrides bypass auto-detect; (10) --json mode emits iter123UnifiedLookupEnvelope wrapping the dispatchedBackendResponse with classifierRationale + effectiveRoutingRationale + dispatchedBackend fields.
+# Iter-123 regression test for the unified lookup CLI that auto-detects query shape and dispatches to iter-116 reverse-search OR iter-122 forward-search without forcing the operator to choose direction. Verifies (1) classifier library exports the documented constants and classification function with discriminated-union return shape; (2) classifier returns REVERSE_SEARCH_ITER116_CONFIDENT for queries containing '/'; (3) classifier returns FORWARD_SEARCH_ITER122_CONFIDENT for strict UPPER-KEBAB-CASE markers ending in OK/SKIP/WRAP; (4) classifier handles grandfathered SSoT-OK mixed-case marker token; (5) classifier returns AMBIGUOUS_TRY_FORWARD_THEN_FALLBACK_REVERSE for queries with no slash and not matching strict marker regex; (6) CLI dispatches path queries to reverse-search backend with routing rationale visible in stderr/stdout; (7) CLI dispatches marker queries to forward-search backend with routing rationale; (8) CLI ambiguous queries try forward first then fall back to reverse when forward returns no hits; (9) --direction=forward and --direction=reverse explicit overrides bypass auto-detect; (10) --json mode emits iter123UnifiedLookupEnvelope wrapping the dispatchedBackendResponse with classifierRationale + effectiveRoutingRationale + dispatchedBackend fields; (11) a query containing a double quote is passed to the libraries as data, yielding a normal not-found (exit 2) rather than a bun syntax error.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -7,7 +7,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER123_CLASSIFIER_LIBRARY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/iter123-unified-lookup-query-shape-auto-detection-router-dispatching-to-iter116-reverse-or-iter122-forward-search-direction-based-on-slash-and-upper-kebab-case-marker-shape-heuristics.ts"
-ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-or-consumer-path-auto-detecting-query-shape-via-iter123-unified-router-dispatching-to-iter116-reverse-or-iter122-forward-search.sh"
+ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH="$REPO_ROOT/tasks/marker-lookup.ts"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0
@@ -114,7 +114,7 @@ fi
 
 # ─── Case 6: CLI dispatches slash queries to reverse-search backend ───────
 set +e
-SLASH_DISPATCH_OUTPUT=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>&1)
+SLASH_DISPATCH_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>&1)
 SLASH_DISPATCH_EXIT_CODE=$?
 set -e
 if [[ "$SLASH_DISPATCH_EXIT_CODE" -eq 0 ]] && \
@@ -127,7 +127,7 @@ fi
 
 # ─── Case 7: CLI dispatches marker queries to forward-search backend ──────
 set +e
-MARKER_DISPATCH_OUTPUT=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" "FILE-SIZE-OK" 2>&1)
+MARKER_DISPATCH_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" "FILE-SIZE-OK" 2>&1)
 MARKER_DISPATCH_EXIT_CODE=$?
 set -e
 if [[ "$MARKER_DISPATCH_EXIT_CODE" -eq 0 ]] && \
@@ -140,7 +140,7 @@ fi
 
 # ─── Case 8: ambiguous query tries forward then falls back to reverse ────
 set +e
-AMBIGUOUS_DISPATCH_OUTPUT=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" "file-size-guard" 2>&1)
+AMBIGUOUS_DISPATCH_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" "file-size-guard" 2>&1)
 AMBIGUOUS_DISPATCH_EXIT_CODE=$?
 set -e
 if [[ "$AMBIGUOUS_DISPATCH_EXIT_CODE" -eq 0 ]] && \
@@ -154,11 +154,11 @@ fi
 
 # ─── Case 9: --direction=forward and --direction=reverse explicit overrides ────
 set +e
-EXPLICIT_FORWARD_OUTPUT=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --direction=forward "FILE-SIZE-OK" 2>&1)
+EXPLICIT_FORWARD_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --direction=forward "FILE-SIZE-OK" 2>&1)
 EXPLICIT_FORWARD_EXIT_CODE=$?
-EXPLICIT_REVERSE_OUTPUT=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --direction=reverse "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>&1)
+EXPLICIT_REVERSE_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --direction=reverse "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>&1)
 EXPLICIT_REVERSE_EXIT_CODE=$?
-EXPLICIT_BAD_OUTPUT=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --direction=sideways "FILE-SIZE-OK" 2>&1)
+EXPLICIT_BAD_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --direction=sideways "FILE-SIZE-OK" 2>&1)
 EXPLICIT_BAD_EXIT_CODE=$?
 set -e
 if [[ "$EXPLICIT_FORWARD_EXIT_CODE" -eq 0 ]] && \
@@ -178,8 +178,8 @@ if ! command -v jq >/dev/null 2>&1; then
     assert_fails "Case 10: jq required to verify --json envelope but not on PATH"
 else
     set +e
-    JSON_MARKER_ENVELOPE=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --json "FILE-SIZE-OK" 2>/dev/null)
-    JSON_PATH_ENVELOPE=$(bash "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --json "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>/dev/null)
+    JSON_MARKER_ENVELOPE=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --json "FILE-SIZE-OK" 2>/dev/null)
+    JSON_PATH_ENVELOPE=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" --json "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts" 2>/dev/null)
     set -e
     MARKER_ENVELOPE_DISPATCHED_BACKEND=$(echo "$JSON_MARKER_ENVELOPE" | jq -r '.iter123UnifiedLookupEnvelope.dispatchedBackend' 2>/dev/null)
     MARKER_ENVELOPE_CLASSIFIED_TAG=$(echo "$JSON_MARKER_ENVELOPE" | jq -r '.iter123UnifiedLookupEnvelope.classifiedDispatchDirectionTag' 2>/dev/null)
@@ -195,6 +195,24 @@ else
     else
         assert_fails "Case 10: --json envelope shape broken (marker: backend=$MARKER_ENVELOPE_DISPATCHED_BACKEND, tag=$MARKER_ENVELOPE_CLASSIFIED_TAG, status=$MARKER_ENVELOPE_BACKEND_STATUS; path: backend=$PATH_ENVELOPE_DISPATCHED_BACKEND, tag=$PATH_ENVELOPE_CLASSIFIED_TAG)"
     fi
+fi
+
+# ─── Case 11: a query containing a double quote is data, not source ──────
+# The retired bash wrappers spliced the query into a generated .ts file, so
+# FILE"SIZE ended the string literal and bun died with a syntax error. The
+# CLI now passes the query as a value: expect a normal not-found (exit 2).
+set +e
+DOUBLE_QUOTE_QUERY_OUTPUT=$(bun "$ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH" 'FILE"SIZE' 2>&1)
+DOUBLE_QUOTE_QUERY_EXIT_CODE=$?
+set -e
+if [[ "$DOUBLE_QUOTE_QUERY_EXIT_CODE" -eq 2 ]] && \
+   [[ "$DOUBLE_QUOTE_QUERY_OUTPUT" == *'FILE"SIZE'* ]] && \
+   [[ "$DOUBLE_QUOTE_QUERY_OUTPUT" == *"No canonical registry entry matches"* ]] && \
+   [[ "$DOUBLE_QUOTE_QUERY_OUTPUT" != *"SyntaxError"* ]] && \
+   [[ "$DOUBLE_QUOTE_QUERY_OUTPUT" != *"error:"* ]]; then
+    assert_passes "Case 11: query containing a double quote (FILE\"SIZE) yields a normal not-found (exit 2) echoing the query verbatim, never a bun syntax error"
+else
+    assert_fails "Case 11: double-quote query broke the CLI (exit=$DOUBLE_QUOTE_QUERY_EXIT_CODE, output-snippet=${DOUBLE_QUOTE_QUERY_OUTPUT:0:200})"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────
@@ -222,16 +240,13 @@ echo "       2. UPPER-KEBAB-CASE marker   → CONFIDENT marker   → iter-122 fo
 echo "       3. Grandfathered SSoT-OK     → CONFIDENT marker   → iter-122 forward"
 echo "       4. Anything else (ambiguous) → try forward first  → fall back to reverse"
 echo ""
-echo "     The iter-116 and iter-122 CLIs remain available as explicit-direction"
-echo "     escape hatches (operators can also use --direction=forward|reverse"
-echo "     on this unified CLI to bypass auto-detect)."
+echo "     The separate iter-116/iter-122 bash CLIs were folded into"
+echo "     tasks/marker-lookup.ts; --direction=forward|reverse bypasses"
+echo "     auto-detect for an explicit-direction lookup."
 echo ""
 echo "  🚀 Iter-124+ queue:"
 echo "     - Promote iter-121 stale-description audit to STRICT-BLOCK after a"
 echo "       few release cycles confirm baseline-clean state."
-echo "     - Consider deprecating direct invocation of iter-116/iter-122 CLIs"
-echo "       in favor of the iter-123 unified entry point (after operators have"
-echo "       had time to adopt the new task name)."
 echo "     - Broaden scope beyond the escape-hatch-marker reference ecosystem"
 echo "       — the iter-107 through iter-123 arc has reached operator-facing"
 echo "       maturity; next adversarial-audit iteration should look elsewhere."
