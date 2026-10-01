@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync, file size bloat prevention",
+  "description": "ITP workflow enforcement: PreToolUse guards for Bash, file edits, Read, WebFetch and AskUserQuestion; post-edit lint, type-check and docs reminders; Stop-time cleanup and lint.",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,13 +9,13 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-subprocess-stdin-inlet-guard.ts",
             "timeout": 5,
-            "description": "Bash subprocess stdin inlet guard \u2014 pre-disconnects stdin via < /dev/null wrap on Bash invocations (iter-63 narrowed matcher from `*` to `Bash`: only Bash spawns the subprocess class with TTY-contention risk; non-Bash tools (Read/Glob/Grep/Edit/Write/mcp__*) save ~12-17ms cold-start each)"
+            "description": "Rewrites each Bash command to read stdin from /dev/null, so subprocesses it spawns cannot contend for the terminal and suspend the session."
           },
           {
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-bash-guard-orchestrator.ts",
             "timeout": 60,
-            "description": "PreToolUse:Bash guard orchestrator (#111): runs the 24 itp-hooks Bash guards in ONE bun process instead of 24, each through its own unchanged exported main() with its output captured in-process (pretooluse-helpers.ts runGuardMainInProcess). Precedence matches Claude Code's for parallel hooks: the first deny wins, an ask is held while later guards are checked for a deny, and additionalContext from allowing guards is joined. Each guard is crash-isolated and time-boxed and fails open, as it did standalone. The guard list and each guard's description live in BASH_GUARD_REGISTRY. The two command-rewriting guards (subprocess-stdin-inlet, pueue-wrap) stay separate because Claude Code keeps only the last hook's updatedInput (anthropics/claude-code#15897). The hooks `if` field was measured unsafe as a cheaper filter: it skipped 9 of 15 wrapped forms (bash -c, absolute paths, env, eval, heredocs, ssh)."
+            "description": "Runs the 24 itp-hooks Bash guards listed in BASH_GUARD_REGISTRY in one bun process; the first deny wins and each guard fails open. Escape tokens are in each guard's registry entry."
           }
         ]
       },
@@ -36,7 +36,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
             "timeout": 15,
-            "description": "Iter-84 \u2192 iter-91 in-process orchestrator: PreToolUse Write|Edit migration arc COMPLETE (8/8 subhooks inlined). Combines all 8 Write|Edit subhooks into ONE bun process, amortizing the EMPIRICAL ~17ms per-saved-subhook cold-start cost (iter-87 microbenchmark verified; supersedes iter-80's ~44ms estimate which included payload-handling overhead, matching community 8-15ms benchmarks surfaced by iter-86 web research and Bun 1.3 single-digit-ms cold-start range surfaced by iter-89 web research). Final-state savings \u2248 (8-1) \u00d7 17 = ~119ms per Write|Edit (not iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-guard, file-size-guard, vale-claude-md-guard. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler. Per-subhook cooperative timeout via AbortSignal.timeout() (iter-87 refactor from Symbol-sentinel + raw setTimeout \u2014 idiomatic 2026 Web Platform API pattern). PreToolUse additionalContext silent-drop NON-USE invariant verified marketplace-wide (iter-90 audit per GitHub #15664). Subhook contract violations gated preventively by iter-86 audit task. Empirical savings curve continuously validated by iter-87 benchmark task. Next orchestration candidate (task #96): PostToolUse Write|Edit consolidation via Anthropic's Jan-2026 `async: true` flag (Path A \u2014 strict-dominant over orchestrator inlining for PostToolUse since the schema cannot deny)."
+            "description": "Runs 11 Write/Edit guards in one process, first deny or ask wins: version, shell-script-safety, skill-plugin-root, typescript-version, hoisted-deps, mise-hygiene, pyi-stub, native-binary, gpu-optimization, file-size, vale-claude-md."
           }
         ]
       },
@@ -47,7 +47,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-secret-exposure-guard.ts",
             "timeout": 5,
-            "description": "Live-credential exposure guard \u2014 HARD-BLOCKS a Write/Edit/MultiEdit whose NEW content would put a live credential on disk. Motivated by a 23-repo post-incident audit in which (a) a LIVE Telegram bot token survived TWO deliberate scrub campaigns because gitleaks ships no Telegram-bot-token rule and only trufflehog's provider-side verification caught it, and (b) LIVE Pushover app tokens plus a user key \u2014 bare 30-character alphanumerics with no prefix, which trufflehog has no detector for and gitleaks caught once only by luck from an adjacent PUSHOVER_APP_TOKEN variable name \u2014 sat unnoticed in the published tree. Crucially, EVERY credential found was in an ADR / design spec / planning doc, pasted as a worked example of a `doppler secrets set \u2026` provisioning command, often in a file that simultaneously stated the secret lived in Doppler: docs/ is the dangerous directory, not src/. Three detectors, all tuned for LOW false positives because a noisy guard gets disabled and a disabled guard is worse than none: (1) the BotFather `<8-10 digit id>:AA<32+ url-safe chars>` shape; (2) a bare 30-char mixed-alphanumeric token requiring a PUSHOVER / app_token / user_key / api_token cue within \u00b180 characters; (3) an enumerated secret-manager provisioning command (doppler secrets set, op item create/edit, vault set/put, gh secret set, wrangler secret put, aws secretsmanager, security add-generic-password) carrying a \u226516-char literal value that is not a placeholder. A shared placeholder recognizer discards angle-bracket/brace/shell-expansion syntax, repeated-character runs, SCREAMING_SNAKE identifiers, and self-labelling example values (xxxx/your/redact/example/placeholder/changeme/dummy/sample/fake). Matched values are REDACTED before they reach the transcript, so the deny message never republishes the secret. Only NEW content is scanned (content / new_string / MultiEdit edits[].new_string), and MultiEdit fragments are scanned SEPARATELY so a naming cue in one edit cannot license a token blob in another. Binary payloads (NUL in the first KiB) are skipped. Escape hatch SECRET-SCAN-OK requires a \u226510-character reason \u2014 stricter than most markers in this repo, because \"I am sure this one is fake\" preceded every finding in the audit. Fail-open on any parse or logic error. Sibling: posttooluse-pii-exposure-reminder.ts handles the fuzzier third-party-PII half of the same incident as a NON-blocking reminder. Spoke: docs/secret-and-pii-exposure-guard.md."
+            "description": "Blocks a Write/Edit/MultiEdit that would put a live credential on disk (Telegram bot token, Pushover key, literal in a secret-manager command). Escape: SECRET-SCAN-OK: <10+ char reason>."
           }
         ]
       },
@@ -58,7 +58,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-large-file-read-guard.ts",
             "timeout": 5,
-            "description": "Warns Claude when reading files >2000 lines without offset/limit"
+            "description": "Warns, without blocking, when Read targets a file over 2000 lines without offset or limit."
           }
         ]
       },
@@ -69,7 +69,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-webfetch-fallback-guard.ts",
             "timeout": 5,
-            "description": "Unconditionally blocks the upstream-broken built-in WebFetch (claude.ai Cloudflare pre-check returns 403 to CLI clients \u2192 'unable to fetch from <domain>'; proven NOT proxy/network 2026-06-22). Denies with the curl \u2192 agent-reach \u2192 WebSearch fallback chain; matcher WebFetch sidesteps the #55889 Bash-matcher context-drop bug and deny+reason is the Claude-visible channel. No escape hatch (WebFetch never succeeds in CLI); if Anthropic fixes the bug, disable this hook. SSoT: ~/.claude/webfetch-fallback-CLAUDE.md"
+            "description": "Denies every built-in WebFetch call and points to the curl, agent-reach, WebSearch fallback chain. No escape token."
           }
         ]
       },
@@ -80,7 +80,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
             "timeout": 15,
-            "description": "Checks any AskUserQuestion option that names a pull request against the facts the agent would otherwise be asserting: who authored it, and whether a review was ever requested from you. When a RESOLVED PR's facts are missing from the option text it DENIES with the exact one-line annotation (e.g. '[#426: @ChenLi0830's, no review requested from you]') and the agent re-asks with it appended; the re-ask then passes, so it converges in one round. A bare #N that does not resolve to a PR (usually an issue) is skipped, not tagged. It NEVER returns updatedInput: for AskUserQuestion that field carries the dialog's answers, so the first version (which rewrote options via allow+updatedInput) suppressed the dialog entirely and every call returned 'The user did not answer the questions.' (86 of 86, 2026-09-12..24); allowWithInput now refuses this tool outright. Origin: 2026-09-06, Eon-Labs/alpha-forge#656 reported as 'waiting on my review' when no request existed; it reached the operator's menu as 'Review #656 leak erratum' and became a blocking CHANGES_REQUESTED on the CEO's pull request. At most 3 PRs queried per question set, concurrently, each child timeout-bounded at 2s and killed by pid (never pkill -f). Fail-open: any throw or timeout yields a plain allow."
+            "description": "Denies an AskUserQuestion option that names a PR without its author and whether your review was requested, and supplies the exact annotation to append. Fails open."
           }
         ]
       },
@@ -91,7 +91,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts",
             "timeout": 5,
-            "description": "Denies an AskUserQuestion whose option `description` or `label` contains a line terminator (LF, CR, U+2028, U+2029). Claude Code replaces each one with U+FFFD before rendering, so a multi-paragraph description reaches the user as '...forever.<FFFD><FFFD>II. SHORT-TERM WIN:'. Upstream regression anthropics/claude-code#88836 (introduced 2.1.235, re-measured still present in 2.1.260 and 2.1.281) \u2014 DELETE this hook, its lib, its test, its spoke and its registry entry once that replacer is gone from the shipped binary. Inspects only `label` and `description`; `question` and `preview` take newline-preserving paths and flagging them would be a false positive. Denies rather than repairs, because tool-schemas.ts registers no AskUserQuestion schema and an unregistered tool cannot receive updatedInput (safe default, do not widen). Escape hatch: ASK-OPTION-NEWLINE-OK anywhere in the tool input. Fail-open on unparseable or unexpectedly-shaped payloads. Spoke: docs/askuserquestion-option-line-terminator-guard.md."
+            "description": "Denies an AskUserQuestion whose option label or description contains a line break, which Claude Code renders as U+FFFD (anthropics/claude-code#88836). Escape: ASK-OPTION-NEWLINE-OK."
           }
         ]
       },
@@ -103,7 +103,7 @@
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-broad-process-signal-guard.ts",
             "timeout": 5,
             "statusMessage": "Checking for broad kill/pkill/killall...",
-            "description": "Kill guard v2. Denies a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a TARGET (`kill -1 <pid>` is SIGHUP and passes), a shared runtime or host program by name (`pkill node`, `killall bun`, `pkill -f claude`, `kill $(pgrep python3)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters (`pkill -f vite`, `pkill -f .`). Also inspects the text of SHELL SCRIPTS written with Write/Edit/MultiEdit (by extension or shebang, including the on-disk shebang for an Edit) and applies both this check and v1's pkill option-order check there, closing v1's documented gap of a script written first and run second. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. Shares v1's static lexer (hooks/lib/shell-command-quote-aware-static-lexer.ts + shell-command-invocation-walker.ts), so it sees through $(...), sudo/env/timeout/xargs, bash -c, ssh remote commands, pueue add and heredocs fed to a shell, and ignores mere mentions. The deny message says to signal the PID you started. Escape BROAD-PROCESS-SIGNAL-OK: <>=10-char reason>. Fails open. Spoke: docs/broad-process-signal-guard.md."
+            "description": "Denies writing a shell script that contains a broad kill/pkill/killall or a pkill option placed after its pattern. Escapes: BROAD-PROCESS-SIGNAL-OK or PKILL-OPTION-ORDER-OK with a reason."
           }
         ]
       },
@@ -114,7 +114,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5,
-            "description": "Pueue auto-wrap + OP_SERVICE_ACCOUNT_TOKEN injection \u2014 MUST be LAST PreToolUse entry (mitigates GitHub #15897 multi-hook updatedInput aggregation bug)"
+            "description": "Wraps known long-running Bash commands in pueue and injects OP_SERVICE_ACCOUNT_TOKEN for 1Password; must stay the last PreToolUse entry (anthropics/claude-code#15897). Opt out: # PUEUE-SKIP."
           }
         ]
       }
@@ -142,7 +142,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pushover-budget-reminder.ts",
             "timeout": 5,
-            "description": "Pushover message-budget nudge (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17, since PreToolUse additionalContext is silently dropped esp. for Bash per GitHub #19432/#55889). Detects Pushover message construction in Python/Go/TypeScript/Bash via precision-anchored rules (api.pushover.net on a non-comment line + a real send call, OR a known lib/CLI: gregdel SendMessage, chump/.send_message, new Pushover, a pushover-client import, pushover-notify CLI). Reminds Claude to use the full budget \u2014 message 1024 / title 250 / url 512 / url_title 100 UTF-8 chars \u2014 front-load IDs (preview truncates), spend title+url side channels, and render overflow/CEO-readable provenance as a \u22645MB PNG attachment. Never blocks real work. Escape hatch: PUSHOVER-BUDGET-OK. Detection verified 0 FP / 0 FN against 51 adversarial spike fixtures (Py/Go/TS/Bash) under hooks/tests/pushover-budget-fixtures/."
+            "description": "Reminds, without blocking, to use the full Pushover budget (message 1024, title 250, url 512 chars, one image) when code sends a Pushover message. Escape: PUSHOVER-BUDGET-OK."
           }
         ]
       },
@@ -178,7 +178,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pii-exposure-reminder.ts",
             "timeout": 5,
-            "description": "Third-party-PII exposure reminder (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17; never undoes the edit, never denies). Fires after a Write/Edit/MultiEdit of a durable docs/config file (.md/.markdown/.txt/.rst/.adoc/.json/.jsonc/.yaml/.yml/.toml/.ini/.cfg/.conf/.env/.csv/.html) whose POST-EDIT content contains a third-party email address or telephone number. Motivated by the same 23-repo audit as its blocking sibling pretooluse-secret-exposure-guard.ts: a contact's real name, business email and phone number were REINTRODUCED into the published tree six days after an eleven-agent scrub of 2,602 files removed them \u2014 a one-time sweep does not hold, because the next agent re-derives the same content from the same upstream source and pastes it back. Deliberately NON-BLOCKING: an email address in a doc is frequently legitimate (a vendor support address, an RFC author, a git commit trailer, a maintainer contact in a plugin manifest), so a deny would be wrong several times a day and a guard that is wrong several times a day gets disabled \u2014 strictly worse than no guard. Email detection excludes RFC 2606 reserved domains (example.com/.org/.net, .test/.invalid/.local/localhost), GitHub noreply addresses, the operator's own addresses, and role local-parts (noreply/support/info/admin/security/abuse/sales/\u2026). Phone detection accepts E.164 (leading +) without a context word, but requires a telephony cue (phone/tel/mobile/cell/call/fax/whatsapp/sms/contact/direct line) within \u00b140 characters for a bare NANP nnn-nnn-nnnn, so version strings, ID ranges and part numbers stay silent; the NANP 555-01xx fictional range and degenerate repeated/sequential digit runs never fire. Matched values are redacted in the reminder. Source files are out of scope by extension (docs/ is where the incident happened) and temp scratch is exempt (iter-124 shared helper). Escape hatch: a bare PII-SCAN-OK comment anywhere in the file \u2014 no reason required, because unlike a credential, intentionally published contact information is ordinary and defensible. Spoke: docs/secret-and-pii-exposure-guard.md."
+            "description": "Reminds, without blocking, when an edited docs or config file contains a third-party email address or phone number; values are redacted. Escape: PII-SCAN-OK in the file."
           }
         ]
       },
@@ -189,7 +189,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-markdown-table-guard.ts",
             "timeout": 5,
-            "description": "Per-edit GFM table structural guard (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks). On a .md/.markdown Write/Edit/MultiEdit, reads the file from disk and runs the shared pure detector (lib/markdown-table-detector.ts). Fires ONLY on render-breaking ERRORS that prettier/markdownlint canNOT auto-fix \u2014 unescaped `|` inflating a row's cell count (the #1 LLM-table bug; GFM treats `|` as a delimiter even inside code spans, and Prettier corrupts such tables per prettier#10164/#11410), header/separator column-count mismatch, table indented \u22654 spaces (parsed as a code block), or an alignment token like :--: pasted into a data row. Info-class nits (short rows, missing blank lines) stay silent because the Stop-hook markdown-lint auto-fixes them. Fenced code blocks are skipped so example broken tables in docs don't trip it. Escape hatch: MD-TABLE-OK (iter-111 canonical registry). Temp-scratch exempt (iter-124 shared helper). Spoke: docs/markdown-table-guard.md."
+            "description": "Reminds when an edited Markdown file has a table that will not render (unescaped |, column-count mismatch, 4-space indent, stray alignment row). Escape: MD-TABLE-OK."
           }
         ]
       },
@@ -200,7 +200,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15,
-            "description": "Iter-93\u2192iter-100 PostToolUse edit-time orchestrator (8/15 subhooks inlined: ty-type-check + tsc-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder + claude-md-size-budget). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements (memory-efficiency-reminder inlined as 7th + silent-context-drop bug fixed + once-per-session gate-file helper hoisted to shared lib). Iter-99 marketplace-wide preventive audit for silent-context-drop pattern + preflight Check 4n. Iter-100 (THIS RELEASE): broadens matcher Write|Edit \u2192 Write|Edit|MultiEdit per 2026 Anthropic + community best-practice surfaced by web research \u2014 pre-iter-100 the orchestrator silent-allowed on MultiEdit (Claude's multi-edit-to-one-file tool call) leaving 7 inlined subhooks NEVER firing on that input class; iter-100 closes the coverage gap. Per-classifier tool_name guards now route through the new canonical contract helper isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook so future Anthropic tool-name additions update ONE constant, not N classifier files. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
+            "description": "Runs 12 post-edit checks in parallel and merges their context: leakage-taxonomy, ty, tsc, oxlint, biome, vale-claude-md, memory-efficiency, ssot-principles, claude-md-size-budget, python-preference, typescript-upgrade, markdown-hard-wrap."
           }
         ]
       },
@@ -211,7 +211,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
             "timeout": 5,
-            "description": "Invented-fallback display-value nudge (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Enforces the official-values policy (operator directive 2026-06-11, statusline arc): display values derive from OFFICIAL names/values \u2014 prefer omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for duplicated constants. Fires ONLY on net-new introductions (Edit new_string hits > old_string hits) of canonical invented-fallback shapes on non-comment lines of code files: ${var:-Unknown|N/A|?} parameter-expansion defaults, ?? / || \"Unknown\"|\"N/A\" nullish-or fallbacks, Python or/.get(...,\"Unknown\") fallbacks, jq // \"Unknown\" alternatives. Tests/fixtures exempt. Escape hatch: INVENTED-FALLBACK-OK (registered in the iter-111 canonical marker registry). 17 bun tests pin detection."
+            "description": "Reminds when an edit adds an invented display fallback such as \"Unknown\" or \"N/A\" (${x:-Unknown}, ?? \"N/A\", .get(k, \"Unknown\")). Escape: INVENTED-FALLBACK-OK."
           }
         ]
       },
@@ -222,7 +222,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-sigpipe-pipefail-reminder.ts",
             "timeout": 5,
-            "description": "SIGPIPE-under-pipefail nudge, iter-125 (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Fires when a Write/Edit introduces a pipeline into an EARLY-EXITING READER in a shell script that enables pipefail: the reader closes the pipe, the producer dies of SIGPIPE with 141, and pipefail makes the PIPELINE take that status. The harm is usually not a crash but an INVERTED BOOLEAN \u2014 measured: `moon query tasks | grep -q X` FOUND X and the `if` still evaluated FALSE, so a pre-push hook reported that 40 gates had no runner while the same command ran fine by hand; it is a race, so it passes in testing and starts failing as data grows, and that instance cost three `git push --no-verify` bypasses in one day. Readers flagged: head (but NOT `head -n -N`/`head -c -N`, which drain), grep -q/--quiet/--silent, grep -m N/--max-count, sed with a q command, awk whose PROGRAM contains a bare exit, and a bare `read` as the final stage. Deliberately NOT flagged because they drain to EOF: tail, `tail -n +N`, sort, wc, `while read`, grep without -q/-m, awk without exit. Quote-aware pipe splitting (a `|` inside an awk program or grep pattern is data), `||`/`|&` excluded, heredoc BODIES skipped, backslash- and trailing-pipe continuations folded into one logical pipeline, and `$( set +o pipefail; ... )` treated as the prescribed remediation rather than a defect. PORTED from terrylica/mql5 scripts/ci/sigpipe-pipefail-gate.sh, which was built from five recorded in-tree encounters; fidelity is MEASURED, not asserted \u2014 run over that repo's tracked corpus the port reproduces the gate's own live census FILE-FOR-FILE and COUNT-FOR-COUNT (119 pipefail scripts, 26 files, 60 sites). The awk rule is a deliberate IMPROVEMENT on the source: both of the gate's awk regexes carry false positives its suite did not cover (`awk -v x=\"exit\" '{print}'` matched rule (i), which has no quote awareness; `awk '{print}'; exit 1` matched rule (ii), which can bind its opening-quote group to the program's CLOSING quote and then read the shell code after it), so awk is handled here by a small quote-aware program extractor instead. SOFT BY DESIGN: 60 sites across 26 of 119 scripts in the source repo are mostly harmless, and an over-eager gate on this shape provokes exactly the blanket bypass its own RCA documents. NET-NEW ONLY \u2014 Edit/MultiEdit fragments must add more sites than they remove, so touching a line near a pre-existing site is silent. Escape hatches: `SIGPIPE-OK: <reason>` on any line of the pipeline, or file-wide SHELL-SAFETY-OK. 54 bun tests pin detection and the net-new logic."
+            "description": "Reminds when a pipefail shell-script edit adds a pipe into an early-exiting reader (head, grep -q, sed q, awk exit) that can fail with 141. Escapes: SIGPIPE-OK, SHELL-SAFETY-OK."
           }
         ]
       },
@@ -233,7 +233,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-bash-markdown-hard-wrap-reminder.ts",
             "timeout": 10,
-            "description": "Reminds when a Bash command wrote hard-wrapped prose into a .md/.markdown file (heredoc, python3 - <<EOF, a generator, sed -i) \u2014 the path the Write|Edit|MultiEdit reminder cannot see. Looks at .md paths the command names plus Markdown `git status` reports dirty in the repos the command ran in, modified in the last 15 minutes, and reports NET-NEW wraps against HEAD (a new file counts every wrap). Each (file, content) is judged once per session; the edit-time reminder writes the same cache, so nothing is reported twice. Repair: gfm-unwrap.ts. Escape: the MD-HARD-WRAP-OK marker as an HTML comment in the file. Bounded git timeouts, at most 200 files, fail-open."
+            "description": "Reminds when a Bash command wrote net-new hard-wrapped prose into a Markdown file; repair with gfm-unwrap.ts. Escape: MD-HARD-WRAP-OK as an HTML comment in the file."
           }
         ]
       }
@@ -245,7 +245,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts",
             "timeout": 65,
-            "description": "Stop-hook orchestrator: sequentially runs the 4 itp-hooks Stop hooks (subprocess-cleanup, error-summary, ty-check, markdown-lint) with per-subhook timeout + crash isolation. Replaces 4 entries in the Stop hook display list with 1."
+            "description": "Runs the four Stop hooks in sequence (subprocess-cleanup, error-summary, ty-check, markdown-lint), each time-boxed and crash-isolated."
           }
         ]
       }
@@ -257,7 +257,7 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-review-round-status.ts",
             "timeout": 5,
-            "description": "Review-round status line - one per turn. PreToolUse stdout is not shown to the model for Bash, so this is the only channel that can surface the gate's state where it is read."
+            "description": "Prints a one-line review-round gate status each turn, because Bash PreToolUse output never reaches the model. Never blocks."
           }
         ]
       }
