@@ -37,6 +37,7 @@ chmod +x "$FIXTURE/template/hooks/pre-push"
 cat > "$FIXTURE/bin/moon" <<EOF
 #!/usr/bin/env bash
 echo "\$*" > "$FIXTURE/moon-ran"
+env | grep -E '^GIT_(DIR|WORK_TREE|INDEX_FILE|COMMON_DIR|PREFIX)=' > "$FIXTURE/moon-git-env" || true
 exit \${FAKE_MOON_EXIT:-0}
 EOF
 chmod +x "$FIXTURE/bin/moon"
@@ -114,6 +115,15 @@ if [[ $rc -ne 0 && ! -f "$FIXTURE/moon-ran" ]]; then
     pass "PREPUSH_GATE_OK without a real reason is refused"
 else
     fail "short reason refused" "rc=$rc"
+fi
+
+# git exports GIT_DIR & co. into hooks; repo:check must not inherit them, or every test that runs
+# git in a throwaway repo operates on THIS repository instead (observed 2026-09-30).
+run_push "$BRANCH_PUSH" FAKE_MOON_EXIT=0 GIT_DIR="$REPO/.git" GIT_INDEX_FILE="$REPO/.git/index"
+if [[ $rc -eq 0 && -f "$FIXTURE/moon-ran" && ! -s "$FIXTURE/moon-git-env" ]]; then
+    pass "repo:check runs with git's hook env cleared (no GIT_DIR / GIT_INDEX_FILE)"
+else
+    fail "hook env cleared before repo:check" "rc=$rc leaked: $(cat "$FIXTURE/moon-git-env" 2>/dev/null)"
 fi
 
 if grep -q 'export PREPUSH_GATE_OK="release push:' "$REPO_ROOT/tasks/release/version"; then
