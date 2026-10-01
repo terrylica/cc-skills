@@ -21,6 +21,7 @@ GitHub exposes **no API** to _create_ fine-grained PATs ([community #148626](htt
 - `node` (NOT bun — Bun's `connectOverCDP` times out) and `playwright-core` (already pinned at the repo root `package.json`).
 - Google Chrome at the standard macOS path.
 - A one-time GitHub login (persisted in a profile; see below).
+- Route choice and Chrome-profile mechanics: [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md). If GitHub is already signed in to a profile of your everyday Chrome, that plugin's `setup <email>` can drive it directly.
 
 ## One-time login (then fully automated)
 
