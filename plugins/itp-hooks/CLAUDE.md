@@ -75,7 +75,6 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | `posttooluse-oxlint-check.ts`                     | iter-95                      | oxlint correctness+suspicious on JS/TS        | [→](./docs/oxlint-check.md)                        |
 | `posttooluse-biome-lint.ts`                       | iter-95                      | biome complementary-to-oxlint JS/TS lint      | [→](./docs/biome-lint.md)                          |
 | `posttooluse-python-preference-nudge.ts`          | iter-93                      | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)             |
-| `posttooluse-mini-inngest-doctrine.ts`            | **UNREGISTERED**             | Unregistered; Mac-Mini hosting nudge          | [→](./docs/mini-inngest-doctrine.md)               |
 | `posttooluse-pii-exposure-reminder.ts`            | Write\|Edit\|MultiEdit       | Reminder on third-party email/phone on disk   | [→](./docs/secret-and-pii-exposure-guard.md)       |
 | `posttooluse-markdown-hard-wrap-reminder.ts`      | iter-93                      | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)         |
 | `posttooluse-claude-md-size-budget-reminder.ts`   | iter-93                      | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |
@@ -103,7 +102,6 @@ Add the token to the file or command to suppress a guard. Every token requires a
 | `MD-TABLE-OK`              | Markdown table guard                         |
 | `MD-HARD-WRAP-OK`          | Markdown hard-wrap reminder                  |
 | `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                   |
-| `MINI-INNGEST-OK`          | Mini-Inngest doctrine nudge                  |
 | `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder               |
 | `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker)   |
 
