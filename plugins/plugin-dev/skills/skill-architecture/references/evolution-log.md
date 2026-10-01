@@ -152,7 +152,7 @@ Plugin context variables (`CLAUDE_PLUGIN_ROOT`) are injected into hook subproces
 
 ---
 
-## 2026-02-13: Extract Advanced Patterns from tts-tg-sync
+## 2026-02-13: Extract Advanced Patterns from tts-tg-sync (plugin retired 2026-10-01)
 
 **Trigger**: The tts-tg-sync plugin (8 skills, 3 commands, hooks, shared library) demonstrated 10 advanced patterns not captured in skill-architecture. These were extracted as agnostic, universally applicable patterns.
 
