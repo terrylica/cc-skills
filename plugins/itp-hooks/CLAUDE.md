@@ -46,6 +46,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-webfetch-fallback-guard.ts`                      | WebFetch                     | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                     |
 | `pretooluse-release-notes-extensiveness-guard.ts`            | Bash                         | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)            |
 | `pretooluse-gmail-body-guard.ts`                             | Bash                         | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                             |
+| `pretooluse-markdown-commit-hard-wrap-guard.ts`              | Bash                         | Blocks a `git commit` adding `.md` hard wraps | [→](./docs/markdown-hard-wrap-reminder.md)                  |
 | `pretooluse-secret-exposure-guard.ts`                        | Write\|Edit\|MultiEdit       | Hard-blocks live credentials in new content   | [→](./docs/secret-and-pii-exposure-guard.md)                |
 | `pretooluse-headless-claude-p-guard.ts`                      | Bash                         | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                            |
 | `pretooluse-askuserquestion-option-line-terminator-guard.ts` | AskUserQuestion              | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md) |
@@ -77,6 +78,7 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | `posttooluse-python-preference-nudge.ts`          | iter-93                      | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)             |
 | `posttooluse-pii-exposure-reminder.ts`            | Write\|Edit\|MultiEdit       | Reminder on third-party email/phone on disk   | [→](./docs/secret-and-pii-exposure-guard.md)       |
 | `posttooluse-markdown-hard-wrap-reminder.ts`      | iter-93                      | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)         |
+| `posttooluse-bash-markdown-hard-wrap-reminder.ts` | Bash                         | Same, for `.md` written by a shell command    | [→](./docs/markdown-hard-wrap-reminder.md)         |
 | `posttooluse-claude-md-size-budget-reminder.ts`   | iter-93                      | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |
 
 ### Stop
@@ -100,7 +102,7 @@ Add the token to the file or command to suppress a guard. Every token requires a
 | `ASK-OPTION-NEWLINE-OK`    | AskUserQuestion option line-terminator guard |
 | `HEADLESS-P-OK`            | Headless `claude -p` guard                   |
 | `MD-TABLE-OK`              | Markdown table guard                         |
-| `MD-HARD-WRAP-OK`          | Markdown hard-wrap reminder                  |
+| `MD-HARD-WRAP-OK`          | Markdown hard-wrap reminders + commit guard  |
 | `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                   |
 | `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder               |
 | `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker)   |
