@@ -1,3 +1,59 @@
+# [32.6.0](https://github.com/terrylica/cc-skills/compare/v32.5.0...v32.6.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* **gates:** clear git's hook env before repo:check runs ([e4afb55](https://github.com/terrylica/cc-skills/commit/e4afb55ce0238163408a3276b3637345eb523ee8)), closes [#166](https://github.com/terrylica/cc-skills/issues/166)
+
+git exports GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE and related variables into every hook so the hook's own git commands find the repository. The
+
+* **gates:** do not back up a stale chezmoi pre-push copy ([c34cc79](https://github.com/terrylica/cc-skills/commit/c34cc791a4484d3e28c67c0d71838c656f8b78a9))
+
+Installing the dispatcher on this machine backed up .git/hooks/pre-push because the clone-time copy of the chezmoi template had drifted from the live template (it predated a newer directory mapping), so cmp saw a "foreign" hook. A hook carrying the template's "Managed by chezmoi" header is the template's, and the dispatcher runs the live template anyway, so it is replaced without a backup. A genuinely foreign hook is still backed up. Two new cases in the pre-push gate test cover both.
+
+* **gates:** keep the pre-commit heredoc delimiter unique in install-hooks.sh ([b6e8ad1](https://github.com/terrylica/cc-skills/commit/b6e8ad123fa381c1095311ad9f30e90bdf7861a5))
+
+The PII-guard regression test extracts the generated pre-commit body as the text between its HOOK heredoc markers. Reusing that delimiter for the new pre-push dispatcher made the extraction span both hooks; the dispatcher now uses PRE_PUSH_HOOK.
+
+* **gates:** name each failing file in the bun unit suite ([#143](https://github.com/terrylica/cc-skills/issues/143)) ([0632dc5](https://github.com/terrylica/cc-skills/commit/0632dc5de5df663fcdfb56218bf44b7fd5f03242))
+
+bun's console names a failing test but not its file, and its end-of-run summary names nothing, so a tail of a 741-test log could not locate a flake. bun's JUnit reporter records file= and line= on every testcase; the wrapper now writes that report and, on failure, prints one BUN-UNIT-FAIL &lt;file>:&lt;line> - &lt;describe> > &lt;test> line per failing test to stdout and stderr, after the summary where tail -20 sees it.
+
+Nothing is piped, so bun's exit code stays the verdict (the tee false-green in the issue cannot occur), and a crashing roster cannot mask it. The token differs from FILE-FAIL/FILE-PASS and never matches the ^N pass|fail lines tasks/release/preflight greps from this log.
+
+Tests: parser cases, and an end-to-end run of the real wrapper in a temp git repo with one failing test asserting a non-zero exit and the roster.
+
+* **gates:** repo:test-hooks skips wall-clock caps like preflight ([#142](https://github.com/terrylica/cc-skills/issues/142)) ([624bbd3](https://github.com/terrylica/cc-skills/commit/624bbd36e0f6d9f881d55685203d63c4708afdd7))
+
+repo:check, the pre-push gate, enforced the absolute timing caps that the release preflight deliberately downgrades with CC_SKILLS_SKIP_PERF_TIMING=1, so the path run most often was more brittle than the one guarding a publish. moon.yml now sets the flag in test-hooks' env. Structural assertions still gate; running a test file directly still enforces every cap. docs/perf-timing-skip.md updated and its dated note retired.
+
+* **itp-hooks:** let ty resolve the Python version ([#157](https://github.com/terrylica/cc-skills/issues/157)) ([0148cf9](https://github.com/terrylica/cc-skills/commit/0148cf9afb5f11030f11f177e100446b0fd1e621))
+
+ty already implements "3.14 default, repo pin wins": a version from ty.toml or [tool.ty.environment], then project.requires-python, then the active environment, then its default of 3.14. A command-line flag overrides all of that, so the fix is to pass none, rather than detect pins with a second, weaker copy of that logic. The detector also missed ty.toml pins, which are still overridden.
+
+Measured on ty 0.0.64: with requires-python >=3.10 or ty.toml python-version 3.10, a PEP 695 `type` statement is flagged without the flag; adding the flag hides it. With no pin, ty's default still accepts it, as 3.14 does.
+
+Replaces the pin detector with a constant argument vector plus behavioural tests that run the real ty and are skipped when ty is absent.
+
+* let stop ty hook respect repo Python pins ([854d8be](https://github.com/terrylica/cc-skills/commit/854d8bec680b2be939ff8296f6780bee1bbb5cd8))
+
+
+### Features
+
+* **gates:** enforce repo:check before every push ([#142](https://github.com/terrylica/cc-skills/issues/142)) ([4ca638a](https://github.com/terrylica/cc-skills/commit/4ca638a81b2346ab6d5eac1257227ec7927d8093))
+
+Nothing ran repo:check before a push; the only pre-push hook was the global chezmoi one (account validation). scripts/install-hooks.sh now also writes a pre-push dispatcher into the shared hooks dir: it runs the global template's pre-push (always current, not the clone-time copy), then tasks/hooks/pre-push-gate, which runs moon run repo:check through the gate-slot limiter when present. Refs are passed by here-string, not a pipe, so a hook that never reads stdin cannot SIGPIPE the push.
+
+Skips are explicit and printed: deletion- or tag-only pushes, and PREPUSH_GATE_OK="&lt;12+ char reason>". tasks/release/version declares its semantic-release pushes that way, since preflight just ran the suites. An existing non-template pre-push hook is backed up, never clobbered.
+
+Regression test: 10 cases in a hermetic repo with a stub moon and a fake global hook that ignores stdin.
+
+* **gates:** gate on the offline link check now that it is green ([#108](https://github.com/terrylica/cc-skills/issues/108)) ([4d0af51](https://github.com/terrylica/cc-skills/commit/4d0af51b72902ad89f3f98b9d293ac1392719c7f))
+
+moon.yml kept repo:link-check out of check.deps with a stated exit condition: wire it in the moment the broken-internal-link count reaches zero. It is zero, so repo:check now runs it, and every push with it. The not-yet-wired message in tasks/link-check.sh is replaced by fix guidance. Root CLAUDE.md stops hand-listing the fan-out (it had already drifted) and points at moon task repo:check instead.
+
+* **gates:** gate on the orchestrator spawnSync audit ([#142](https://github.com/terrylica/cc-skills/issues/142)) ([2b11385](https://github.com/terrylica/cc-skills/commit/2b113850725ce1fc14c4c9e2bfb6cd5f7a6208ac))
+
 # [32.5.0](https://github.com/terrylica/cc-skills/compare/v32.4.0...v32.5.0) (2026-10-01)
 
 
