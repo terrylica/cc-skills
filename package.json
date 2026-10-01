@@ -1,6 +1,6 @@
 {
   "name": "cc-skills",
-  "version": "31.2.9",
+  "version": "32.5.0",
   "private": true,
   "description": "Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code",
   "scripts": {
@@ -19,7 +19,7 @@
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "ansis": "^3.0.0",
     "liquidjs": "^10.24.0",
-    "playwright-core": "^1.58.2",
+    "playwright-core": "^1.63.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

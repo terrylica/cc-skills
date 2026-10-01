@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -146,8 +147,12 @@ describe("kernel-enforced CPU ceiling", () => {
   }, 30_000);
 });
 
+/** The watchdog reads RSS with `ps`, which Claude Code's macOS sandbox refuses (2026-09-27). Where `ps`
+ *  cannot run, the watchdog cannot measure, so this test skips instead of reporting a false failure. */
+const PS_USABLE = spawnSync("ps", ["-o", "rss=", "-p", String(process.pid)], { encoding: "utf8" }).status === 0;
+
 describe("resident-memory watchdog", () => {
-  test("SIGKILLs a subprocess that climbs past the ceiling", async () => {
+  test.skipIf(!PS_USABLE)("SIGKILLs a subprocess that climbs past the ceiling", async () => {
     const allocator = writeBoundedAllocatorScript();
     const subprocess = Bun.spawn(["python3", allocator], { stdout: "pipe", stderr: "ignore" });
 

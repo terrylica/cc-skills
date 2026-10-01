@@ -519,12 +519,13 @@ echo "Interpreter resolution (generated pre-commit hook)"
 # ===========================================================================
 
 # Rendered from the installer heredoc, which is the tracked SSoT for the
-# hook, with all three bun candidates pointed at paths that cannot exist.
+# hook, with all four bun candidates (PATH, proto, Homebrew, ~/.bun) pointed at paths that cannot exist.
 HOOK_RENDERED="$WORK_DIR/pre-commit-no-bun"
 awk "/<< 'HOOK'/{f=1;next} /^HOOK\$/{f=0} f" "$REPO_ROOT/scripts/install-hooks.sh" \
     | sed -e 's#command -v bun 2>/dev/null#command -v no-such-interpreter-xyz 2>/dev/null#' \
           -e 's#/opt/homebrew/bin/bun#/nonexistent/one/bun#' \
           -e 's#\.bun/bin/bun#/nonexistent/two/bun#' \
+          -e 's#\.proto/bin/bun#/nonexistent/proto/bun#' \
     > "$HOOK_RENDERED"
 
 reset_fixture_repo
@@ -540,8 +541,9 @@ else
 fi
 if [[ "$HOOK_OUTPUT" == *"no-such-interpreter-xyz"* || "$HOOK_OUTPUT" == *"bun on \$PATH"* ]] \
     && [[ "$HOOK_OUTPUT" == *"/nonexistent/one/bun"* ]] \
-    && [[ "$HOOK_OUTPUT" == *"/nonexistent/two/bun"* ]]; then
-    pass "names all three searched paths in the failure message"
+    && [[ "$HOOK_OUTPUT" == *"/nonexistent/two/bun"* ]] \
+    && [[ "$HOOK_OUTPUT" == *"/nonexistent/proto/bun"* ]]; then
+    pass "names all four searched paths in the failure message"
 else
     fail "failure message must name every path searched" "$HOOK_OUTPUT"
 fi

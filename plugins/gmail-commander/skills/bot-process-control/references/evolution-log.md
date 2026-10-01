@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-09-26: Rewritten for the private deployment
+
+**Trigger**: The bot and digest moved to a private Restate tenant on an always-on Mac mini, and the laptop launchd jobs `com.terryli.gmail-commander-bot` and `com.terryli.gmail-commander-digest` were retired on 2026-09-24. This skill still shipped both plists and told agents to `launchctl load`/`unload` them, and to restart the bot with them after an OAuth fix.
+
+**Fix**: Removed the plist templates and every launchctl start/stop/restart recipe. The skill now says where each service runs (`GmailBot`, `GmailBotChat`, `GmailDigest`, `GmailAuth`), that operations follow the private repository's runbook, how to confirm nothing runs locally (read-only), how to check the deployed bot from Telegram with `/status`, and why `scripts/bot.ts` must never be run with the production token (one `getUpdates` consumer per token, `409 Conflict`).
+
+**Files**: `SKILL.md`
+
+---
+
 ## 2026-02-26: Initial Evolution Log
 
 **Status**: Skill is in use and maintained. Track improvements here.

@@ -10,7 +10,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 
 ## Architecture (load-bearing)
 
-- **`scripts/lib/notes-core.ts`** — the ONE shared engine. Pure helpers (`isNoteId`, `isTransientOsaError`, `entityLeaks`, `terminateLegacyEntities`, `contentPresent`, `bodyToHtml`, `parseRecords`, `safeFilename`, `noteNameMatchesTitle`, `matchNoteIds`) + `runOsa` (osascript with bounded retry on transient AppleEvent errors only). Pure parts unit-tested in `notes-core.test.ts` (30 tests). AppleScript payloads live in the consumers, not here.
+- **`scripts/lib/notes-core.ts`** — the ONE shared engine. Pure helpers (`isNoteId`, `isTransientOsaError`, `entityLeaks`, `terminateLegacyEntities`, `contentPresent`, `bodyToHtml`, `parseRecords`, `safeFilename`, `noteNameMatchesTitle`, `matchNoteIds`) + `runOsa` (osascript with bounded retry on transient AppleEvent errors only). Pure parts unit-tested in `notes-core.test.ts`. AppleScript payloads live in the consumers, not here.
 - **`scripts/notes.ts`** — organizer CLI: `inventory` / `export` / `mkdir` / `move-note` / `rename-folder` / `merge-folder` / `doctor`. FS/RS-delimited (U+0001/U+0002) record streams from AppleScript, parsed by `parseRecords` (AppleScript has no JSON).
 - **`scripts/draft-park.ts`** — the draft-park engine, now importing the shared core; `new` verifies a real note id + read-back (entity leaks, content presence) by default.
 - **Skills resolve their entrypoint with `cc-plugin-root`** — `SH="$(cc-plugin-root notes-commander)/skills/<skill>/<script>"`. That helper (`scripts/cc-plugin-root`, symlinked to `~/.local/bin/`) reads `~/.claude/plugins/installed_plugins.json`, so it returns the version Claude Code actually loaded. Do NOT glob `~/.claude/plugins/cache/cc-skills/notes-commander/*` — 10 of the 11 cached versions there are marked `.orphaned_at`, and the highest semver is routinely one of them.
@@ -41,4 +41,4 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 
 ## Testing
 
-`bun test` from the plugin dir (or repo root — colocated `*.test.ts` discovered automatically): 30 pure-helper tests. Live round-trip: `bun scripts/notes.ts doctor` (create → read-back verify → delete probe note + inventory count).
+`bun test` from the plugin dir (or repo root — colocated `*.test.ts` discovered automatically): pure helpers in `scripts/lib/notes-core.test.ts`, draft-park's CLI helpers in `scripts/draft-park.test.ts`. Live round-trip: `bun scripts/notes.ts doctor` (create → read-back verify → delete probe note + inventory count).

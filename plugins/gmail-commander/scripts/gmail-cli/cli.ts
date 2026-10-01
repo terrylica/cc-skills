@@ -2,8 +2,8 @@
 /**
  * Gmail CLI - Access Gmail via command line
  *
- * Configuration via environment variables (from the calling shell, or
- * ~/own/amonic/.env.launchd for the launchd daemons):
+ * Configuration via environment variables from the calling process (an
+ * interactive shell, or a deployment that injects them):
  * - GMAIL_OP_UUID: 1Password item UUID for OAuth credentials
  * - GMAIL_OP_VAULT: 1Password vault (optional, default: Employee)
  */

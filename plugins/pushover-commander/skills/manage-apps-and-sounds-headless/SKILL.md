@@ -26,6 +26,8 @@ WEB remove-sound --name po_fanfare                   # delete a custom sound
 
 ## Browser: Chrome for Testing, not your own Chrome
 
+Route ladder and Chrome-profile mechanics for every plugin: [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md). This skill deliberately stays on rung 2 (its own Chrome for Testing).
+
 🔴 **The script drives Playwright's "Google Chrome for Testing.app" by default, NOT the operator's Google Chrome.** On 2026-09-22 a second Google Chrome instance (Playwright's `channel: "chrome"`, on a separate profile) collided with the operator's own Chrome in macOS LaunchServices: links stopped opening and every Chrome had to be force-quit. Chrome for Testing has its own bundle id, so the two never collide.
 
 ```bash

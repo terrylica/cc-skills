@@ -242,6 +242,65 @@ export function undraftTarget(command: string): string | null {
   return null;
 }
 
+/**
+ * The branch a `gh pr create` names with `--head` / `-H` / `--head=`, or null when it names none.
+ *
+ * WHY THE GATE NEEDS IT. The gate read the repository and HEAD from the session's cwd. A PR opened
+ * from a worktree names its branch with `--head` while the session stands in the main checkout on
+ * `main`, so the gate measured `main` (zero changed files, no record) and denied a branch whose
+ * self-review WAS recorded in its worktree (2026-09-28, doorward-systems/ccmax-monitor#133: the
+ * record existed at the pushed commit and only the override got the PR open). Inside the worktree,
+ * the harness's worktree isolation can refuse git outright, so "cd there first" is not a remedy.
+ *
+ * A fork-style `owner:branch` is returned as its branch part: only a local worktree can answer for
+ * it, and the worktree knows the branch name, not the owner.
+ */
+const PR_CREATE_FLAGS_TAKING_A_VALUE: ReadonlySet<string> = new Set([
+  "-R", "--repo", "-B", "--base", "-t", "--title", "-b", "--body", "-F", "--body-file",
+  "-a", "--assignee", "-l", "--label", "-m", "--milestone", "-p", "--project", "-r", "--reviewer",
+  "-T", "--template",
+]);
+
+export function prCreateHeadBranch(command: string): string | null {
+  const words = splitShellWords(command);
+
+  // `gh` must be in COMMAND position (start, after an operator, or after `VAR=value` prefixes):
+  // in `echo gh pr create --head x` it is an argument, and nothing is submitted.
+  let atCommandPosition: boolean = true;
+  for (let i = 0; i < words.length; i += 1) {
+    const head = words[i]!;
+    if (head.isOperator) {
+      atCommandPosition = true;
+      continue;
+    }
+    const wasAtCommandPosition: boolean = atCommandPosition;
+    atCommandPosition = wasAtCommandPosition && /^[A-Za-z_][A-Za-z0-9_]*=/.test(head.value);
+    if (!wasAtCommandPosition || !head.firstSegmentBare) continue;
+    if ((head.value.split("/").pop() ?? "").toLowerCase() !== "gh") continue;
+    if (words[i + 1]?.value !== "pr" || words[i + 2]?.value !== "create") continue;
+
+    for (let j = i + 3; j < words.length; j += 1) {
+      const arg = words[j]!;
+      if (arg.isOperator) return null;
+      let value: string | undefined;
+      if (arg.value === "--head" || arg.value === "-H") {
+        // The value is the NEXT word; an operator there means the flag had no value.
+        const next = words[j + 1];
+        value = next === undefined || next.isOperator ? undefined : next.value;
+      } else if (arg.value.startsWith("--head=")) value = arg.value.slice("--head=".length);
+      else if (PR_CREATE_FLAGS_TAKING_A_VALUE.has(arg.value)) {
+        j += 1;
+        continue;
+      } else continue;
+      if (value === undefined || value === "") return null;
+      const branch = value.includes(":") ? value.slice(value.indexOf(":") + 1) : value;
+      return branch === "" ? null : branch;
+    }
+    return null;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------------------------
 // The escape hatch
 // ---------------------------------------------------------------------------------------------

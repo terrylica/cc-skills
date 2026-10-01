@@ -51,6 +51,7 @@ set -euo pipefail
 PII_GUARD_BUN=""
 for pii_guard_candidate in \
     "$(command -v bun 2>/dev/null || true)" \
+    "$HOME/.proto/bin/bun" \
     /opt/homebrew/bin/bun \
     "$HOME/.bun/bin/bun"
 do
@@ -76,8 +77,9 @@ if [[ -z "$PII_GUARD_BUN" ]]; then
         echo "" >&2
         echo "  Searched, in order:" >&2
         echo "    1. bun on \$PATH  (command -v bun)" >&2
-        echo "    2. /opt/homebrew/bin/bun" >&2
-        echo "    3. \$HOME/.bun/bin/bun" >&2
+        echo "    2. \$HOME/.proto/bin/bun  (proto's machine-wide pin)" >&2
+        echo "    3. /opt/homebrew/bin/bun" >&2
+        echo "    4. \$HOME/.bun/bin/bun" >&2
         echo "" >&2
         echo "  Staged content could NOT be checked for client identifiers, so" >&2
         echo "  this commit is blocked rather than allowed through unverified." >&2

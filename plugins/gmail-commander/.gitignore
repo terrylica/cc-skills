@@ -1,8 +1,12 @@
 node_modules/
 dist/
 scripts/gmail-cli/node_modules/
+# The compiled `gmail` binary is a build artifact. Its INPUTS are tracked:
+# scripts/gmail-cli/bun.lock is committed so `bun install --frozen-lockfile`
+# resolves the same dependency tree on every machine that builds it.
 scripts/gmail-cli/gmail
-scripts/gmail-cli/bun.lock
-bun.lock
+# Anchored to the plugin root on purpose: an unanchored `bun.lock` matches at
+# every depth and would silently re-ignore scripts/gmail-cli/bun.lock.
+/bun.lock
 state/
 logs/

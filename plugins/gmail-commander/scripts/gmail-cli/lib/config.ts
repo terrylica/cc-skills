@@ -106,8 +106,6 @@ Run: /gmail-commander:setup
    GMAIL_OP_UUID=<your-uuid> gmail list -n 1
    export GMAIL_OP_UUID=<your-uuid>
 
-3. For the launchd daemons, set it in ~/own/amonic/.env.launchd
-
 ━━━ NEED OAUTH CREDENTIALS? ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 See: ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/

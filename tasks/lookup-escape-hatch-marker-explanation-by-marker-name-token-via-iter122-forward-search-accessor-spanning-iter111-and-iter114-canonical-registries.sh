@@ -338,7 +338,7 @@ if (topRankedLevenshteinCandidateIsCloseEnoughToBeOperatorTypo) {
     );
   }
   console.error(
-    \`\\n  If none of these match, the marker may not yet be registered. Add an entry to:\\n    - Runtime hooks: plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts\\n    - Audit tasks:  plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts\`,
+    \`\\n  If none of these match, the marker may not yet be registered. Add an entry to:\\n    - Runtime hooks: plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts\\n    - Audit tasks:  plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts\`,
   );
 } else {
   // ─── Step 5: full-list dump ─────────────────────────────────────────

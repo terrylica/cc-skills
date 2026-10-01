@@ -13,6 +13,7 @@ import {
   classify,
   overrideReason,
   sha256,
+  prCreateHeadBranch,
   undraftTarget,
   validateArtifact,
   type RepoFacts,
@@ -270,4 +271,30 @@ describe("validateArtifact — each structural rule can fail", () => {
     const r = validateArtifact(artifact({ schema: 2 }), facts());
     expect(r.ok).toBe(false);
   });
+});
+
+describe("prCreateHeadBranch — which branch a gh pr create submits", () => {
+  const cases: Array<[string, string | null]> = [
+    ["gh pr create --head feature --title t", "feature"],
+    ["gh pr create -H feature", "feature"],
+    ["gh pr create --head=feature --title t", "feature"],
+    ["gh pr create --head owner:feature", "feature"],
+    ["gh pr create --repo o/r --base main --head feat/x --body-file /tmp/b.md", "feat/x"],
+    // A value-taking flag's value is never read as the head, even when it looks like one.
+    ["gh pr create --title --head --body x", null],
+    ["gh pr create --title t --body-file f", null],
+    ["gh pr create", null],
+    // An operator ends the command: nothing after it belongs to gh.
+    ["gh pr create --title t && git log --head x", null],
+    ["gh pr create --head && echo x", null],
+    ["gh pr create --head=feature && echo done", "feature"],
+    ["REVIEW_ROUND_OK='a reason here' gh pr create --head feature", "feature"],
+    ["gh pr view --head feature", null],
+    ["echo gh pr create --head feature", null],
+  ];
+  for (const [command, expected] of cases) {
+    test(`prCreateHeadBranch(${command.slice(0, 56)}) → ${expected ?? "null"}`, () => {
+      expect(prCreateHeadBranch(command)).toBe(expected as never);
+    });
+  }
 });

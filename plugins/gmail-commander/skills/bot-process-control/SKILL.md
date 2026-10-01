@@ -1,260 +1,87 @@
 ---
 name: bot-process-control
-description: Gmail Commander daemon lifecycle - start, stop, restart, status, logs, launchd plist management. TRIGGERS - bot start, bot stop, bot restart
+description: Gmail Commander bot and digest process control - they run unattended in a private Restate deployment, never as workstation launchd jobs. Where they run, how to check them, what not to start locally. TRIGGERS - bot start, bot stop, bot restart, bot status, gmail bot down
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # Bot Process Control
 
-Manage the Gmail Commander bot daemon and scheduled digest via launchd.
+Where the Gmail Commander bot and scheduled digest run, how to tell whether they are healthy, and what must never be started on a workstation.
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
+## Where the processes live
+
+Neither process runs on a workstation. Both run in a **private Restate tenant on an always-on Mac mini**, deployed from a private repository:
+
+| Service        | Role                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| `GmailBot`     | Owns the Telegram `getUpdates` chain (one durable, self-re-arming poll) and dispatches each update  |
+| `GmailBotChat` | Runs one update through the grammY bot built by this plugin's `buildBot()`, in per-chat order       |
+| `GmailDigest`  | Scheduled email digest to Telegram, several times a day (its own implementation, not this plugin's) |
+| `GmailAuth`    | Mints Gmail access tokens on demand from a refresh token held in the deployment's secret store      |
+
+**Starting, stopping, restarting, deploying, reading logs, rotating secrets and OAuth re-consent are all done through that repository's runbook.** This public skill intentionally carries no host names, deploy commands or credential paths for it. If you do not have access to that repository, stop and ask the operator.
+
+The laptop launchd jobs `com.terryli.gmail-commander-bot` and `com.terryli.gmail-commander-digest` were **retired on 2026-09-24**. Do not recreate their plists, launcher scripts or env files.
+
 ## Mandatory Preflight
 
-### Step 1: Check Current Process Status
+### Step 1: Confirm nothing is running locally (read-only)
 
 ```bash
-echo "=== Gmail Commander Processes ==="
-pgrep -fl "gmail-commander" 2>/dev/null || echo "No processes found"
+echo "=== Local gmail-commander launchd jobs (expected: none) ==="
+launchctl list | grep -F gmail-commander || echo "none"
 
 echo ""
-echo "=== launchd Status ==="
-launchctl list | grep gmail-commander 2>/dev/null || echo "No launchd jobs"
+echo "=== Local gmail-commander plists (expected: none) ==="
+ls ~/Library/LaunchAgents 2>/dev/null | grep -F gmail-commander || echo "none"
 
 echo ""
-echo "=== PID Files ==="
-cat /tmp/gmail-commander-bot.pid 2>/dev/null && echo " (bot)" || echo "No bot PID file"
-cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID file"
+echo "=== Local standalone bot process (expected: none) ==="
+pgrep -fl "gmail-commander/scripts/bot.ts" || echo "none"
 ```
 
-## Two Services
+If any of these finds something, **report it to the operator instead of loading, unloading or killing it yourself**: a live local poller competes with the tenant for the same bot token.
 
-| Service    | Type          | Trigger                    | PID File                     |
-| ---------- | ------------- | -------------------------- | ---------------------------- |
-| Bot Daemon | KeepAlive     | Always-on (grammY polling) | /tmp/gmail-commander-bot.pid |
-| Digest     | StartInterval | Every 6 hours (21600s)     | /tmp/gmail-digest.pid        |
+### Step 2: Check the deployed bot from the user's side
 
-## launchd Plist Templates
+The one check that needs no deployment access: send `/status` to the bot in its Telegram chat. A reply with uptime and counters means `GmailBotChat` is handling updates. No reply within a minute means the poll chain or the tenant is down — escalate through the runbook.
 
-### Bot Daemon — `com.terryli.gmail-commander-bot.plist`
+## Never start a second poller
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.terryli.gmail-commander-bot</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{{HOME}}/own/amonic/bin/gmail-commander-bot</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <dict>
-        <key>NetworkState</key>
-        <true/>
-    </dict>
-    <key>StandardOutPath</key>
-    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-bot/stdout.log</string>
-    <key>StandardErrorPath</key>
-    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-bot/stderr.log</string>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PATH</key>
-        <string>{{HOME}}/.proto/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
-    </dict>
-    <key>ThrottleInterval</key>
-    <integer>10</integer>
-</dict>
-</plist>
-```
+`scripts/bot.ts` still has a standalone long-polling `main()`, guarded by `import.meta.main` so that importing `buildBot()` never polls. **Do not run it with the production bot token.** Telegram allows exactly one `getUpdates` consumer per token; a second one makes Telegram answer `409 Conflict` and both pollers become unreliable, and the tenant pages the operator when it sees that conflict.
 
-### Scheduled Digest — `com.terryli.gmail-commander-digest.plist`
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.terryli.gmail-commander-digest</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{{HOME}}/own/amonic/bin/gmail-commander-digest</string>
-    </array>
-    <key>StartInterval</key>
-    <integer>21600</integer>
-    <key>StandardOutPath</key>
-    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-digest/stdout.log</string>
-    <key>StandardErrorPath</key>
-    <string>{{HOME}}/.local/state/launchd-logs/gmail-commander-digest/stderr.log</string>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PATH</key>
-        <string>{{HOME}}/.proto/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
-    </dict>
-</dict>
-</plist>
-```
-
-## Quick Operations
-
-### Start Bot
-
-```bash
-launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-```
-
-### Stop Bot
-
-```bash
-launchctl unload ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-```
-
-### Restart Bot
-
-```bash
-launchctl unload ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-```
-
-### Force Kill (Emergency)
-
-```bash
-pkill -f "gmail-commander.*bot.ts"
-rm -f /tmp/gmail-commander-bot.pid
-```
-
-### View Logs
-
-```bash
-# Recent bot output (centralized launchd logs)
-tail -50 ~/.local/state/launchd-logs/gmail-commander-bot/stderr.log
-
-# Recent digest output
-tail -50 ~/.local/state/launchd-logs/gmail-commander-digest/stderr.log
-
-# Audit log (NDJSON, app-managed)
-cat $PROJECT_DIR/logs/audit/$(date +%Y-%m-%d).ndjson | jq .
-
-# OAuth token refresher log
-tail -20 ~/.local/state/launchd-logs/gmail-oauth-refresher/stderr.log
-```
-
-## System Resources (Expected)
-
-- **Memory**: ~20-30 MB RSS (Bun runtime + grammY)
-- **CPU**: Negligible (idle polling, wakes on message)
-- **Network**: Minimal (single long-poll connection to Telegram API)
-- **Disk**: ~1 MB/day audit logs (14-day rotation)
+The standalone entry point exists for other installations of this public plugin, with their own bot token. It takes a PID lock at `/tmp/gmail-commander-bot.pid` and reads the variables listed in the [plugin CLAUDE.md](../../CLAUDE.md#environment-variables). This plugin no longer ships process-supervisor templates for it.
 
 ## Telegram Commands
 
-| Command  | Description                         |
-| -------- | ----------------------------------- |
-| /inbox   | Show recent inbox emails            |
-| /search  | Search emails (Gmail query syntax)  |
-| /read    | Read email by ID                    |
-| /compose | Compose a new email                 |
-| /reply   | Reply to an email                   |
-| /abort   | Cancel current compose/reply action |
-| /drafts  | List draft emails                   |
-| /digest  | Run email digest now                |
-| /status  | Bot status and stats                |
-| /help    | Show all commands                   |
+| Command  | Description                             |
+| -------- | --------------------------------------- |
+| /inbox   | Show recent inbox emails                |
+| /search  | Search emails (Gmail query syntax)      |
+| /read    | Read email by ID                        |
+| /compose | Compose a new email                     |
+| /reply   | Reply to an email                       |
+| /abort   | Cancel current compose/reply action     |
+| /drafts  | List draft emails                       |
+| /digest  | Triage the last N hours now (default 6) |
+| /status  | Bot status and stats                    |
+| /help    | Show all commands                       |
 
 > **Note**: `/abort` cancels any in-progress compose or reply session. Works at any step in the flow.
 
-## OAuth Token Management
+## OAuth failures in the deployment
 
-### Two-Layer Token Architecture
-
-```
-Browser Auth (one-time, interactive)
-  → Google issues: access_token (1h TTL) + refresh_token (7d TTL in Testing mode)
-  → Saved to: ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
-
-Silent Refresh (automatic, no browser)
-  → Uses refresh_token to get new access_token
-  → Fails with invalid_grant when refresh_token itself expires
-```
-
-### Hourly Token Refresher (launchd)
-
-A compiled Swift binary runs hourly to proactively refresh the access token:
-
-| File   | Path                                                                            |
-| ------ | ------------------------------------------------------------------------------- |
-| Source | `~/.claude/automation/gmail-token-refresher/main.swift`                         |
-| Binary | `~/.claude/automation/gmail-token-refresher/gmail-oauth-token-hourly-refresher` |
-| Plist  | `~/Library/LaunchAgents/com.terryli.gmail-oauth-token-hourly-refresher.plist`   |
-| Log    | `$PROJECT_DIR/logs/token-refresher.log`                                         |
-
-**Why hourly**: Access tokens expire every 1 hour. Refreshing hourly keeps the token perpetually valid. Frequent refresh also increases the chance Google issues a new `refresh_token`, resetting its 7-day clock.
-
-**Verify it's running**:
-
-```bash
-launchctl list | grep gmail-oauth-token
-tail -5 $PROJECT_DIR/logs/token-refresher.log
-```
-
-**Credentials source**: `GMAIL_OP_UUID` item in 1Password Claude Automation vault (fields: `client_id`, `client_secret`). Accessed via service account token — no biometric prompt required.
-
-### Diagnosing `invalid_grant`
-
-`invalid_grant` means the **refresh token** itself expired (not just the access token):
-
-```bash
-# Symptom in audit log:
-cat $PROJECT_DIR/logs/audit/$(date +%Y-%m-%d).ndjson | jq 'select(.event == "gmail.error")'
-# → "Token expired, refreshing...\nError: invalid_grant\n"
-
-# Check token file age:
-ls -la ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
-```
-
-**Fix**:
-
-```bash
-# 1. Delete expired token
-rm ~/.claude/tools/gmail-tokens/<GMAIL_OP_UUID>.json
-
-# 2. Trigger browser re-auth (opens Google consent page)
-source $PROJECT_DIR/.env.launchd
-$PLUGIN_DIR/scripts/gmail-cli/gmail list -n 1
-
-# 3. Restart bot
-launchctl unload ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-```
-
-**Root cause**: Google OAuth apps in **Testing mode** issue refresh tokens with 7-day TTL. Permanent fix: publish the Google Cloud OAuth app (Google Cloud Console → OAuth consent screen → Publish app).
-
-### Diagnosing Stale PID Lock
-
-If the bot exits uncleanly, the PID file may block restart:
-
-```bash
-# Symptom: launchctl shows bot loaded but PID is dead
-kill -0 $(cat /tmp/gmail-commander-bot.pid) 2>&1
-# → "No such process"
-
-# Fix: restart via launchctl (acquireLock handles stale PIDs automatically)
-launchctl unload ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-```
+When Google rejects the deployment's refresh token (`invalid_grant`), `GmailAuth` pages the operator. Recovery needs a browser consent on a workstation and a secret update in the deployment, both described in the private runbook. The CLI's own `invalid_grant` recovery on a workstation is a different token and is covered in [gmail-access](../gmail-access/SKILL.md#diagnosing-invalid_grant).
 
 ## Post-Change Checklist
 
 - [ ] YAML frontmatter valid (no colons in description)
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
-- [ ] launchd plist templates match actual launcher scripts
-- [ ] OAuth token refresher launchd service loaded and running
+- [ ] No launchd templates, host names or credential paths reintroduced
+- [ ] `buildBot()` contract in the plugin CLAUDE.md still matches `scripts/bot.ts`
 
 ## Post-Execution Reflection
 

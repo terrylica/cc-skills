@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-09-26: Describe the deployed bot instead of a local daemon
+
+**Trigger**: "Running Manually" told agents to start `scripts/bot.ts` from a laptop directory, which now competes with the deployed Restate tenant for the bot token. The command table also omitted `/abort`, and the References section linked three files that never existed.
+
+**Fix**: Added where the bot runs and the one-consumer-per-token warning, a preflight that checks `buildBot` is still exported, `/abort` in the command table, and a source map pointing at the real files in place of the missing references.
+
+**Files**: `SKILL.md`
+
+---
+
 ## 2026-02-26: Initial Evolution Log
 
 **Status**: Skill is in use and maintained. Track improvements here.

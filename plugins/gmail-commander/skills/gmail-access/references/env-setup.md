@@ -1,6 +1,6 @@
 # Environment Setup Guide
 
-How the Gmail CLI and the Gmail Commander daemons get `GMAIL_OP_UUID` and the other variables they read. Every component reads plain process environment variables; nothing loads a per-directory config file for you (jdx/mise, which used to, is retired and not used).
+How the Gmail CLI gets `GMAIL_OP_UUID` and the other variables it reads. Every component reads plain process environment variables; nothing loads a per-directory config file for you (jdx/mise, which used to, is retired and not used).
 
 ## Prerequisites
 
@@ -27,12 +27,13 @@ Copy the `id` value — this is your UUID. Use the item **UUID**, not its title:
 
 ## Step 2: Supply It to the Process That Needs It
 
-| Consumer                      | Where `GMAIL_OP_UUID` comes from                                                                                                                                                     |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Interactive CLI use           | Pass it on the command line (`GMAIL_OP_UUID=<uuid> gmail list -n 1`) or `export GMAIL_OP_UUID=<uuid>` in the current shell                                                           |
-| Bot daemon + digest (launchd) | `~/own/amonic/.env.launchd`, sourced by the launcher scripts `~/own/amonic/bin/gmail-commander-bot` and `~/own/amonic/bin/gmail-commander-digest`. Hand-maintained; edit it directly |
+| Consumer            | Where `GMAIL_OP_UUID` comes from                                                                                           |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Interactive CLI use | Pass it on the command line (`GMAIL_OP_UUID=<uuid> gmail list -n 1`) or `export GMAIL_OP_UUID=<uuid>` in the current shell |
 
 Passing the UUID per command is the safest choice when different projects use different accounts, because nothing selects an account from the working directory any more.
+
+The Telegram bot and the scheduled digest do not read anything from this machine: they run in a private deployment that injects its own variables from its own secret store. The laptop launchd jobs and the `.env.launchd` file they sourced were retired on 2026-09-24; do not recreate them.
 
 ## Step 3: Verify
 

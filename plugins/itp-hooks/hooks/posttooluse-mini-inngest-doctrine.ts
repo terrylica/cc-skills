@@ -53,8 +53,8 @@
  *
  * References:
  *   - ADR: docs/adr/2026-07-06-mini-inngest-doctrine-hook.md
- *   - Workflow architecture (explanation SSoT): ~/.claude/skills/homelab/references/workflows.md
- *   - Deployment guide (how-to): homelab skill
+ *   - Restate patterns: ~/.claude/skills/homelab/SKILL.md § "Restate patterns"
+ *   - Deployment guide (how-to): claude-sys mac-minis/h2wfc1wbq6ny_home-to-workflow-fulfilment-centre/docs/runbook.md
  */
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
