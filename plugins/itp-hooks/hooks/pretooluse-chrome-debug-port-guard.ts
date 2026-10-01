@@ -32,7 +32,7 @@
  * before any violation is reported, and inspector/terminator verbs veto the whole check.
  *
  * Knowledge SSoT (this file duplicates none of it):
- *   ~/.claude/skills/browser-automation/references/doctrine.md
+ *   the chrome-profiles plugin: skills/browser-automation/ (SKILL.md and references/doctrine.md)
  * Upstream announcement:
  *   https://developer.chrome.com/blog/remote-debugging-port
  */
@@ -187,7 +187,8 @@ export function explainChromeDebugViolations(
 
   lines.push(
     "Rationale and the full ladder (no browser > hermetic launch > attach real Chrome): " +
-      "~/.claude/skills/browser-automation/references/doctrine.md\n" +
+      "the chrome-profiles plugin, skills/browser-automation (path: cc-plugin-root chrome-profiles). " +
+      "For your everyday signed-in Chrome no debug flag is needed: chrome-profile.sh setup <email>\n" +
       "Upstream: https://developer.chrome.com/blog/remote-debugging-port\n" +
       "Override with CHROME-DEBUG-PORT-OK: <>=10-character reason>",
   );
