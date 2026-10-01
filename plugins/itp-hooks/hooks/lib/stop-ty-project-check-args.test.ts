@@ -12,7 +12,13 @@ function checkWithPin(pinFile: string, pinContent: string): string {
     writeFileSync(join(cwd, pinFile), pinContent);
     // PEP 695 `type` statement: valid on 3.12+, a syntax error on 3.10.
     writeFileSync(join(cwd, "a.py"), "type X = int\n");
-    const run = Bun.spawnSync([...TY_PROJECT_CHECK_ARGS], { cwd, stdout: "pipe", stderr: "pipe" });
+    // Isolate from the caller: an active venv/conda env and a user-level ty.toml
+    // (XDG_CONFIG_HOME) are both legitimate version sources for ty, and either
+    // would make these assertions depend on the machine running them.
+    const env: Record<string, string | undefined> = { ...process.env, XDG_CONFIG_HOME: cwd };
+    delete env.VIRTUAL_ENV;
+    delete env.CONDA_PREFIX;
+    const run = Bun.spawnSync([...TY_PROJECT_CHECK_ARGS], { cwd, env, stdout: "pipe", stderr: "pipe" });
     return run.stdout.toString() + run.stderr.toString();
   } finally {
     rmSync(cwd, { recursive: true, force: true });
