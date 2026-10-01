@@ -1,8 +1,8 @@
 # Kokoro TTS
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-7-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+![Skills](https://img.shields.io/badge/Skills-7-blue.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Local text-to-speech engine using MLX-Audio Kokoro-82M on Apple Silicon. Install, synthesize, serve, and manage Kokoro TTS entirely from Claude Code.
 
