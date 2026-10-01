@@ -1,3 +1,14 @@
+## [33.0.1](https://github.com/terrylica/cc-skills/compare/v33.0.0...v33.0.1) (2026-10-01)
+
+
+### Performance Improvements
+
+* **itp-hooks:** run the 24 Bash guards in one bun process ([470900e](https://github.com/terrylica/cc-skills/commit/470900ed78236a4c3746eba2dc2a868c2ee9674e)), closes [#15897](https://github.com/terrylica/cc-skills/issues/15897) [#111](https://github.com/terrylica/cc-skills/issues/111)
+
+A Bash call started 26 itp-hooks bun processes, all unconditional. The new pretooluse-bash-guard-orchestrator.ts runs 24 of them in one process with Claude Code's own precedence (deny > ask > allow), per guard crash isolation and time boxes, and joined additionalContext. Measured per Bash call: guard CPU 295 ms -> 28 ms, 24 processes -> 1.
+
+The two updatedInput rewriters stay separate (anthropics/claude-code
+
 # [33.0.0](https://github.com/terrylica/cc-skills/compare/v32.6.0...v33.0.0) (2026-10-01)
 
 
