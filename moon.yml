@@ -55,6 +55,11 @@ tasks:
 
   test-hooks:
     description: "Marketplace-wide hook regression suite (the bash test-file cohort under tasks/tests/)."
+    # #142: the same downgrade the release preflight applies. Absolute wall-clock caps flake
+    # under repo:check's parallel load; structural assertions still gate, and a standalone
+    # `bash tasks/tests/<test>.sh` still enforces the caps. See docs/perf-timing-skip.md.
+    env:
+      CC_SKILLS_SKIP_PERF_TIMING: "1"
     script: "bash tasks/test-marketplace-hook-regression-suite"
 
   lint:
