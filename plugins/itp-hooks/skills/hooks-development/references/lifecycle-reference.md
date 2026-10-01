@@ -239,7 +239,7 @@ Every hook can output these fields:
 | **SubagentStop**       | `decision:block` + reason           | —                         | Forces subagent to continue working                                                                     |
 | **Stop**               | `decision:block` + reason           | —                         | Forces Claude to continue (check stop_hook_active!)                                                     |
 
-> ¹ **Unverified in production** (2026-03-27): `decision:block` for PostToolUseFailure has zero production usage in cc-skills. Official docs may not support it. Use `additionalContext` as a safer alternative until live-probe validated.
+> ¹ **Documented, rarely useful** (re-checked 2026-10-01, #71): the official [decision-control table](https://code.claude.com/docs/en/hooks#decision-control) lists `PostToolUseFailure` among the events that accept a top-level `decision: "block"`, but the event's own [decision-control section](https://code.claude.com/docs/en/hooks#posttoolusefailure-decision-control) documents only `additionalContext`. The tool has already failed, so a block only adds visibility. Prefer `additionalContext`.
 
 ### Universal Control (All Hooks)
 
@@ -307,8 +307,8 @@ Every hook can output these fields:
 | **SessionEnd**         | Session terminates                                           | No      | `clear`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other`     |
 | **InstructionsLoaded** | Instruction files load into context                          | No      | None                                                                               |
 | **ConfigChange**       | Settings or skill files change during session                | **Yes** | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills` |
-| **WorktreeCreate**     | Worktree created via `--worktree`                            | No      | None (stdout = worktree path)                                                      |
-| **WorktreeRemove**     | Worktree removed at session exit                             | No      | None (failures logged in debug mode only)                                          |
+| **WorktreeCreate**     | Worktree created via `--worktree`                            | **Yes**      | None (stdout = worktree path)                                                      |
+| **WorktreeRemove**     | Worktree removed at session exit                             | **Yes**      | None (failures logged in debug mode only)                                          |
 | **PostCompact**        | After context summarization completes                        | No      | `manual`, `auto`                                                                   |
 | **Elicitation**        | MCP server requests user input                               | **Yes** | MCP server name                                                                    |
 | **ElicitationResult**  | User responds to MCP elicitation                             | **Yes** | MCP server name                                                                    |
@@ -635,7 +635,7 @@ Both prevent the tool call from executing. The difference is in output channel:
 
 #### Exit 2 Behavior by Hook Type
 
-Exit 2 is not PreToolUse-exclusive. Its effect varies by hook type, but **production usage is limited**:
+Exit 2 is not PreToolUse-exclusive. The official [exit-code-2 table](https://code.claude.com/docs/en/hooks#exit-code-2-behavior-per-event) is the SSoT for every event; this table adds cc-skills production evidence:
 
 | Hook Type            | Exit 2 Effect                                                                                            | Production Evidence                                        |
 | -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -644,8 +644,11 @@ Exit 2 is not PreToolUse-exclusive. Its effect varies by hook type, but **produc
 | **TeammateIdle**     | Keeps teammate working; stderr = feedback                                                                | Schema-confirmed                                           |
 | **TaskCompleted**    | Prevents task completion; stderr = feedback                                                              | Schema-confirmed                                           |
 | **ConfigChange**     | Blocks config change                                                                                     | Documented, no cc-skills usage                             |
-| **Stop**             | Documented but **zero production usage** — all cc-skills Stop hooks use `decision:block` (exit 0 + JSON) | No cc-skills evidence                                      |
-| **PostToolUse**      | stderr shown in verbose mode only (tool already ran)                                                     | No cc-skills usage                                         |
+| **Stop**             | Prevents Claude from stopping, continues the conversation (official). cc-skills Stop hooks use `decision:block` (exit 0 + JSON) instead | No cc-skills usage of exit 2 |
+| **PostToolUse**      | Shows stderr to Claude; the tool already ran (official)                                                   | No cc-skills usage                                         |
+| **PostToolUseFailure** | Shows stderr to Claude; the tool already failed (official)                                             | No cc-skills usage                                         |
+| **WorktreeCreate**   | Any non-zero exit makes worktree creation fail (official)                                                | No cc-skills usage                                         |
+| **WorktreeRemove**   | Any non-zero exit makes removal fail if the directory still exists (official)                            | No cc-skills usage                                         |
 
 ### Environment Variables
 
@@ -661,7 +664,7 @@ Exit 2 is not PreToolUse-exclusive. Its effect varies by hook type, but **produc
 { "type": "command", "command": "/path/to/script.py", "timeout": 60 }
 ```
 
-**Prompt Hook** — LLM-evaluated via Haiku, context-aware:
+**Prompt Hook** — LLM-evaluated, context-aware. Without a `model` field it uses "the model Claude Code uses for background functionality" ([hook fields](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields)); set `model` to pin one:
 
 ```json
 { "type": "prompt", "prompt": "Check if task is complete", "timeout": 30 }
@@ -1095,8 +1098,10 @@ To iterate on hooks or skills without releasing, add the checkout itself as a lo
 
 ### Timeout Defaults
 
+`timeout` is in **seconds**: "Seconds before canceling" ([hook fields](https://code.claude.com/docs/en/hooks#command-hook-fields)). A value like `5000` therefore means 83 minutes, not 5 s. Audited 2026-10-01: every `timeout` in this repo's `hooks.json` files is between 2 and 65 seconds.
+
 - **Command hooks**: 600 seconds / 10 minutes (source constant `KX=600000`)
-- **Prompt hooks**: 30 seconds (Haiku evaluation)
+- **Prompt hooks**: 30 seconds
 - **Agent hooks**: 60 seconds (sub-agent evaluation)
 - **Async hooks**: 600 seconds / 10 minutes (same default as sync command hooks)
 - **Recommended**: 180s explicit timeout for linting/testing operations
