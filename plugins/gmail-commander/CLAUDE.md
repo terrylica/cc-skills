@@ -30,7 +30,7 @@ The deployment bundles this plugin's code at deploy time and ships the CLI binar
 - `scripts/lib/gmail-client.ts` shells out to the `gmail` binary. `GMAIL_CLI_BIN` points it at the shipped copy; without it the default is the marketplace path, which exists only on a workstation.
 - `scripts/gmail-cli/` is shipped as a directory. Build the binary from the committed lockfile (`bun install --frozen-lockfile && bun run build`) so every build resolves the same dependency tree.
 
-The scheduled digest does **not** use this plugin's code. The former `scripts/digest.ts` entry point, its Kokoro voice briefing (`scripts/lib/tts-client.ts`) and the laptop-only Stop hook `hooks/bot-shutdown-notify.ts` were removed on 2026-09-26 once nothing imported them.
+The scheduled digest does **not** use this plugin's code.
 
 ## Bot Commands (10 total)
 

@@ -25,4 +25,4 @@
 
 - **6-Tier Sound Alarms**: Blow → Sosumi → Pop → Glass → Ping → Funk (escalating urgency)
 - **gdrive-access**: Absorbed from former `gdrive-tools` plugin (1Password OAuth)
-- **Hook is not opt-in**: `calendar-reminder-sync.ts` is registered in `hooks/hooks.json`, so it runs whenever the plugin is enabled. The `tether` skill and `scripts/manage-hooks.sh` that advertised an opt-in install were retired in issue #127 — their injection into `~/.claude/settings.json` duplicated the shipped registration.
+- **Hook is not opt-in**: `calendar-reminder-sync.ts` is registered in `hooks/hooks.json`, so it runs whenever the plugin is enabled.
