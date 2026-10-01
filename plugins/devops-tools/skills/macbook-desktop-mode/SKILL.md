@@ -324,7 +324,6 @@ tail -50 /path/to/logs/audio-device-monitor-stderr.log
 
 ## See Also
 
-- **`kokoro-tts:realtime-audio-architecture`** — Complementary skill covering audio _playback_ patterns (PortAudio, GIL contention, jitter elimination, device hot-switching). This skill handles the system/USB layer; that one handles the application/playback layer.
 
 ## Post-Execution Reflection
 
