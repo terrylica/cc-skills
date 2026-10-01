@@ -313,7 +313,7 @@ Browser routes in general: [`chrome-profiles`](../../../chrome-profiles/skills/b
 
 **How it works:**
 
-1. Playwright opens the issue page in Chromium with a persistent profile (`~/.claude/tools/pw-github-profile/`)
+1. [`scripts/gh-issue-image-upload.ts`](./scripts/gh-issue-image-upload.ts) opens the issue page in Playwright's Chromium with a persistent profile (`~/.local/share/gh-issue-image-upload/profile`, override `GH_ISSUE_IMAGE_PROFILE`). Run it with `bun "$(cc-plugin-root gh-tools)/skills/issue-create/scripts/gh-issue-image-upload.ts" <issue-url> <image>...`
 2. First run only: user logs in to GitHub (any method — Google SSO, passkey, password). Cookies persist.
 3. Script clicks "Paste, drop, or click to add files" → intercepts the file chooser → sets the image file
 4. GitHub uploads to its S3 backend and inserts an `<img>` tag with a `user-attachments` CDN URL into the comment textarea
@@ -327,7 +327,7 @@ Browser routes in general: [`chrome-profiles`](../../../chrome-profiles/skills/b
 - Old `textarea#new_comment_field` and `file-attachment input[type='file']` selectors no longer exist
 - Batch uploads: clear textarea between uploads with `textarea.fill("")`
 
-**Chrome CDP note**: `chromium.connectOverCDP()` fails with Chrome 136+ (WebSocket timeout). Use `chromium.launchPersistentContext()` with Playwright's bundled Chromium instead. Chrome 136+ also requires `--user-data-dir` for CDP (`DevTools remote debugging requires a non-default data directory`), making CDP impractical for reusing existing browser sessions.
+**Browser route**: this is rung 2 of the [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md) ladder (Playwright's own Chromium, signed in once), which keeps it independent of your everyday Chrome. If GitHub is already signed in to an everyday profile, that plugin's `setup <email>` can drive it instead; the debug-port and Chrome-136 mechanics are documented there, not here.
 
 ---
 
