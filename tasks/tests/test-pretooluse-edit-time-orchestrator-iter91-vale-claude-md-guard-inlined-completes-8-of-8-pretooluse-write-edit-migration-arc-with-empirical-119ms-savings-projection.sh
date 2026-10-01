@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ORCHESTRATOR_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts"
 STANDALONE_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
-SUBHOOK_CONTRACT_AUDIT_TASK_PATH="$REPO_ROOT/tasks/audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main.sh"
+SUBHOOK_CONTRACT_AUDIT_TASK_PATH="$REPO_ROOT/tasks/hook-lint/orchestrator-subhook-contract.sh"
 HOOKS_JSON_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 HOOKS_DIR="$REPO_ROOT/plugins/itp-hooks/hooks"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Audit every plugins/*/hooks/hooks.json that registers pretooluse-pueue-wrap-guard.ts and assert it is the LAST PreToolUse entry. Per GitHub #15897 (Claude Code's multi-hook updatedInput aggregation bug — the last hook's hookSpecificOutput response replaces earlier ones, including resetting updatedInput to undefined), any PreToolUse hook running AFTER pueue-wrap-guard can silently clobber its OP_SERVICE_ACCOUNT_TOKEN injection and pueue command-wrapping mutations. This audit is the structural enforcement of the documented invariant in itp-hooks/CLAUDE.md ('MUST be LAST PreToolUse entry'). Exits non-zero on any violation (release:preflight gate candidate).
 #
-# audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug
+# tasks/hook-lint/pueue-wrap-last.sh
 #
 # Iter-61 self-explanatory-scaffolding audit. Born from an adversarial
 # review that discovered the documented invariant in itp-hooks/CLAUDE.md
@@ -52,7 +52,7 @@
 # entry" surface this audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `bash tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh`
+#   - Manual: `bash tasks/hook-lint/pueue-wrap-last.sh`
 #   - Automatic: release:preflight Check 4g (iter-61 wire-up)
 
 set -euo pipefail
@@ -61,7 +61,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # REPO_ROOT defaults to the cc-skills working tree (resolved from this
 # task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
 # the audit against a synthetic-fixture fleet.
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "  Pueue-Wrap-Guard Last-PreToolUse-Entry Ordering Audit"

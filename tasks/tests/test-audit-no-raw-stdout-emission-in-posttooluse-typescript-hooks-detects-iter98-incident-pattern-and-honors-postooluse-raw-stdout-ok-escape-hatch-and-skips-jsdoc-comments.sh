@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh"
+AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/posttooluse-raw-stdout.sh"
 
 if [[ ! -f "$AUDIT_TASK_ABSOLUTE_PATH" ]]; then
     echo "FAIL: audit task not found at $AUDIT_TASK_ABSOLUTE_PATH"

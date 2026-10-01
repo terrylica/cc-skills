@@ -12,7 +12,7 @@ TY_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-t
 TSGO_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
 OXLINT_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts"
 BIOME_LINT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
-STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
+STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/orchestrator-spawnsync.sh"
 HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 
 for required_file_absolute_path in \
