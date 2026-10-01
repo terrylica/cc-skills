@@ -126,6 +126,24 @@ else
     fail "hook env cleared before repo:check" "rc=$rc leaked: $(cat "$FIXTURE/moon-git-env" 2>/dev/null)"
 fi
 
+# Re-install over (a) a stale chezmoi-managed copy: no backup; (b) a foreign hook: backed up.
+printf '#!/bin/bash\n# Managed by chezmoi: stale clone-time copy\nexit 0\n' >"$HOOK"
+HOME="$FIXTURE/home" bash "$REPO/scripts/install-hooks.sh" >/dev/null
+backups=("$REPO"/.git/hooks/pre-push.bak-*)
+if [[ ! -e "${backups[0]}" ]]; then
+    pass "a stale chezmoi-managed copy is replaced without a backup"
+else
+    fail "stale template copy not backed up" "found ${backups[0]}"
+fi
+printf '#!/bin/bash\n# someone else\nexit 0\n' >"$HOOK"
+HOME="$FIXTURE/home" bash "$REPO/scripts/install-hooks.sh" >/dev/null
+backups=("$REPO"/.git/hooks/pre-push.bak-*)
+if [[ -e "${backups[0]}" ]] && grep -q 'someone else' "${backups[0]}"; then
+    pass "a foreign pre-push hook is backed up, never clobbered"
+else
+    fail "foreign hook backed up" "no backup found"
+fi
+
 if grep -q 'export PREPUSH_GATE_OK="release push:' "$REPO_ROOT/tasks/release/version"; then
     pass "tasks/release/version declares its push to the gate"
 else
