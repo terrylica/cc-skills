@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-94 preventive static audit: scans every classifier function imported by the iter-93 PostToolUse orchestrator for Bun.spawnSync( invocations. Per Bun's official documentation + 2026 community guidance (search 'Bun.spawn vs Bun.spawnSync async parallelism event loop blocking 2026'), Bun.spawnSync halts the JS event loop until the subprocess exits, so wrapping it inside the orchestrator's Promise.all yields ZERO actual parallelism — N type-checker subhooks serialize at the OS level even though they iterate 'in parallel' at the JS level. Any classifier imported by the orchestrator that uses Bun.spawnSync( is a parallelism-defeat hazard and fails this audit. Informational task; release:preflight Check 4n candidate.
+# Iter-94 preventive static audit: scans every classifier function imported by the iter-93 PostToolUse orchestrator for Bun.spawnSync( invocations. Per Bun's official documentation + 2026 community guidance (search 'Bun.spawn vs Bun.spawnSync async parallelism event loop blocking 2026'), Bun.spawnSync halts the JS event loop until the subprocess exits, so wrapping it inside the orchestrator's Promise.all yields ZERO actual parallelism — N type-checker subhooks serialize at the OS level even though they iterate 'in parallel' at the JS level. Any classifier imported by the orchestrator that uses Bun.spawnSync( is a parallelism-defeat hazard and fails this audit. Gate since #142: wired into `moon run repo:check` as repo:audit-orchestrator-spawnsync. Exit 0 clean, 1 on a violation, 2 when it cannot run.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -23,8 +23,9 @@ echo "           thread — each call must finish before the next line of JS run
 echo ""
 
 if [[ ! -f "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH" ]]; then
-    echo "  ⊘ orchestrator file not found — audit cannot run, treating as no-op"
-    exit 0
+    # A gate since #142: a renamed orchestrator must not turn this into a permanent pass.
+    echo "  ✗ orchestrator file not found — audit cannot run (exit 2): $POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH"
+    exit 2
 fi
 
 # Extract every classifier function imported by the orchestrator. The
@@ -47,8 +48,9 @@ echo "  Classifier source files imported by orchestrator: ${#CLASSIFIER_SOURCE_F
 echo ""
 
 if [[ ${#CLASSIFIER_SOURCE_FILE_RELATIVE_PATHS_IMPORTED_BY_ORCHESTRATOR[@]} -eq 0 ]]; then
-    echo "  ⊘ no classifier files discovered via import-graph parse — audit cannot run"
-    exit 0
+    # A gate since #142: an import-style change that defeats the parse must fail, not pass vacuously.
+    echo "  ✗ no classifier files discovered via import-graph parse — audit cannot run (exit 2)"
+    exit 2
 fi
 
 # Resolve each relative path to an absolute path (relative to the orchestrator file's directory)
