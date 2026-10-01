@@ -14,6 +14,11 @@ echo "════════════════════════�
 echo "  Phase 2: VERSION (semantic-release)"
 echo "═══════════════════════════════════════════════════════════"
 
+# The pushes semantic-release makes (the release commit and tag, and the successCmd push)
+# would otherwise re-run the whole repo:check through the pre-push gate (#142), minutes
+# after preflight ran the same suites. Declared with a reason, never silently skipped.
+export PREPUSH_GATE_OK="release push: release-preflight already ran the suites"
+
 # Run semantic-release
 semantic-release --no-ci
 
