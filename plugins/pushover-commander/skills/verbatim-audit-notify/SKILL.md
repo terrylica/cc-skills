@@ -25,7 +25,7 @@ The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the devic
 | `scripts/pushover-lookup.sh`                     | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry                      |
 | `scripts/pushover-prune.sh`                      | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)             |
 | `scripts/pushover-quota.sh`                      | Quota monitor: hits Pushover /apps/limits.json, persists JSON, alerts when low (iter 12b)       |
-| `scripts/pushover-heartbeat.sh`                  | Daily fleet status summary — companion+kokoro+github-notif+quota+disk+failed services (iter 20) |
+| `scripts/pushover-heartbeat.sh`                  | Daily fleet status summary — Pushover quota, disk, failed launchd services (iter 20) |
 | `templates/com.terryli.pushover-prune.plist`     | launchd timer — daily at 04:15, 90-day retention (iter 8)                                       |
 | `templates/com.terryli.pushover-quota.plist`     | launchd timer — daily at 03:30, alerts when remaining <20% (iter 12b)                           |
 | `templates/com.terryli.pushover-heartbeat.plist` | launchd timer — daily at 09:03, INFO heartbeat (auto-promotes to WARN on failure) (iter 20)     |
@@ -81,14 +81,12 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-hea
 ```text
 🔔 Fleet daily heartbeat
 
-companion: ok · up 11h 36m · 320MB · audio✓ · bot=watching · tts=ready
-kokoro: ok · idle=-1s · queue=0
 pushover quota: 611/10000 (6.11%)
 disk: launchd-logs=119MB · audit days=1
 failed services: com.terryli.maccy-backup=1
 ```
 
-Auto-promotes from INFO (silent) to WARN when any subsystem is degraded (companion or kokoro not `ok`, OR any `com.terryli.*` launchd service has `last_exit != 0`). The structured `--extra` payload captures every dimension as JSON for forensic lookup via `pushover-lookup`.
+Auto-promotes from INFO (silent) to WARN when any `com.terryli.*` launchd service has `last_exit != 0`. The structured `--extra` payload captures every dimension as JSON for forensic lookup via `pushover-lookup`.
 
 ## Quick start
 
