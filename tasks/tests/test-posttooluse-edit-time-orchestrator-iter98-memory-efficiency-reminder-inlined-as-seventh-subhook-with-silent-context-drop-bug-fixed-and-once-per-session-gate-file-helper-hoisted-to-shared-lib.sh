@@ -135,12 +135,12 @@ else
 fi
 
 # ─── Case 8: orchestrator description records iter-98 milestone or later ──────
-case8_inlined_count=$(jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-edit-time-orchestrator-aggregating")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -oE '[0-9]+/15 subhooks inlined' | head -1 | grep -oE '^[0-9]+' || echo 0)
-case8_inlined_count=${case8_inlined_count:-0}
-if [[ "${case8_inlined_count}" -ge 7 ]]; then
-    assert_passes "Case 8: hooks.json orchestrator description records iter-98 milestone or later (7/15 baseline reached; current ${case8_inlined_count}/15)"
+case8_described_count=$(jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-edit-time-orchestrator-aggregating")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -oE 'Runs [0-9]+ ' | grep -oE '[0-9]+' || echo 0)
+case8_registry_count=$(grep -cE '^    name: "' "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH" || true)
+if [[ "${case8_described_count}" -ge 7 && "${case8_described_count}" == "${case8_registry_count}" ]]; then
+    assert_passes "Case 8: hooks.json orchestrator description count matches registry and is at or above the iter-98 baseline (7; current ${case8_described_count})"
 else
-    assert_fails "Case 8: orchestrator description progress regressed below iter-98 baseline (7/15); found ${case8_inlined_count}/15"
+    assert_fails "Case 8: orchestrator description count ${case8_described_count} vs registry ${case8_registry_count} (baseline 7)"
 fi
 
 # ─── Case 9: import.meta.main standalone guard retained ──────────────────────
