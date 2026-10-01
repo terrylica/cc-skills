@@ -202,12 +202,12 @@ else
     assert_fails "Case 9: Write payload BROKEN post-iter-100 (exit=$case9_exit, stdout-head='${case9_stdout:0:200}')"
 fi
 
-# ─── Case 10: orchestrator description records iter-100 milestone ───────────
-case10_inlined_count=$(jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-edit-time-orchestrator-aggregating")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -oE 'iter-100' | head -1 || echo "")
-if [[ -n "$case10_inlined_count" ]]; then
-    assert_passes "Case 10: hooks.json orchestrator description records iter-100 milestone (MultiEdit-matcher-broadening)"
+# ─── Case 10: orchestrator hooks.json matcher covers MultiEdit ───────────────
+case10_matcher=$(jq -r '.hooks.PostToolUse[] | select(any(.hooks[]; .command | test("posttooluse-edit-time-orchestrator-aggregating"))) | .matcher' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null || echo "")
+if [[ "|${case10_matcher}|" == *"|MultiEdit|"* ]]; then
+    assert_passes "Case 10: hooks.json orchestrator matcher covers MultiEdit (${case10_matcher})"
 else
-    assert_fails "Case 10: orchestrator description does not record iter-100 milestone"
+    assert_fails "Case 10: orchestrator matcher does not cover MultiEdit (${case10_matcher})"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
