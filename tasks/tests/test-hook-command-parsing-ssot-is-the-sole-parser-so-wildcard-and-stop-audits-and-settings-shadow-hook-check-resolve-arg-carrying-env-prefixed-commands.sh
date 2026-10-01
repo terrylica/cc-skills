@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regression: tasks/lib/hook-command-parsing.sh is the ONLY hook-command parser. Pins the four sites migrated off hand-rolled parsers — the wildcard-matcher audit, the additionalContext pentad audit, the PreToolUse orchestration-candidacy ranker, and validate-plugins.mjs's settings shadow-hook check — by feeding each an env-prefixed hooks.json command that carries a trailing flag whose VALUE contains slashes. Every pre-migration parser resolves such a command to the flag value's last path segment or to the literal 'env'; the SSoT resolves it to the real script. Also asserts each migrated file sources/uses the SSoT and no longer contains its old inline parser.
+# Regression: tasks/lib/hook-command-parsing.sh is the ONLY hook-command parser. Pins the sites migrated off hand-rolled parsers — the wildcard-matcher audit, the additionalContext pentad audit and validate-plugins.mjs's settings shadow-hook check (the orchestration-candidacy ranker and async-true audit were retired in #142) — by feeding each an env-prefixed hooks.json command that carries a trailing flag whose VALUE contains slashes. Every pre-migration parser resolves such a command to the flag value's last path segment or to the literal 'env'; the SSoT resolves it to the real script. Also asserts each migrated file sources/uses the SSoT and no longer contains its old inline parser.
 #
 # THE BUG CLASS THIS PINS
 # -----------------------
@@ -42,8 +42,6 @@ trap 'rm -rf "$FIXTURE_ROOT"' EXIT
 
 WILDCARD_AUDIT="$REPO_ROOT/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
 STOP_AUDIT="$REPO_ROOT/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh"
-RANKER_AUDIT="$REPO_ROOT/tasks/audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor.sh"
-ASYNC_AUDIT="$REPO_ROOT/tasks/audit-hooks-for-async-true-eligibility-via-blocking-decision-emission-detection"
 PARSING_SSOT="$REPO_ROOT/tasks/lib/hook-command-parsing.sh"
 PLUGIN_VALIDATOR="$REPO_ROOT/scripts/validate-plugins.mjs"
 
@@ -153,44 +151,7 @@ assert_contains "the emission is reported as a violation" "$case4_out" \
 assert_absent "the hook was not skipped as SOURCE-NOT-FOUND" "$case4_out" "SOURCE-NOT-FOUND"
 
 echo
-echo "── Case 5: orchestration-candidacy ranker groups by real basenames ──"
-
-ranker_root="$FIXTURE_ROOT/ranker"
-mkdir -p "$ranker_root/tasks/lib" "$ranker_root/plugins/fixtureplug/hooks"
-cp "$PARSING_SSOT" "$ranker_root/tasks/lib/"
-cp "$RANKER_AUDIT" "$ranker_root/tasks/ranker.sh"
-jq -n \
-    --arg a "$(arg_carrying_command_for "guard-alpha.ts")" \
-    --arg b "$(arg_carrying_command_for "guard-beta.ts")" \
-    --arg c "$(arg_carrying_command_for "guard-gamma.ts")" \
-    '{hooks:{PreToolUse:[{matcher:"Bash",hooks:[
-        {type:"command",command:$a},
-        {type:"command",command:$b},
-        {type:"command",command:$c}]}]}}' \
-    >"$ranker_root/plugins/fixtureplug/hooks/hooks.json"
-
-case5_out=$(bash "$ranker_root/tasks/ranker.sh" 2>&1)
-assert_contains "all three distinct hook basenames appear in the group" "$case5_out" \
-    "guard-alpha.ts,guard-beta.ts,guard-gamma.ts"
-# Pre-migration this row read `guard-gamma.ts,rules.d,rules.d` — three distinct
-# hooks collapsed onto one flag-value segment, which is garbage input to the
-# orchestration decision the ranker exists to inform.
-assert_absent "no flag-value segment is mistaken for a script" "$case5_out" "rules.d"
-
-echo
-echo "── Case 6: an unparseable command is reported, never silently dropped ──"
-
-jq -n '{hooks:{PreToolUse:[{matcher:"Bash",hooks:[
-    {type:"command",command:"env -u AI_AGENT -u CLAUDECODE"}]}]}}' \
-    >"$ranker_root/plugins/fixtureplug/hooks/hooks.json"
-case6_out=$(bash "$ranker_root/tasks/ranker.sh" 2>&1)
-assert_contains "ranker warns loudly on an unparseable command" "$case6_out" \
-    "RANKER WARNING: could not parse hook command into a script path"
-assert_contains "the unparseable entry is still counted, marked as such" "$case6_out" \
-    "<UNPARSEABLE-COMMAND>"
-
-echo
-echo "── Case 7: settings shadow-hook check uses the same parse ──"
+echo "── Case 5: settings shadow-hook check uses the same parse ──"
 
 # Two UNRELATED hooks, both invoked through an absolute /usr/bin/env. The
 # pre-migration JS parser took "the first whitespace token containing a /",
@@ -225,16 +186,12 @@ assert_contains "the shadow is named by its real basename" \
     "$case7_real_shadow" "same basename 'pretooluse-git-worktree-guard.ts'"
 
 echo
-echo "── Case 8: no migrated site keeps a private copy of the parser ──"
+echo "── Case 6: no migrated site keeps a private copy of the parser ──"
 
 assert_contains "wildcard audit sources the parsing SSoT" \
     "$(cat "$WILDCARD_AUDIT")" "lib/hook-command-parsing.sh"
 assert_contains "stop audit sources the parsing SSoT" \
     "$(cat "$STOP_AUDIT")" "lib/hook-command-parsing.sh"
-assert_contains "ranker sources the parsing SSoT" \
-    "$(cat "$RANKER_AUDIT")" "lib/hook-command-parsing.sh"
-assert_contains "async-true audit sources the parsing SSoT" \
-    "$(cat "$ASYNC_AUDIT")" "lib/hook-command-parsing.sh"
 
 # The specific inline shapes each site used before the migration, matched in
 # CODE position (a `local` declaration, a jq expression, a JS expression) so
@@ -243,8 +200,6 @@ assert_absent "wildcard audit no longer declares its own basename_with_args" \
     "$(cat "$WILDCARD_AUDIT")" 'local basename_with_args='
 assert_absent "stop audit no longer declares its own basename_with_args" \
     "$(cat "$STOP_AUDIT")" 'local basename_with_args='
-assert_absent "ranker no longer splits .command inside jq" \
-    "$(cat "$RANKER_AUDIT")" '(.command | split("/")[-1])'
 assert_absent "validate-plugins.mjs has no second, inline tokenizer" \
     "$(cat "$PLUGIN_VALIDATOR")" 'parts.find(p => p.includes("/"))'
 
