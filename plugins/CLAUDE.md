@@ -33,7 +33,7 @@ mkdir -p plugins/my-plugin/{skills,hooks,commands,scripts}
 
 ```
 plugins/my-plugin/
-├── plugin.json           # Plugin manifest (optional)
+├── .claude-plugin/plugin.json  # Plugin manifest (optional; 2 plugins ship one)
 ├── README.md             # Plugin documentation (user-facing)
 ├── CLAUDE.md             # Per-plugin SSoT for maintainers — invariants, conventions, recent changes
 ├── skills/               # Skill definitions
@@ -47,7 +47,7 @@ plugins/my-plugin/
 └── scripts/              # Installation/management
 ```
 
-**Why both README.md and CLAUDE.md at the plugin level**: README.md is for end-users browsing GitHub; CLAUDE.md is for future Claude sessions (and maintainers) who need to know the load-bearing invariants, recent design decisions, and "don't touch this" rules that don't belong in marketing copy. The user once put it: "the nested CLAUDE.md is even more important than the README file."
+**Why both README.md and CLAUDE.md at the plugin level**: README.md is for end-users browsing GitHub; CLAUDE.md is for future Claude sessions (and maintainers) who need to know the load-bearing invariants, recent design decisions, and "don't touch this" rules that don't belong in marketing copy.
 
 ## Link Conventions
 
@@ -61,14 +61,7 @@ plugins/my-plugin/
 
 ## Shell Compatibility
 
-Claude Code's Bash tool runs **zsh** on macOS. Wrap only syntax zsh genuinely does not implement — bash-only parameter expansion (`${var,,}`, `${var^^}`, `${var@Q}`), `mapfile`/`readarray`, `declare -n`, and code that assumes 0-indexed arrays:
-
-```bash
-# Genuinely bash-only. Unwrapped, zsh answers: (eval):1: bad substitution
-/usr/bin/env bash -c 'V=ABC; echo "${V,,}"'
-```
-
-Prefix assignment (`FOO=$(cmd) other`), `$(...)` and `[[ ]]` are native zsh and need **no** wrapper. The [Shell Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md)'s blanket "wrap all command substitution" rule is retired: its ``(eval):1: parse error near `('`` failure does not reproduce on the current Bash tool.
+The Bash tool runs zsh on macOS. Wrap a block in `/usr/bin/env bash` only for syntax zsh does not implement or implements differently. The measured table, including the three silent differences (`BASH_REMATCH`, word splitting, 1-indexed arrays), is in [bash-compatibility.md](/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md).
 
 ## Validation
 
@@ -134,6 +127,5 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 
 ## Related Documentation
 
-- [Plugin Authoring Guide](/docs/plugin-authoring.md)
 - [ITP Plugin CLAUDE.md](/plugins/itp/CLAUDE.md)
 - [Marketplace Installation Troubleshooting](/docs/troubleshooting/marketplace-installation.md)

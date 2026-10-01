@@ -9,11 +9,10 @@ Context for working with cc-skills documentation.
 ```
 docs/
 ├── adr/                    ← Architecture Decision Records (MADR 4.0)
-├── design/                 ← Implementation specifications (33 of 59 ADRs have one)
+├── design/                 ← Implementation specifications
 ├── troubleshooting/        ← Issue resolution guides
 ├── HOOKS.md                ← Hook development guide
-├── RELEASE.md              ← Release workflow guide
-└── plugin-authoring.md     ← Shell compatibility patterns
+└── RELEASE.md              ← Release workflow guide
 ```
 
 ## ADR Conventions
@@ -41,7 +40,6 @@ docs/
 | [PLUGIN-LIFECYCLE.md](./PLUGIN-LIFECYCLE.md)                               | Plugin internals & config       |
 | [cargo-tty-suspension-prevention.md](./cargo-tty-suspension-prevention.md) | Cargo TTY fix (PUEUE isolation) |
 | [LESSONS.md](./LESSONS.md)                                                 | Lessons learned (extracted)     |
-| [plugin-authoring.md](./plugin-authoring.md)                               | Shell compatibility             |
 | [pii-staged-content-guard.md](./pii-staged-content-guard.md)               | Pre-commit PII guard            |
 | [troubleshooting/](./troubleshooting/)                                     | Issue resolution                |
 
