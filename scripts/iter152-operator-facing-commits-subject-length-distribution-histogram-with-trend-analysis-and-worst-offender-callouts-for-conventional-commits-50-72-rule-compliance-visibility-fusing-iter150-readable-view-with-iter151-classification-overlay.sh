@@ -247,12 +247,16 @@ iter152_render_panel_2_subject_length_distribution_histogram_with_50_72_rule_anc
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 2: Subject-length distribution histogram (bins per 50/72 rule) ───${ITER152_ANSI_COLOR_RESET}"
 
     # Single awk pass over git log subjects → bin counts → ASCII bars.
+    # The window filter is `awk 'NR <= limit'`, not `head -N`: this script runs under
+    # `set -euo pipefail`, and `head` exits early and can SIGPIPE its writer. That is a
+    # timing race that would end the script mid-dashboard (the shape of the intermittent
+    # gate failure where Panels 3-5 were missing). awk reads its input to the end.
     # iter-172 LC_ALL=C envelope: required for the RFC 3629 byte-range
     # regex [\200-\277] to match UTF-8 continuation bytes by byte value.
     # iter-175 batched-fan-in: consume cached batch (sha<SEP>subject pairs);
     # take subject field via $2 — replaces redundant `git log -N` fork.
     printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
-        | head -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+        | awk -v limit="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" 'NR <= limit' \
         | LC_ALL=C awk \
             -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
             -v hard_target="$ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
@@ -328,7 +332,7 @@ iter152_render_panel_3_worst_offender_callouts_top_n_by_char_count_so_operators_
     # containing literal '|' chars are preserved verbatim — replaces
     # redundant `git log -N` fork.
     printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
-        | head -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+        | awk -v limit="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" 'NR <= limit' \
         | LC_ALL=C awk -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" '
             function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
                 byte_length_of_text_in_locale_native_units = length(text)
@@ -338,7 +342,7 @@ iter152_render_panel_3_worst_offender_callouts_top_n_by_char_count_so_operators_
             }
             { printf "%d|%s|%s\n", iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($2), $1, $2 }' \
         | sort -rn \
-        | head -"$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3" \
+        | awk -v limit="$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3" 'NR <= limit' \
         | LC_ALL=C awk -F'|' '
             function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
                 byte_length_of_text_in_locale_native_units = length(text)
@@ -361,7 +365,7 @@ iter152_render_panel_4_conventional_commits_type_distribution_across_canonical_e
 
     # iter-175 batched-fan-in: consume cached batch via $2 subject field.
     printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
-        | head -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+        | awk -v limit="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" 'NR <= limit' \
         | awk -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
               -v bar_max_width="$ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS" '
             {
