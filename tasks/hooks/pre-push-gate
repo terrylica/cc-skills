@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Pre-push quality gate for cc-skills (#142): runs `moon run repo:check` before a push leaves
+# the machine. Invoked by the .git/hooks/pre-push dispatcher that scripts/install-hooks.sh
+# writes, AFTER the chezmoi-managed global pre-push hook (account validation) has passed.
+#
+# Reads git's pre-push stdin: one "<local-ref> <local-sha> <remote-ref> <remote-sha>" line per ref.
+#
+# Skips, each with a printed reason, never silently:
+#   - nothing to check: every pushed ref is a deletion or a tag
+#   - a release push: tasks/release/version sets PREPUSH_GATE_OK because preflight already ran
+#     the same suites moments earlier
+#   - an operator bypass with a reason: PREPUSH_GATE_OK="why" git push ...
+# `git push --no-verify` skips every hook, including the account check; prefer PREPUSH_GATE_OK.
+set -euo pipefail
+
+ZERO_SHA_PATTERN='^0+$'
+gate_needed=false
+while read -r local_ref local_sha _remote_ref _remote_sha; do
+    [[ -z "${local_ref:-}" ]] && continue
+    [[ $local_sha =~ $ZERO_SHA_PATTERN ]] && continue   # branch or tag deletion
+    [[ $local_ref == refs/tags/* ]] && continue          # tags carry no new tree to test
+    gate_needed=true
+done
+
+if [[ $gate_needed != true ]]; then
+    echo "[pre-push-gate] skipped: only deletions or tags are being pushed"
+    exit 0
+fi
+
+if [[ -n "${PREPUSH_GATE_OK:-}" ]]; then
+    if (( ${#PREPUSH_GATE_OK} < 12 )); then
+        echo "[pre-push-gate] PREPUSH_GATE_OK needs a reason of at least 12 characters, got: '$PREPUSH_GATE_OK'" >&2
+        exit 1
+    fi
+    echo "[pre-push-gate] skipped: PREPUSH_GATE_OK=\"$PREPUSH_GATE_OK\""
+    exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+    echo "[pre-push-gate] note: the working tree has uncommitted changes; the gate checks the tree, not only what is pushed" >&2
+fi
+
+# Resolve moon explicitly: non-interactive shells here have lacked the proto shim dir before.
+MOON_BIN=""
+for candidate in "$(command -v moon 2>/dev/null || true)" "$HOME/.proto/bin/moon" "$HOME/.proto/shims/moon" /opt/homebrew/bin/moon; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then MOON_BIN="$candidate"; break; fi
+done
+if [[ -z "$MOON_BIN" ]]; then
+    echo "[pre-push-gate] ✗ moon not found, so repo:check cannot run. Install it with proto, or bypass with a reason:" >&2
+    echo "  PREPUSH_GATE_OK=\"why\" git push ..." >&2
+    exit 1
+fi
+
+# The machine-wide gate-slot limiter, when present, bounds concurrent gates (memory storms).
+GATE_SLOT="$HOME/.claude/tools/gate-slot/gate-slot.ts"
+runner=("$MOON_BIN" run repo:check)
+if [[ -f "$GATE_SLOT" ]] && command -v bun >/dev/null 2>&1; then
+    runner=(bun "$GATE_SLOT" "${runner[@]}")
+fi
+
+echo "[pre-push-gate] running: moon run repo:check"
+rc=0
+"${runner[@]}" || rc=$?
+if (( rc == 75 )); then
+    echo "[pre-push-gate] ✗ every gate slot is busy (exit 75); retry the push shortly" >&2
+elif (( rc != 0 )); then
+    echo "[pre-push-gate] ✗ repo:check failed (exit $rc); push blocked" >&2
+else
+    echo "[pre-push-gate] ✓ repo:check passed"
+fi
+exit "$rc"

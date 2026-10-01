@@ -71,7 +71,7 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 | Setup env         | `/itp:setup`                       |
 | Add plugin        | `/plugin-dev:create plugin-name`   |
 
-`moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test`, `repo:test-hooks`, `repo:cli-spec-check` and `repo:verify-doc-counts`. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here; jdx/mise is not used, and a second toolchain file must never be added (two files pinning the same tool is the drift that broke every bun-backed hook on 2026-09-03).
+`moon run repo:check` is the local-first gate that must pass before a push, enforced by the pre-push hook that `bash scripts/install-hooks.sh` installs (run it once per clone; it keeps the global account check, and `PREPUSH_GATE_OK="<reason>"` is the stated-reason bypass). It fans out to `repo:lint`, `repo:test`, `repo:test-hooks`, `repo:cli-spec-check` and `repo:verify-doc-counts`. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here; jdx/mise is not used, and a second toolchain file must never be added (two files pinning the same tool is the drift that broke every bun-backed hook on 2026-09-03).
 
 ## Plugin Discovery
 
