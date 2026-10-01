@@ -6,7 +6,7 @@
 > To add or modify a marker, edit the registry source and re-run:
 >
 > ```bash
-> bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh
+> bash tasks/hook-lint/marker-reference-doc.sh
 > ```
 
 ## Quick navigation
@@ -614,7 +614,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` |
+| **Consumer audit task** | `tasks/hook-lint/escape-hatch-cohort.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -630,7 +630,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` |
+| **Consumer audit task** | `tasks/hook-lint/reason-truncation.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -646,7 +646,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` |
+| **Consumer audit task** | `tasks/hook-lint/matcher-multiedit.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -662,7 +662,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh` |
+| **Consumer audit task** | `tasks/hook-lint/pueue-wrap-last.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -678,7 +678,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh` |
+| **Consumer audit task** | `tasks/hook-lint/posttooluse-raw-stdout.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -694,7 +694,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` |
+| **Consumer audit task** | `tasks/hook-lint/orchestrator-spawnsync.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -710,7 +710,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh` |
+| **Consumer audit task** | `tasks/hook-lint/stop-additional-context.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -726,7 +726,7 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh` |
+| **Consumer audit task** | `tasks/hook-lint/wildcard-matcher.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -746,8 +746,8 @@ All markers follow the UPPER-KEBAB-CASE-OK shape (except `SSoT-OK` which is gran
 
 1. Implement the consumer-side detection in the hook source file using `hasFileWideEscapeHatchMarkerInContent(...)` or `detectEscapeHatchMarkerCoveringTargetSourceLine(...)` from `plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`.
 2. Add an entry to the registry at `plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`.
-3. Add the consumer hook to the iter-110 canonical-cohort array in `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...`.
-4. Re-run `bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh` to regenerate this document.
+3. Add the consumer hook to the iter-110 canonical-cohort array in `tasks/hook-lint/escape-hatch-cohort.sh`.
+4. Re-run `bash tasks/hook-lint/marker-reference-doc.sh` to regenerate this document.
 5. Commit all four changes atomically.
 
 ## Related documentation

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Audit every plugins/*/hooks/{posttooluse,stop,userpromptsubmit,sessionstart,sessionend}-*.{sh,ts,mjs,py} for the INVERSE silent-fail of iter-60: accidental use of the PreToolUse-only 'hookSpecificOutput.permissionDecision' field. Per the Claude Code v2.0.10+ spec, only PreToolUse hooks read permissionDecision; non-PreToolUse events expect top-level 'decision: block|null'. A non-PreToolUse hook emitting permissionDecision is read by NO field consumer in Claude Code and silently FAILS TO BLOCK. Exits non-zero if any wrong-field-for-event hook is found (release:preflight gate candidate, symmetric companion to iter-60's PreToolUse audit).
 #
-# audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events
+# tasks/hook-lint/non-pretooluse-permission-decision.sh
 #
 # Iter-62 self-explanatory-scaffolding audit — symmetric companion to
 # iter-60's PreToolUse schema audit. Background:
@@ -81,7 +81,7 @@
 # this audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `bash tasks/audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events.sh`
+#   - Manual: `bash tasks/hook-lint/non-pretooluse-permission-decision.sh`
 #   - Automatic: release:preflight Check 4h (iter-62 wire-up).
 #     Sits alongside iter-60 (Check 4f, PreToolUse direction) for
 #     symmetric schema-correctness enforcement.
@@ -95,7 +95,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # AUDIT_TASK_OWN_REPO_ROOT — always resolved from BASH_SOURCE, never
 # overridden. The shared awk scanner travels with the audit task, not
 # with the scanned fleet.
-AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$AUDIT_TASK_OWN_REPO_ROOT}"
 

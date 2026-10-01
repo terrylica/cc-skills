@@ -1,7 +1,7 @@
 /**
  * Marketplace-wide canonical registry of every AUDIT-TASK escape-hatch
  * marker — a parallel registry to the iter-111 RUNTIME-HOOK marker
- * registry, covering markers that are consumed by `tasks/audit-*.sh` preflight
+ * registry, covering markers that are consumed by `tasks/hook-lint/*.sh` preflight
  * audit tasks rather than by runtime PreToolUse/PostToolUse hooks.
  *
  * # Why a SECOND registry exists (iter-114 rationale)
@@ -10,8 +10,9 @@
  * hooks via the iter-107 shared helper. Those markers fire on EVERY
  * Write/Edit/Bash — they live in the hot path.
  *
- * The audit-task markers tracked here fire ONLY during release
- * preflight (or on-demand `bash tasks/audit-....sh`). They opt operators out
+ * The audit-task markers tracked here fire ONLY in the hook-lint
+ * gate (`moon run repo:hook-lint`, part of `repo:check`), in release
+ * preflight, or on demand (`bash tasks/hook-lint/<name>.sh`). They opt operators out
  * of a release-blocking invariant check rather than a runtime guard.
  * The two layers have different:
  *
@@ -19,7 +20,7 @@
  *                audit markers checked once per release.
  *   - CONSUMER: runtime markers consumed via the iter-107 helper
  *               (typed TypeScript API); audit markers consumed via
- *               bash grep in a `tasks/audit-*.sh` script.
+ *               bash grep in a `tasks/hook-lint/*.sh` script.
  *   - SCOPE: runtime markers suppress a per-file enforcement;
  *           audit markers suppress a marketplace-wide invariant check
  *           on a specific cohort of files (Stop hooks, PostToolUse
@@ -53,7 +54,7 @@
  * # How this registry is used
  *
  * 1. The iter-113 doc generator
- *    (`generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh`)
+ *    (`tasks/hook-lint/marker-reference-doc.sh`)
  *    was extended in iter-114 to render a SECOND section in
  *    `docs/marketplace-escape-hatch-marker-reference.md` listing every
  *    audit-task marker alongside the runtime markers. Operators get a
@@ -65,14 +66,14 @@
  *
  * # When adding a new audit marker
  *
- * 1. Add the grep-based detection in the `tasks/audit-*.sh`
+ * 1. Add the grep-based detection in the `tasks/hook-lint/*.sh`
  *    file, typically of the form
  *    `grep -v "MARKER-NAME-OK"` or with a `-OK: reason` suffix gate.
  * 2. Add an entry to
  *    `MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY`
  *    below with all fields populated.
  * 3. Re-run the iter-113 doc generator
- *    (`bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh`)
+ *    (`bash tasks/hook-lint/marker-reference-doc.sh`)
  *    to regenerate the operator-facing doc.
  */
 
@@ -84,7 +85,7 @@ export interface MarketplaceWideAuditTaskEscapeHatchMarkerCanonicalRegistryEntry
   readonly markerNameTokenIncludingSuffix: string;
 
   /**
-   * Repo-root-relative path to the `tasks/audit-*.sh` source file
+   * Repo-root-relative path to the `tasks/hook-lint/*.sh` source file
    * that READS this marker via bash grep. The audit task's release-
    * blocking invariant is bypassed when the marker appears on the
    * relevant line(s).
@@ -140,7 +141,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "ESCAPE-HATCH-AUDIT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh",
+        "tasks/hook-lint/escape-hatch-cohort.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -149,7 +150,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "HOOK-OUTPUT-SIZE-CAP-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh",
+        "tasks/hook-lint/reason-truncation.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -158,7 +159,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "MATCHER-NO-MULTIEDIT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh",
+        "tasks/hook-lint/matcher-multiedit.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -167,7 +168,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "ORDERING-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh",
+        "tasks/hook-lint/pueue-wrap-last.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -176,7 +177,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "POSTTOOLUSE-RAW-STDOUT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh",
+        "tasks/hook-lint/posttooluse-raw-stdout.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -185,7 +186,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "SPAWN-SYNC-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh",
+        "tasks/hook-lint/orchestrator-spawnsync.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -194,7 +195,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "STOP-HOOK-ADDITIONAL-CONTEXT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh",
+        "tasks/hook-lint/stop-additional-context.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -203,7 +204,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "WILDCARD-MATCHER-OK",
       consumerAuditTaskSourceFileRelativePath:
-        "tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh",
+        "tasks/hook-lint/wildcard-matcher.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:

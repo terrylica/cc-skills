@@ -2,8 +2,7 @@
 # test-audit-pretooluse-hooks-deprecated-schema-detection-classifies-modern-correct-helper-wrapped-no-decision-and-flags-deprecated-with-nonzero-exit.sh
 #
 # Regression test for the iter-60 PreToolUse schema-correctness audit at
-# tasks/audit-pretooluse-hooks-for-deprecated-top-level-decision-
-# schema-versus-modern-hookSpecificOutput-permissionDecision.
+# tasks/hook-lint/pretooluse-decision-schema.sh.
 #
 # The audit is a release:preflight gate candidate (iter-61 work) because
 # a single hook regressing to the deprecated `decision: "block"` schema
@@ -37,7 +36,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_TASK="$SCRIPT_DIR/../audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision"
+AUDIT_TASK="$SCRIPT_DIR/../hook-lint/pretooluse-decision-schema.sh"
 
 if [ ! -x "$AUDIT_TASK" ]; then
   echo "FATAL: audit task not executable: $AUDIT_TASK" >&2

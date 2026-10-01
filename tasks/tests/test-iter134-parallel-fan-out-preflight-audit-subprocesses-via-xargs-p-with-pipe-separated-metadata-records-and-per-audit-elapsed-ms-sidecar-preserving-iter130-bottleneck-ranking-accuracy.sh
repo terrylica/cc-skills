@@ -116,7 +116,7 @@ assert_substring_present \
 assert_substring_present \
     "Tier 1.B2: iter-134 metadata records use PIPE separator (not TAB) — BSD xargs invariant" \
     "$preflight_script_source" \
-    "pretooluse-schema-audit|audit-pretooluse-hooks-for-deprecated-top-level-decision-schema"
+    "pretooluse-schema-audit|hook-lint/pretooluse-decision-schema|"
 
 # Count the records by counting `|<TASK-NAME>|` patterns (each record has
 # exactly two PIPEs: between key+task and between task+extra-args).
@@ -131,7 +131,7 @@ assert_substring_present \
 # here fails the whole release preflight, and the failure message points at
 # the array rather than at your change.
 readonly ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT=16
-iter134_metadata_record_count_actual=$(echo "$preflight_script_source" | grep -cE '^[[:space:]]+"[a-z][a-z0-9-]+\|audit-|^[[:space:]]+"iter[0-9]+[a-z-]*\|(audit-|generate-)')
+iter134_metadata_record_count_actual=$(echo "$preflight_script_source" | grep -cE '^[[:space:]]+"[a-z][a-z0-9-]+\|(hook-lint|commits)/[a-z0-9-]+\|')
 if [[ "$iter134_metadata_record_count_actual" -eq "$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
     echo "  ✓ PASS: Tier 1.B3: iter-134 metadata array has exactly $ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT records (all batch Checks covered)"

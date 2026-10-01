@@ -2,9 +2,7 @@
 # test-audit-stop-hook-additionalContext-emission-detects-stdout-json-emission-distinguishes-read-only-aggregation-honors-min-reason-length-escape-hatch-and-strips-comments.sh
 #
 # Regression test for the iter-67 Stop-hook additionalContext-emission
-# audit at tasks/audit-stop-hooks-for-additionalContext-emission-
-# which-claude-code-silently-drops-per-official-anthropic-schema-only-
-# decision-and-reason-fields-are-read-from-stop-hook-stdout-json.
+# audit at tasks/hook-lint/stop-additional-context.sh.
 #
 # WHY this is load-bearing:
 #
@@ -71,7 +69,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_TASK="$SCRIPT_DIR/../audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh"
+AUDIT_TASK="$SCRIPT_DIR/../hook-lint/stop-additional-context.sh"
 
 if [ ! -x "$AUDIT_TASK" ]; then
   echo "FATAL: audit task not executable: $AUDIT_TASK" >&2

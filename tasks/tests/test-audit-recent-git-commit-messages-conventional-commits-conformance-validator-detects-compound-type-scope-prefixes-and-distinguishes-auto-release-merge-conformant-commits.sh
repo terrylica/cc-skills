@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Iter-82 regression test for audit-recent-git-commit-messages-for-conventional-commits-conformance. Synthesizes a fixture git repo with known mix of conformant + compound-prefix + auto-release + merge + missing-type commits, runs the validator, and asserts the classification counts + diagnostic-line presence. Locks in the silent-fail detection (compound prefix like 'feat(scope)+docs:') so future edits to the validator can't silently regress.
+# Iter-82 regression test for tasks/commits/conventional-conformance.sh. Synthesizes a fixture git repo with known mix of conformant + compound-prefix + auto-release + merge + missing-type commits, runs the validator, and asserts the classification counts + diagnostic-line presence. Locks in the silent-fail detection (compound prefix like 'feat(scope)+docs:') so future edits to the validator can't silently regress.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VALIDATOR_TASK_PATH="$SCRIPT_DIR/../audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes.sh"
+VALIDATOR_TASK_PATH="$SCRIPT_DIR/../commits/conventional-conformance.sh"
 
 if [[ ! -f "$VALIDATOR_TASK_PATH" ]]; then
     echo "FAIL: Validator task not found at $VALIDATOR_TASK_PATH"

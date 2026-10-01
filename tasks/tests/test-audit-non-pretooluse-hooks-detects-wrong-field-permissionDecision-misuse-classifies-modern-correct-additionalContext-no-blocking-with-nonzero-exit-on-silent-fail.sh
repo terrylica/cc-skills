@@ -2,10 +2,7 @@
 # test-audit-non-pretooluse-hooks-detects-wrong-field-permissionDecision-misuse-classifies-modern-correct-additionalContext-no-blocking-with-nonzero-exit-on-silent-fail.sh
 #
 # Regression test for the iter-62 INVERSE-schema audit at
-# tasks/audit-non-pretooluse-hooks-for-accidental-use-of-
-# pretooluse-only-hookSpecificOutput-permissionDecision-field-which-
-# silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-
-# sessionstart-sessionend-events.
+# tasks/hook-lint/non-pretooluse-permission-decision.sh.
 #
 # WHY this is load-bearing:
 #
@@ -54,7 +51,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_TASK="$SCRIPT_DIR/../audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events.sh"
+AUDIT_TASK="$SCRIPT_DIR/../hook-lint/non-pretooluse-permission-decision.sh"
 
 if [ ! -x "$AUDIT_TASK" ]; then
   echo "FATAL: audit task not executable: $AUDIT_TASK" >&2
