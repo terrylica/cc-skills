@@ -35,7 +35,18 @@ echo "════════════════════════�
 # runs inside Claude Code's managed sandbox, which protects ~/.claude/state (2026-09-27).
 ITP_HOOKS_REVIEW_ROUND_STATE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/itp-review-round-state.XXXXXX")"
 export ITP_HOOKS_REVIEW_ROUND_STATE_ROOT
+# #143: bun's console names a failing test but not its file, and its summary names nothing.
+# The JUnit report records file and line for every testcase; the roster reads it after the run.
+# bun's own exit code stays the verdict: nothing is piped, so no tee/tail can swallow it.
+JUNIT_REPORT="$(mktemp "${TMPDIR:-/tmp}/bun-unit-junit.XXXXXX")"
+rm -f -- "$JUNIT_REPORT"
 rc=0
-bun test "${FILES[@]}" || rc=$?
-rm -rf -- "$ITP_HOOKS_REVIEW_ROUND_STATE_ROOT"
+bun test --reporter=junit --reporter-outfile="$JUNIT_REPORT" "${FILES[@]}" || rc=$?
+if [[ $rc -ne 0 ]]; then
+  roster="$(bun "$REPO_ROOT/tasks/lib/bun-junit-failure-roster.ts" "$JUNIT_REPORT")" ||
+    roster="BUN-UNIT-ROSTER the roster itself failed; bun exit $rc stands"
+  printf '%s\n' "$roster"
+  printf '%s\n' "$roster" >&2
+fi
+rm -rf -- "$ITP_HOOKS_REVIEW_ROUND_STATE_ROOT" "$JUNIT_REPORT"
 exit "$rc"
