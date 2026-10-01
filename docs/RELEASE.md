@@ -403,7 +403,7 @@ Long-subject overlay violations do NOT contribute to strict-mode blocking. This 
 To see the overlay output:
 
 ```bash
-bash tasks/audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes.sh
+bash tasks/commits/conventional-conformance.sh
 # or via the preflight wrapper:
 moon run repo:release-preflight    # Check 4l informational output
 ```
@@ -844,7 +844,7 @@ Override the repo root scanned by audit tasks. Default unset — audits resolve 
 ```bash
 # Run iter-62 inverse-schema audit against a synthetic fixture
 AUDIT_REPO_ROOT_OVERRIDE=/tmp/fixture-fleet \
-  bash tasks/audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-...
+  bash tasks/hook-lint/non-pretooluse-permission-decision.sh
 ```
 
 #### `MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1` (iter-75)

@@ -320,7 +320,7 @@ The hand-typed recipe above probes one hook at a time and relies on operator-cho
 ```bash
 # Default: per-plugin summary across all plugins, filtered to cache-populator-kept paths
 moon run repo:diagnose-cache-drift
-# (equivalently: bash tasks/audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis.sh)
+# (equivalently: bash tasks/diagnose-plugin-cache-drift.sh)
 
 # Focus on a single plugin
 ... --check-plugin <plugin-name>
@@ -501,7 +501,7 @@ Iter-86 lands two concurrent deliverables: (1) third subhook inlined into the or
 - Registry now lightest-first ordered: `[version-guard, hoisted-deps-guard, file-size-guard]`. hoisted-deps-guard's O(1) `endsWith("pyproject.toml")` filter pre-empts the `git rev-parse` subprocess on non-pyproject.toml writes
 - Existing `pretooluse-hoisted-deps-guard.test.mjs` updated to point at `.ts` (no logic changes)
 
-**Preventive subhook-contract static checker** ([`audit-pretooluse-orchestrator-subhook-contract-violations-static-check-...sh`](../tasks/audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main.sh)):
+**Preventive subhook-contract static checker** ([`tasks/hook-lint/orchestrator-subhook-contract.sh`](../tasks/hook-lint/orchestrator-subhook-contract.sh)):
 
 Statically scans every `plugins/itp-hooks/hooks/*.ts` file that exports a `classify*ForOrchestrator` function and enforces two contract checks:
 
@@ -844,7 +844,7 @@ That meant the iter-93 orchestrator's `Promise.all` over N subhooks yielded **ze
 2. **`posttooluse-tsc-type-check.ts` migrated as 2nd subhook** (originally iter-94 as tsgo-type-check, renamed iter-126): async-from-day-one (no spawnSync legacy). Precise name: `classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator` (the "project-scoped" qualifier acknowledges that tsc reads tsconfig.json and checks the whole project, not just the edited file). Alias: `classifyTscTypeCheckForPostToolUseOrchestrator`. Filters subprocess output by the edited file's tsconfig-relative path to avoid basename collisions (e.g., two `index.ts` files in different project subdirs).
 3. **Orchestrator aggregator enhancement**: every aggregated section now carries a `[orchestrator-subhook: <name>]` provenance prefix; the function rename encodes the invariant.
 4. **`hooks.json` rewiring**: standalone `posttooluse-tsc-type-check.ts` PostToolUse entry removed (iter-126 update: the iter-94 tsgo entry was renamed tsc); orchestrator entry's description updated to reflect 2/15 and the iter-94 async-Bun.spawn rule.
-5. **Iter-94 static audit task** (`audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh`): parses the orchestrator's import graph, scans every classifier source file for `Bun.spawnSync(` invocations, filters out JSDoc continuation / `//` line comments / backtick-template-literal mentions (emission-pattern audit, not prose-mention audit — mirrors iter-90's PreToolUse additionalContext NON-USE audit pattern), and exits non-zero on any real invocation. Informational gate; release:preflight Check 4n candidate.
+5. **Iter-94 static audit task** (`tasks/hook-lint/orchestrator-spawnsync.sh`): parses the orchestrator's import graph, scans every classifier source file for `Bun.spawnSync(` invocations, filters out JSDoc continuation / `//` line comments / backtick-template-literal mentions (emission-pattern audit, not prose-mention audit — mirrors iter-90's PreToolUse additionalContext NON-USE audit pattern), and exits non-zero on any real invocation. Informational gate; release:preflight Check 4n candidate.
 6. **Iter-94 microbenchmark task** (retired 2026-10-01; in git history): median-of-N=5 orchestrator wall-clock across 3 synthetic payloads (.txt non-applicable baseline / .py applicable / .ts applicable). On dev hardware (Apple Silicon M1 Max, 2026-05-21): all medians ≈ 22-26ms — the bun cold-start floor — because both subhooks short-circuit via O(1) extension+existsSync filters. The wall-clock gain from async vs sync becomes visible only when MULTIPLE subhooks actually spawn real subprocesses on the same payload (future state when oxlint, biome, etc. inline).
 7. **Iter-94 regression test** ([14 assertions, all pass](../tasks/tests/test-posttooluse-edit-time-orchestrator-iter94-tsgo-inlined-as-second-subhook-plus-async-bun-spawn-refactor-defeats-the-spawnsync-promise-all-anti-pattern-with-provenance-prefix-aggregation-and-static-audit-gate.sh)): orchestrator imports BOTH classifiers, registry ≥ 2 entries, dual-export naming present, NEITHER classifier uses `Bun.spawnSync`, static audit task passes cleanly, hooks.json no longer wires standalone tsc, provenance-prefix-emitting aggregator function present, both classifiers use the shared async-spawn helper, both retain `import.meta.main` guard, orchestrator silent-noops on .txt, microbenchmark runs to completion.
 8. **Iter-92 regression test follow-on update**: Case 3b now accepts EITHER standalone OR orchestrator-via-import as satisfying the [C] CONTEXT-INJECTING invariant — same migration-arc-decoupling pattern applied to Case 3a in iter-93.
@@ -1021,7 +1021,7 @@ Iter-98 closed the single-hook silent-context-drop bug in `posttooluse-memory-ef
 
 Anything else on stdout (raw template-literal text, raw string-literal text, arbitrary plain output) is **silently dropped** by Claude Code — operator-transcript-visible only (Ctrl-R).
 
-**The preventive audit**. The new task `audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh`:
+**The preventive audit**. The new task `tasks/hook-lint/posttooluse-raw-stdout.sh`:
 
 - Discovers every `plugins/*/hooks/posttooluse-*.{ts,mjs}` (17 hooks at iter-99 time).
 - Flags `console.log(\`...\`)` template-literal emissions (the iter-98 incident shape).
@@ -1105,7 +1105,7 @@ Sources for iter-100 web research:
 
 ### Iter-101: marketplace-wide matcher-hygiene audit — scales iter-100 single-orchestrator fix to a marketplace invariant
 
-Iter-100 fixed the MultiEdit coverage gap in **one** PostToolUse orchestrator. Iter-101 asks: how many OTHER hooks across the marketplace silently allow MultiEdit through? Built `audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` to scan every `plugins/*/hooks/hooks.json` and surface PreToolUse/PostToolUse matcher entries that include `Write` or `Edit` token but NOT `MultiEdit`.
+Iter-100 fixed the MultiEdit coverage gap in **one** PostToolUse orchestrator. Iter-101 asks: how many OTHER hooks across the marketplace silently allow MultiEdit through? Built `tasks/hook-lint/matcher-multiedit.sh` to scan every `plugins/*/hooks/hooks.json` and surface PreToolUse/PostToolUse matcher entries that include `Write` or `Edit` token but NOT `MultiEdit`.
 
 **Audit findings on first run** (8 violations across 3 plugins):
 
@@ -1301,7 +1301,7 @@ Iter-104 established the canonical truncation helper `truncateHookOutputToStayBe
 
 **Preventive infrastructure**:
 
-- **Audit task**: `tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` — curated 8-hook cohort + per-hook static-grep for canonical-helper import + usage.
+- **Audit task**: `tasks/hook-lint/reason-truncation.sh` — curated 8-hook cohort + per-hook static-grep for canonical-helper import + usage.
 - **Preflight gate**: Check 4q (informational, parallel to Check 4n/4o/4p — iter-99 silent-context-drop, iter-101 matcher-hygiene, iter-103 NotebookEdit applicability matrix).
 - **Regression test**: `tasks/tests/test-iter105-marketplace-wide-truncation-helper-invariant-audit-scales-iter104-single-hook-fix-to-eight-cohort-hooks-including-postooluse-orchestrator-aggregation-site-for-sum-overflow-defense.sh` — 8 assertions including cross-lib import works + orchestrator aggregation site wraps + iter-104 helper threshold (`MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000`) unchanged + cohort count = 8.
 
@@ -1346,7 +1346,7 @@ Iter-105 documented a deferred follow-up: extract the truncation helper from the
 
 **Preventive infrastructure**:
 
-- **Audit task**: `tasks/audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness.sh` — verifies the 3 iter-106 invariants (file exists + literal exports + cohort hooks import from canonical home)
+- **Audit task**: `tasks/hook-lint/truncation-helper-home.sh` — verifies the 3 iter-106 invariants (file exists + literal exports + cohort hooks import from canonical home)
 - **Preflight gate**: Check 4r (informational, parallel to Check 4n/4o/4p/4q)
 - **Regression test**: `tasks/tests/test-iter106-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-shared-lib-with-eight-cohort-hooks-importing-directly-and-backward-compat-re-exports-preserved.sh` — 7 assertions
 - **Updated iter-104 + iter-105 tests**: file-location assumptions in the iter-104 + iter-105 tests rewritten to read from the iter-106 canonical home (where the literal definitions now live)
@@ -1408,7 +1408,7 @@ Iter-106 documented a follow-up iter-107 candidate: a shared escape-hatch-marker
 
 **Preventive infrastructure**:
 
-- **Audit task**: `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` — enumerates hand-rolled marker detection patterns + reports migrated vs. hand-rolled counts
+- **Audit task**: `tasks/hook-lint/escape-hatch-cohort.sh` — enumerates hand-rolled marker detection patterns + reports migrated vs. hand-rolled counts
 - **Preflight gate**: Check 4s (informational, parallel to Check 4n/4o/4p/4q/4r)
 - **Regression test**: 8 assertions including 4 programmatic API probes (`SAME_LINE_ONLY` mode, `SAME_LINE_OR_PRECEDING_N_LINES` with N-line window boundary, `FILE_WIDE` + convenience wrapper, ≥10-char reason policy gate)
 - **Marketplace regression suite**: 44/44 PASS (was 43/43 before iter-107 test added)
@@ -2038,7 +2038,7 @@ The promotion ran ONLY after confirming a clean baseline:
 Both STRICT-BLOCK stanzas emit the same operator-readable fix guidance as the informational versions did — the only behavioral delta is `exit 1` instead of "continues". Fix paths:
 
 - Check 4t unregistered token: (A) fix the typo in the producer file, OR (B) register a legitimate new marker in the appropriate canonical registry, OR (C) rename a test fixture to `FOO-` / `BAR-` / `BAZ-` / `QUX-` (audit ignores those families)
-- Check 4u doc drift: re-run `bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh` and commit the regenerated doc atomically with the registry edit
+- Check 4u doc drift: re-run `bash tasks/hook-lint/marker-reference-doc.sh` and commit the regenerated doc atomically with the registry edit
 
 **Regression test (`test-iter115-…-strict-block-now-fail-release-on-synthetic-mutation.sh`)**
 
@@ -2107,7 +2107,7 @@ Operators get a single discoverable artifact (20 marker sections in alphabetical
 | ---- | ---------------------------------------------------------------------------------------------------- |
 | 1    | iter-114 audit-task registry has all 4 documented exports                                            |
 | 2    | Registry contains all 8 iter-114 baseline audit markers                                              |
-| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `tasks/audit-*.sh` file       |
+| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `tasks/hook-lint/*.sh` file   |
 | 4    | iter-113 doc generator renders all 8 audit-task marker sections in dedicated audit-task catalog      |
 | 5    | Lookup-by-name helper resolves known marker with full field set; returns undefined for unknown       |
 | 6    | iter-113 generator idempotency invariant still holds with two-registry input (no drift on `--check`) |
@@ -2280,7 +2280,7 @@ Iter-111 baseline: **12 entries** (the iter-110 cohort plus `SETPROCTITLE-OK` wh
 
 **2. Producer-side typo-detection audit**
 
-`tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh` greps the marketplace for `\b[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)\b` tokens in producer files and verifies each appears in the registry. Scope rules:
+`tasks/hook-lint/marker-typos.sh` greps the marketplace for `\b[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)\b` tokens in producer files and verifies each appears in the registry. Scope rules:
 
 - INCLUDES: every file under `plugins/<plugin>/` except `plugins/itp-hooks/hooks/` (consumers, not producers) and except `tasks/` (audit-marker family — different lifecycle layer, iter-112+ scope)
 - EXCLUDES: `tests/`, `docs/`, `references/`, `*.test.*`, `test-*`, `*_test.*`, `*.spec.*` (test fixtures use synthetic `FOO-OK`/`BAR-OK`/`BAZ-OK`/`QUX-OK` markers that aren't real)

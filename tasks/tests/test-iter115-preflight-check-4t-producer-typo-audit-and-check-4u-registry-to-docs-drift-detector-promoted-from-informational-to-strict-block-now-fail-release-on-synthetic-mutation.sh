@@ -52,8 +52,8 @@ SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 
 PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/tasks/release/preflight"
-ITER111_PRODUCER_TYPO_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh"
-ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+ITER111_PRODUCER_TYPO_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/marker-typos.sh"
+ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/marker-reference-doc.sh"
 ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
 ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
 
@@ -454,8 +454,8 @@ exec 9<&-
 #   - Legacy `mise run <task>` form (any remaining)
 #   - Post-iter-134 metadata-array TAB-separated record form
 
-EXPECTED_ITER111_TASK_NAME="audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry"
-EXPECTED_ITER113_TASK_NAME="generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
+EXPECTED_ITER111_TASK_NAME="hook-lint/marker-typos"
+EXPECTED_ITER113_TASK_NAME="hook-lint/marker-reference-doc"
 
 if grep -qF "$EXPECTED_ITER111_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" && \
    grep -qF "$EXPECTED_ITER113_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH"; then

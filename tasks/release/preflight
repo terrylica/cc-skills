@@ -130,25 +130,26 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
 # bytes for the two longest audit task names (iter-103 NotebookEdit-applicability
 # at 207 chars + iter-105 truncation-helper at 220 chars). PIPE `|` is non-
 # whitespace and therefore preserved bit-for-bit by xargs across the BSD vs
-# GNU xargs portability boundary. Safe because audit task names are pure
-# kebab-case (lowercase letters, digits, hyphens) — `|` will NEVER appear.
+# GNU xargs portability boundary. Safe because audit task names are
+# kebab-case paths under tasks/ (lowercase letters, digits, hyphens, `/`),
+# so `|` will NEVER appear.
 iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename=(
-    "pretooluse-schema-audit|audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision|"
-    "pueue-wrap-guard-ordering-audit|audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug|"
-    "inverse-pretooluse-schema-audit|audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events|"
-    "wildcard-matcher-audit|audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation|"
-    "stop-hook-additional-context-audit|audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json|"
-    "iter82-conventional-commits-conformance|audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes|"
-    "iter86-orchestrator-subhook-contract-static-check|audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main|"
-    "iter99-posttooluse-silent-context-drop-audit|audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context|"
-    "iter101-matcher-hygiene-audit|audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant|"
-    "iter103-notebookedit-applicability-audit|audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple|"
-    "iter105-truncation-helper-audit|audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix|"
-    "iter106-canonical-home-audit|audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness|"
-    "iter110-escape-hatch-strict-audit|audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper|"
-    "iter111-producer-marker-typo-audit|audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry|"
-    "iter113-doc-drift-detector|generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry|--check"
-    "iter121-stale-description-audit|audit-iter121-canonical-registry-entry-description-references-discriminating-hyphen-segment-from-marker-or-consumer-basename-to-catch-stale-descriptions-after-hook-renames-spanning-iter111-and-iter114-registries|"
+    "pretooluse-schema-audit|hook-lint/pretooluse-decision-schema|"
+    "pueue-wrap-guard-ordering-audit|hook-lint/pueue-wrap-last|"
+    "inverse-pretooluse-schema-audit|hook-lint/non-pretooluse-permission-decision|"
+    "wildcard-matcher-audit|hook-lint/wildcard-matcher|"
+    "stop-hook-additional-context-audit|hook-lint/stop-additional-context|"
+    "iter82-conventional-commits-conformance|commits/conventional-conformance|"
+    "iter86-orchestrator-subhook-contract-static-check|hook-lint/orchestrator-subhook-contract|"
+    "iter99-posttooluse-silent-context-drop-audit|hook-lint/posttooluse-raw-stdout|"
+    "iter101-matcher-hygiene-audit|hook-lint/matcher-multiedit|"
+    "iter103-notebookedit-applicability-audit|hook-lint/notebookedit-applicability|"
+    "iter105-truncation-helper-audit|hook-lint/reason-truncation|"
+    "iter106-canonical-home-audit|hook-lint/truncation-helper-home|"
+    "iter110-escape-hatch-strict-audit|hook-lint/escape-hatch-cohort|"
+    "iter111-producer-marker-typo-audit|hook-lint/marker-typos|"
+    "iter113-doc-drift-detector|hook-lint/marker-reference-doc|--check"
+    "iter121-stale-description-audit|hook-lint/stale-marker-descriptions|"
 )
 
 __iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic() {
@@ -983,7 +984,7 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "      B. If the token is a legitimate new marker: register it in the"
     echo "         appropriate canonical registry (iter-111 for runtime-hook"
     echo "         markers, iter-114 for audit-task markers) and re-run"
-    echo "         bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+    echo "         bash tasks/hook-lint/marker-reference-doc.sh"
     exit 1
 fi
 ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
@@ -1019,7 +1020,7 @@ __iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elap
 echo "→ Running iter-113 registry-to-docs drift detector (iter-115 STRICT-BLOCK)..."
 if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter113-doc-drift-detector; then
     echo "  ✗ ITER-113 REGISTRY-TO-DOCS DRIFT DETECTOR FAILED (iter-115 STRICT-BLOCK) — see /tmp/iter113-doc-drift-detector.log"
-    echo "    Fix: bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+    echo "    Fix: bash tasks/hook-lint/marker-reference-doc.sh"
     echo "    (then commit the regenerated docs/marketplace-escape-hatch-marker-reference.md alongside the registry change)"
     exit 1
 fi
