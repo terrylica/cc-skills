@@ -46,7 +46,7 @@ Two paths from Plan Mode to `/itp:go`:
 
 For release, run the repo's own release task directly — in a moon repo that is `moon run <project>:release-full` (here: `moon run repo:release-full`).
 
-**`/itp:tether` was retired (issue #127)**: it drove `scripts/manage-hooks.sh`, which injected itp-hooks entries into `~/.claude/settings.json` back when Claude Code did not load a plugin's own `hooks/hooks.json`. It does now — `plugins/itp-hooks/hooks/hooks.json` registers `posttooluse-reminder.ts` itself, so the injection would have fired the hook twice per matching event. The installer had also been inert since `posttooluse-reminder.sh` was renamed to `.ts`, and its second entry (`pretooluse-fake-data-guard.mjs`) was deliberately unregistered in `e6c665a9` for blocking legitimate writes; re-enabling that guard is a `hooks.json` edit, never a settings.json injection.
+**`/itp:tether` was retired (issue #127)**: it drove `scripts/manage-hooks.sh`, which injected itp-hooks entries into `~/.claude/settings.json` back when Claude Code did not load a plugin's own `hooks/hooks.json`. It does now — `plugins/itp-hooks/hooks/hooks.json` registers `posttooluse-reminder.ts` itself, so the injection would have fired the hook twice per matching event. The installer had also been inert since `posttooluse-reminder.sh` was renamed to `.ts`, and its second entry (`pretooluse-fake-data-guard.mjs`) was deliberately unregistered in `e6c665a9` for blocking legitimate writes and deleted on 2026-10-01.
 
 ## Dependencies
 
