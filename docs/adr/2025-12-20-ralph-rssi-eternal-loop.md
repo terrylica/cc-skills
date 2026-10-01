@@ -269,4 +269,4 @@ graph { label: "🏗️ Ralph Architecture"; flow: east; }
 
 ## References
 
-- [Ralph README](/plugins/ru/README.md)
+- Ralph README (the ru plugin has since been removed)

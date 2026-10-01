@@ -17,8 +17,8 @@ This is the canonical reference handbook for the Alpha Forge Pre-Ship Audit Fram
 1. [The 4 Root Patterns](#root-patterns)
 2. [Phase 1 Quality Gates](#phase-1-gates)
 3. [Architecture](#architecture)
-4. [Integration Patterns](#integration)
-5. [Lessons Learned](#lessons)
+4. [Integration Patterns](#integration-patterns)
+5. [Lessons Learned](#lessons-learned)
 
 ---
 

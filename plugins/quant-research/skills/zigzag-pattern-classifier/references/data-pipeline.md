@@ -274,7 +274,7 @@ def form_triplets(pivots, ohlc_indexed):
 **Operations**:
 Apply ε formula per triplet.
 
-**See [epsilon-tolerance.md](epsilon-tolerance.md) for complete formula specification, EURUSD defaults, and examples.**
+**See [epsilon-tolerance.md](epsilon-tolerance-detail.md) for complete formula specification, EURUSD defaults, and examples.**
 
 **See [notation-definitions.md#tolerance-band-ε](notation-definitions.md#tolerance-band-ε) for quick reference.**
 
@@ -582,9 +582,9 @@ Track pipeline health:
 
 ## References
 
-- See [epsilon-tolerance.md](epsilon-tolerance.md) for ε formula details
+- See [epsilon-tolerance.md](epsilon-tolerance-detail.md) for ε formula details
 - See [binning-methodology.md](binning-methodology.md) for FD edge computation
-- See [variants-updown.md](variants-updown.md) for variant interpretation
+- See [two-pivot-variants.md](two-pivot-variants.md) for variant interpretation
 
 ---
 

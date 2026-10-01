@@ -113,7 +113,7 @@ Reference: [`notation-definitions.md#volatility-normalized-overshoot`](notation-
 **Input Data**:
 
 - 1,500 UP–DOWN triplets collected over 3 years of H1 data
-- ε_r computed for each triplet (see [epsilon-tolerance.md](epsilon-tolerance.md))
+- ε_r computed for each triplet (see [epsilon-tolerance.md](epsilon-tolerance-detail.md))
 - Roughly 60% are HL, 20% are EL, 20% are LL
 
 ### HL Binning

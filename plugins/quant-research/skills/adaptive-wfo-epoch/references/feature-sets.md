@@ -206,6 +206,6 @@ Before using a feature set in AWFES:
 
 ## References
 
-- [rangebar-eval-metrics](../../rangebar-eval-metrics/SKILL.md) - Metric computation
+- [rangebar-eval-metrics](../../opendeviation-eval-metrics/SKILL.md) - Metric computation
 - [look-ahead-bias.md](./look-ahead-bias.md) - Bias prevention
 - [anti-patterns.md](./anti-patterns.md) - Common mistakes

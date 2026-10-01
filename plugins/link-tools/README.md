@@ -1,6 +1,6 @@
 # link-tools
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 ![Skills](https://img.shields.io/badge/Skills-2-blue.svg)
 ![Hooks](https://img.shields.io/badge/Hooks-0-gray.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
@@ -57,7 +57,7 @@ uv run plugins/link-tools/scripts/validate_links.py ./skills/
 
 Override lychee config by placing `.lycheerc.toml` in your workspace root.
 
-See [config/lychee.toml](./config/lychee.toml) for defaults.
+See [config/lychee.toml](./hooks/config/lychee.toml) for defaults.
 
 ## Scripts
 
