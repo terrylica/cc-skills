@@ -42,6 +42,7 @@ describe("bun JUnit failure roster (#143)", () => {
       mkdirSync(join(repo, "tasks", "lib"), { recursive: true });
       copyFileSync(join(TASKS, WRAPPER), join(repo, "tasks", WRAPPER));
       copyFileSync(join(TASKS, "lib", "bun-junit-failure-roster.ts"), join(repo, "tasks", "lib", "bun-junit-failure-roster.ts"));
+      copyFileSync(join(TASKS, "lib", "hermetic-fixture-git.sh"), join(repo, "tasks", "lib", "hermetic-fixture-git.sh"));
       // The wrapper must hand tests an EMPTY git template dir, so fixture repos never run the
       // developer's global hooks (2026-10-01). If it stops doing so, this "passing" test fails.
       writeFileSync(
