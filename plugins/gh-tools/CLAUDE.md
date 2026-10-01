@@ -198,7 +198,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 - [issues-workflow](./skills/issues-workflow/SKILL.md)
 - [pr-gfm-validator](./skills/pr-gfm-validator/SKILL.md)
 - [research-archival](./skills/research-archival/SKILL.md)
-- [gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md) — browser-automate fine-grained PAT creation from a declarative JSON spec (GitHub exposes no API for this); has its own skill-level [CLAUDE.md](./skills/gh-fine-grained-pat/CLAUDE.md) (selector map + 4 hard-won gotchas)
+- [gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md) — browser-automate fine-grained PAT creation from a declarative JSON spec (GitHub exposes no API for this); has its own skill-level [CLAUDE.md](./skills/gh-fine-grained-pat/CLAUDE.md) (selector map + its hard-won gotchas)
 
 ## GitHub Operations Policy
 
