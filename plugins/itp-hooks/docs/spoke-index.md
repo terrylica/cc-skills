@@ -9,6 +9,7 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | Spoke                                                                              | Topic                                                                              |
 | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | Iter-84→91 PreToolUse orchestrator arc                                             |
+| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 24 guards in one process                        |
 | [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | Iter-93+ PostToolUse orchestrator arc                                              |
 | [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                           |
 | [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook schema correctness (iter-66 trinity + iter-69 pentad, silent-drop rules) |

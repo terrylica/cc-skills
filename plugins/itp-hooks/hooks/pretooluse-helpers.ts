@@ -9,6 +9,7 @@
  * ADR: /docs/adr/2026-02-05-plan-mode-detection-hooks.md
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHookLogger, type HookLogContext } from "./lib/logger.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import { validateToolInput, TOOL_SCHEMAS } from "./lib/tool-schemas.ts";
@@ -63,8 +64,57 @@ export interface PreToolUseResponse {
 
 // Output helpers
 
+// ── In-process guard runs (#111) ────────────────────────────────────────────
+// The Bash orchestrator runs each guard's unchanged `main()` inside its own process instead of
+// paying one bun cold start per guard. Each run gets its own AsyncLocalStorage context holding the
+// already-parsed input and the responses the guard emits. `parseStdinOrAllow()` and `output()`
+// read that context, so a guard needs no code path of its own for in-process mode.
+//
+// AsyncLocalStorage rather than a module-level variable: a guard that overruns its time budget is
+// abandoned, not killed, and may still call `output()` later. Its context still belongs to its own
+// run, so a late response lands in that run's (discarded) list and never in another guard's.
+interface InProcessGuardRun {
+  input: PreToolUseInput;
+  responses: object[];
+}
+const inProcessGuardRun = new AsyncLocalStorage<InProcessGuardRun>();
+let inProcessOrchestrationActive = false;
+
+/**
+ * Called once by an orchestrator's entry point: from then on, an `output()` from outside any
+ * in-process guard run is dropped instead of printed, so a stray write can never corrupt the
+ * orchestrator's single JSON response. Deliberately separate from `runGuardMainInProcess()`:
+ * `bun test` runs many test files in one process, and a flag set as a side effect of running a
+ * guard silenced every later test's `output()` (2026-10-01, pretooluse-helpers.test.ts).
+ */
+export function dropOutputOutsideGuardRuns(): void {
+  inProcessOrchestrationActive = true;
+}
+
+/**
+ * Run a guard's `main()` in this process against an already-parsed input and return every
+ * response it emitted, in order. Nothing is written to stdout.
+ */
+export async function runGuardMainInProcess(
+  main: () => Promise<void>,
+  input: PreToolUseInput,
+): Promise<object[]> {
+  const run: InProcessGuardRun = { input, responses: [] };
+  await inProcessGuardRun.run(run, main);
+  return run.responses;
+}
+
 /** Write a JSON response to stdout for Claude Code hook protocol */
 export function output(response: object): void {
+  const run = inProcessGuardRun.getStore();
+  if (run) {
+    run.responses.push(response);
+    return;
+  }
+  if (inProcessOrchestrationActive) {
+    process.stderr.write(`[pretooluse-helpers] dropped a response emitted outside any in-process guard run\n`);
+    return;
+  }
   console.log(JSON.stringify(response));
 }
 
@@ -163,6 +213,8 @@ export function hasToolSchema(toolName: string): boolean {
 export async function parseStdinOrAllow(
   hookName: string
 ): Promise<PreToolUseInput | null> {
+  const run = inProcessGuardRun.getStore();
+  if (run) return structuredClone(run.input);
   const logger = createHookLogger(hookName);
   try {
     const stdin = await Bun.stdin.text();

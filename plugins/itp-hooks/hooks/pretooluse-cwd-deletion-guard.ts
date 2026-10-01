@@ -21,7 +21,7 @@
 import { detectCwdDeletion, formatDenial } from "./cwd-deletion-patterns.mjs";
 import { allow, deny, parseStdinOrAllow, isReadOnly, trackHookError } from "./pretooluse-helpers.ts";
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow("CWD-DELETION-GUARD");
   if (!input) return;
 
@@ -65,7 +65,8 @@ async function main() {
   deny(message);
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError("pretooluse-cwd-deletion-guard", err instanceof Error ? err.message : String(err));
   allow();
 });

@@ -108,7 +108,7 @@ function inlineBodyMessage(matched: string): string {
   ].join("\n");
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   // NULL IS A REAL RETURN VALUE, not a formality. `parseStdinOrAllow` returns null when stdin is
   // absent or unparseable; the first version dereferenced it directly, so a malformed payload threw
   // and reached the catch-all instead of allowing cleanly. It still failed open, but through the
@@ -197,7 +197,8 @@ async function main(): Promise<void> {
   return allow();
 }
 
-main().catch((error) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((error) => {
   // FAIL OPEN, but COUNTABLY. A guard that blocks work when its own logic throws is worse than the
   // defect it prevents; a guard that fails open silently is indistinguishable from no guard. The
   // audit code makes silent disarmament something you can `grep -c`.

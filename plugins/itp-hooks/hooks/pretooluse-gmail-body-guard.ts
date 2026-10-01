@@ -52,7 +52,7 @@ function resolveBodyFilePath(rawPath: string, cwd: string | undefined): string {
   return resolve(base, p);
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow("GMAIL-BODY-GUARD");
   if (!input) return;
 
@@ -103,7 +103,8 @@ async function main(): Promise<void> {
   allow();
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError(HOOK_NAME, err instanceof Error ? err.message : String(err));
   allow();
 });
