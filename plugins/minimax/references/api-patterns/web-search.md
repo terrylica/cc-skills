@@ -235,9 +235,9 @@ This is what Karakeep currently does — server-side scraping + LLM tagging. Doe
 
 Fixtures:
 
-- [`fixtures/chat-completion-websearch-W1-built-in-web-search-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W1-built-in-web-search-2026-04-28.json)
-- [`fixtures/chat-completion-websearch-W2-web-search-preview-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W2-web-search-preview-2026-04-28.json)
-- [`fixtures/chat-completion-websearch-W3-baseline-no-tools-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W3-baseline-no-tools-2026-04-28.json)
-- [`fixtures/chat-completion-websearch-W4-plain-m27-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W4-plain-m27-2026-04-28.json)
+- `fixtures/chat-completion-websearch-W1-built-in-web-search-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W1-built-in-web-search-2026-04-28.json`)
+- `fixtures/chat-completion-websearch-W2-web-search-preview-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W2-web-search-preview-2026-04-28.json`)
+- `fixtures/chat-completion-websearch-W3-baseline-no-tools-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W3-baseline-no-tools-2026-04-28.json`)
+- `fixtures/chat-completion-websearch-W4-plain-m27-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-websearch-W4-plain-m27-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-14. 4 API calls.

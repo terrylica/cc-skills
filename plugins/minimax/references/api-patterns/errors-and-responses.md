@@ -355,11 +355,11 @@ elif err.internal_code == 2013:
 
 Fixtures:
 
-- [`fixtures/errors-E400-malformed-json-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/errors-E400-malformed-json-2026-04-28.json)
-- [`fixtures/errors-E400-missing-messages-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/errors-E400-missing-messages-2026-04-28.json)
-- [`fixtures/errors-E401-chat-bad-key-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/errors-E401-chat-bad-key-2026-04-28.json)
-- [`fixtures/errors-E401-native-bad-key-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/errors-E401-native-bad-key-2026-04-28.json)
-- [`fixtures/errors-E404-bad-model-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/errors-E404-bad-model-2026-04-28.json)
-- [`fixtures/errors-E413-huge-payload-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/errors-E413-huge-payload-2026-04-28.json)
+- `fixtures/errors-E400-malformed-json-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/errors-E400-malformed-json-2026-04-28.json`)
+- `fixtures/errors-E400-missing-messages-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/errors-E400-missing-messages-2026-04-28.json`)
+- `fixtures/errors-E401-chat-bad-key-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/errors-E401-chat-bad-key-2026-04-28.json`)
+- `fixtures/errors-E401-native-bad-key-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/errors-E401-native-bad-key-2026-04-28.json`)
+- `fixtures/errors-E404-bad-model-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/errors-E404-bad-model-2026-04-28.json`)
+- `fixtures/errors-E413-huge-payload-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/errors-E413-huge-payload-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-23. 6 API calls.

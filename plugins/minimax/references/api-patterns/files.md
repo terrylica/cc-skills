@@ -291,11 +291,11 @@ Plus 7 candidate paths swept in Phase 2 (only `/v1/files/list` returned non-404)
 
 Fixtures:
 
-- [`fixtures/files-F1-GET-files-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/files-F1-GET-files-2026-04-28.json)
-- [`fixtures/files-F2-POST-file-upload-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/files-F2-POST-file-upload-2026-04-28.json)
-- [`fixtures/files-followup-path-sweep-summary-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/files-followup-path-sweep-summary-2026-04-28.json)
-- [`fixtures/files-F3-POST-upload-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/files-F3-POST-upload-2026-04-28.json)
-- [`fixtures/files-F4-GET-list-after-upload-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/files-F4-GET-list-after-upload-2026-04-28.json)
-- [`fixtures/files-F5-POST-delete-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/files-F5-POST-delete-2026-04-28.json)
+- `fixtures/files-F1-GET-files-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/files-F1-GET-files-2026-04-28.json`)
+- `fixtures/files-F2-POST-file-upload-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/files-F2-POST-file-upload-2026-04-28.json`)
+- `fixtures/files-followup-path-sweep-summary-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/files-followup-path-sweep-summary-2026-04-28.json`)
+- `fixtures/files-F3-POST-upload-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/files-F3-POST-upload-2026-04-28.json`)
+- `fixtures/files-F4-GET-list-after-upload-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/files-F4-GET-list-after-upload-2026-04-28.json`)
+- `fixtures/files-F5-POST-delete-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/files-F5-POST-delete-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-19. Total ~13 API calls (2 initial 404 + 7 path sweep + 1 upload + 1 list + 1 delete + 1 verify-list).

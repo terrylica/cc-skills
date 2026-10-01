@@ -199,6 +199,6 @@ Wall-clock for 4 parallel probes: 27.17s (max latency dominates).
 
 Fixture:
 
-- [`fixtures/tps-iter26-emission-rate-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/tps-iter26-emission-rate-2026-04-29.json)
+- `fixtures/tps-iter26-emission-rate-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/tps-iter26-emission-rate-2026-04-29.json`)
 
 Verifier: autonomous-loop iter-26. 4 API calls.

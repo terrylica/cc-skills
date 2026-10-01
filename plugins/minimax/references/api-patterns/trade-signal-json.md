@@ -312,6 +312,6 @@ Wall-clock for 6 parallel probes: 14.6s (longest probe dominates).
 
 Fixture:
 
-- [`fixtures/trade-signal-json-iter30-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/trade-signal-json-iter30-2026-04-29.json)
+- `fixtures/trade-signal-json-iter30-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/trade-signal-json-iter30-2026-04-29.json`)
 
 Verifier: autonomous-loop iter-30. 6 API calls.

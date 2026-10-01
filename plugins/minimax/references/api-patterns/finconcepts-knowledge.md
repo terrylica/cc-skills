@@ -260,6 +260,6 @@ Wall-clock for 6 parallel probes: 25.7s.
 
 Fixture:
 
-- [`fixtures/finconcepts-iter31-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/finconcepts-iter31-2026-04-29.json) — includes full visible_full content for each probe
+- `fixtures/finconcepts-iter31-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/finconcepts-iter31-2026-04-29.json`) — includes full visible_full content for each probe
 
 Verifier: autonomous-loop iter-31. 6 API calls.

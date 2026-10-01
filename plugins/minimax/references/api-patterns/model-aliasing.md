@@ -182,6 +182,6 @@ Wall-clock for 6 parallel probes: 12.25s (A3-plain dominates).
 
 Fixture:
 
-- [`fixtures/model-aliasing-iter28-comparison-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/model-aliasing-iter28-comparison-2026-04-29.json)
+- `fixtures/model-aliasing-iter28-comparison-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/model-aliasing-iter28-comparison-2026-04-29.json`)
 
 Verifier: autonomous-loop iter-28. 6 API calls.

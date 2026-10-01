@@ -2,9 +2,9 @@
 
 > **Aggregated copy** of `~/own/amonic/minimax/api-patterns/CLAUDE.md` (source-of-truth — read-only). The 39 sibling `./<name>.md` references resolve correctly within this plugin's `references/api-patterns/` directory once Phase B aggregation completes those files (iters 8-12). Aggregated 2026-04-29 (iter-7 of cc-skills minimax aggregation campaign).
 
-Sub-spoke of [`../CLAUDE.md`](~/own/amonic/minimax/CLAUDE.md). One file per `/v1/<endpoint>` capturing verified hands-on patterns: minimum-viable request shape, full response anatomy, idiomatic usage snippets, known failure modes.
+Sub-spoke of `../CLAUDE.md` (`~/own/amonic/minimax/CLAUDE.md`). One file per `/v1/<endpoint>` capturing verified hands-on patterns: minimum-viable request shape, full response anatomy, idiomatic usage snippets, known failure modes.
 
-This directory is **autonomously populated** by the `/autonomous-loop` campaign in [`../LOOP_CONTRACT.md`](~/own/amonic/minimax/LOOP_CONTRACT.md). Each iteration probes one endpoint; findings land here.
+This directory is **autonomously populated** by the `/autonomous-loop` campaign in `../LOOP_CONTRACT.md` (`~/own/amonic/minimax/LOOP_CONTRACT.md`). Each iteration probes one endpoint; findings land here.
 
 ## Files in this directory
 
