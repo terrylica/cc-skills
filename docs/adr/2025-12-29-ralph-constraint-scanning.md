@@ -189,4 +189,4 @@ class RalphConfig(BaseModel):
 
 - [ADR 2025-12-20: Ralph Eternal Loop](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
 - [ADR 2025-12-14: Alpha Forge Worktree Management](/docs/adr/2025-12-14-alpha-forge-worktree-management.md)
-- [README.md](/plugins/ru/README.md) - RU autonomous loop mode documentation
+- README.md (the ru plugin has since been removed) - RU autonomous loop mode documentation

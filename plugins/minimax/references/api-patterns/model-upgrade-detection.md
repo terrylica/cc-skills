@@ -8,7 +8,7 @@
 
 ## Why this exists
 
-MiniMax ships new model variants with no notification: M2.7-highspeed appeared one day; iter-1 captured the catalog snapshot on 2026-04-28; the next M2.x release will arrive without warning. amonic services that hard-code `MiniMax-M2.7-highspeed` need a tripwire — when MiniMax publishes M2.8 (or M3, or a new highspeed variant), we want to know FAST so the recommendation table in [`quirks/CLAUDE.md`](../quirks/CLAUDE.md) and the per-workload model selection rule in [`model-aliasing.md`](./model-aliasing.md) can be re-validated against the new model rather than silently drifting.
+MiniMax ships new model variants with no notification: M2.7-highspeed appeared one day; iter-1 captured the catalog snapshot on 2026-04-28; the next M2.x release will arrive without warning. amonic services that hard-code `MiniMax-M2.7-highspeed` need a tripwire — when MiniMax publishes M2.8 (or M3, or a new highspeed variant), we want to know FAST so the recommendation table in [`quirks/CLAUDE.md`](../quirks.md) and the per-workload model selection rule in [`model-aliasing.md`](./model-aliasing.md) can be re-validated against the new model rather than silently drifting.
 
 This is the OPS counterpart to the rest of this directory — most files document discovered behavior; this one continuously detects when re-discovery is needed.
 

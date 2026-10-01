@@ -217,6 +217,6 @@ Wall-clock for 6 parallel probes: 63.8s (P6 trap dominated due to extended delib
 
 Fixture:
 
-- [`fixtures/patterns-iter35-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/patterns-iter35-2026-04-29.json) — full responses + auto-grader output
+- `fixtures/patterns-iter35-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/patterns-iter35-2026-04-29.json`) — full responses + auto-grader output
 
 Verifier: autonomous-loop iter-35. 6 API calls.

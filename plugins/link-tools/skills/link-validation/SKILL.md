@@ -68,7 +68,7 @@ No path violations found.
 
 Override the default lychee config by placing `.lycheerc.toml` in your workspace root.
 
-See [config/lychee.toml](../../config/lychee.toml) for the default configuration.
+See [config/lychee.toml](../../hooks/config/lychee.toml) for the default configuration.
 
 ## References
 

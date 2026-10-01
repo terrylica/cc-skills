@@ -225,4 +225,4 @@ graph { label: "🏗️ ClickHouse Skill Architecture"; flow: south; }
 ## References
 
 - [ADR: ClickHouse Skill Documentation Gaps](/docs/adr/2025-12-10-clickhouse-skill-documentation-gaps.md)
-- [mise-configuration skill](/plugins/itp/skills/mise-configuration/SKILL.md) - Prescriptive delegation pattern reference
+- mise-configuration skill (skill since removed; mise is no longer used) - Prescriptive delegation pattern reference

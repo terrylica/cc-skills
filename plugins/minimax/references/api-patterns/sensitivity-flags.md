@@ -186,6 +186,6 @@ Wall-clock for 6 parallel probes: ~20s.
 
 Fixture:
 
-- [`fixtures/sensitivity-iter27-flag-triggers-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/sensitivity-iter27-flag-triggers-2026-04-29.json)
+- `fixtures/sensitivity-iter27-flag-triggers-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/sensitivity-iter27-flag-triggers-2026-04-29.json`)
 
 Verifier: autonomous-loop iter-27. 8 API calls (6 probes + 2 raw-dump diagnostic).

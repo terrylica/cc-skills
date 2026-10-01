@@ -224,9 +224,9 @@ This isn't precise (the discount ratio varies 55-75% across our 3 datapoints), b
 
 Fixtures:
 
-- [`fixtures/chat-completion-system-scaling-S0-no-system-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S0-no-system-2026-04-28.json)
-- [`fixtures/chat-completion-system-scaling-S25-short-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S25-short-2026-04-28.json)
-- [`fixtures/chat-completion-system-scaling-S250-medium-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S250-medium-2026-04-28.json)
-- [`fixtures/chat-completion-system-scaling-S2000-long-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S2000-long-2026-04-28.json)
+- `fixtures/chat-completion-system-scaling-S0-no-system-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S0-no-system-2026-04-28.json`)
+- `fixtures/chat-completion-system-scaling-S25-short-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S25-short-2026-04-28.json`)
+- `fixtures/chat-completion-system-scaling-S250-medium-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S250-medium-2026-04-28.json`)
+- `fixtures/chat-completion-system-scaling-S2000-long-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-scaling-S2000-long-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-21 (closes T3.10 — first Tier 3 item). 4 API calls.

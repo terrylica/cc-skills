@@ -269,6 +269,6 @@ Wall-clock for 4 parallel scenarios: 50.4s.
 
 Fixture:
 
-- [`fixtures/tooluse-iter34-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/tooluse-iter34-2026-04-29.json) — full agent-loop trace per scenario (rounds, tool calls, results, final synthesis)
+- `fixtures/tooluse-iter34-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/tooluse-iter34-2026-04-29.json`) — full agent-loop trace per scenario (rounds, tool calls, results, final synthesis)
 
 Verifier: autonomous-loop iter-34. ~10 API calls (2 + 3 + 4 + 1 across scenarios).

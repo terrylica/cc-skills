@@ -14,7 +14,7 @@ compatible_with: "rangebar-eval-metrics@9.37+"
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/terrylica/cc-skills/rangebar-eval-metrics/v1",
+  "$id": "https://github.com/terrylica/cc-skills/opendeviation-eval-metrics/v1",
   "title": "Range Bar Evaluation Metrics",
   "description": "Output schema for compute_metrics.py",
   "type": "object",

@@ -110,7 +110,7 @@ For long-running chats, trim the oldest turns when context window pressure build
 
 Fixtures:
 
-- [`fixtures/chat-completion-multi-turn-1-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-multi-turn-1-2026-04-28.json)
-- [`fixtures/chat-completion-multi-turn-2-fabricated-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-multi-turn-2-fabricated-2026-04-28.json)
+- `fixtures/chat-completion-multi-turn-1-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-multi-turn-1-2026-04-28.json`)
+- `fixtures/chat-completion-multi-turn-2-fabricated-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-multi-turn-2-fabricated-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-4.

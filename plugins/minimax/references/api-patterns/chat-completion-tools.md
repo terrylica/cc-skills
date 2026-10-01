@@ -253,8 +253,8 @@ def prune_tools(all_tools, user_message):
 
 Fixtures:
 
-- [`fixtures/chat-completion-tools-F1-single-tool-relevant-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tools-F1-single-tool-relevant-2026-04-28.json)
-- [`fixtures/chat-completion-tools-F2-tool-choice-required-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tools-F2-tool-choice-required-2026-04-28.json)
-- [`fixtures/chat-completion-tools-F3-multi-tool-selection-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tools-F3-multi-tool-selection-2026-04-28.json)
+- `fixtures/chat-completion-tools-F1-single-tool-relevant-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tools-F1-single-tool-relevant-2026-04-28.json`)
+- `fixtures/chat-completion-tools-F2-tool-choice-required-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tools-F2-tool-choice-required-2026-04-28.json`)
+- `fixtures/chat-completion-tools-F3-multi-tool-selection-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tools-F3-multi-tool-selection-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-12 (first Tier 2 pattern). 3 API calls.

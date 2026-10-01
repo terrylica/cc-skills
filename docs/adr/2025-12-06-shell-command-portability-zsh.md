@@ -198,4 +198,4 @@ graph { label: "Shell Command Portability Solution"; flow: south; }
 
 - [Claude Code GitHub Issue #7490](https://github.com/anthropics/claude-code/issues/7490) - Shell configuration feature request
 - [Zsh Command Substitution](https://zsh.sourceforge.io/Doc/Release/Expansion.html) - Zsh expansion documentation
-- [semantic-release skill](/plugins/itp/skills/semantic-release/SKILL.md) - Primary affected skill
+- semantic-release skill (skill since removed) - Primary affected skill

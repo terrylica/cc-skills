@@ -68,11 +68,9 @@ if [[ "$LINK_CHECK_EXIT_CODE" -eq 0 ]]; then
 else
     echo "  ✗ broken internal links found (lychee exit $LINK_CHECK_EXIT_CODE)"
     echo ""
-    echo "  NOT YET WIRED INTO \`moon run repo:check\`. Measured 2026-09-03 on a"
-    echo "  clean tree: 235 errors across 2,119 unique internal links. Adding a"
-    echo "  red gate to the gate would block every commit in the repo, so the"
-    echo "  count is being driven down first — tracked as a repo issue. Wire this"
-    echo "  into check.deps the moment it reaches zero, and not before."
+    echo "  This task gates \`moon run repo:check\` (and so every push). Fix the"
+    echo "  link, or for a path that only exists on one machine (~/..., another"
+    echo "  repo), write it as inline code instead of a link."
 fi
 
 exit "$LINK_CHECK_EXIT_CODE"

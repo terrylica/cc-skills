@@ -33,7 +33,7 @@ On macOS, the CDC interfaces spawn `/dev/cu.usbmodem103` and `/dev/tty.usbmodem1
 
 ## HID Report Descriptor
 
-Captured via `ioreg -c IOHIDDevice` (full hex in [`references/ioreg-hid-device.txt`](references/ioreg-hid-device.txt)):
+Captured via `ioreg -c IOHIDDevice` (full hex in [`references/ioreg-hid-device.txt`](raw/ioreg-hid-device.txt)):
 
 ```
 05 01          Usage Page (Generic Desktop)

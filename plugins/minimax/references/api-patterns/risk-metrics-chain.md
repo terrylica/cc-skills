@@ -257,6 +257,6 @@ Wall-clock for 3 parallel probes: 118.2s.
 
 Fixture:
 
-- [`fixtures/risk-metrics-iter37-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/risk-metrics-iter37-2026-04-29.json) — full responses + truth values + grading
+- `fixtures/risk-metrics-iter37-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/risk-metrics-iter37-2026-04-29.json`) — full responses + truth values + grading
 
 Verifier: autonomous-loop iter-37. 3 API calls.

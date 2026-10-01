@@ -149,7 +149,7 @@ dev = ["pytest", "ruff", "jupyterlab"]
 
 This ensures `uv sync --group dev` installs all dev tools without "unnecessary package" warnings.
 
-> **Reference**: [bootstrap-monorepo.md](/plugins/itp/skills/mise-tasks/references/bootstrap-monorepo.md#root-pyprojecttoml-workspace)
+> **Reference**: [bootstrap-monorepo.md](/plugins/itp/skills/bootstrap-monorepo/references/bootstrap-monorepo.md)
 
 ## References
 

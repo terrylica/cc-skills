@@ -233,9 +233,9 @@ The `type: "db"` parameter likely matters for retrieval quality — at least one
 
 Fixtures:
 
-- [`fixtures/embeddings-E1-openai-style-embeddings-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/embeddings-E1-openai-style-embeddings-2026-04-28.json)
-- [`fixtures/embeddings-E2-minimax-singular-embedding-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/embeddings-E2-minimax-singular-embedding-2026-04-28.json)
-- [`fixtures/embeddings-E3-minimax-canonical-body-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/embeddings-E3-minimax-canonical-body-2026-04-28.json)
+- `fixtures/embeddings-E1-openai-style-embeddings-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/embeddings-E1-openai-style-embeddings-2026-04-28.json`)
+- `fixtures/embeddings-E2-minimax-singular-embedding-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/embeddings-E2-minimax-singular-embedding-2026-04-28.json`)
+- `fixtures/embeddings-E3-minimax-canonical-body-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/embeddings-E3-minimax-canonical-body-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-17. 5 API calls (E1 + E2 + E3 ×3 with retries).
 

@@ -4,9 +4,9 @@
 **Duration**: 2026-04-28 23:52 UTC → 2026-04-29 08:25 UTC (~8.5 hours wall-clock; 41 iterations)
 **Outcome**: 40 verified hands-on patterns + 1 consolidated quirks reference + 1 production OPS tool. Tier F (financial engineering) COMPLETE 10/10. Tier 4 (forward-looking) at 75%. Production-ready for amonic deployment.
 
-> **Aggregated copy** of `~/own/amonic/minimax/RETROSPECTIVE.md` (source-of-truth — read-only). Cross-references retargeted to plugin-relative paths. Aggregated 2026-04-29 (iter-5 of cc-skills minimax aggregation campaign — see [`../LOOP_CONTRACT.md`](../LOOP_CONTRACT.md)).
+> **Aggregated copy** of `~/own/amonic/minimax/RETROSPECTIVE.md` (source-of-truth — read-only). Cross-references retargeted to plugin-relative paths. Aggregated 2026-04-29 (iter-5 of cc-skills minimax aggregation campaign — see `../LOOP_CONTRACT.md` (in the private source repo, not shipped)).
 
-This doc is the navigable summary for any future amonic-service author wanting to wire MiniMax. Read this first; drill into [`api-patterns/`](./api-patterns/), [`quirks/CLAUDE.md`](./quirks.md), or [`LOOP_CONTRACT.md`](~/own/amonic/minimax/LOOP_CONTRACT.md) only when this doc points you there.
+This doc is the navigable summary for any future amonic-service author wanting to wire MiniMax. Read this first; drill into [`api-patterns/`](./api-patterns/), [`quirks/CLAUDE.md`](./quirks.md), or `LOOP_CONTRACT.md` (`~/own/amonic/minimax/LOOP_CONTRACT.md`) only when this doc points you there.
 
 ---
 
@@ -212,7 +212,7 @@ The campaign achieved its Core Directive but left these worth-probing-later:
 
 ## Campaign provenance
 
-- **Loop contract**: [`LOOP_CONTRACT.md`](~/own/amonic/minimax/LOOP_CONTRACT.md) — 41-iter revision log, queue, accumulated learnings
+- **Loop contract**: `LOOP_CONTRACT.md` (`~/own/amonic/minimax/LOOP_CONTRACT.md`) — 41-iter revision log, queue, accumulated learnings
 - **Initial bootstrap**: 2026-04-28 23:52 UTC — `/autonomous-loop:start` invocation
 - **User-redirected pivot**: post-iter-28 — "gear towards financial engineering" → Tier F priority
 - **Campaign close**: iter-42 (this retrospective) — Core Directive criteria a/b/c all substantially met

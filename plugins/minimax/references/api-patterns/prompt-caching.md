@@ -195,7 +195,7 @@ Latency impact: NONE — all warm calls within ±1s of cold call (within per-cal
 
 Fixtures:
 
-- [`fixtures/cache-discovery-iter39-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/cache-discovery-iter39-2026-04-29.json) — C1, C2, C3 results
-- [`fixtures/cache-followup-iter39-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/cache-followup-iter39-2026-04-29.json) — C4 confirmation
+- `fixtures/cache-discovery-iter39-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/cache-discovery-iter39-2026-04-29.json`) — C1, C2, C3 results
+- `fixtures/cache-followup-iter39-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/cache-followup-iter39-2026-04-29.json`) — C4 confirmation
 
 Verifier: autonomous-loop iter-39. 4 API calls.
