@@ -83,15 +83,17 @@ tasks:
     # nothing reported it — the second occurrence of this exact failure (the prior
     # regen commit is titled "regenerate to unbreak the drift gate"). A gate that
     # is not in the gate is not a gate.
-    deps: ["~:lint", "~:test", "~:test-hooks", "~:cli-spec-check", "~:verify-doc-counts", "~:audit-orchestrator-spawnsync", "~:link-check"]
+    deps: ["~:lint", "~:test", "~:test-hooks", "~:cli-spec-check", "~:verify-doc-counts", "~:hook-lint", "~:link-check"]
 
-  # ── Promoted / registered audits (#142) ──────────────────────────────────
-  # An invariant, so it gates: any classifier the PostToolUse orchestrator imports must not call
-  # Bun.spawnSync, which blocks the event loop and silently serialises the orchestrator's
-  # Promise.all. It ran nowhere before #142, so the rule could regress unnoticed. Exits 1 on a hit.
-  audit-orchestrator-spawnsync:
-    description: "Fail if a PostToolUse orchestrator subhook calls Bun.spawnSync (defeats Promise.all parallelism)."
-    script: "bash tasks/hook-lint/orchestrator-spawnsync.sh"
+  # ── Hook lints ───────────────────────────────────────────────────────────
+  # Every tasks/hook-lint/*.sh static audit (hooks.json schema, matcher hygiene, orchestrator
+  # subhook contracts, escape-hatch marker registries, ...), run in parallel at most 4 at once.
+  # These used to run only in the release preflight batch, so a regression surfaced at release
+  # time instead of on push. The directory listing is the only list: adding a lint means adding
+  # a file there. Exits 1 if any audit fails, printing each failure's last 30 log lines.
+  hook-lint:
+    description: "Run every tasks/hook-lint/*.sh hook audit in parallel (max 4); fail if any fails."
+    script: "bash tasks/hook-lint/run"
 
   # An operator diagnostic, not a gate: it compares the marketplace mirror against the installed
   # versioned cache on THIS machine, so its answer depends on local state. Registered so it is
