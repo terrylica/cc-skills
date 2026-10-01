@@ -791,10 +791,17 @@ iter166_end_to_end_aggregator_probe_setup_captured_stderr_text=$(
         git init -q
         git config user.email "iter166-doctor-probe@example.com"
         git config user.name "iter166-doctor-probe"
-        # core.hooksPath=/dev/null: `git init` copied the developer's init.templateDir hooks into
-        # this probe repo, and under load the global pre-commit made this critical check fail
-        # intermittently (#117; same mechanism as #173). The override adds no process, so the
-        # fork count pinned by iter-174's A6 shim is unchanged.
+        # Two kinds of global hook reach this probe repo, and both made this critical check fail
+        # intermittently under load (#117):
+        #  - template hooks, copied in by `git init` from init.templateDir: core.hooksPath=/dev/null
+        #    below means no hooks directory is consulted;
+        #  - config-based hooks (git >= 2.54, hook.<name>.command in the global config), which
+        #    core.hooksPath does NOT stop (measured on git 2.56: a failing config hook still fails
+        #    the commit). The shared helper exports hook.<name>.enabled=false for each one.
+        # Both are git-only: no awk/sed/mktemp/date fork, so iter-174's A6 count is unchanged.
+        # shellcheck disable=SC1090,SC1091
+        source "$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/tasks/lib/hermetic-fixture-git.sh"
+        hermetic_git_disable_config_hooks
         git -c core.hooksPath=/dev/null commit --allow-empty -q -m "baseline before tag"
         git tag v1.0.0
         git -c core.hooksPath=/dev/null commit --allow-empty -q -m "feat: synthetic iter-166 doctor probe commit"
