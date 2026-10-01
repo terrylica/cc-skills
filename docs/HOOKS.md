@@ -319,7 +319,8 @@ The hand-typed recipe above probes one hook at a time and relies on operator-cho
 
 ```bash
 # Default: per-plugin summary across all plugins, filtered to cache-populator-kept paths
-bash tasks/audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis.sh
+moon run repo:diagnose-cache-drift
+# (equivalently: bash tasks/audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis.sh)
 
 # Focus on a single plugin
 ... --check-plugin <plugin-name>
@@ -748,7 +749,7 @@ Iter-92 is the **first project in the post-arc PostToolUse orchestration phase**
 
 The schema-reasoning argument iter-89 used was incomplete: PostToolUse CAN'T DENY but it CAN INJECT CONTEXT via `{decision: "block", reason}` or `additionalContext`. **Context injection requires synchronous completion just as much as deny does.** Type checkers (`ty`, `tsc`, `oxlint`, `biome` — iter-126 migration: tsc replaces frozen tsgo) and reminder hooks both rely on this same-turn timing — making any of them async breaks the feedback loop that lets Claude self-correct without operator intervention.
 
-**Iter-92 eligibility-classifier task** (`audit-posttooluse-asynctrue-eligibility-classifier-by-decision-block-vs-pure-side-effect-output-pattern-iter92-corrects-iter89-strict-dominance-claim.sh`):
+**Iter-92 eligibility-classifier task** (retired 2026-09-30 in #142 as a finished one-off analysis; its finding is recorded below and the script is in git history):
 
 The audit task discovers every PostToolUse hooks.json entry marketplace-wide, resolves `${CLAUDE_PLUGIN_ROOT}` to the absolute plugin-root path, strips `bun`/`node` prefixes, dedupes the script paths, then classifies each by output pattern:
 
@@ -2413,13 +2414,9 @@ The forensic baseline above can be reproduced (and regression-watched) via:
 bash tasks/profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-non-applicable-payload-to-surface-high-overhead-outliers-above-bun-startup-floor.sh
 ```
 
-### Orchestration-candidacy ranker (iter-81)
+### Orchestration-candidacy ranker (iter-81, retired)
 
-The companion ranking tool identifies WHICH hook groupings yield the highest savings if combined into an iter-66-style orchestrator:
-
-```bash
-bash tasks/audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor.sh
-```
+A one-off ranking tool identified WHICH hook groupings yield the highest savings if combined into an iter-66-style orchestrator. Its recommendation was acted on (the Write|Edit orchestrator), and it was retired on 2026-09-30 in #142; recover it from git history to re-rank.
 
 Reads every `plugins/*/hooks/hooks.json`, groups PreToolUse entries by exact matcher signature, and ranks each group by `(group_size - 1) × 44ms` estimated savings. Live marketplace finding as of iter-81:
 
