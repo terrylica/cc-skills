@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE="plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
 SYNTHETIC_TYPO_OF_KNOWN_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts"  # extra trailing 's' (distance 1)
@@ -31,7 +31,7 @@ fi
 
 # ─── Case 1: --json flag is documented in the CLI usage message ──────────
 set +e
-USAGE_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --help 2>&1)
+USAGE_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --help 2>&1)
 USAGE_EXIT_CODE=$?
 set -e
 if [[ "$USAGE_EXIT_CODE" -eq 1 ]] && \
@@ -44,7 +44,7 @@ fi
 
 # ─── Case 2: --json on known consumer emits valid JSON with found shape ───
 set +e
-JSON_FOUND_STDOUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "$KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE" 2>/dev/null)
+JSON_FOUND_STDOUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "$KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE" 2>/dev/null)
 JSON_FOUND_EXIT_CODE=$?
 set -e
 JSON_FOUND_STATUS=$(echo "$JSON_FOUND_STDOUT" | jq -r '.status' 2>/dev/null || echo "JQ_PARSE_ERROR")
@@ -64,7 +64,7 @@ fi
 
 # ─── Case 3: --json on plausible typo emits valid not-found with didYouMean ──
 set +e
-JSON_TYPO_STDOUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "$SYNTHETIC_TYPO_OF_KNOWN_RUNTIME_HOOK_CONSUMER_PATH" 2>/dev/null)
+JSON_TYPO_STDOUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "$SYNTHETIC_TYPO_OF_KNOWN_RUNTIME_HOOK_CONSUMER_PATH" 2>/dev/null)
 JSON_TYPO_EXIT_CODE=$?
 set -e
 JSON_TYPO_STATUS=$(echo "$JSON_TYPO_STDOUT" | jq -r '.status' 2>/dev/null || echo "JQ_PARSE_ERROR")
@@ -86,7 +86,7 @@ fi
 
 # ─── Case 4: --json on unrelated query emits not-found + didYouMean=null + full list ──
 set +e
-JSON_UNRELATED_STDOUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "$COMPLETELY_UNRELATED_PATH_GUARANTEED_TO_BE_FAR_FROM_EVERY_REGISTERED_PATH" 2>/dev/null)
+JSON_UNRELATED_STDOUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "$COMPLETELY_UNRELATED_PATH_GUARANTEED_TO_BE_FAR_FROM_EVERY_REGISTERED_PATH" 2>/dev/null)
 JSON_UNRELATED_EXIT_CODE=$?
 set -e
 JSON_UNRELATED_STATUS=$(echo "$JSON_UNRELATED_STDOUT" | jq -r '.status' 2>/dev/null || echo "JQ_PARSE_ERROR")
@@ -113,7 +113,7 @@ JSON_STDOUT_TEMP_FILE=$(mktemp -t iter119-stdout-XXXXXX)
 JSON_STDERR_TEMP_FILE=$(mktemp -t iter119-stderr-XXXXXX)
 trap 'rm -f "$JSON_STDOUT_TEMP_FILE" "$JSON_STDERR_TEMP_FILE"' EXIT
 set +e
-bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --json "$KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE" >"$JSON_STDOUT_TEMP_FILE" 2>"$JSON_STDERR_TEMP_FILE"
+bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --json "$KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE" >"$JSON_STDOUT_TEMP_FILE" 2>"$JSON_STDERR_TEMP_FILE"
 set -e
 STDOUT_SIZE_BYTES=$(wc -c <"$JSON_STDOUT_TEMP_FILE" | tr -d ' ')
 STDERR_SIZE_BYTES=$(wc -c <"$JSON_STDERR_TEMP_FILE" | tr -d ' ')
@@ -140,7 +140,7 @@ fi
 
 # ─── Case 7: human-readable mode (no --json) preserved unchanged ─────────
 set +e
-HUMAN_READABLE_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "$KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE" 2>&1)
+HUMAN_READABLE_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "$KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE" 2>&1)
 HUMAN_READABLE_EXIT_CODE=$?
 set -e
 if [[ "$HUMAN_READABLE_EXIT_CODE" -eq 0 ]] && \

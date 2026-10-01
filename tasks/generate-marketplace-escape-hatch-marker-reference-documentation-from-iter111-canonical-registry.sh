@@ -63,7 +63,7 @@ SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
 # shellcheck disable=SC2034  # used by parameter expansion inside the renderer heredoc below; shellcheck does not trace through heredoc bodies.
-ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
+ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts"
 OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
 
 INVOCATION_MODE="${1:-write}"

@@ -1,5 +1,6 @@
 # settings-and-tuning Evolution Log
 
-| Date       | Change           | Reason           |
-| ---------- | ---------------- | ---------------- |
-| 2026-02-13 | Initial creation | Plugin bootstrap |
+| Date       | Change                                                                                                                                                                                                          | Reason                                                                    |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 2026-09-26 | Rewritten around the knobs the scripts actually read (BetterTouchTool rate, companion speed, `TTS_ENGINE`, Supertonic and audition variables); `config-architecture.md` removed; inert variables listed as such | The bot's `moon.yml`/`.env` config was retired with the bot on 2026-09-24 |
+| 2026-02-13 | Initial creation                                                                                                                                                                                                | Plugin bootstrap                                                          |

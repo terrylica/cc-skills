@@ -24,14 +24,14 @@ Run long-form research queries through Google's Gemini Deep Research via browser
 
 ### Launch Chrome (if not running)
 
+Use the shared port script from the [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md) plugin (the SSoT for browser routes). It pins a separate profile, which Chrome 136+ requires for a debug port, and `down` closes exactly that port:
+
 ```bash
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-  --remote-debugging-port=9222 \
-  --user-data-dir="/tmp/gemini-research-profile" \
-  "https://gemini.google.com/app" &
+CHROME_DEBUG_PROFILE="$HOME/.local/share/gemini-research-profile" \
+  bash "$(cc-plugin-root chrome-profiles)/scripts/chrome-debug-port-control.sh" up
 ```
 
-Then log in manually with a Gemini Advanced account.
+Then open `https://gemini.google.com/app` in that window and log in once with a Gemini Advanced account; the profile keeps the login across reboots. Run `… down` when finished.
 
 ## Usage
 

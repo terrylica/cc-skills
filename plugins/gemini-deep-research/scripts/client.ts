@@ -101,7 +101,7 @@ export class GeminiDeepResearchClient {
     }
     throw new Error(
       `Failed to connect to Chrome at ${this.cdpUrl}. ` +
-        `Make sure Chrome is running with: /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222`,
+        `Start it with (chrome-profiles plugin): CHROME_DEBUG_PROFILE="\$HOME/.local/share/gemini-research-profile" bash "\$(cc-plugin-root chrome-profiles)/scripts/chrome-debug-port-control.sh" up`,
     );
   }
 

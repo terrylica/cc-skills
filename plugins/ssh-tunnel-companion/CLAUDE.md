@@ -44,10 +44,8 @@ ssh-tunnel-companion/
 | ----------------- | --------------- | ------------------------------------- |
 | `localhost:18123` | `$TUNNEL_HOST:8123` | ClickHouse HTTP                       |
 | `localhost:18081` | `$TUNNEL_HOST:8081` | SSE sidecar — crypto ODB live bars    |
-| `localhost:18082` | `$TUNNEL_HOST:8082` | fxview-sidecar — forex live tick SSE  |
-| `localhost:5900`  | `$TUNNEL_HOST:5900` | VNC (x11vnc, MT5/WINE on display :99) |
 
-**SSoT is `libexec/ssh-tunnel-companion-runner`; this table is a copy.** It was wrong in both directions until 2026-09-02 — it advertised a fifth forward `localhost:18095 → $TUNNEL_HOST:8095` (a monitoring service dashboard API) that was removed from the runner on 2026-08-15 (`d345ddaf`), and it omitted `18082`, which is live. That removal touched the runner only, leaving four sibling files advertising the dead port; the resulting "stale infrastructure" reading nearly got this load-bearing tunnel killed on 2026-09-01. **The MACHINE is alive — only that tenancy ended 2026-07-28.** Scope every claim about it to the tenant, and when this table and the runner disagree, the runner wins.
+**SSoT is `libexec/ssh-tunnel-companion-runner`; this table is a copy.** It was wrong in both directions until 2026-09-02 — it advertised a fifth forward `localhost:18095 → $TUNNEL_HOST:8095` (a monitoring service dashboard API) that was removed from the runner on 2026-08-15 (`d345ddaf`), and it omitted `18082`, which was live then. `18082` (fxview-sidecar) and `5900` (x11vnc for MT5/WINE) were removed on 2026-09-27 after the tunnel host was measured with no listener on 8082 or 5900 and no systemd unit for either, loaded or not; nothing on the Mac used the local ends. That removal touched the runner only, leaving four sibling files advertising the dead port; the resulting "stale infrastructure" reading nearly got this load-bearing tunnel killed on 2026-09-01. **The MACHINE is alive — only that tenancy ended 2026-07-28.** Scope every claim about it to the tenant, and when this table and the runner disagree, the runner wins.
 
 ## Commands
 
@@ -66,8 +64,6 @@ make ping        # Tailscale connectivity check to the configured host
 
 - **flowsurface** — its own `preflight` task checks `localhost:18123` connectivity (`curl -sf -m 3 http://localhost:18123/ -d 'SELECT 1'`). Tunnel lifecycle is NOT managed by flowsurface.
 - **statusline-tools** — **no longer a consumer.** `custom-statusline.sh` used to query `localhost:18095/api/status`; measured 2026-09-02 it makes no HTTP call to that endpoint at all, and `statusline-tools/CLAUDE.md` explicitly forbids reading that URL (the wrapper routes inference through a rotation pool, so the local credential's quota describes spend the user is not making). The forward it needed is gone and it does not want it back.
-- **fxview / MT5 tooling** — consumes `localhost:18082` for the forex live tick SSE stream.
-- **TigerVNC viewer** — connects to `localhost:5900` for MT5/WINE remote desktop on the tunnel host.
 - Any tool needing ClickHouse on the tunnel host via `localhost:18123`.
 
 ## Self-Referencing Convention

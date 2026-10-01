@@ -124,7 +124,7 @@ External/web-facing services should run on the Mac Mini as **Inngest application
 ## References
 
 - **How-To**: See the homelab skill `~/.claude/skills/homelab/` (private local skill, not in this repo) for setup instructions
-- **Architecture**: The explanation SSoT lives at `~/.claude/skills/homelab/references/workflows.md`
+- **Architecture**: The Restate patterns live in the homelab skill's `SKILL.md` § "Restate patterns"; the platform's how-to is claude-sys `mac-minis/h2wfc1wbq6ny_home-to-workflow-fulfilment-centre/docs/runbook.md`. (`references/workflows.md` was folded into `SKILL.md` and deleted on 2026-09-26.)
 - **ADR**: `cc-skills/docs/adr/2026-07-06-mini-inngest-doctrine-hook.md` (repo root, not this plugin dir)
 - **Registry**: Escape-hatch marker registered in `lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`
 

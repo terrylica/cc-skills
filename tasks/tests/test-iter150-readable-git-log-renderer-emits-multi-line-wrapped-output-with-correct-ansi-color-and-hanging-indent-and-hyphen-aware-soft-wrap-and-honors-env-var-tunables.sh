@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-150 regression test pinning the readable-git-log-renderer wrapper. Asserts (a) renderer script exists + executable + bash-syntax-clean + shellcheck-clean, (b) renderer uses awk per the cc-skills CLAUDE.md 'Terminal text unwrapping: awk only' principle (rejects par/fmt/fold/pandoc/textwrap/pysbd), (c) renderer honors ITER150_COMMIT_COUNT_TO_DISPLAY + ITER150_SOFT_WRAP_COLUMN_WIDTH + ITER150_CONTINUATION_INDENT env-var tunables, (d) renderer implements hyphen-replacement so verbose kebab-cased subjects soft-wrap on word boundaries (the iter-144-through-iter-149 cohort would otherwise dump as 1000-char unbroken lines), (e) renderer parses conventional-commit type-scope prefix correctly with double-colon defect fixed (RLENGTH-2 strips both colon and space), (f) functional smoke test against the actual cc-skills repo emits expected multi-line readable output for the iter-149 commit which was 1078 chars on one line in the underlying git history, (g) tasks/release/history mise task wrapper exists + delegates to the renderer via exec.
+# Iter-150 regression test pinning the readable-git-log-renderer wrapper. Asserts (a) renderer script exists + executable + bash-syntax-clean + shellcheck-clean, (b) renderer uses awk per the cc-skills CLAUDE.md 'Terminal text unwrapping: awk only' principle (rejects par/fmt/fold/pandoc/textwrap/pysbd), (c) renderer honors ITER150_COMMIT_COUNT_TO_DISPLAY + ITER150_SOFT_WRAP_COLUMN_WIDTH + ITER150_CONTINUATION_INDENT env-var tunables, (d) renderer implements hyphen-replacement so verbose kebab-cased subjects soft-wrap on word boundaries (the iter-144-through-iter-149 cohort would otherwise dump as 1000-char unbroken lines), (e) renderer parses conventional-commit type-scope prefix correctly with double-colon defect fixed (RLENGTH-2 strips both colon and space), (f) functional smoke test against the actual cc-skills repo emits expected multi-line readable output for the iter-149 commit which was 1078 chars on one line in the underlying git history, (g) tasks/release/history task wrapper exists + delegates to the renderer via exec.
 set -euo pipefail
 
 ITER150_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -7,8 +7,8 @@ cd "$ITER150_REPO_ROOT"
 
 ITER150_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
 ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH="$ITER150_REPO_ROOT/$ITER150_RENDERER_SCRIPT_RELATIVE_PATH"
-ITER150_MISE_TASK_WRAPPER_RELATIVE_PATH="tasks/release/history"
-ITER150_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER150_REPO_ROOT/$ITER150_MISE_TASK_WRAPPER_RELATIVE_PATH"
+ITER150_TASK_WRAPPER_RELATIVE_PATH="tasks/release/history"
+ITER150_TASK_WRAPPER_ABSOLUTE_PATH="$ITER150_REPO_ROOT/$ITER150_TASK_WRAPPER_RELATIVE_PATH"
 
 ITER150_TOTAL_ASSERTIONS_EVALUATED=0
 ITER150_TOTAL_ASSERTIONS_FAILED=0
@@ -173,17 +173,17 @@ else
     ITER150_TOTAL_ASSERTIONS_FAILED=$((ITER150_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
-# ─── Group E: mise task wrapper structurally valid ─────────────────────────
+# ─── Group E: task wrapper structurally valid ─────────────────────────
 echo ""
-echo "GROUP E (4 assertions): mise task wrapper delegates to renderer correctly"
+echo "GROUP E (4 assertions): task wrapper delegates to renderer correctly"
 
 iter150_assert_filesystem_predicate_holds \
-    "E1: mise release:history task file exists" \
-    "-f \"$ITER150_MISE_TASK_WRAPPER_ABSOLUTE_PATH\""
+    "E1: release-history task file exists" \
+    "-f \"$ITER150_TASK_WRAPPER_ABSOLUTE_PATH\""
 
 iter150_assert_filesystem_predicate_holds \
-    "E2: mise release:history task file is executable" \
-    "-x \"$ITER150_MISE_TASK_WRAPPER_ABSOLUTE_PATH\""
+    "E2: release-history task file is executable" \
+    "-x \"$ITER150_TASK_WRAPPER_ABSOLUTE_PATH\""
 
 # Single-quoted literal search string on next assertion intentionally
 # preserves the `$VARNAME` dollar-sign as part of the substring being
@@ -191,13 +191,13 @@ iter150_assert_filesystem_predicate_holds \
 # behavior here (we WANT literal dollar-sign).
 # shellcheck disable=SC2016
 iter150_assert_substring_present_in_file \
-    "E3: mise release:history task delegates to iter-150 renderer via exec for clean signal propagation" \
-    "$ITER150_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
+    "E3: release-history task delegates to iter-150 renderer via exec for clean signal propagation" \
+    "$ITER150_TASK_WRAPPER_ABSOLUTE_PATH" \
     'exec "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH"'
 
 iter150_assert_substring_present_in_file \
-    "E4: mise release:history task has a line-2 description header comment" \
-    "$ITER150_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
+    "E4: release-history task has a line-2 description header comment" \
+    "$ITER150_TASK_WRAPPER_ABSOLUTE_PATH" \
     "# Render readable cc-skills release history"
 
 # ─── Final report ─────────────────────────────────────────────────────────────

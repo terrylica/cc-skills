@@ -778,11 +778,11 @@ Plugin hooks are declared in `hooks/hooks.json` and synced to `~/.claude/setting
 
 **Canonical examples**:
 
-| Plugin      | Events Used                     | Reference                   |
-| ----------- | ------------------------------- | --------------------------- |
-| tts-tg-sync | Stop                            | Simple single-event example |
-| gh-tools    | PreToolUse + PostToolUse        | Multi-event with matchers   |
-| itp-hooks   | PreToolUse + PostToolUse + Stop | Full 3-event example        |
+| Plugin           | Events Used                     | Reference                   |
+| ---------------- | ------------------------------- | --------------------------- |
+| calcom-commander | Stop                            | Simple single-event example |
+| gh-tools         | PreToolUse + PostToolUse        | Multi-event with matchers   |
+| itp-hooks        | PreToolUse + PostToolUse + Stop | Full 3-event example        |
 
 **Anti-pattern — flat array format**:
 
@@ -1074,7 +1074,7 @@ def hard_stop(reason: str):
 | **Assuming PostToolUse fires on errors**                  | Hook never fires for failed commands                                                          | PostToolUse ONLY fires on successful tool completion. Use PreToolUse to prevent errors instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Trusting GitHub issues as features**                    | Implement non-existent functionality                                                          | Issues are REQUESTS not implementations. Always verify against official Claude Code docs.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | **Bare `$CLAUDE_PLUGIN_ROOT`, or using it in a SKILL.md** | Path resolves to empty → `/skills/...: no such file or directory` (exit 127)                  | Corrected 2026-08-05. Substitution matches ONLY the exact literal `${CLAUDE_PLUGIN_ROOT}` — braces required, so bare `$CLAUDE_PLUGIN_ROOT` and `${CLAUDE_PLUGIN_ROOT:-fallback}` are never substituted. It works in a plugin's own `hooks/hooks.json`/`.mcp.json` (substituted + set in the subprocess env), NOT in `settings.json`-authored hooks, and NOT in the Bash tool. **In `hooks.json` use `${CLAUDE_PLUGIN_ROOT}`; in a `SKILL.md` use `"$(cc-plugin-root <plugin>)/..."`** — never glob the version cache, it retains orphaned versions. |
-| **Flat array hooks.json format**                          | `.hooks` is array instead of object → sync script fails with "Cannot index array with string" | Use canonical object format: `"hooks": {"Stop": [{"hooks": [{"type": "command", ...}]}]}`. The `.hooks` key must be an **object** keyed by event type, not a flat array. See Plugin hooks.json Format section above and tts-tg-sync as reference.                                                                                                                                                                                                                                                                                                   |
+| **Flat array hooks.json format**                          | `.hooks` is array instead of object → sync script fails with "Cannot index array with string" | Use canonical object format: `"hooks": {"Stop": [{"hooks": [{"type": "command", ...}]}]}`. The `.hooks` key must be an **object** keyed by event type, not a flat array. See Plugin hooks.json Format section above and calcom-commander as reference.                                                                                                                                                                                                                                                                                              |
 
 ```{=latex}
 \newpage

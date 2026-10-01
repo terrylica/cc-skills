@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Session Debrief — Focused session analysis via MiniMax-M3 (model from MINIMAX_MODEL SSoT).
+ * Session Debrief — Focused session analysis via an Anthropic Messages-compatible LLM endpoint.
  *
  * Three expert modes (--goal 1|2|3):
  * 1. Handoff Document      — exhaustive context extraction for the next developer/session
@@ -8,17 +8,21 @@
  * 3. Chronological Summary — dense technical timeline with key outcomes
  *
  * Key design principles:
- * 1. ADAPTIVE extraction: preserve max signal within MiniMax's ~951K char context ceiling
+ * 1. ADAPTIVE extraction: preserve max signal within the 890K-char budget (MAX_STRUCTURED_LOG_CHARS)
  * 2. TIME-BASED discovery: scans all sessions in the current project within a time window
  * 3. Session chain tracing: recursive parents + sibling discovery for max lookback
- * 4. Budget-aware chunking: Goal 1 splits by session when content exceeds budget
+ * 4. Budget-aware chunking: every goal splits at turn boundaries, then merges, when content exceeds budget
  *
  * Usage:
  *   bun run session-debrief.ts --goal 1 --since 48
  *   bun run session-debrief.ts --goal 2 --since 168
  *   bun run session-debrief.ts --goal 3 --since 720
  *
- * MiniMax API key: ~/.claude/.secrets/ccterrybot-telegram (MINIMAX_API_KEY=...)
+ * LLM endpoint: DEBRIEF_LLM_API_URL, or a DEBRIEF_LLM_API_URL= line in
+ *   ${XDG_CONFIG_HOME:-~/.config}/cc-skills/debrief.env. No default (see debriefApiUrl()).
+ * LLM key: DEBRIEF_LLM_API_KEY (or SUB2API_KEY) from the environment; otherwise the
+ *   operator's self-custody vault, `vault get cc-skills-tools-sub2api api_key` (see getApiKey()).
+ * Model: DEBRIEF_LLM_MODEL (default claude-sonnet-5[1m]).
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
@@ -428,7 +432,8 @@ async function callMiniMax(
  * `~/.claude/.secrets/ccterrybot-telegram` — an unrelated Telegram bot's secrets file that
  * happened to also hold the key. That coupling meant this tool broke whenever that file was
  * reorganised, and it hid the dependency from anyone reading either component. Replaced
- * 2026-08-23 with the tool's own dedicated, capped SCS scope.
+ * 2026-08-23 with the tool's own dedicated, capped SCS scope. That bot was retired on
+ * 2026-09-24, so its file is not a fallback: do not reintroduce it.
  */
 function getApiKey(): string {
   const envKey = process.env.DEBRIEF_LLM_API_KEY ?? process.env.SUB2API_KEY;

@@ -1,3 +1,337 @@
+# [32.5.0](https://github.com/terrylica/cc-skills/compare/v32.4.0...v32.5.0) (2026-10-01)
+
+
+### Features
+
+* **chrome-profiles:** API-first rung, sign-in rules, fill-secret ([45f36bd](https://github.com/terrylica/cc-skills/commit/45f36bd95bee06452b26952f9969584feb06773c))
+
+Rung 0 is now an API or OAuth token, with no browser at all. Unattended work runs in per-tool profiles; the real everyday profile is for supervised work. fill-secret.mjs refills an expired login from the Keychain or vault over a debug port with no dependencies; the value never reaches the model. Tested: fill and submit work, and it refuses truncation, ambiguous selectors and missing secrets.
+
+# [32.4.0](https://github.com/terrylica/cc-skills/compare/v32.3.4...v32.4.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* **gh-tools:** ship issue-create's image uploader; playwright-core 1.63 ([470574a](https://github.com/terrylica/cc-skills/commit/470574a8b74b004078a110026403a8e614b100f9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+The uploader issue-create documents lived only in an unrelated private repo; it now ships with the skill (scripts/gh-issue-image-upload.ts), on playwright-core with a neutral profile path (GH_ISSUE_IMAGE_PROFILE). The skill's outdated 'CDP fails on Chrome 136+' note becomes a pointer to chrome-profiles. playwright-core ^1.58 expected Chromium build 1208, which is no longer installed; 1.63 matches build 1243. The stale npm package-lock.json (no playwright-core, untouched since 2025-12, unused: bun.lock is authoritative) is removed.
+
+* **itp-hooks:** chrome-debug-port guard points at chrome-profiles, not a private path ([3667ec9](https://github.com/terrylica/cc-skills/commit/3667ec9ab50c490e0218bb9528d3d4a8960800e3))
+* **scripts:** git-hook installers look for proto's bun before Homebrew and ~/.bun ([3a1dc29](https://github.com/terrylica/cc-skills/commit/3a1dc299659011e338c4f113756ada43b521c370))
+
+On a machine that manages Bun with proto only, the fixed fallback list (used when bun is not on the hook's PATH) found nothing. $HOME/.proto/bin/bun, proto's link to the machine-wide pin, is now tried first; the Homebrew and ~/.bun paths stay for machines without proto.
+
+
+
+### Features
+
+* **chrome-profiles:** drive everyday Chrome by account email ([08395e3](https://github.com/terrylica/cc-skills/commit/08395e372885b5c706ddcdca9f15fe5cda3b6012))
+
+New plugin, the SSoT for browser automation from Claude Code on macOS: the route ladder (no browser > hermetic launch > your real Chrome), choosing a profile by account email instead of a drifting folder name, and one-command setup (extension, Keychain-stored token, pinned MCP server) so a fresh Mac reaches no-click control of a signed-in profile. doctor checks Chrome against what the update server will actually offer, the chrome://inspect toggle, and every browser MCP registration. No personal data: accounts are arguments.
+
+## [32.3.4](https://github.com/terrylica/cc-skills/compare/v32.3.3...v32.3.4) (2026-09-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** stdin guard prefixes exec, not a subshell wrap ([#160](https://github.com/terrylica/cc-skills/issues/160)) ([3245d65](https://github.com/terrylica/cc-skills/commit/3245d65d7c1a9d1fe06afd6627242fb223514c61)), closes [#03](https://github.com/terrylica/cc-skills/issues/03) [#08](https://github.com/terrylica/cc-skills/issues/08) [#09](https://github.com/terrylica/cc-skills/issues/09) [#01](https://github.com/terrylica/cc-skills/issues/01) [#08](https://github.com/terrylica/cc-skills/issues/08) [#09](https://github.com/terrylica/cc-skills/issues/09)
+
+The subprocess stdin-inlet guard rewrote every Bash command to `(CMD) < /dev/null`. Claude Code's worktree isolation parses the command it will actually run, after this hook's updatedInput, and cannot verify git inside a subshell with a redirect. So in any worktree-isolated session every git command was refused with "names git in a form too complex to verify that it stays inside the worktree", including a bare `git status`.
+
+Measured in a ccmax-monitor worktree session on Claude Code 2.1.283:
+
+- `git status --short` (rewritten to the subshell form): refused
+- `git status --short < /dev/null` (left alone by this hook): ran
+- `{ git status --short; git log -1; } < /dev/null`: refused
+- `exec < /dev/null; git status --short; git log -1`: ran
+- `exec < /dev/null` + newline + `git status` + newline + `git log -1 # trailing comment`: ran
+
+The hook now emits `exec < /dev/null` on its own line ahead of the command. The shell's own stdin is re-pointed first, so every later command (pipelines, compound commands, background jobs) still reads /dev/null. Each Bash tool call runs in a fresh shell, so it cannot leak into a later call. It also fixes a latent parse bug: a command ending in a `#` comment used to swallow the wrap's closing parenthesis.
+
+Test changes (the iter-63 suite, now 9 assertions over 6 inputs):
+
+- #01 inverted, not deleted: it asserted the subshell form; it now asserts the prefix form.
+
+## [32.3.3](https://github.com/terrylica/cc-skills/compare/v32.3.2...v32.3.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** review-round gate measures the branch gh pr create --head names ([0264df2](https://github.com/terrylica/cc-skills/commit/0264df22a7660aa87f84149f8e6ce723c2b479ad)), closes [doorward-systems/ccmax-monitor#133](https://github.com/doorward-systems/ccmax-monitor/issues/133)
+
+The gate read the repository and HEAD from the session's cwd. A PR opened from a worktree names its branch with --head while the session stands in the main checkout, so the gate measured main (0 changed files, no record) and denied a branch whose self-review WAS recorded at its exact commit. Inside the worktree the harness's isolation can refuse git outright, so 'cd there first' was no remedy either: the documented override was the
+
+## [32.3.2](https://github.com/terrylica/cc-skills/compare/v32.3.1...v32.3.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* **notes-commander:** export manifest names what it skipped; retry textutil ([7e37dcb](https://github.com/terrylica/cc-skills/commit/7e37dcbb23128048290410aee43038bf03563c11))
+
+A live export of 637 notes after v32.3.1 exited 3. One note had been skipped with "text conversion failed … exit null". That note is 1.7 KB of plain HTML and converted 80 of 80 times in isolation, so textutil had been killed by a signal once in over 600 conversions. Before v32.3.1 the same death returned "", and the note went into the backup as an empty file with no warning. v32.3.1 made the skip loud, but manifest.json listed only the notes it wrote. A caller that took an existing manifest as proof of a complete backup could not see the gap.
+
+- manifest.json gains `complete` (false when anything was skipped) and `skipped.folders` / `skipped.notes`, each with its reason. The change is additive; existing fields are unchanged.
+- htmlToText() makes two attempts (HTML_TO_TEXT_ATTEMPTS). ENOBUFS is not retried, since it is deterministic. The error now names the signal ("killed by SIGx") instead of "exit null".
+- The notes-export SKILL.md reflection checks `complete`. A new evolution log records the finding.
+
+Evidence: a second full export returned 638 notes, `complete: true`, exit 0, and the previously skipped note was exported with its text. notes-commander 93 pass, 0 fail; repo:check 2247 pass, 0 fail, no hook test file failed.
+
+* **tasks:** strict subhook audit fails on zero files; tests keep its exit ([dc17322](https://github.com/terrylica/cc-skills/commit/dc1732207520419f9c479308fe2ed6737d42a96e))
+
+In two parallel repo:check runs on 2026-09-27, iter86 Case 4a and iter88 Case 6a reported "subhook count 0". Both pass when run alone. The captured output stops right after the audit's header, so the audit never reached discovery. Neither test kept the audit's exit status, so the log could not say whether it crashed, was killed, or exited early. No memorystatus/jetsam kill appears in the unified log for that window, with 59% memory free.
+
+- iter86 Case 4 and iter88 Case 6 now record the audit's exit status and print it on failure (137 = SIGKILL, 143 = SIGTERM); iter88 also prints the audit's last 15 lines. The next occurrence will name its cause.
+- The audit's "No subhook files discovered" branch exited 0 even under --strict, so a release gate could report clean on zero files. Under --strict it now exits 1. Informational mode still exits 0. Verified: strict on an empty hooks dir -> 1, informational -> 0, strict on the real repo -> 0, so the normal preflight path is unchanged.
+
+## [32.3.1](https://github.com/terrylica/cc-skills/compare/v32.3.0...v32.3.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **notes-commander:** retire the broker path, close silent successes ([d28954e](https://github.com/terrylica/cc-skills/commit/d28954e21a1c9b3ba41d0e28f26dce57c6c6b464)), closes [#160](https://github.com/terrylica/cc-skills/issues/160)
+
+aa639eb9 retired the managed sandbox policy, deleting its broker and host-notes, which left draft-park's broker backend and its "install the managed sandbox policy" message pointing at an installer that no longer exists. draft-park is back to its single osascript path (as at bdb854c5): create-first-then-remove-older and --folder. pickBackend, DRAFT_PARK_BACKEND and the host-notes branch of htmlToText() are removed. Recoverable from tag archive/pre-retire-managed-sandbox-policy.
+
+Kept: htmlToText() throws HtmlToTextError instead of returning "" for a note with text. New: sandboxHint() adds a plain "running inside Claude Code's sandbox" reason to runOsaOrDie() and htmlToText() failures when SANDBOX_RUNTIME is set, replacing a bare -10810.
+
+Three independent reviewers of the revert found silent-success paths, most of them older than the broker. All are fixed and measured:
+
+- Self-heal deleted every other same-title note even when the new note could not be listed, so it could delete the only real copy. selfHealTargets() now deletes nothing unless the new id is listed.
+- Bun's spawnSync default buffer returned status 0 with ENOBUFS and truncated stdout past ~1 MiB (measured 1,114,112 of 1,126,400 bytes). runOsa and htmlToText both accepted that as success. Both now set SPAWN_MAX_BUFFER (256 MiB) and treat `error` as failure.
+- `notes export` had no HtmlToTextError handler, so one bad note aborted the backup before manifest.json. It now skips that note with a ⚠ line and exit 3, like an unreadable folder. doctor and the CLI exit cleanly.
+- get/sticky on a missing title printed nothing, or "(no such draft)", and exited 0. They now die with "no draft titled …" (exit 2), with --folder in the hint. "" and "missing value" bodies fail as READ-FAILED (isReadableNoteBody). get refuses to emit or copy empty sendable text.
+- new refuses an empty stdin unless --allow-empty is given. list --folder &lt;missing> exits 2. sticky dies on a failed pbcopy instead of pasting the
+
+# [32.3.0](https://github.com/terrylica/cc-skills/compare/v32.2.1...v32.3.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* **itp-hooks:** drafts broker folder check fails -1728 in Notes ([8d951de](https://github.com/terrylica/cc-skills/commit/8d951de86a699212e56e22fdd6766b6c97d9ac5e))
+
+The first live call to the drafts broker created a note, then failed to read it back: Notes answers `id of container of note id X` with -1728 ("Can't get id of container"). The unit tests only asserted the guard's text was present, so they could not see that Notes rejects it.
+
+GET and UPDATE now test membership in `id of notes of folder "Claude Drafts"` (the form the list script already uses successfully), and check it before resolving the note, so a foreign id is refused without touching it. The test now pins the new guard, forbids `container of`, and checks the order.
+
+* **notes-commander:** read-backs were silently empty in the sandbox ([b1abe9f](https://github.com/terrylica/cc-skills/commit/b1abe9f91c31619657b830eb555f0cc0eed21f28))
+
+The first live sandboxed park saved the note correctly and then reported CONTENT-MISMATCH. htmlToText() shells out to textutil, whose HTML import needs a helper service the sandbox blocks: textutil prints "Couldn't communicate with a helper application", writes nothing and still exits 0. htmlToText() returned that empty string as a value, so every sandboxed read-back looked like a lost note, and `get --body-only` would have handed a human blank text to send.
+
+- itp-hooks broker: POST /text/html-to-txt runs /usr/bin/textutil with fixed argv (same header and size rules as the other POSTs). host-notes gains `html2txt`, which writes the text byte-for-byte.
+- notes-core: htmlToText() uses host-notes when SANDBOX_RUNTIME is set and it is installed, and throws HtmlToTextError whenever a note with visible text converts to nothing, with the reason and an install hint. draft-park turns that into a clean `✗` exit. HOST_NOTES moves to notes-core.
+- Docs: the endpoint, and both live-park findings in the draft-park evolution log (this one and the -1728 folder guard fixed in 8d951de8).
+
+Tests: hasVisibleText and empty-note cases that hold both inside and outside the sandbox; broker checks for the fixed textutil argv and for the new endpoint's header and empty-body refusals. notes-commander 88 pass, 0 fail; broker and gate suites OK. Checked in the sandbox: both failure paths now exit loudly instead of returning "".
+
+* **ssh-tunnel-companion:** drop the dead :18082 and :5900 forwards ([db0aa28](https://github.com/terrylica/cc-skills/commit/db0aa28fa05b782aef890d189e6365fe1e63ce25))
+
+Measured 2026-09-27 on the tunnel host: nothing listens on 8082 or 5900, and no systemd unit (user or system, loaded or not) serves fxview-sidecar or x11vnc. Nothing on the Mac used the local ends either. Because -L binds the local port eagerly, both forwards sat LISTENING and answered nothing, which reads as "reachable" to any later caller: the exact failure the runner's own header warns about.
+
+- Runner (the SSoT) now forwards only 18123 (ClickHouse) and 18081 (crypto ODB SSE sidecar); its header records the removal and why.
+- The plist comment, SwiftBar menu, install.sh summary and the plugin CLAUDE.md table and consumers list are updated in the same change, so no sibling file keeps advertising a dead port (the 18095 lesson).
+- devops-tools CLAUDE.md drops its VNC (MT5) service row.
+- Takes effect on the next tunnel restart (make restart or launchctl kickstart -k).
+
+* **tasks:** read load average via uptime when sandboxed sysctl is denied ([31d0ab3](https://github.com/terrylica/cc-skills/commit/31d0ab31c2d9966b73692b38788b4fd477d992b3))
+
+Claude Code's managed kernel sandbox, installed fleet-wide on 2026-09-27, denies the sysctl binary's name lookup on macOS ("sysctl fmt -1 1024 1: Operation not permitted"), while libc getloadavg() still works. The iter-187 load sampler in the iter-174 harness tried only `sysctl -n vm.loadavg` and /proc/loadavg, so inside any sandboxed session it read null and iter-182's F2/F3 assertions failed, which blocked every release preflight run from a Claude Code session.
+
+- Adds an `uptime` fallback after sysctl and /proc/loadavg, parsing both "load averages: a b c" (macOS) and "load average: a, b, c" (Linux).
+- The sample stays in the harness, never inside a measured command, so iter-186's pinned fork count is unaffected.
+- iter-182 now passes 18/18 inside the sandbox; outside it the sysctl branch still wins, so behaviour there is unchanged.
+
+* **tests:** keep unit suites hermetic and runnable inside the sandbox ([54ae027](https://github.com/terrylica/cc-skills/commit/54ae027901a61d76c0aa1f0ebb6ce09b31940b4b))
+
+Since 2026-09-27 every agent session on the fleet runs under Claude Code's managed kernel sandbox, and release preflight from such a session failed on tests that were never hermetic. The review-round store tests wrote fixtures into the operator's live ~/.claude/state/review-round-gate (which the sandbox protects), and two tests needed /bin/ps, which the macOS sandbox refuses by design (the reason the diagnostics broker exists).
+
+- review-round-state.ts honours ITP_HOOKS_REVIEW_ROUND_STATE_ROOT (unset in real use), and the bun unit-suite runner points it at a throwaway directory it removes afterwards, so a test run no longer touches the live store; spawned hooks inherit it.
+- The bun runner no longer execs bun, so it can clean up; it propagates bun's exit code unchanged.
+- The RSS-watchdog SIGKILL test skips, with its reason, where ps cannot run: the watchdog cannot measure there, so a failure would be false.
+- The diagnostics broker's live /ps round-trip test skips the same way.
+- Result inside the sandbox: bun suite 2235 pass, 1 skip, 0 fail; the Python policy suites pass with 3 skips.
+
+
+
+### Features
+
+* **itp-hooks:** --uninstall removes the managed sandbox policy ([071418c](https://github.com/terrylica/cc-skills/commit/071418cad187f1e3c5bd75e275e5805bdf4c8908))
+
+The operator ruled on 2026-09-27 to stop the kernel sandbox directives entirely: in practice the sandbox blocked too much autonomous work (ps, log, sysctl, launchctl, osascript, git over the ssh alias, writes under ~/.claude, finishing a cc-skills release). This adds the exact inverse of --apply so every host returns to its pre-2026-09-27 state with one command.
+
+- sudo /usr/bin/python3 install_managed_sandbox_policy.py --uninstall --apply unloads the diagnostics broker (macOS) or the AppArmor bwrap profile (Linux), then deletes the broker plist, every root-owned script and runner under /usr/local/libexec/claude-code-sandbox-policy, and managed-settings.json.
+- Without --apply it previews exactly what would be removed, like the installer.
+- No host had managed settings before the 2026-09-27 install, so the file is deleted rather than restored.
+- The kill guards (pkill option-order and broad-signal) are ordinary plugin hooks and are unaffected.
+
+* **itp-hooks:** kill guard v2 blocks broad kill, pkill and killall ([f5b8d90](https://github.com/terrylica/cc-skills/commit/f5b8d90ddab9ec4c0735d2b31320e381635d53c9))
+
+The 2026-09-27 incident was one spelling of a wider family: a signal aimed by name or pattern instead of by the PID the agent started. v1 (pretooluse-pkill-option-after-pattern-guard) blocks that one spelling in Bash commands only. This release adds pretooluse-broad-process-signal-guard, which blocks the rest of the family and also inspects shell scripts written with Write/Edit/MultiEdit, closing v1's documented gap of a script written first and executed second. The managed kernel sandbox already confines sandboxed commands to their own subtree; this guard covers unsandboxed sessions, ssh remote commands and hosts without the managed policy, where one broad signal still reaches every Claude session and app the user owns.
+
+- New hook pretooluse-broad-process-signal-guard.ts (PreToolUse, Bash|Write|Edit|MultiEdit, fails open) denies: kill -1 or kill 0 as a target; pkill/killall of a shared runtime or host program by name (node, bun, python*, claude, iTerm2, tmux, Chrome, ...), including kill $(pgrep node); a user-wide -u with no process name; and pkill patterns with under five literal characters.
+- It deliberately allows kill &lt;pid>, kill -1 &lt;pid> (SIGHUP), kill -0 probes, pgrep alone, patterns held in variables, killall Dock/Finder/SystemUIServer, and every mere mention (quoted text, comments, heredocs fed to cat, non-shell files).
+- Shell scripts are recognised by extension or shebang (including the on-disk shebang of an extensionless file being edited); in them both this check and v1's option-order check run, each honouring its own escape.
+- v1's lexer is extracted into hooks/lib/shell-command-quote-aware-static-lexer.ts and hooks/lib/shell-command-invocation-walker.ts so both guards share one parser and one set of blind spots; the v1 detector drops from 677 to 180 lines with its 18 tests unchanged and passing.
+- New escape BROAD-PROCESS-SIGNAL-OK (reason of 10+ characters) is registered in the canonical marker registry and the generated marker reference.
+- 43 new tests spawn the real hook: 18 deny and 17 allow Bash cases plus the Write/Edit/MultiEdit paths, including v1's incident line written into a .sh file.
+- Spoke docs/broad-process-signal-guard.md; rows added to the itp-hooks CLAUDE.md and spoke index; v1's spoke marks its script gap closed.
+
+* **itp-hooks:** one-folder Apple Notes drafts broker for sandboxed agents ([e9b184e](https://github.com/terrylica/cc-skills/commit/e9b184e68b8de6528250094d4900ea7faa04fd5a))
+
+Claude Code's macOS sandbox blocks Apple Events, and the escape flag does not lift that for osascript: an escaped `tell application "Notes" to count folders` failed -10810 exactly as it did sandboxed (measured 2026-09-27). The operator ruled that the sandbox must not block agents from Apple Notes. Turning on sandbox.allowAppleEvents would remove code-execution isolation, so instead the root-owned diagnostics broker gains a narrow drafts surface.
+
+- sandbox_diag_broker.py: GET /notes/drafts, GET /notes/drafts/note?id=, POST /notes/drafts, POST /notes/drafts/note?id=. Confined to the "Claude Drafts" folder; no delete; fixed AppleScript with folder and content passed only as run-handler arguments; ids must fullmatch the ICNote shape; bodies 1 byte to 512 KiB of UTF-8; one Notes operation at a time.
+- Request hygiene for every endpoint: the Host header must name the broker (DNS rebinding), and POST requires X-Sandbox-Broker: 1 (cross-site POST).
+- host-notes: new sandbox-side client (list | get | new | update), installed alongside host-ps and host-log.
+- sandbox_escape_gate.py: escaped osascript is now refused, with a pointer to host-notes; the old '-e' allowance only advertised a dead end.
+- The deny text now says that on macOS the flag changes nothing for git. A peer session measured this three times on 2026-09-27. The git verdicts are unchanged until Linux is measured.
+- docs: drafts surface, the Apple Events measurement and trade-off, git staying sandboxed on macOS, and shell-init breaks under the sandbox (sysctl -n, sccache, plain ssh).
+- LAST_RE also moved to fullmatch after a test showed `$` accepted a trailing newline in a note id.
+
+Tests: gate 16 OK; broker validation and live request-hygiene suites OK; verify gains an osascript vector (eight known requests).
+
+* **itp-hooks:** regression check for the managed sandbox policy ([bdb854c](https://github.com/terrylica/cc-skills/commit/bdb854c51cbb514b42a038cd518b557282d636dd))
+
+The sandbox pilot that proved the 2026-09-27 policy was a set of throwaway /tmp scripts. This packages it as verify_managed_sandbox_policy.py, a pass/fail check that changes nothing and runs on each host's /usr/bin/python3, so any host can be re-proved after a Claude Code update or a re-install, including over ssh. It judges what actually happened rather than what a model reports.
+
+- Static tier (default, no model call): managed settings root-owned and enabling the sandbox plus both hooks; every installed file root-owned, locked and byte-identical to the repo; seven gate verdict vectors against the INSTALLED gate; a kernel probe proving a confined process cannot signal an outside one (Seatbelt same-sandbox / bwrap --unshare-pid); and the SessionStart check reporting no degradation.
+- Inside an agent session the kernel and session checks SKIP with the reason (Seatbelt cannot nest); from a terminal or over ssh they run for real.
+- Live tier (--live): one fresh headless session with no --settings against a victim process; checks sandboxed and escaped kill refusal, host-ps through the broker, escaped ssh to --ssh-host, sandboxed gh, and that the victim survived.
+- --json output, exit 1 on any failure; moon task repo:sandbox-policy-verify runs the static tier.
+- test_verify_managed_sandbox_policy.py pins the live-tier parser and judges; the spoke gains a "Regression check" section replacing the hand re-validation note.
+- cli_spec.json regenerated; root CLAUDE.md CLI count 39 -> 40.
+
+* **notes-commander:** draft-park runs in the sandbox via host-notes ([4c92882](https://github.com/terrylica/cc-skills/commit/4c9288267c46f19b25e4bdce2e7717db509aa863))
+
+When SANDBOX_RUNTIME is set and the managed sandbox policy's host-notes client is installed, draft-park reaches Notes through the one-folder broker instead of osascript, which cannot work there (-10810). DRAFT_PARK_BACKEND forces either backend. Sandboxed without host-notes, it stops with the install command rather than attempting a call that can only fail.
+
+The broker cannot delete, so re-parking a title replaces the existing note's body in place; older duplicates are reported, not removed. Only the "Claude Drafts" folder is served. Read-back verify goes by id through the same backend.
+
+Also applies Biome's formatting and import ordering to draft-park.ts and its test, which were already failing `biome check` before this change.
+
+Tests: pickBackend unit tests; draft-park suite 29 pass, 0 fail.
+
+## [32.2.1](https://github.com/terrylica/cc-skills/compare/v32.2.0...v32.2.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **itp-hooks:** wait for the diagnostics broker before checking it ([c10cc02](https://github.com/terrylica/cc-skills/commit/c10cc020cb228c16612d2b960daf1eed575e8830))
+
+On the first installs (mca and nca, macOS 26.5.2), launchd returned from `bootstrap` 3-5 s before the broker was listening. So the installer's closing session check reported "diagnostics broker not answering" on two hosts that were in fact healthy seconds later, and a correct install read as a failed one.
+
+- The installer now polls `http://127.0.0.1:8797/healthz` for up to 30 s after loading the LaunchAgent and prints `ready` before running the session check, or a WARNING that names the broker log if it never answers.
+- Verified by hand on both minis afterwards: the broker answers, `host-ps` lists all host processes (730 and 688), and the session check is silent.
+
+# [32.2.0](https://github.com/terrylica/cc-skills/compare/v32.1.0...v32.2.0) (2026-09-27)
+
+
+### Features
+
+* **itp-hooks:** kernel-sandbox agent commands, gated escape ([70d33ed](https://github.com/terrylica/cc-skills/commit/70d33ed4887a02c1a023e443e94493292e6bf3c4)), closes [anthropics/claude-code#53012](https://github.com/anthropics/claude-code/issues/53012)
+
+The 2026-09-27 incident showed that pattern-matching guards cannot keep up with the ways an agent command can reach processes it does not own: a single `pkill -f '<pattern>' -n` SIGTERMed eight Claude Code sessions, every Electron app's crash reporter, Chrome's renderers and the Synergy server, and the wedged Synergy server left bigblack without keyboard, mouse or display. Claude Code's own sandbox runtime already contains the structural fix, which is to confine a command's signals to its own subtree, using Seatbelt `(allow signal (target same-sandbox))` on macOS and bubblewrap `--unshare-pid` on Linux. It was simply not turned on, and nothing stopped a session from turning it off or escaping it.
+
+# [32.1.0](https://github.com/terrylica/cc-skills/compare/v32.0.0...v32.1.0) (2026-09-27)
+
+
+### Features
+
+* **itp-hooks:** block pkill/pgrep options placed after the pattern ([74900c5](https://github.com/terrylica/cc-skills/commit/74900c51c68fb0163aed74fc3cecddb6f912e643))
+
+On 2026-09-27 an agent ended a Playwright run with `pkill -f 'bun server.ts --build build-preview' -n`. macOS pkill and pgrep parse options with BSD getopt, which stops at the first non-option argument, so the trailing `-n` was not "newest only" but a second pattern, and pkill SIGTERMed every process whose command line contains "-n". That was eight Claude Code sessions (`--no-chrome`), the Crashpad crash reporter of every Electron app (`--no-rate-limit`: Code, Orca, Synergy, Typeless, Discord, and Time Doctor's own handler), an agent Chrome, a headless shell and Orca's terminals. The user's own Chrome and Google Drive survived only because their reporters carry no `-n`. A read-only reproduction afterwards matched 64 live processes with the trailing `-n` and 0 with it moved first.
+
+The kill then turned into what looked like "tons of apps crashed". Each app's Crashpad client respawns its handler, and on macOS 15.8.1 every respawn dies at startup with `mach_port_request_notification: (os/kern) invalid capability (20)`. ReportCrash attributes a helper's crash to its responsible app, so the operator saw a stream of "&lt;App> quit unexpectedly" dialogs, and after ReportCrash throttled, the loop kept running silently at about 4 failed spawns a second (1,196 in five minutes, each costing a syspolicyd check and a launchd registration) until the apps were relaunched. Linux procps permutes arguments, so the same line does what it says there, which is exactly why it reads as correct. The corrected order is equivalent on Linux and right on macOS, so a hard block costs nothing.
+
+The new PreToolUse guard statically lexes each Bash command, never executing it, and denies any pkill or pgrep that has an option-looking argument after its first pattern. The deny message carries the corrected invocation, with raw quoting preserved, a value-taking option moved together with its value, and a signal moved to argv[1], the only place BSD pkill reads one.
+
+- Added `hooks/pretooluse-pkill-option-after-pattern-guard.ts`, registered on `Bash` in `hooks.json` just before `pretooluse-pueue-wrap-guard.ts` (which must stay last), so it sees the unwrapped command.
+- Added `hooks/lib/pkill-option-after-pattern-detector.ts`: a pure, dependency-free lexer covering quotes, `$(...)` and backticks (including inside double quotes), redirections, comments and heredocs. It looks through `sudo`, `env`, `timeout`, `nice`, `xargs`, `nohup`, `command`, `exec`, `caffeinate`, `bash|sh|zsh -c`, `ssh host '...'`, `pueue add`, and heredocs fed to a shell.
+- Deliberately not flagged, because a noisy guard gets disabled: mentions in quoted arguments, comments or heredocs fed to `cat`/`python3`/`git`, a pattern written after `--` (`pkill -f -- '-n'`), redirections such as `2>/dev/null`, and another command's flags (`pgrep -f x | head -n 1`).
+- Added `hooks/pretooluse-pkill-option-after-pattern-guard.test.ts` (18 tests, which spawn the real hook). The first deny case is the incident command verbatim, alongside the `pkill -f "bun server.ts" -P $$` shape a workflow agent ran earlier the same day.
+- Added the escape hatch `PKILL-OPTION-ORDER-OK: <reason>` (at least 10 characters) to the iter-111 marker registry, and regenerated `docs/marketplace-escape-hatch-marker-reference.md`.
+- Added the spoke `docs/pkill-option-after-pattern-guard.md` (incident timeline, the macOS 15.8.1 Crashpad respawn failure, how to find and relaunch looping apps, the flagged and allowed matrix, known gaps), plus rows in the itp-hooks hub table and spoke index.
+- Known gaps, documented in the spoke: a script written with Write/Edit and executed later is not inspected, and a pattern held in a variable (`pkill -f "$PAT"`) cannot be checked statically.
+
+# [32.0.0](https://github.com/terrylica/cc-skills/compare/v31.3.0...v32.0.0) (2026-09-26)
+
+
+* feat(tts-tg-sync)!: remove the retired Telegram bot half ([9617ccb](https://github.com/terrylica/cc-skills/commit/9617ccb3c60ab67afb0de5c63c985098f4ea5205))
+
+The plugin used to manage two things: hotkey text-to-speech, and a local Telegram sync bot (claude-telegram-sync). The bot was retired on 2026-09-24, yet two skills existed only to run it, and every other skill mixed bot steps into TTS work: setup created a BotFather token and a secrets file, health failed a correctly retired machine on the bot process, settings edited the bot's moon.yml and .env, and several skills ended with "restart the bot". An agent following any of them would try to resurrect the bot.
+
+This is a major release because two published slash-command skills go away, which is how this repository has typed every earlier skill removal (the mise skills, graph-easy, the zai plugin).
+
+- Removed the bot-process-control and tether skills (with their references), the BotFather guide, the bot config-architecture reference, and hooks/telegram-notify-stop.ts. That script's registration was already removed on 2026-09-04 at the operator's request, and the file stayed on disk only so it could be restored; it remains recoverable from git history.
+- setup and full-stack-bootstrap now install the Kokoro engine, link every hotkey script (tts_stop.sh had been missing from the list), bind the hotkey in Karabiner-Elements or BetterTouchTool, and verify by running tts_read_clipboard_wrapper.sh end to end.
+- health runs ten TTS checks: companion engine, Kokoro venv, MLX import, Apple Silicon, both lock files, audio processes, stale WAVs, links, the Karabiner binding, and the Supertonic fallback.
+- diagnostic-issue-resolver, lock-debugging.md and common-issues.md describe the two real locks (/tmp/tts_kokoro.lock and /tmp/kokoro-tts.lock) as the scripts implement them, and add silent-hotkey, wrong-engine and speed-key procedures.
+- settings-and-tuning and config-reference.md list only the knobs a script actually reads (BetterTouchTool rate, companion speed, TTS_ENGINE, Supertonic and audition variables) and name the variables that are defined but inert. A specific rate is set by running the plugin's own scripts/tts_speed_set.sh through cc-plugin-root, because that script has no ~/.local/bin link: the linked up/down/reset scripts call it from their real directory.
+- clean-component-removal previews links and removes them one by one instead of `rm -f ~/.local/bin/tts_*.sh`; component-version-upgrade drops the bot dependency and Bun upgrades; voice-quality-audition points voice changes at claude-tts-companion.
+- CLAUDE.md, README, the marketplace description and keywords, and the root README row now describe a TTS-only plugin. The plugin name stays so installs and ~/.local/bin links keep resolving.
+- Unchanged: every file in scripts/, the ~/.local/bin links that point at them, the Karabiner-bound wrapper behaviour, and hooks/hooks.json, which already registered nothing. validate-plugins --strict passes with 0 errors and 0 warnings; the skill count drops from 226 to 224.
+
+
+
+### Bug Fixes
+
+* **gmail-commander:** probe reads cached access token ([e4097ba](https://github.com/terrylica/cc-skills/commit/e4097baffe9f8de7e34df07e04d6c122f1927812))
+
+The Step 2.5 multi-account probe called ${GMAIL_TOKEN_SCRIPT:?...}, a project-local helper that no shell file, plugin or project defines, so in a fresh session the probe stopped before identifying any mailbox. The cached &lt;uuid>.json already holds a fresh access_token while the hourly refresher runs, so the probe now reads it directly and uses the helper only when one is set.
+
+Verified by running the snippet exactly as written in SKILL.md: both cached tokens resolved to their mailboxes via users/me/profile, with no helper set.
+
+The Evolution Log entry records the trigger. A consumer repository never recorded which mailbox its fetcher needed, and a correspondence thread went unrefreshed for three weeks. Lesson: record the mailbox by its profile address, not by UUID alone.
+
+* **moon:** deliver passthrough args to argument-taking tasks ([130583a](https://github.com/terrylica/cc-skills/commit/130583a5a75ca6af06d1b6d32be23afab8e10f95))
+
+moon forwards `moon run repo:<task> -- ARGS` only to `command:` tasks; a `script:` task silently runs with no arguments (moon docs, "Commands vs Scripts": passthrough args are supported for command, not script). Seven tasks whose scripts forward "$@" were declared `script:`, so every flag given through moon was dropped without an error.
+
+Measured on moon 2.5.5 before the change:
+- release-augment -- --help        -> exit 2 "missing --tag"
+- release-history -- -- HEAD~2..HEAD -> default 10 commits, identical to the bare run
+- commits-advise -- --json -- "feat: foo" -> exit 2 usage text
+- commits-health -- --json         -> human dashboard, not JSON
+- commits-pending-release -- --help -> full preview, not usage
+- commits-status -- --json          -> human report, not JSON
+- commits-perf-baseline -- --json   -> human report, not JSON
+
+After switching them (and triage-suite-log, already `command:`) to `command:` with `options.shell: false`, every probe above returns the flagged behaviour. `shell: false` is needed too: under moon's default shell a `$HOME` inside a quoted commit subject arrived expanded; without it `$`, backticks, quotes and doubled spaces arrive verbatim.
+
+docs/RELEASE.md's note that routed argument-taking rows around moon is rewritten to record the fix and the double `--` needed by advise and history.
+
+* **moon:** deliver passthrough args to repo:lint ([0da1d94](https://github.com/terrylica/cc-skills/commit/0da1d94dd5479965b55bb5dcfd1f17efc615ef9f))
+
+`lint` was still declared `script:`, so moon dropped every argument given to it, contradicting the rule this branch wrote into the moon.yml header ("any task whose script reads its arguments MUST be declared `command:`") and the docs/RELEASE.md claim that every argument-taking task is `command:`. scripts/validate-plugins.mjs reads --deps and --fix from process.argv, and its own summary tells the reader to "Run with --deps".
+
+Measured on moon 2.5.5 before the change: `moon run repo:lint -- --deps` printed the same 18 program lines as the bare run, with no dependency graph and the "Run with --deps" hint still present (only moon's task hash differed). `bun scripts/validate-plugins.mjs --strict --deps` printed the graph directly.
+
+`lint` is now `command: "bun scripts/validate-plugins.mjs --strict"` with `options.shell: false`, so passthrough flags are appended after --strict. After: `moon run repo:lint -- --deps` exits 0 and prints the "Inter-Plugin Dependency Graph" section with no hint line; the bare run is unchanged (exit 0, no graph, hint present), so `check`, which runs lint as a dependency with no arguments, gates exactly as before. The task still resolves to the system toolchain.
+
+The header now names lint among the argument-taking tasks, says the rule covers process.argv as well as "$@", and records that every other task's program reads no command-line arguments: the "$1" in tasks/release/full, tasks/release/preflight and the test-hooks runner belongs to a shell function or a nested `bash -c` body. docs/RELEASE.md lists lint with its direct form.
+
+* **tests:** read-lock the shared doc around iter114's --check ([cebbd88](https://github.com/terrylica/cc-skills/commit/cebbd88bba7227e5b3eaf42d5cb293aba1de5018))
+
+iter-114 Case 6 runs the iter-113 doc generator in --check mode, which reads the shared on-disk marker reference doc and diffs it against the registry-derived render. It was the only --check among the doc readers that ran without the iter-126 doc lock: iter-113 Case 2 and iter-117 Case 6 take LOCK_SH around theirs, and iter-114 itself takes it for Case 4 and releases it before Case 6. iter-115 mutates that doc under LOCK_EX to prove the drift detector fires, so a parallel suite could land iter-115's mutation window inside iter-114's --check.
+
+Observed once in a parallel `moon run repo:check` on this branch (115/116 test files passed; iter-114 Case 6 "generator --check reports drift (exit=1)"). Afterwards the tree held no doc or registry change, --check alone reported no drift, and the file passed on its own, so the red was the race, not the rename in the preceding commits.
+
+Case 6 now takes the same shared lock and releases it as soon as the --check output is captured. Readers still never serialise against each other; the lock order is unchanged (iter-114 takes only the doc lock), so no new deadlock is reachable.
+
+
+
+### BREAKING CHANGES
+
+* the `/tts-tg-sync:bot-process-control` and `/tts-tg-sync:tether` skills are removed, along with `hooks/telegram-notify-stop.ts`. The Telegram sync bot they controlled was retired on 2026-09-24 and nothing replaces them. A Stop hook entry added by hand to `~/.claude/settings.json` for `telegram-notify-stop.ts` now points at a deleted file and should be removed. The plugin's hotkey text-to-speech scripts, their `~/.local/bin` links and every remaining skill are unaffected.
+
+# [31.3.0](https://github.com/terrylica/cc-skills/compare/v31.2.9...v31.3.0) (2026-09-24)
+
+
+### Features
+
+* **statusline-tools:** show the ccmax group at the start of line 1 ([d4a905b](https://github.com/terrylica/cc-skills/commit/d4a905b4d668e2f6dda3eb3a53fbe79aabe1f37e))
+
+The requested sub2api group (CCMAX_WRAPPER_REQUESTED_GROUP) rendered immediately left of the model token on the model line, which was already the most crowded line. It now leads line 1 as 'cpc | M:0 D:0 …', the first thing read, because it is the one fact on screen that decides which paying stakeholder the session bills. Rendering is unchanged when the variable is empty or unset, and the existing charset gate still rejects any value that could smuggle escape sequences into the terminal.
+
 ## [31.2.9](https://github.com/terrylica/cc-skills/compare/v31.2.8...v31.2.9) (2026-09-24)
 
 

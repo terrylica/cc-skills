@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-160 regression test pinning the commits:status self-diagnosis task. Asserts (a) status script + mise shim structurally valid (executable, bash-clean, shellcheck-clean), (b) human-readable mode emits all 9 canonical check labels covering iter-150 through iter-158, (c) --json mode parses cleanly via independent python3 json.loads, (d) JSON schema includes iter160_schema_version=1 + summary.verdict + checks array, (e) when run against healthy cc-skills HEAD: critical_failed=0 + verdict=TOOLKIT_HEALTHY, (f) exit code 0 in healthy mode (per industry-standard severity-tier convention).
+# Iter-160 regression test pinning the commits:status self-diagnosis task. Asserts (a) status script + task shim structurally valid (executable, bash-clean, shellcheck-clean), (b) human-readable mode emits all 9 canonical check labels covering iter-150 through iter-158, (c) --json mode parses cleanly via independent python3 json.loads, (d) JSON schema includes iter160_schema_version=1 + summary.verdict + checks array, (e) when run against healthy cc-skills HEAD: critical_failed=0 + verdict=TOOLKIT_HEALTHY, (f) exit code 0 in healthy mode (per industry-standard severity-tier convention).
 set -euo pipefail
 
 ITER160_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -7,7 +7,7 @@ cd "$ITER160_REPO_ROOT"
 
 ITER160_STATUS_SCRIPT_RELATIVE_PATH="scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-checking-each-iter150-through-iter158-tool-for-presence-executability-and-functional-correctness-with-per-check-wall-clock-latency-reporting-and-json-mode.sh"
 ITER160_STATUS_SCRIPT_ABSOLUTE_PATH="$ITER160_REPO_ROOT/$ITER160_STATUS_SCRIPT_RELATIVE_PATH"
-ITER160_MISE_TASK_SHIM_ABSOLUTE_PATH="$ITER160_REPO_ROOT/tasks/commits/status"
+ITER160_TASK_SHIM_ABSOLUTE_PATH="$ITER160_REPO_ROOT/tasks/commits/status"
 
 ITER160_TOTAL_ASSERTIONS_EVALUATED=0
 ITER160_TOTAL_ASSERTIONS_FAILED=0
@@ -43,15 +43,15 @@ echo "════════════════════════�
 
 # ─── Group A: structural validity ───────────────────────────────────────────
 echo ""
-echo "GROUP A (2 assertions): status script + mise shim structurally valid"
+echo "GROUP A (2 assertions): status script + task shim structurally valid"
 
 iter160_assert_file_structurally_valid_executable_bash_clean_shellcheck_clean \
     "A1: iter-160 status script (executable + bash-clean + shellcheck-clean)" \
     "$ITER160_STATUS_SCRIPT_ABSOLUTE_PATH"
 
 iter160_assert_file_structurally_valid_executable_bash_clean_shellcheck_clean \
-    "A2: commits:status mise task shim (executable + bash-clean + shellcheck-clean)" \
-    "$ITER160_MISE_TASK_SHIM_ABSOLUTE_PATH"
+    "A2: commits:status task shim (executable + bash-clean + shellcheck-clean)" \
+    "$ITER160_TASK_SHIM_ABSOLUTE_PATH"
 
 # ─── Group B: human-readable mode covers all 9 canonical checks ─────────────
 #

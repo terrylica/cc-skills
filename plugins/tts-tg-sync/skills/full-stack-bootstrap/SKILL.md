@@ -1,13 +1,15 @@
 ---
 name: full-stack-bootstrap
-description: One-time bootstrap for Kokoro TTS engine, Telegram bot, and BotFather setup. TRIGGERS - setup tts, install kokoro, botfather
+description: Detailed one-time bootstrap of hotkey text-to-speech - prerequisites, Kokoro engine (MLX-Audio), ~/.local/bin links, hotkey binding, end-to-end test. TRIGGERS - setup tts, install kokoro, bootstrap tts, bind tts hotkey
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 disable-model-invocation: false
 ---
 
 # Full Stack Bootstrap
 
-One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (MLX-Audio on Apple Silicon), Telegram bot via BotFather, secrets management, environment configuration, and shell symlinks.
+One-time bootstrap of the whole text-to-speech stack this plugin owns: the Kokoro TTS engine (MLX-Audio on Apple Silicon), the `~/.local/bin` links that hotkeys call, the hotkey binding itself, and an end-to-end test. `setup` is the short version of the same steps.
+
+The Telegram bot, BotFather token and bot secrets that used to be part of this bootstrap are gone: the bot was retired on 2026-09-24 and its setup was removed from this plugin on 2026-09-26.
 
 > **Platform**: macOS (Apple Silicon)
 
@@ -17,21 +19,22 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 
 - First-time setup of the tts-tg-sync plugin
 - Reinstalling after a clean OS install or hardware migration
-- Setting up a new machine with the full TTS + Telegram stack
+- Setting up a new machine with hotkey text-to-speech
 - Recovering from a broken installation (run `kokoro-install.sh --uninstall` first)
 
 ---
 
 ## Requirements
 
-| Component           | Required | Installation                            |
-| ------------------- | -------- | --------------------------------------- |
-| proto               | Yes      | `brew install proto`                    |
-| Bun + moon          | Yes      | `proto install` in the bot directory (pinned in `.prototools`) |
-| uv                  | Yes      | `brew install uv`                       |
-| Python 3.14         | Yes      | `uv python install 3.14`                |
-| Homebrew            | Yes      | Already installed on macOS dev machines |
-| Apple Silicon (M1+) | Yes      | Required for MLX Metal acceleration     |
+| Component            | Required | Installation                                                      |
+| -------------------- | -------- | ----------------------------------------------------------------- |
+| uv                   | Yes      | `brew install uv`                                                 |
+| Python 3.14          | Yes      | `uv python install 3.14`                                          |
+| jq, curl             | Yes      | `brew install jq` (curl ships with macOS)                         |
+| Homebrew             | Yes      | Already installed on macOS dev machines                           |
+| Apple Silicon (M1+)  | Yes      | Required for MLX Metal acceleration                               |
+| claude-tts-companion | Primary  | The resident Kokoro engine the hotkey prefers; see its own plugin |
+| A hotkey tool        | Yes      | Karabiner-Elements or BetterTouchTool                             |
 
 ---
 
@@ -42,21 +45,20 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 Verify all prerequisites are installed and accessible:
 
 ```bash
-command -v proto  # Toolchain manager (installs bun + moon)
-command -v bun    # Bun runtime for TypeScript bot
-command -v moon   # Task runner
 command -v uv     # Python package manager
 uv python list | grep 3.14  # Python 3.14 available
+command -v jq     # JSON payloads for the companion API
+[[ "$(uname -m)" == "arm64" ]] && echo "Apple Silicon"
 ```
 
-If bun or moon is missing, run `proto install` in `~/.claude/automation/claude-telegram-sync/`; install proto and uv via Homebrew (`brew install <tool>`). Python 3.14 is installed via `uv python install 3.14`.
+Install uv and jq via Homebrew (`brew install <tool>`). Python 3.14 is installed via `uv python install 3.14`.
 
 ### Phase 1: Kokoro TTS Engine Install
 
 Run the bundled installer script:
 
 ```bash
-bash scripts/kokoro-install.sh --install
+bash "$(cc-plugin-root tts-tg-sync)/scripts/kokoro-install.sh" --install
 ```
 
 <!-- SSoT-OK: kokoro-install.sh is the SSoT for versions and deps -->
@@ -70,62 +72,37 @@ This performs:
 5. Downloads Kokoro-82M-bf16 MLX model from HuggingFace (`mlx-community/Kokoro-82M-bf16`)
 6. Writes `version.json` with mlx_audio version, backend, and model ID
 
-### Phase 2: BotFather Token Setup
+### Phase 2: Shell Links
 
-Guide the user through Telegram BotFather to create a bot token:
-
-1. Open Telegram, search for `@BotFather`
-2. Send `/newbot`, follow prompts (name + username)
-3. Copy the HTTP API token
-4. Verify token: `curl -s "https://api.telegram.org/bot<TOKEN>/getMe" | jq .ok`
-5. Get chat_id by sending a message to the bot, then: `curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates" | jq '.result[0].message.chat.id'`
-
-If a token already exists at `~/.claude/.secrets/ccterrybot-telegram`, verify it works and skip this phase.
-
-### Phase 3: Secrets Storage
-
-Store the bot token securely:
+Create links in `~/.local/bin/` pointing to the plugin's shell scripts. Hotkeys call these links, so a plugin update never has to be re-bound:
 
 ```bash
-mkdir -p ~/.claude/.secrets
-chmod 700 ~/.claude/.secrets
-echo "TELEGRAM_BOT_TOKEN=<token>" > ~/.claude/.secrets/ccterrybot-telegram
-echo "TELEGRAM_CHAT_ID=<chat_id>" >> ~/.claude/.secrets/ccterrybot-telegram
-chmod 600 ~/.claude/.secrets/ccterrybot-telegram
-```
-
-The hook wrapper (`src/hooks/auto-continue-wrapper.sh`) sources that file. The launchd service does not: it reads `~/.claude/automation/claude-telegram-sync/.env` (gitignored; Bun auto-loads it from the runner's cwd), so put the same `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` lines, plus `SUB2API_API_KEY`, there too and `chmod 600` it.
-
-### Phase 4: Environment Configuration
-
-Kokoro paths are set in the bot's `moon.yml` `env:` block (moon interpolates `$HOME`):
-
-```yaml
-# ~/.claude/automation/claude-telegram-sync/moon.yml
-env:
-  KOKORO_VENV: "$HOME/.local/share/kokoro/.venv"
-  KOKORO_SCRIPT: "$HOME/.local/share/kokoro/tts_generate.py"
-```
-
-The launchd service does not receive `moon.yml` `env:`; if it needs a non-default path, add the same keys (with the literal home path) to the bot's `.env`.
-
-### Phase 5: Shell Symlinks
-
-Create symlinks in `~/.local/bin/` pointing to plugin shell scripts:
-
-```bash
+PLUGIN_DIR="$(cc-plugin-root tts-tg-sync)"
 mkdir -p ~/.local/bin
-ln -sf <plugin>/scripts/tts_kokoro.sh ~/.local/bin/tts_kokoro.sh
-ln -sf <plugin>/scripts/tts_read_clipboard.sh ~/.local/bin/tts_read_clipboard.sh
-ln -sf <plugin>/scripts/tts_read_clipboard_wrapper.sh ~/.local/bin/tts_read_clipboard_wrapper.sh
-ln -sf <plugin>/scripts/tts_speed_up.sh ~/.local/bin/tts_speed_up.sh
-ln -sf <plugin>/scripts/tts_speed_down.sh ~/.local/bin/tts_speed_down.sh
-ln -sf <plugin>/scripts/tts_speed_reset.sh ~/.local/bin/tts_speed_reset.sh
+for script in tts_kokoro.sh tts_kokoro_audition.sh tts_read_clipboard.sh tts_read_clipboard_wrapper.sh tts_speed_up.sh tts_speed_down.sh tts_speed_reset.sh tts_stop.sh; do
+    ln -sf "$PLUGIN_DIR/scripts/$script" ~/.local/bin/"$script"
+done
 ```
 
-### Phase 6: Verification
+### Phase 3: Hotkey Binding
 
-1. Generate a test WAV and play it:
+Use AskUserQuestion to learn which hotkey tool the user has, then bind:
+
+| Action               | Script (via `~/.local/bin`)                       |
+| -------------------- | ------------------------------------------------- |
+| Read clipboard aloud | `tts_read_clipboard_wrapper.sh`                   |
+| Faster / slower      | `tts_speed_up.sh` / `tts_speed_down.sh` (±30 WPM) |
+| Reset speed          | `tts_speed_reset.sh` (220 WPM)                    |
+| Stop playback        | `tts_stop.sh`                                     |
+
+- **Karabiner-Elements**: a complex-modification rule whose `to` is a `shell_command` running the script. Karabiner's shell has a minimal environment, which is why every script restores its own PATH.
+- **BetterTouchTool**: an "Execute Shell Script" action per row. The speed scripts read and write the BetterTouchTool variable `TTS_SPEECH_RATE`; without BetterTouchTool they fall back to 220 WPM.
+
+The wrapper waits for the copy to land before reading the clipboard, so a binding that fires ⌘C and then the script with no delay is correct.
+
+### Phase 4: Verification
+
+1. Generate a test WAV with the local engine and play it:
 
 ```bash
 ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.py \
@@ -134,10 +111,11 @@ afplay /tmp/test-bootstrap.wav
 rm -f /tmp/test-bootstrap.wav
 ```
 
-1. Verify bot responds to /status via Telegram API:
+1. Run the hotkey path end to end, then press the bound key and confirm the same:
 
 ```bash
-curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
+echo "Hotkey path works." | pbcopy && ~/.local/bin/tts_read_clipboard_wrapper.sh; echo "exit=$?"
+tail -3 /tmp/kokoro-tts.log   # shows engine=kokoro or the Supertonic fallback
 ```
 
 ---
@@ -147,19 +125,13 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 ### Template: Full Stack Bootstrap
 
 ```
-1. [Preflight] Verify Bun installed
-2. [Preflight] Verify proto installed; run `proto install` in the bot directory for bun + moon
-3. [Preflight] Verify uv installed
-4. [Preflight] Verify Python 3.14 available via uv
-5. [Kokoro] Run kokoro-install.sh --install
-6. [Kokoro] Verify MLX-Audio acceleration
-7. [BotFather] Guide BotFather token creation (or verify existing)
-8. [Secrets] Store token in ~/.claude/.secrets/ccterrybot-telegram
-9. [Secrets] Copy TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / SUB2API_API_KEY into the bot's .env (mode 600)
-10. [Environment] Confirm KOKORO_VENV and KOKORO_SCRIPT in moon.yml env:
-11. [Symlinks] Create ~/.local/bin/ symlinks for all TTS shell scripts
-12. [Verify] Generate test WAV with Kokoro and play with afplay
-13. [Verify] Check bot responds to /status via Telegram API
+1. [Preflight] Verify uv, Python 3.14, jq, Apple Silicon
+2. [Kokoro] Run kokoro-install.sh --install
+3. [Kokoro] Verify MLX-Audio acceleration
+4. [Links] Create ~/.local/bin/ links for all TTS shell scripts
+5. [Hotkey] Bind read / speed / stop keys in Karabiner-Elements or BetterTouchTool
+6. [Verify] Generate test WAV with Kokoro and play with afplay
+7. [Verify] Run tts_read_clipboard_wrapper.sh and check /tmp/kokoro-tts.log
 ```
 
 ---
@@ -169,31 +141,28 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 After modifying this skill:
 
 1. [ ] Verify `kokoro-install.sh --health` passes all 6 checks
-2. [ ] Confirm the bot's `.env` is gitignored
-3. [ ] Test symlinks resolve correctly (`ls -la ~/.local/bin/tts_*.sh`)
-4. [ ] Verify bot token works via `getMe` API call
-5. [ ] Run a full TTS round-trip: clipboard text to audio playback
-6. [ ] Update `references/evolution-log.md` with change description
+2. [ ] Test links resolve correctly (`ls -la ~/.local/bin/tts_*.sh`)
+3. [ ] Run a full TTS round-trip: clipboard text to audio playback via the hotkey
+4. [ ] Update `references/evolution-log.md` with change description
 
 ## Troubleshooting
 
-| Issue                               | Cause                               | Solution                                                    |
-| ----------------------------------- | ----------------------------------- | ----------------------------------------------------------- |
-| uv not found                        | Not installed                       | `brew install uv`                                           |
-| Python 3.14 not available           | Not installed via uv                | `uv python install 3.14`                                    |
-| Not Apple Silicon                   | Intel Mac or Linux                  | Requires M1 or newer Mac (MLX Metal)                        |
-| Model download fails                | Network issue or HuggingFace outage | Check internet connectivity, retry                          |
-| BotFather token invalid             | Typo or revoked token               | Verify via `curl https://api.telegram.org/bot<TOKEN>/getMe` |
-| kokoro-install.sh permission denied | Script not executable               | `chmod +x scripts/kokoro-install.sh`                        |
-| Venv already exists                 | Previous partial install            | Run `kokoro-install.sh --uninstall` then `--install`        |
-| tts_generate.py not found           | Bundle copy failed                  | Check `scripts/tts_generate.py` exists in plugin            |
+| Issue                               | Cause                                                      | Solution                                                          |
+| ----------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| uv not found                        | Not installed                                              | `brew install uv`                                                 |
+| Python 3.14 not available           | Not installed via uv                                       | `uv python install 3.14`                                          |
+| Not Apple Silicon                   | Intel Mac or Linux                                         | Requires M1 or newer Mac (MLX Metal)                              |
+| Model download fails                | Network issue or HuggingFace outage                        | Check internet connectivity, retry                                |
+| kokoro-install.sh permission denied | Script not executable                                      | `chmod +x scripts/kokoro-install.sh`                              |
+| Venv already exists                 | Previous partial install                                   | Run `kokoro-install.sh --uninstall` then `--install`              |
+| tts_generate.py not found           | Bundle copy failed                                         | Check `scripts/tts_generate.py` exists in plugin                  |
+| Hotkey does nothing                 | Bound to a versioned plugin path, or tool lacks permission | Bind the `~/.local/bin` link; grant the hotkey tool Accessibility |
 
 ---
 
 ## Reference Documentation
 
 - [Kokoro Bootstrap](./references/kokoro-bootstrap.md) - Detailed venv setup, Python 3.14 via uv, MLX-Audio, model download
-- [BotFather Guide](./references/botfather-guide.md) - Step-by-step Telegram bot creation and token management
 - [Upstream Fork](./references/upstream-fork.md) - MLX-Audio Kokoro upstream and bundled script rationale
 - [Evolution Log](./references/evolution-log.md) - Change history for this skill
 
@@ -208,7 +177,3 @@ After this skill completes, reflect before closing the task:
 4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
 
 Do NOT defer. The next invocation inherits whatever you leave behind.
-
----
-
----

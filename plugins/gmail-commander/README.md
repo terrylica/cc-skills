@@ -1,15 +1,18 @@
 # Gmail Commander
 
-Gmail + Telegram bot lifecycle plugin for Claude Code.
+Gmail CLI, canonical draft builder and shared Telegram bot code for Claude Code.
 
 ## Features
 
-- **Interactive Telegram Bot**: 9 slash commands with inline keyboards
-- **AI-Powered Free-Text**: Natural language email queries via Agent SDK (Haiku)
-- **Scheduled Digest**: 3-category triage (System/Work/Personal) every 6 hours
-- **Voice Briefing**: Podcast-style audio digest via Kokoro TTS
-- **Gmail CLI**: Full email access (list, search, read, draft) via 1Password OAuth
+- **Gmail CLI**: Full email access (list, search, read, export, draft) via 1Password OAuth
+- **Draft builder**: `scripts/gmail-draft.ts`, the only sanctioned way to create or replace a Gmail draft (wrap-immune `multipart/alternative`)
 - **Sender Alignment**: Auto-detect reply sender, confirm for new emails
+- **Telegram bot code**: `buildBot()` in `scripts/bot.ts` wires 10 slash commands, inline keyboards, a compose/reply flow and AI free-text routing (Agent SDK), with no transport attached
+- **On-demand triage**: the bot's `/digest [hours]` sorts recent mail into System/Work/Personal by urgency
+
+## Deployment model
+
+The bot and a scheduled digest run unattended in a private Restate deployment on an always-on Mac mini, which imports `buildBot()` and ships the Gmail CLI binary built from this plugin. Nothing in this plugin runs as a background job on a workstation; the former launchd bot and digest jobs were retired on 2026-09-24, and the plugin's digest entry point and Kokoro voice briefing were removed on 2026-09-26. See [CLAUDE.md](./CLAUDE.md#where-things-run) for the contract the deployment depends on.
 
 ## Quick Start
 
@@ -17,34 +20,20 @@ Gmail + Telegram bot lifecycle plugin for Claude Code.
 # Install plugin
 claude plugin marketplace add terrylica/cc-skills
 
-# Run setup wizard
-# (In Claude Code): /setup
+# Set up Gmail CLI access (in Claude Code)
+/gmail-commander:setup
 ```
-
-## System Resources
-
-| Resource | Bot Daemon                  | Digest                    |
-| -------- | --------------------------- | ------------------------- |
-| Memory   | ~20-30 MB RSS               | ~40 MB (peak, Agent SDK)  |
-| CPU      | Negligible (idle polling)   | Brief burst during triage |
-| Network  | Single long-poll connection | Burst during email fetch  |
-| Disk     | ~1 MB/day audit logs        | Same (shared audit dir)   |
 
 ## Skills
 
-| Skill                 | Purpose                                  |
-| --------------------- | ---------------------------------------- |
-| `gmail-access`        | Gmail CLI access with 1Password OAuth    |
-| `email-triage`        | Scheduled digest via Agent SDK           |
-| `interactive-bot`     | Telegram bot slash commands + AI routing |
-| `bot-process-control` | Daemon lifecycle management              |
-
-## Commands
-
-| Command   | Purpose                                        |
-| --------- | ---------------------------------------------- |
-| `/setup`  | Full setup wizard (OAuth + Telegram + launchd) |
-| `/health` | 8-subsystem health check                       |
+| Skill                 | Purpose                                                          |
+| --------------------- | ---------------------------------------------------------------- |
+| `gmail-access`        | Gmail CLI access with 1Password OAuth                            |
+| `setup`               | OAuth credentials, CLI build from its lockfile, access check     |
+| `health`              | Local CLI, token cache, `buildBot()` contract, retired-job check |
+| `email-triage`        | Triage prompt and parser behind the bot's `/digest` command      |
+| `interactive-bot`     | Telegram bot commands, safety controls and source map            |
+| `bot-process-control` | Where the bot and digest run, and what never to start locally    |
 
 ## License
 

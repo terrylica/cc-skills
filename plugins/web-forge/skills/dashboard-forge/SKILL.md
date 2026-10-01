@@ -24,6 +24,11 @@ persistent Chrome profiles + CDP attach + login-wait + identity preflight + cons
 vault sinks. node ONLY (Bun's `connectOverCDP` times out). Requires `playwright-core` (pinned at
 the repo root) and Chrome at the standard macOS path.
 
+**Route choice:** if the session you need is already signed in to a profile of your everyday Chrome, drive that
+profile instead of launching a per-site one: [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md)
+(`chrome-profile.sh setup <email>`, zero clicks). This harness is for supervised flows that want their own isolated
+profile. Route ladder and Chrome-136 mechanics: that plugin is the SSoT.
+
 > **Self-Evolving Skill**: dashboards drift constantly. When a selector misses or a flow changes,
 > fix the forge script AND append the drift note to the Vendor Quirks section below — immediately,
 > not later. Only update for real, reproducible breakage.
@@ -57,7 +62,7 @@ running). Never author one monolithic script against an unseen UI.
    accidentally captured, purge the file AND treat the secret as context-exposed (rotate if the
    transcript leaves the machine).
 6. **End-of-run hygiene.** `purgeShots()` (breadcrumbs can show near-secret state), then
-   `teardown(site)` — kills the SPECIFIC pid on the CDP port, never `pkill -f` (process-storm
+   `teardown(site)` — shuts down through chrome-profiles' port script (exact port flag), never `pkill -f` (process-storm
    policy, `~/.claude/CLAUDE.md`).
 
 ## Hybrid rule — forge the key, then use the door

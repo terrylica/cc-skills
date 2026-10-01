@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-ITER114_AUDIT_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
+ITER114_AUDIT_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts"
 ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
 ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
 
@@ -191,10 +191,27 @@ else
 fi
 
 # ─── Case 6: generator --check passes (idempotency invariant intact) ─────
+#
+# `--check` READS the shared on-disk doc too (it diffs the doc against the
+# registry-derived render), so it takes the same SHARED lock as Case 4. It was
+# the one `--check` among the doc readers running bare — iter-113 Case 2 and
+# iter-117 Case 6 both hold LOCK_SH around theirs — so iter-115's exclusive
+# doc-mutation window could land inside it and report drift that was never
+# committed. Observed once in a parallel `moon run repo:check` on 2026-09-26
+# ("generator --check reports drift (exit=1)"); afterwards the working tree
+# held no doc or registry change, `--check` alone reported no drift, and this
+# file passed when run on its own.
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_SH)
+' 9 <&9
 set +e
 check_mode_output=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
 check_mode_exit_code=$?
 set -e
+# Done reading the shared on-disk doc — release the shared lock.
+exec 9<&-
 if [[ "$check_mode_exit_code" == "0" ]] && [[ "$check_mode_output" == *"no drift"* ]]; then
     assert_passes "Case 6: iter-113 doc-generator idempotency invariant still holds with two-registry input (on-disk doc matches registry-derived output, no drift)"
 else
@@ -220,8 +237,8 @@ echo "     established. Marketplace now has TWO parallel registries:"
 echo "     - iter-111 RUNTIME-HOOK markers (12 entries; consumed by"
 echo "       Pre/PostToolUse hooks via the iter-107 helper on every"
 echo "       Write/Edit/Bash invocation — hot path)"
-echo "     - iter-114 AUDIT-TASK markers (8 entries; consumed by .mise/"
-echo "       audit tasks via bash grep at release-preflight time — cold"
+echo "     - iter-114 AUDIT-TASK markers (8 entries; consumed by tasks/"
+echo "       audit scripts via bash grep at release-preflight time — cold"
 echo "       path, runs once per release)"
 echo "  🚀 iter-113 doc generator extended: operator-facing reference doc"
 echo "     now renders BOTH catalogs (20 total markers) in alphabetical"
