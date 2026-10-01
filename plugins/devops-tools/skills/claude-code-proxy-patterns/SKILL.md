@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Claude Code Proxy Patterns
 
-Multi-provider proxy that routes Claude Code model tiers to different backends. Haiku to MiniMax (cost/speed), Sonnet/Opus to Anthropic (native OAuth passthrough). Includes Go binary proxy with launchd auto-restart and failover wrapper for resilience.
+Multi-provider proxy that routes Claude Code model tiers to different backends. Haiku to a cheaper Anthropic-compatible provider (cost/speed), Sonnet/Opus to Anthropic (native OAuth passthrough). Includes Go binary proxy with launchd auto-restart and failover wrapper for resilience.
 
 **Scope**: Local reverse proxy for Claude Code with OAuth subscription (Max plan). Routes based on model name in request body.
 
@@ -24,7 +24,7 @@ Multi-provider proxy that routes Claude Code model tiers to different backends. 
 
 - Building or debugging a Claude Code multi-provider proxy
 - Setting up `ANTHROPIC_BASE_URL` with OAuth subscription mode
-- Integrating Anthropic-compatible providers (MiniMax, etc.)
+- Integrating Anthropic-compatible providers
 - Diagnosing "OAuth not supported" or auth failures through a proxy
 - Understanding how Claude Code stores and transmits OAuth tokens
 
@@ -50,8 +50,8 @@ Claude Code (OAuth/Max subscription)
     | 4-5-20251001
     v
 +-----------+
-| MiniMax   |
-| highspeed |
+| 3rd-party |
+| provider  |
 +-----------+
 ```
 
@@ -61,7 +61,7 @@ Claude Code (OAuth/Max subscription)
 
 The Go proxy uses `cenkalti/backoff/v4` for built-in retry logic.
 
-The proxy reads the `model` field from each `/v1/messages` request body. If it matches the configured Haiku model ID, the request goes to MiniMax. Everything else falls through to real Anthropic with OAuth passthrough.
+The proxy reads the `model` field from each `/v1/messages` request body. If it matches the configured Haiku model ID, the request goes to the configured provider. Everything else falls through to real Anthropic with OAuth passthrough.
 
 ---
 
@@ -166,7 +166,7 @@ See `proxy.py:293-314` for the implementation.
 
 ### WP-07: count_tokens Endpoint Auth
 
-The `/v1/messages/count_tokens` endpoint needs the same auth as `/v1/messages`. Claude Code calls this for preflight token counting. Missing auth here causes silent failures. Returns 501 for non-Anthropic providers (MiniMax doesn't support it).
+The `/v1/messages/count_tokens` endpoint needs the same auth as `/v1/messages`. Claude Code calls this for preflight token counting. Missing auth here causes silent failures. Returns 501 for non-Anthropic providers that do not implement it.
 
 ### WP-08: Anthropic-Compatible Provider URLs
 
@@ -174,7 +174,7 @@ Third-party providers that support the Anthropic `/v1/messages` API format.
 
 | Provider          | Base URL                           | Notes                                             |
 | ----------------- | ---------------------------------- | ------------------------------------------------- |
-| MiniMax highspeed | `https://api.minimax.io/anthropic` | Returns `base_resp` field, extra `thinking` block |
+| (your provider)   | `https://<provider-host>/anthropic` | Check: model echo, extra content blocks, cache_control, count_tokens |
 
 See [references/provider-compatibility.md](./references/provider-compatibility.md) for the full matrix.
 
@@ -258,7 +258,7 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 | CCP-06 | HIGH     | Hardcoding OAuth tokens                                | Tokens expire; read dynamically with cache                             |
 | CCP-07 | HIGH     | Using `gh auth token` in proxy/hooks                   | Causes process storms (recursive spawning)                             |
 | CCP-08 | HIGH     | ANTHROPIC_API_KEY set in env while having OAuth token  | Auth conflict warning in Claude Code; unset it                         |
-| CCP-09 | MEDIUM   | cache_control param sent to MiniMax                    | MiniMax doesn't support it; remove from allowedParams                  |
+| CCP-09 | MEDIUM   | cache_control param sent to a provider lacking it      | Provider rejects it; remove from allowedParams                         |
 | CCP-10 | MEDIUM   | Setting ANTHROPIC_API_KEY to real key while proxy runs | Proxy forwards it to all providers, leaking key                        |
 | CCP-11 | MEDIUM   | Not handling `/v1/messages/count_tokens`               | Causes auth failures on preflight requests                             |
 | CCP-12 | LOW      | Running proxy on 0.0.0.0                               | Bind to 127.0.0.1 for security                                         |
@@ -312,10 +312,9 @@ After modifying this skill:
 | count_tokens auth failure              | Missing endpoint handler (CCP-11)              | Proxy must handle `/v1/messages/count_tokens`    |
 | Proxy accessible from network          | Bound to 0.0.0.0 (CCP-12)                      | Bind to 127.0.0.1 only                           |
 | Process storms on enable               | gh auth token in hooks (CCP-07)                | Never call gh CLI from hooks/credential helpers  |
-| MiniMax returns wrong model name       | MiniMax quirk                                  | Cosmetic only; Claude Code handles it            |
 | Token expired after 5 min              | Cache TTL (WP-05)                              | Normal behavior; proxy re-reads from Keychain    |
 | Auth conflict warning in Claude Code   | ANTHROPIC_API_KEY set (CCP-08)                 | Unset ANTHROPIC_API_KEY in .zshenv               |
-| cache_control.ephemeral.scope error    | MiniMax doesn't support cache_control (CCP-09) | Remove cache_control from allowedParams          |
+| cache_control.ephemeral.scope error    | Provider lacks cache_control (CCP-09)          | Remove cache_control from allowedParams          |
 
 ## Post-Execution Reflection
 
