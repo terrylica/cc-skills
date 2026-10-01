@@ -6,6 +6,8 @@ when_to_use: TRIGGERS - browser automation, drive Chrome, signed-in Chrome profi
 
 # Browser automation
 
+> **Self-Evolving Skill**: This skill improves through use. If a step is wrong, Chrome or an MCP server changed behaviour, or a workaround was needed — fix this file (and `scripts/chrome-profile.sh`) immediately, don't defer. Only update for real, reproducible issues, and never add a real account, profile folder name or token.
+
 Procedure here; the mechanics and measurements behind each rule are in [`references/doctrine.md`](references/doctrine.md). Scripts are in this plugin's `scripts/`; resolve the path with `cc-plugin-root chrome-profiles` (or use `~/.claude/plugins/marketplaces/cc-skills/plugins/chrome-profiles/scripts/`).
 
 ```bash
@@ -78,3 +80,13 @@ bash "$P" down     # always, when done — an open port lets any local process r
 ```
 
 It refuses the default Chrome folder, because Chrome 136+ silently ignores `--remote-debugging-port` there. Connect with `--browser-url=http://127.0.0.1:9222` or `connect_over_cdp`. Never bind the port beyond loopback.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did `doctor` agree with what actually happened?** If a server connected to the wrong account, or a check passed while the route failed, fix the check in `chrome-profile.sh`.
+2. **Did any click or dialog appear that this skill said would not?** Record the Chrome or extension version and the cause in `references/doctrine.md`.
+3. **Did a secret pass through the conversation?** If so, rotate it and fix the step that exposed it.
+
+Only update if the issue is real and reproducible — not speculative.
