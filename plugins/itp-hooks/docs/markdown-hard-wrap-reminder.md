@@ -24,16 +24,24 @@ Sources: [GFM §6.13](https://github.github.com/gfm/#soft-line-breaks), [communi
 
 ## Where this sits among the sibling guards
 
-The other three cover the **publish** boundary. This one covers the **authoring** boundary, which was the only unguarded surface.
+Three cover the **publish** boundary. The authoring boundary is covered three ways, because Markdown is authored three ways: by the Write/Edit tools (this hook), by a shell command (a heredoc, `python3 - <<EOF`, a generator script), and finally by the commit that every path ends in. Until 2026-10-01 only the first existed, and a session rewrote dozens of `.md` files through Bash and Python, all hard-wrapped, with this reminder enabled and silent throughout: its matcher is `Write|Edit|MultiEdit`, and a Bash command is not a file edit.
 
 | Boundary                           | Mechanism                                                                                            | Escape hatch      |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------- |
 | `gh release \| issue \| pr \| api` | [`pretooluse-github-hard-wrap-guard.ts`](../hooks/pretooluse-github-hard-wrap-guard.ts) — denies     | `GH-HARD-WRAP-OK` |
 | semantic-release → GitHub Releases | `release.config.cjs` → `reflowCommitBodyForGfm()` → `scripts/reflow-release-notes.ts` — auto-reflows | —                 |
 | Gmail draft bodies                 | [`pretooluse-gmail-body-guard.ts`](../hooks/pretooluse-gmail-body-guard.ts) — denies                 | `GMAIL-BODY-OK`   |
-| **Authoring a `.md`**              | **this hook — reminds**                                                                              | `MD-HARD-WRAP-OK` |
+| **Authoring a `.md`** (Write/Edit) | **this hook — reminds**                                                                              | `MD-HARD-WRAP-OK` |
+| Authoring a `.md` (Bash)           | [`posttooluse-bash-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-bash-markdown-hard-wrap-reminder.ts) — reminds | `MD-HARD-WRAP-OK` |
+| `git commit` of a `.md`            | [`pretooluse-markdown-commit-hard-wrap-guard.ts`](../hooks/pretooluse-markdown-commit-hard-wrap-guard.ts) — denies | `MD-HARD-WRAP-OK` |
 
-All four share the one detector, [`lib/hard-wrap-detector.ts`](../hooks/lib/hard-wrap-detector.ts).
+All of them share the one detector, [`lib/hard-wrap-detector.ts`](../hooks/lib/hard-wrap-detector.ts). The three authoring surfaces also share the net-new layer above it, [`lib/markdown-net-new-hard-wraps.ts`](../hooks/lib/markdown-net-new-hard-wraps.ts): the joiner filter, the shape signature, the multiset diff, the escape marker and the repair command, so they cannot disagree about what counts as a new wrap.
+
+### The Bash and commit surfaces
+
+**Bash reminder.** A PostToolUse hook sees only what is on disk after the command, not what the command wrote. So it checks the `.md` paths the command names (resolved against the cwd and every `cd` / `git -C` target) plus the Markdown `git status` reports modified or untracked in those repositories, keeps files modified in the last 15 minutes, and compares each against its `HEAD` version. A file with no `HEAD` version counts every wrap, as a Write does. A dirty file stays dirty across many Bash calls, so each (file, content hash) is judged once per session in a cache under the OS temp dir; this hook writes the same cache, so a file an Edit already reported is not reported again by the next Bash call. Measured cost: 50–80 ms per Bash call warm in a repository of several thousand files.
+
+**Commit guard.** The one boundary no authoring path avoids. It compares what the commit will record against `HEAD`, whole file, net-new only: a plain `git commit` reads the index, `-a`/`-am` and `git commit <paths>` read the working tree. It follows `cd dir &&` and `git -C dir`, so it checks the repository the commit lands in. It **denies**, unlike the two reminders, because by commit time a reminder has nowhere left to land. Legacy wraps the commit does not touch never block it; rewording a wrapped paragraph changes its shape and is reported, which is the moment to reflow it. The commit message is out of scope (git objects are not GFM). The marker anywhere in the command passes a whole commit; the HTML comment in a file exempts that file.
 
 Nothing else was watching authoring, and nothing was going to fix it later either: [`stop-markdown-lint.ts`](../hooks/stop-markdown-lint.ts) runs `prettier --write --prose-wrap preserve`, so a wrap written into a `.md` is **preserved forever**.
 
