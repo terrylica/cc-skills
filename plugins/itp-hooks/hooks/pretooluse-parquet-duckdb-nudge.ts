@@ -28,7 +28,7 @@
  *   - Any command already calling `duckdb`
  */
 
-import { allow, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 // Tight match: `.parquet` must be followed by a path-terminator (whitespace,
 // quote, end of string, common punctuation). Avoids false positives on
@@ -83,7 +83,7 @@ function buildNudge(matchedTool: string, command: string): string {
   ].join("\n");
 }
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow("PARQUET-DUCKDB-NUDGE");
   if (!input) return;
 
@@ -131,17 +131,16 @@ async function main() {
   // and allow execution. console.warn does NOT propagate to the model when
   // permission is "allow" — only additionalContext does. Same pattern as
   // pretooluse-large-file-read-guard.ts.
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        additionalContext: buildNudge(matched.name, command),
-      },
-    }),
-  );
+  output({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      additionalContext: buildNudge(matched.name, command),
+    },
+  });
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError(
     "pretooluse-parquet-duckdb-nudge",
     err instanceof Error ? err.message : String(err),

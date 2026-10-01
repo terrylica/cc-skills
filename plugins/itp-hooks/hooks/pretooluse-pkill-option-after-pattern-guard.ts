@@ -84,7 +84,7 @@ export function explainPkillOptionOrderFindings(
   return lines.join("\n\n");
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow("PKILL-OPTION-ORDER-GUARD");
   if (!input) return;
 

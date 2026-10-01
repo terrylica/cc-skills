@@ -99,7 +99,7 @@ const REMOTE_CONTEXT_PATTERNS: { pattern: RegExp; label: string }[] = [
   { pattern: /\bclickhouse-client\b/, label: "clickhouse-client" },
 ];
 
-async function main() {
+export async function main() {
   const input = await parseStdinOrAllow("PUEUE-LOCAL-GUARD");
   if (!input) return;
 
@@ -150,7 +150,8 @@ async function main() {
   );
 }
 
-main().catch((err) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((err) => {
   trackHookError("pretooluse-pueue-local-guard", err instanceof Error ? err.message : String(err));
   allow();
 });
