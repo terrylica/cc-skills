@@ -1,8 +1,8 @@
 # floating-clock
 
-Always-on-top floating desktop clock for macOS. Single-file Objective-C implementation (~80 KB binary, ~13 MB physical footprint) using NSPanel. Right-click for 25 color themes, 15 font sizes (10–64 pt), and live market-session state across 12 major global stock exchanges. Overlay rails above the clock for audio I/O, network route and display brightness.
+Always-on-top floating desktop clock for macOS. Single-file Objective-C implementation (~80 KB binary, ~13 MB physical footprint) using NSPanel. Right-click for 30 color themes, 15 font sizes (10–64 pt), and live market-session state across 14 major global stock exchanges. Overlay rails above the clock for audio I/O, network route and display brightness.
 
-**Idle CPU:** ~0.7% with all rails off, ~2.9% with the audio and network rails on (M3 Max, 2026-09-20). The long-standing "sub-0.1%" claim here was false — `ps %cpu` is a lifetime average dominated by launch cost and reports ~0.0%; measure a CPU-time delta instead. Method and per-rail figures: [docs/brightness-rail.md](./docs/brightness-rail.md) § Cost.
+**Idle CPU:** ~0.7% with all rails off, ~2.9% with the audio and network rails on (M3 Max, 2026-09-20). Measure a CPU-time delta: `ps %cpu` is a lifetime average and reads ~0.0%. Method and per-rail figures: [docs/brightness-rail.md](./docs/brightness-rail.md) § Cost.
 
 **Hub:** [CLAUDE.md](../../CLAUDE.md) | **Sibling:** [plugins/CLAUDE.md](../CLAUDE.md)
 
@@ -21,7 +21,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` + `tests/test_levers.m` + `tests/test_holidays.m` + `tests/test_halfdays.m` (iter-176 + iter-193 splits) — 84 fixtures covering
+Tests live in `tests/*.m` — 84 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -30,7 +30,7 @@ all 14 exchanges, starter-profile key-coverage invariants (caught
 iter-55 drift in iter-56), progressive countdown format (sub-day
 `T-HH:MM:SS` vs ≥24h `T-Nd Hh MMm`), lunch-market identification,
 `FCFormatLandingTime` cross-day/cross-weekday matrix,
-`FCParseFontWeight` id→NSFontWeight mapping with fallback (iter-88),
+`FCParseFontWeight` id→NSFontWeight mapping with fallback,
 `FCResolveSegmentWeight` three-tier fallback chain (segment key →
 global FontWeight → Medium, iter-89), and `FCResolveSegmentOpacity`
 three-tier fallback chain with clamping (segment key → CanvasOpacity
@@ -49,7 +49,7 @@ Third-party code: `Sources/vendor/RMBlurredView/` vendors
 [RMBlurredView](https://github.com/raffael/RMBlurredView) (Raffael
 Hannemann, 2013, MIT) for the frosted-glass segment backdrops. ~115
 LoC, only public APIs (CIFilter + CALayer.backgroundFilters), one
-local pragma delta from upstream (iter-81).
+local pragma delta from upstream.
 
 ## Slash Commands
 
@@ -74,13 +74,13 @@ local pragma delta from upstream (iter-81).
   4. Size selectable from 15 options (10 / 12 / 14 / 16 / 18 / 20 / 22 / 24 / 28 / 32 / 36 / 42 / 48 / 56 / 64 pt) grouped as Small / Medium / Large / Huge in the context menu
 - **Color themes**: 30 preset bundles (each sets foreground, background, alpha atomically). Originals (10): Terminal, Amber CRT, Green Phosphor, Solarized Dark, Dracula, Nord, Gruvbox, Rose Pine, High Contrast, Soft Glass. iter-32 (+10): Synthwave, Monokai, Gotham, Ayu Mirage, Catppuccin, Tokyo Night, Kanagawa, Paper White, Sepia, Midnight Blue. iter-92 (+5): Oceanic Deep, Cherry Blossom, Espresso, Lavender Dream, Mint Dark. iter-132 (+2): Forest, Volcanic. iter-169 (+1): Carnival (Brazilian yellow-on-green, pairs with B3). iter-195 (+1): Aurora (cyan-green on deep indigo — cool winter-night mood). iter-222 (+1): Concrete (architectural chromaless gray on charcoal — fills the gap between nord's blue-tinted gray and high_contrast's pure white-on-black). Menu items show 14×14 color swatches drawn inline via Core Graphics.
 - **Market sessions** (when a non-local market is selected):
-  - 14 major exchanges grouped by region (Americas / Europe / Africa / Asia / Oceania) — NYSE, TSX, B3, LSE, Euronext, XETRA, SIX, TSE, HKEX, SSE, KRX, NSE, ASX, JSE (iter-155 JSE, iter-161 B3)
+  - 14 major exchanges grouped by region (Americas / Europe / Africa / Asia / Oceania) — NYSE, TSX, B3, LSE, Euronext, XETRA, SIX, TSE, HKEX, SSE, KRX, NSE, ASX, JSE
   - Time displayed in that exchange's local time via IANA `NSTimeZone` (DST-correct across hemispheres)
   - Second line shows state glyph + market code + progress bar + countdown:
     - `●` green: OPEN (regular session)
     - `◑` violet: LUNCH (TSE / HKEX / SSE only)
-    - `◐` amber: PRE-MARKET (iter-123, final 15 min before today's open, weekdays only)
-    - `◒` rose: AFTER-HOURS (iter-125, first 15 min after today's close, weekdays only)
+    - `◐` amber: PRE-MARKET
+    - `◒` rose: AFTER-HOURS
     - `○` gray: CLOSED (overnight, weekend) — shows `opens in Xh Ym` or `opens EEE HH:mm` for gaps >99h
   - Progress bar uses Unicode 1/8-width blocks (`█▉▊▋▌▍▎▏░`) for sub-cell smoothness
   - Countdown format: `2h17m` (≥1h), `47m` (<1h), `5m32s` (<2m)
@@ -109,7 +109,7 @@ Everything this plugin touches on your system. Nothing outside this table.
 | **Entitlements**        | None. Unsandboxed. No hardened runtime flags.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Network**             | No network CALLS — the binary never opens a socket, and nothing it displays comes from a remote service. It does READ local network configuration and per-interface statistics in-process for the network bar: `SCDynamicStore` (primary interface, services holding IPv4), `getifaddrs(3)` (addresses, byte counters), and CoreWLAN (RSSI, noise, PHY rate). CoreWLAN's `-ssid` is deliberately never called: it requires Location authorization, and the network NAME is the one field here that identifies a place.                                                                                                                                                                                       |
 | **Subprocesses**        | Exactly one, and only on demand — `/usr/sbin/networksetup`, used by the network bar to list network services and to reorder them when you pick a different route. Never spawned from the 1 Hz tick (that would wreck the idle-CPU budget); the service list is cached and refetched only on a menu open, a switch, or a newly-seen primary interface, the last of which is rate-limited by a negative cache so an interface `networksetup` never lists (a VPN's `utunN`) cannot provoke a fetch every tick. Measured idle with a resolvable primary: 0.3 % CPU, zero child processes; the unresolvable path is pinned by unit test rather than by that measurement.                                          |
-| **System mutations**    | **Two**, both only on explicit user action, both reversible. (This row said "the only system-wide change" until 2026-09-19; the brightness rail made that false.) (1) **Network service order** via `networksetup -ordernetworkservices` — moves the default route for every app; reversible by picking the previous service. (2) **Display brightness and gamma** — the brightness rail writes the system-wide macOS brightness value, and above 100% multiplies the built-in display's gamma table. The gamma override reverts automatically on process death, including SIGKILL (verified 2026-09-20). Guards, degradation and attack-test results: [docs/brightness-rail.md](./docs/brightness-rail.md). |
+| **System mutations**    | **Two**, both only on explicit user action, both reversible. (1) **Network service order** via `networksetup -ordernetworkservices` — moves the default route for every app; reversible by picking the previous service. (2) **Display brightness and gamma** — the brightness rail writes the system-wide macOS brightness value, and above 100% multiplies the built-in display's gamma table. The gamma override reverts automatically on process death, including SIGKILL (verified 2026-09-20). Guards, degradation and attack-test results: [docs/brightness-rail.md](./docs/brightness-rail.md). |
 | **Launchd**             | None. Not registered as a LaunchAgent or LaunchDaemon. No autostart at login — launch manually via Spotlight, Launchpad, Finder, or `/floating-clock:launch`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Dock / menu bar**     | Hidden from both. `LSUIElement=YES` in Info.plist makes it an accessory app — no Dock tile, no application menu bar. The only visible UI is the floating clock window itself.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **System permissions**  | None at runtime. Accessibility access is NOT required (nothing uses the AX API). The context menu works via standard NSMenu, which needs no permission grant.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
@@ -141,44 +141,44 @@ Sources/
     FloatingClockPanel.{h,m}            NSPanel subclass (interface)
     FloatingClockPanel+Runtime.{h,m}    tick pipeline, timers, positioning
     FloatingClockPanel+Layout.{h,m}     3-segment + legacy layout maths
-    DateFormatPrefix.{h,m}              9-preset DateFormat → UTS#35 pattern (iter-113)
-    SkyGlyph.{h,m}                      5-phase hour-of-day → emoji dispatcher (iter-114)
-    SegmentGap.{h,m}                    7-preset SegmentGap → points (iter-115)
-    DensityPad.{h,m}                    6-preset Density → inner-row padding (iter-116)
-    CornerRadius.{h,m}                  8-preset CornerStyle → layer radius (iter-117)
-    ShadowSpec.{h,m}                    7-preset ShadowStyle → spec struct (iter-120)
-    SessionSignalWindow.{h,m}           5-preset SessionSignalWindow → minutes, gates PRE-MARKET + AFTER-HOURS promotions (iter-126)
-    ClipboardHeader.{h,m}               FCComposeClipboardSnapshot — self-documenting UTC-stamped header for Copy cluster (iter-160)
+    DateFormatPrefix.{h,m}              9-preset DateFormat → UTS#35 pattern
+    SkyGlyph.{h,m}                      5-phase hour-of-day → emoji dispatcher
+    SegmentGap.{h,m}                    7-preset SegmentGap → points
+    DensityPad.{h,m}                    6-preset Density → inner-row padding
+    CornerRadius.{h,m}                  8-preset CornerStyle → layer radius
+    ShadowSpec.{h,m}                    7-preset ShadowStyle → spec struct
+    SessionSignalWindow.{h,m}           5-preset SessionSignalWindow → minutes, gates PRE-MARKET + AFTER-HOURS promotions
+    ClipboardHeader.{h,m}               FCComposeClipboardSnapshot — self-documenting UTC-stamped header for Copy cluster
   segments/
     FloatingClockSegmentViews.{h,m}     Local/Active/Next/ClockContentView subclasses
   content/
     ActiveSegmentContentBuilder.{h,m}   live-markets rendering
     NextSegmentContentBuilder.{h,m}     next-to-open rendering
-    SegmentHeaderRenderer.{h,m}         shared title/legend/hrule helper (iter-73)
-    UrgencyColors.{h,m}                 shared urgency palette + thresholds (iter-73), continuous gradient + 1Hz pulse (iter-212)
-    UrgencyHorizon.{h,m}                6-preset UrgencyHorizon → seconds, runtime gradient horizon (iter-215)
-    UrgencyFlash.{h,m}                  4-preset UrgencyFlash → dim-alpha, runtime 1Hz pulse intensity (iter-219)
-    WeekProgressBar.{h,m}               FCWeekFraction + FCBuildWeekProgressBar — pure-offline week-progress bar on LOCAL (iter-229)
-    LandingTimeFormatter.{h,m}          dual-zone time w/ weekday disambiguation (iter-74)
+    SegmentHeaderRenderer.{h,m}         shared title/legend/hrule helper
+    UrgencyColors.{h,m}                 shared urgency palette + thresholds, continuous gradient + 1Hz pulse
+    UrgencyHorizon.{h,m}                6-preset UrgencyHorizon → seconds, runtime gradient horizon
+    UrgencyFlash.{h,m}                  4-preset UrgencyFlash → dim-alpha, runtime 1Hz pulse intensity
+    WeekProgressBar.{h,m}               FCWeekFraction + FCBuildWeekProgressBar — pure-offline week-progress bar on LOCAL
+    LandingTimeFormatter.{h,m}          dual-zone time w/ weekday disambiguation
   data/
-    ThemeCatalog.{h,m}                  25 theme presets + CG swatches (iter-92)
+    ThemeCatalog.{h,m}                  30 theme presets + CG swatches
     MarketCatalog.{h,m}                 12-exchange registry + IANA helpers
-    MarketSessionCalculator.{h,m}       computeSessionState, countdown fmts, progress-bar 10-glyph dispatch (iter-91)
+    MarketSessionCalculator.{h,m}       computeSessionState, countdown fmts, progress-bar 10-glyph dispatch
   rendering/
-    FontResolver.{h,m}                  iTerm2 → system monospaced cascade + FontWeight (iter-88/89) + LetterSpacing (iter-94) + LineSpacing (iter-95) + CurrentTimeFormat (iter-107)
-    SegmentOpacityResolver.{h,m}        3-tier canvas-opacity fallback (iter-90)
+    FontResolver.{h,m}                  iTerm2 → system monospaced cascade + FontWeight + LetterSpacing + LineSpacing + CurrentTimeFormat
+    SegmentOpacityResolver.{h,m}        3-tier canvas-opacity fallback
     AttributedStringLayoutMeasurer.{h,m} NSLayoutManager multi-line height
     VerticallyCenteredTextFieldCell.{h,m} cell that centers attributed text
   menu/
     FloatingClockPanel+MenuBuilder.{h,m} full preferences menu + Profile submenu + Quick Styles integration
-    FloatingClockPanel+SegmentMenus.{h,m} LOCAL / ACTIVE / NEXT scoped menus (iter-87 split)
-    FloatingClockPanel+MenuHelpers.{h,m} shared NSMenu helpers (iter-96 proactive split)
+    FloatingClockPanel+SegmentMenus.{h,m} LOCAL / ACTIVE / NEXT scoped menus
+    FloatingClockPanel+MenuHelpers.{h,m} shared NSMenu helpers
   actions/
     FloatingClockPanel+ActionHandlers.{h,m} every menu-item action target (40+ setters + applyQuickStyle + resetVisualStyle)
   preferences/
     FloatingClockPanel+ProfileManagement.{h,m}  save/load/switch/delete
     FloatingClockStarterProfiles.{h,m}  6 bundled starters + profileManagedKeys
-    FloatingClockQuickStyles.{h,m}      14 Quick Style bundled moods (iter-104 extracted, iter-105/106/130/144/170/196 expansions)
+    FloatingClockQuickStyles.{h,m}      14 Quick Style bundled moods
   vendor/
     RMBlurredView/                       iter-65 frosted-glass library (MIT)
   gen-icon.m                             build-time-only icon renderer
@@ -202,7 +202,7 @@ Design notes:
 - `buildProgressBar()` — Unicode 1/8-width block bar with color-split filled/unfilled portions via `NSAttributedString`
 - `ClockContentView`: custom `NSView` subclass whose `menuForEvent:` returns the context menu on right-click
 
-## Canonical UI Names (iter-199 registry)
+## Canonical UI Names
 
 Every user-visible UI element has a stable canonical short name so feedback can be precise (e.g. "the label in the bottom-right of ACTIVE called [COUNTDOWN] is 2pt too small"). Toggle `Show Debug Labels` in the context menu (or `defaults write com.terryli.floating-clock ShowDebugLabels -bool YES`) to render these as tiny corner overlays on the running app. Hovering any named NSView shows its full NSToolTip.
 
@@ -249,7 +249,7 @@ reset ALL grants — one re-Allow each. Cert recreation recipe in the spoke.
 ## Known limitations
 
 - **Holiday awareness: 14/14 exchanges (2026 fixtures); half-days: 8/14.** `Sources/data/HolidayCalendar.{h,m}` + `HalfDayCalendar.{h,m}`, wired into `computeSessionState` with correct back-to-back chaining (weekend+holiday clusters). Live caveats: 6 exchanges' half-days deferred, SSE make-up Saturdays (补班) not modelled, lunar dates fixture-locked best-effort. Full iter-173…192 chronicle + per-exchange detail: [docs/holiday-coverage.md](./docs/holiday-coverage.md).
-- **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS (iter-125, rose ◒ glyph) — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
+- **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
 
 ## Future Enhancements — [docs/roadmap.md](./docs/roadmap.md)
 

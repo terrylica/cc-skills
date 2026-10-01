@@ -23,7 +23,7 @@ run directly with `bun` (no build). Multi-profile support for multiple accounts.
 | `eon` (default) | @EonLabsOperations | 90417581   | `iqwxow2iidycaethycub7agfmm` |
 | `missterryli`   | @missterryli       | 2124832490 | `dk456cs3v2fjilppernryoro5a` |
 
-## Skills (13)
+## Skills by area
 
 ### Messaging
 
@@ -51,12 +51,15 @@ run directly with `bun` (no build). Multi-profile support for multiple accounts.
 | [create-group](./skills/create-group/SKILL.md)     | Create groups, supergroups, channels |
 | [manage-members](./skills/manage-members/SKILL.md) | Invite, kick, list members           |
 
-### Media & Setup
+### Media, Archival & Setup
 
-| Skill                                              | Purpose                            |
-| -------------------------------------------------- | ---------------------------------- |
-| [download-media](./skills/download-media/SKILL.md) | Download files from messages       |
-| [setup](./skills/setup/SKILL.md)                   | First-time auth + credential setup |
+| Skill                                                | Purpose                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------- |
+| [download-media](./skills/download-media/SKILL.md)   | Download files from messages                                |
+| [setup](./skills/setup/SKILL.md)                     | First-time auth + credential setup                          |
+| [draft-message](./skills/draft-message/SKILL.md)     | Post a long or sensitive draft to Saved Messages for review |
+| [dump-channel](./skills/dump-channel/SKILL.md)       | Archive a channel or chat to NDJSON with all media          |
+| [cleanup-deleted](./skills/cleanup-deleted/SKILL.md) | Purge deleted or ghost accounts from dialogs and contacts   |
 
 ## Quick Reference
 
