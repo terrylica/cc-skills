@@ -107,7 +107,6 @@ echo "→ Syncing installed_plugins.json..."
 INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
 if [[ -f "$INSTALLED" ]]; then
     jq --arg v "$VERSION" --arg base "$CACHE_DIR" '
-      del(.plugins["ralph@cc-skills"]) |
       del(.plugins["gmail-tools@cc-skills"]) |
       .plugins |= with_entries(
         if (.key | test("@cc-skills$")) then
