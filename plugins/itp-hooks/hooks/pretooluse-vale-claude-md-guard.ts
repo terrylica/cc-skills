@@ -67,7 +67,7 @@ import {
 // contract lib is its semantic home. Iter-106 eliminates the iter-105 cross-
 // lib import awkwardness by establishing the shared lib as the canonical
 // origin point for all cross-Pre/PostToolUse helpers.
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 
 // ============================================================================
 // Configuration

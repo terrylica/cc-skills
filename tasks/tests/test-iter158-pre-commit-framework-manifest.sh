@@ -5,7 +5,7 @@ set -euo pipefail
 ITER158_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER158_REPO_ROOT"
 
-ITER158_ENTRY_POINT_RELATIVE_PATH="scripts/iter158-pre-commit-framework-entry-point-script-locating-iter153-advisor-via-bash-source-relative-path-resolution-for-consumption-by-polyglot-pre-commit-framework-from-its-hidden-cached-clone-of-cc-skills.sh"
+ITER158_ENTRY_POINT_RELATIVE_PATH="scripts/iter158-pre-commit-entry-point.sh"
 ITER158_ENTRY_POINT_ABSOLUTE_PATH="$ITER158_REPO_ROOT/$ITER158_ENTRY_POINT_RELATIVE_PATH"
 ITER158_PRECOMMIT_MANIFEST_ABSOLUTE_PATH="$ITER158_REPO_ROOT/.pre-commit-hooks.yaml"
 

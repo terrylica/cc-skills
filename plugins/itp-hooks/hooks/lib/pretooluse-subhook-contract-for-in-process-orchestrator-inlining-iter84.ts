@@ -2,7 +2,7 @@
  * PreToolUse Subhook Contract — iter-84 in-process orchestrator inlining
  *
  * Defines the pure-function contract that every subhook MUST satisfy to be
- * registered in `pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts`.
+ * registered in `pretooluse-write-edit-orchestrator.ts`.
  *
  * Why this contract exists (motivation distinct from iter-66):
  *

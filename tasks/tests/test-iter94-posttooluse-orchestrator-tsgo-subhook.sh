@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 TY_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
 TSC_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
 STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/orchestrator-spawnsync.sh"
@@ -99,7 +99,7 @@ fi
 
 # ─── Case 6: hooks.json no longer wires standalone tsgo ───────────────────────
 case6_tsc_standalone_count=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("/posttooluse-tsc-type-check.ts"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
-case6_orchestrator_count=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("posttooluse-edit-time-orchestrator-aggregating"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
+case6_orchestrator_count=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("posttooluse-write-edit-orchestrator"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
 if [[ "$case6_tsc_standalone_count" == "0" ]]; then
     assert_passes "Case 6a: hooks.json no longer wires standalone tsgo (iter-94 removal — only via orchestrator import)"
 else

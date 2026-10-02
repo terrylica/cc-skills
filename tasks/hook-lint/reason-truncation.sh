@@ -104,7 +104,7 @@ declare -a HOOKS_REQUIRING_CANONICAL_TRUNCATION_HELPER_PER_ITER105_INVARIANT=(
     "plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
     "plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
     "plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
-    "plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+    "plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 )
 
 echo "  Cohort discovered: ${#HOOKS_REQUIRING_CANONICAL_TRUNCATION_HELPER_PER_ITER105_INVARIANT[@]} classifier-with-emission hooks must wrap via truncation helper"
@@ -145,7 +145,7 @@ if [[ ${#CLASSIFIERS_MISSING_CANONICAL_TRUNCATION_HELPER[@]} -eq 0 ]]; then
     done
     echo ""
     echo "  Iter-104 helper hoisted into:"
-    echo "    plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts"
+    echo "    plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-iter93.ts"
     echo "  Constant: MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000"
     echo "  Helper: truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(rawOutput)"
     exit 0

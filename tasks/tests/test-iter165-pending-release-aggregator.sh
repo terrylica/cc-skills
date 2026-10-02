@@ -5,7 +5,7 @@ set -euo pipefail
 ITER165_TEST_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER165_TEST_REPO_ROOT"
 
-ITER165_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+ITER165_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/scripts/iter165-pending-release-preview.sh"
 ITER165_TASK_WRAPPER_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/tasks/commits/pending-release"
 
 ITER165_TOTAL_ASSERTIONS_EVALUATED=0

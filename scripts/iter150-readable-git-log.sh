@@ -48,16 +48,16 @@
 # USAGE:
 #
 #   # Default: last 10 commits, 80-column wrap width
-#   scripts/iter150-readable-git-log-renderer-...sh
+#   scripts/iter150-readable-git-log.sh
 #
 #   # Show last N commits
-#   ITER150_COMMIT_COUNT_TO_DISPLAY=5 scripts/iter150-...sh
+#   ITER150_COMMIT_COUNT_TO_DISPLAY=5 scripts/iter150-readable-git-log.sh
 #
 #   # Custom wrap width
-#   ITER150_SOFT_WRAP_COLUMN_WIDTH=100 scripts/iter150-...sh
+#   ITER150_SOFT_WRAP_COLUMN_WIDTH=100 scripts/iter150-readable-git-log.sh
 #
 #   # Pass arbitrary git-log refs/options after `--`
-#   scripts/iter150-...sh -- main~20..HEAD
+#   scripts/iter150-readable-git-log.sh -- main~20..HEAD
 #
 # OPERATOR USE-CASE EXAMPLES:
 #
@@ -68,7 +68,7 @@
 #   ITER150_SOFT_WRAP_COLUMN_WIDTH=140 moon run repo:release-history
 #
 #   # Investigate a specific commit's full subject
-#   scripts/iter150-...sh -- -1 <sha>
+#   scripts/iter150-readable-git-log.sh -- -1 <sha>
 
 set -euo pipefail
 

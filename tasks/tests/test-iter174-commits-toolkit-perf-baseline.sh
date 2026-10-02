@@ -687,25 +687,25 @@ iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with
     fi
 }
 
-ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150-readable-git-log-renderer-*.sh' -type f | awk 'NR==1')
+ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150-readable-git-log.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
-    "iter-150 renderer" "$ITER174_ITER150_RENDERER_ABSOLUTE_PATH" "scripts/iter150-readable-git-log-renderer-*.sh"
+    "iter-150 renderer" "$ITER174_ITER150_RENDERER_ABSOLUTE_PATH" "scripts/iter150-readable-git-log.sh"
 
-ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh' -type f | awk 'NR==1')
+ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter152-commit-subject-length-histogram.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
-    "iter-152 dashboard" "$ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH" "scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh"
+    "iter-152 dashboard" "$ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH" "scripts/iter152-commit-subject-length-histogram.sh"
 
-ITER174_ITER153_ADVISOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter153-operator-facing-pre-commit-dry-run-advisor-*.sh' -type f | awk 'NR==1')
+ITER174_ITER153_ADVISOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter153-commit-subject-advisor.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
-    "iter-153 advisor" "$ITER174_ITER153_ADVISOR_ABSOLUTE_PATH" "scripts/iter153-operator-facing-pre-commit-dry-run-advisor-*.sh"
+    "iter-153 advisor" "$ITER174_ITER153_ADVISOR_ABSOLUTE_PATH" "scripts/iter153-commit-subject-advisor.sh"
 
-ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter165-pending-release-aggregator-*.sh' -type f | awk 'NR==1')
+ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter165-pending-release-preview.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
-    "iter-165 aggregator" "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH" "scripts/iter165-pending-release-aggregator-*.sh"
+    "iter-165 aggregator" "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH" "scripts/iter165-pending-release-preview.sh"
 
-ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh' -type f | awk 'NR==1')
+ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-commits-toolkit-doctor.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
-    "iter-160 doctor" "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH" "scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh"
+    "iter-160 doctor" "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH" "scripts/iter160-commits-toolkit-doctor.sh"
 
 # ─── ITER-182 MEASUREMENT-CONTEXT METADATA CAPTURE (pytest-benchmark-style) ─
 # Web research (2026) shows pytest-benchmark is the only major benchmark

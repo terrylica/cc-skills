@@ -65,7 +65,7 @@
 #
 # USAGE:
 #
-#   source scripts/lib/iter162-...sh
+#   source scripts/lib/iter162-breaking-change-footer-detector.sh
 #   iter162_detect_conventional_commits_breaking_change_footer_token_at_start_of_any_line_in_commit_message_body_per_section_13_uppercase_required_rule_and_angular_preset_plural_synonym_acceptance \
 #       "$multi_line_commit_message_body_string"
 #   if [[ "$ITER162_DETECTED_BREAKING_CHANGE_FOOTER_TOKEN_AT_START_OF_LINE_IN_BODY_BOOLEAN" == "true" ]]; then

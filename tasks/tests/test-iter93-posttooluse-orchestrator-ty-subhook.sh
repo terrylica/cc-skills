@@ -6,9 +6,9 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 STANDALONE_TY_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
-CONTRACT_FILE_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts"
+CONTRACT_FILE_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-iter93.ts"
 HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 
 for required_file_absolute_path in \
@@ -136,7 +136,7 @@ else
 fi
 
 # ─── Case 8: hooks.json wires orchestrator, NOT standalone, under Write|Edit ──
-case8_orchestrator_wired=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("posttooluse-edit-time-orchestrator-aggregating"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
+case8_orchestrator_wired=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("posttooluse-write-edit-orchestrator"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
 case8_standalone_wired=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("/posttooluse-ty-type-check.ts"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
 if [[ "$case8_orchestrator_wired" == "1" ]]; then
     assert_passes "Case 8a: hooks.json wires the iter-93 orchestrator under Write|Edit"

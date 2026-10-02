@@ -18,7 +18,7 @@ cd "$ITER167_REPO_ROOT"
 # shellcheck source=/dev/null
 source "$ITER167_SCRIPT_DIR/../../scripts/lib/perf-timing-skip.sh"
 
-ITER167_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER167_REPO_ROOT/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+ITER167_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER167_REPO_ROOT/scripts/iter165-pending-release-preview.sh"
 
 ITER167_TOTAL_ASSERTIONS_EVALUATED=0
 ITER167_TOTAL_ASSERTIONS_FAILED=0

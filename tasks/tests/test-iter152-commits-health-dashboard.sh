@@ -5,7 +5,7 @@ set -euo pipefail
 ITER152_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER152_REPO_ROOT"
 
-ITER152_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+ITER152_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter152-commit-subject-length-histogram.sh"
 ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_RENDERER_SCRIPT_RELATIVE_PATH"
 ITER152_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/health"
 ITER152_TASK_WRAPPER_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_TASK_WRAPPER_RELATIVE_PATH"
@@ -123,7 +123,7 @@ echo "GROUP C (5 assertions): each of the 5 panels implements its design contrac
 iter152_assert_substring_present_in_file \
     "C1: Panel 1 delegates to the iter-150 renderer (does not duplicate awk-soft-wrap logic)" \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "iter150-readable-git-log-renderer"
+    "iter150-readable-git-log.sh"
 
 iter152_assert_substring_present_in_file \
     "C2: Panel 2 histogram has the bin label for ≤hard-target with 'industry hard target' annotation" \

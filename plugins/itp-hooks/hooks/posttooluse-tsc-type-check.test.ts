@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-iter93.ts";
 import { classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsc-type-check.ts";
 
 describe("posttooluse-tsc-type-check", () => {

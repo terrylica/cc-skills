@@ -416,7 +416,7 @@ module.exports = {
     [
       "@semantic-release/exec",
       {
-        successCmd: `./scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh ${RELEASE_VERSION_PLACEHOLDER}`,
+        successCmd: `./scripts/iter142-post-release-verification.sh ${RELEASE_VERSION_PLACEHOLDER}`,
       },
     ],
   ],

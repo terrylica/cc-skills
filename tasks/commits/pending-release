@@ -3,4 +3,4 @@
 set -euo pipefail
 
 ITER165_REPO_ROOT_FOR_TASK_DELEGATION="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-exec bash "$ITER165_REPO_ROOT_FOR_TASK_DELEGATION/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh" "$@"
+exec bash "$ITER165_REPO_ROOT_FOR_TASK_DELEGATION/scripts/iter165-pending-release-preview.sh" "$@"

@@ -40,7 +40,7 @@
 
 set -euo pipefail
 
-# VERSION arrives as $1 from .releaserc.yml `successCmd: "./scripts/iter142-...sh ${nextRelease.version}"`
+# VERSION arrives as $1 from .releaserc.yml `successCmd: "./scripts/iter142-post-release-verification.sh ${nextRelease.version}"`
 # (single well-formed lodash expression — no syntax conflict).
 VERSION="${1:?usage: $0 <next-release-version>; called by @semantic-release/exec successCmd}"
 

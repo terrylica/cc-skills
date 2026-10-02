@@ -21,7 +21,7 @@ declare -a EIGHT_COHORT_HOOK_ABSOLUTE_PATHS_REQUIRING_TRUNCATION_HELPER=(
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
     "$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
-    "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+    "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 )
 
 ASSERTION_PASSED_COUNT=0
@@ -79,7 +79,7 @@ fi
 # the shared lib (NOT from the PostToolUse contract lib).
 PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
 if grep -q "truncateHookOutputToStayBelowClaudeFileSpilloverThreshold" "$PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH" && \
-   grep -q 'from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106' "$PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH"; then
+   grep -q 'from "./lib/shared-truncation-helper-iter106' "$PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH"; then
     assert_passes "Case 4: pretooluse-vale-claude-md-guard imports truncation helper from the iter-106 dedicated shared-lib home (cross-lib awkwardness eliminated)"
 else
     assert_fails "Case 4: pretooluse-vale-claude-md-guard does NOT import helper from the iter-106 shared-lib canonical home"
@@ -90,7 +90,7 @@ fi
 # messages into one reason string. Even when each subhook stays under
 # 10K individually, the sum can overflow. The orchestrator MUST apply
 # the helper to the aggregated reason as the absolute last line of defense.
-POSTTOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+POSTTOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 # Tail DRAINS rather than using -q: an early-exiting reader SIGPIPEs the grep
 # above it and pipefail then inverts this boolean. 2026-09-02 SIGPIPE sweep.
 if grep -B1 'console.log(JSON.stringify({ decision: "block", reason:' "$POSTTOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" 2>/dev/null \
@@ -124,7 +124,7 @@ assert_passes "Case 6: positive-path detection verified via Case 2 + Case 3 (liv
 # Iter-106 update: the literal `export const ...` definition now lives in the
 # shared-lib file; the PostToolUse contract lib re-exports it for backward
 # compat. We verify the constant at its iter-106 canonical home.
-SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts"
+SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-iter106.ts"
 case7_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | head -1 || echo "?")
 if [[ "$case7_threshold_value" == "9000" ]]; then
     assert_passes "Case 7: iter-104 helper threshold + signature preserved across iter-105/iter-106 relocations (MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000 in iter-106 shared-lib canonical home)"

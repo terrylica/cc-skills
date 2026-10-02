@@ -5,7 +5,7 @@ set -euo pipefail
 ITER164_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER164_REPO_ROOT"
 
-ITER164_SHARED_LIB_ABSOLUTE_PATH="$ITER164_REPO_ROOT/scripts/lib/iter164-semver-next-version-resolver-applying-iter161-bump-label-to-parsed-major-minor-patch-components-of-current-git-describe-tag-per-semver-org-specification-section-2-increment-rules.sh"
+ITER164_SHARED_LIB_ABSOLUTE_PATH="$ITER164_REPO_ROOT/scripts/lib/iter164-next-version-resolver.sh"
 ITER164_ADVISOR_TASK_ABSOLUTE_PATH="$ITER164_REPO_ROOT/tasks/commits/advise"
 
 ITER164_TOTAL_ASSERTIONS_EVALUATED=0

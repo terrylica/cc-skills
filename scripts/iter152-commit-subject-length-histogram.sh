@@ -230,7 +230,7 @@ iter152_render_panel_1_iter150_readable_view_by_delegating_to_iter150_renderer_f
     echo ""
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 1: Readable view (iter-150 renderer) ───${ITER152_ANSI_COLOR_RESET}"
     local iter150_renderer_script_absolute_path
-    iter150_renderer_script_absolute_path="$ITER152_REPO_ROOT/scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
+    iter150_renderer_script_absolute_path="$ITER152_REPO_ROOT/scripts/iter150-readable-git-log.sh"
     if [[ -x "$iter150_renderer_script_absolute_path" ]]; then
         ITER150_COMMIT_COUNT_TO_DISPLAY="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
             "$iter150_renderer_script_absolute_path" 2>/dev/null \
@@ -530,7 +530,7 @@ iter152_emit_dashboard_footer_with_operator_tunable_knob_hints_and_iter150_iter1
 # AUDIT_REPO_ROOT_OVERRIDE because it captures the script's filesystem
 # location, not the runtime working directory.
 ITER172_ITER152_SCRIPT_OWN_DIRECTORY_FOR_BASH_SOURCE_RELATIVE_LIB_PATH_RESOLUTION="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD="$ITER172_ITER152_SCRIPT_OWN_DIRECTORY_FOR_BASH_SOURCE_RELATIVE_LIB_PATH_RESOLUTION/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD="$ITER172_ITER152_SCRIPT_OWN_DIRECTORY_FOR_BASH_SOURCE_RELATIVE_LIB_PATH_RESOLUTION/lib/iter155-json-string-escape.sh"
 if [[ -f "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD" ]]; then
     # shellcheck source=/dev/null
     source "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD"

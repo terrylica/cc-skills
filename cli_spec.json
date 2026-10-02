@@ -1489,7 +1489,7 @@
       "title": "scripts/cli_spec.py",
       "type": "object"
     },
-    "scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py": {
+    "scripts/iter144-release-step-timing-parser.py": {
       "additionalProperties": false,
       "description": "iter-144 semantic-release plugin-lifecycle-step timing parser. Reads a captured DEBUG=semantic-release:* stderr log file; emits top-N slowest plugin-lifecycle-step bottleneck ranking.",
       "properties": {
@@ -1499,7 +1499,7 @@
           "x-positional": true
         }
       },
-      "title": "scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py",
+      "title": "scripts/iter144-release-step-timing-parser.py",
       "type": "object"
     }
   },

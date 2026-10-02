@@ -5,7 +5,7 @@ set -euo pipefail
 ITER172_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER172_REPO_ROOT"
 
-ITER172_ITER152_HISTOGRAM_ABSOLUTE_PATH="$ITER172_REPO_ROOT/scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+ITER172_ITER152_HISTOGRAM_ABSOLUTE_PATH="$ITER172_REPO_ROOT/scripts/iter152-commit-subject-length-histogram.sh"
 
 # Synthetic UTF-8 probe subject — same as iter-171 to maintain test corpus consistency.
 # Probe is 15 visible characters across 27 UTF-8 bytes (6 ASCII + 6 CJK×3 bytes + 3 ASCII);

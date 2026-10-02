@@ -5,7 +5,7 @@ set -euo pipefail
 ITER147_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER147_REPO_ROOT"
 
-ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH="scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py"
+ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH="scripts/iter147-release-timing-variance-harness.py"
 ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH="$ITER147_REPO_ROOT/$ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH"
 ITER147_RELEASE_FULL_TASK_RELATIVE_PATH="tasks/release/full"
 ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH="$ITER147_REPO_ROOT/$ITER147_RELEASE_FULL_TASK_RELATIVE_PATH"

@@ -76,7 +76,7 @@ if [[ -z "${ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE:-}" ]]; then
 else
     ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE"
 fi
-ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter155-json-string-escape.sh"
 
 # ─── ITER-193 fail-fast precondition (iter-181 pattern) ─────────────────────
 #
@@ -90,7 +90,7 @@ ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$I
 if [[ ! -f "$ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK" ]]; then
     echo "ERROR: iter-160 resolved a repo root that is not a cc-skills checkout." >&2
     echo "       Resolved root: $ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH" >&2
-    echo "       Expected (missing): \${root}/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh" >&2
+    echo "       Expected (missing): \${root}/scripts/lib/iter155-json-string-escape.sh" >&2
     echo "       This is a HARNESS error, not a toolkit verdict — exiting 2 rather than reporting TOOLKIT_BROKEN." >&2
     echo "       If you set ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE, point it at a cc-skills checkout." >&2
     exit 2
@@ -368,7 +368,7 @@ fi
 
 # ─── Check 1: iter-150 readable renderer (CRITICAL) ─────────────────────────
 
-ITER160_ITER150_RENDERER_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
+ITER160_ITER150_RENDERER_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter150-readable-git-log.sh"
 if [[ -x "$ITER160_ITER150_RENDERER_ABSOLUTE_PATH" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         "$ITER160_ITER150_RENDERER_ABSOLUTE_PATH"
@@ -396,7 +396,7 @@ fi
 
 # ─── Check 2: iter-152 commits:health dashboard (CRITICAL) ──────────────────
 
-ITER160_ITER152_DASHBOARD_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+ITER160_ITER152_DASHBOARD_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter152-commit-subject-length-histogram.sh"
 if [[ -x "$ITER160_ITER152_DASHBOARD_ABSOLUTE_PATH" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         "$ITER160_ITER152_DASHBOARD_ABSOLUTE_PATH"
@@ -424,7 +424,7 @@ fi
 
 # ─── Check 3: iter-153 advisor (CRITICAL) ───────────────────────────────────
 
-ITER160_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER160_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter153-commit-subject-advisor.sh"
 if [[ -x "$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         "$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH" -- "feat(test): iter-160 self-diagnosis probe"
@@ -503,7 +503,7 @@ fi
 
 # ─── Check 6: iter-157 installer is present + executable (CRITICAL) ─────────
 
-ITER160_ITER157_INSTALLER_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter157-idempotent-installer-and-uninstaller-of-the-commit-msg-git-hook-managing-existing-hook-backup-restoration-with-cc-skills-managed-sentinel-marker-for-safe-detection-of-our-own-installs-vs-third-party.sh"
+ITER160_ITER157_INSTALLER_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter157-commit-msg-hook-installer.sh"
 if [[ -x "$ITER160_ITER157_INSTALLER_ABSOLUTE_PATH" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         "$ITER160_ITER157_INSTALLER_ABSOLUTE_PATH" status
@@ -600,7 +600,7 @@ fi
 # the advisor's semver-bump preview feature was silently broken. Iter-
 # 163 closes this silent-regression gap by adding direct verification.
 
-ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter161-semantic-release-version-bump-classifier-mapping-conventional-commit-type-and-breaking-change-marker-to-the-actual-major-minor-patch-bump-per-cc-skills-releaserc-yml-bump-rules-for-pre-commit-preview-overlay.sh"
+ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter161-semver-bump-classifier.sh"
 if [[ -f "$ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         bash -c "source '$ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && declare -F iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules >/dev/null"
@@ -627,7 +627,7 @@ fi
 
 # ─── Check 10: iter-162 BREAKING-CHANGE footer detector lib (CRITICAL) ──────
 
-ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter162-conventional-commits-breaking-change-footer-token-detector-applying-uppercase-required-and-blank-line-separator-rules-per-conventional-commits-v1-section-13-and-semantic-release-commit-analyzer-default-angular-preset-behavior.sh"
+ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter162-breaking-change-footer-detector.sh"
 if [[ -f "$ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         bash -c "source '$ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && declare -F iter162_detect_conventional_commits_breaking_change_footer_token_at_start_of_any_line_in_commit_message_body_per_section_13_uppercase_required_rule_and_angular_preset_plural_synonym_acceptance >/dev/null"
@@ -706,7 +706,7 @@ rm -f "$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABS
 # aggregator emits empty next_version field) — silent breakage the
 # pre-iter-166 doctor would not have caught.
 
-ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter164-semver-next-version-resolver-applying-iter161-bump-label-to-parsed-major-minor-patch-components-of-current-git-describe-tag-per-semver-org-specification-section-2-increment-rules.sh"
+ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter164-next-version-resolver.sh"
 if [[ -f "$ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         bash -c "source '$ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && declare -F iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules >/dev/null"
@@ -739,7 +739,7 @@ fi
 # own right. We verify: file exists, is executable, bash -n passes,
 # and `--help` runs cleanly (no missing dependency surfaces).
 
-ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter165-pending-release-preview.sh"
 if [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         bash -c "bash -n '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --help >/dev/null"
