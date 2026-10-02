@@ -191,8 +191,7 @@ export function listAllDistinctMarkerNameTokensAcrossBothRegistriesSortedAlphabe
  * Iter-120-parallel substring search but on marker name tokens rather
  * than consumer-path basenames. Catches operators who remember only
  * part of the marker name (e.g., "TTY" → CARGO-TTY-SKIP + CARGO-TTY-WRAP,
- * "FILE-SIZE" → FILE-SIZE-OK, "MATCHER" → MATCHER-NO-MULTIEDIT-OK +
- * WILDCARD-MATCHER-OK). Case-insensitive — operators don't think in
+ * "FILE-SIZE" → FILE-SIZE-OK, "MATCHER" → WILDCARD-MATCHER-OK). Case-insensitive — operators don't think in
  * case-sensitive terms when recalling tokens.
  *
  * The caller is responsible for deciding when to invoke (typically:

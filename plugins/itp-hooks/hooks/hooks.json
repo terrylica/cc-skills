@@ -20,7 +20,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -30,7 +30,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -41,13 +41,13 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-secret-exposure-guard.ts",
             "timeout": 5,
-            "description": "Blocks a Write/Edit/MultiEdit that would put a live credential on disk (Telegram bot token, Pushover key, literal in a secret-manager command). Escape: SECRET-SCAN-OK: <10+ char reason>."
+            "description": "Blocks a Write/Edit that would put a live credential on disk (Telegram bot token, Pushover key, literal in a secret-manager command). Escape: SECRET-SCAN-OK: <10+ char reason>."
           }
         ]
       },
@@ -96,7 +96,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -121,7 +121,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit",
+        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -136,7 +136,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|MultiEdit",
+        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -147,7 +147,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -162,7 +162,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -172,7 +172,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -183,7 +183,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -194,7 +194,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -205,7 +205,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|MultiEdit",
+        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -216,7 +216,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",

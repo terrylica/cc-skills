@@ -91,7 +91,7 @@ describe("Bash: allows targeted signals and mere mentions", () => {
   }
 });
 
-describe("Write / Edit / MultiEdit of shell scripts", () => {
+describe("Write / Edit of shell scripts", () => {
   it("denies the v1 incident line written into a .sh file (v1's documented gap)", async () => {
     const r = await runHook("Write", {
       file_path: "/tmp/cleanup.sh",
@@ -120,14 +120,6 @@ describe("Write / Edit / MultiEdit of shell scripts", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
-
-  it("denies a MultiEdit that adds a user-wide pkill to a .zsh file", async () => {
-    const r = await runHook("MultiEdit", {
-      file_path: "/tmp/x.zsh",
-      edits: [{ old_string: "a", new_string: "echo ok" }, { old_string: "b", new_string: "pkill -u me" }],
-    });
-    expect(r.decision).toBe("deny");
   });
 
   it("allows a targeted kill in a script", async () => {

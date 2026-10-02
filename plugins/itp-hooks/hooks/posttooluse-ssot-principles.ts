@@ -275,8 +275,7 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
   input: PostToolUseInput,
 ): Promise<PostToolUseSubhookDecision> {
   try {
-    // Iter-100: honor Write|Edit|MultiEdit via canonical contract helper
-    // (closes the MultiEdit coverage gap surfaced by web research).
+    // Honor Write|Edit via the canonical contract helper.
     if (!isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(input.tool_name)) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }

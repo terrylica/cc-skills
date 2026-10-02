@@ -8,7 +8,7 @@
  * claude)`), a user-wide `-u` with no name, or a pkill pattern whose literal text is under five
  * characters. Detection: lib/broad-process-signal-detector.ts.
  *
- * Write / Edit / MultiEdit of a SHELL SCRIPT: runs that check AND the pkill option-order check on
+ * Write / Edit of a SHELL SCRIPT: runs that check AND the pkill option-order check on
  * the text being written. v1 (pretooluse-pkill-option-after-pattern-guard.ts) inspected only Bash
  * commands, so a script written first and run second passed straight through — its documented gap.
  *
@@ -80,15 +80,10 @@ export function isShellScript(filePath: string, newText: string): boolean {
   return false;
 }
 
-/** The text a Write / Edit / MultiEdit would put into the file. */
+/** The text a Write / Edit would put into the file. */
 export function textBeingWritten(toolName: string, toolInput: Record<string, unknown>): string {
   if (toolName === "Write") return typeof toolInput.content === "string" ? toolInput.content : "";
   if (toolName === "Edit") return typeof toolInput.new_string === "string" ? toolInput.new_string : "";
-  if (toolName === "MultiEdit" && Array.isArray(toolInput.edits)) {
-    return toolInput.edits
-      .map((e) => (e && typeof e.new_string === "string" ? e.new_string : ""))
-      .join("\n");
-  }
   return "";
 }
 
@@ -137,7 +132,7 @@ export async function main(): Promise<void> {
     return findings.length === 0 ? allow() : deny(explainBroadSignalFindings(findings, ""));
   }
 
-  if (tool_name !== "Write" && tool_name !== "Edit" && tool_name !== "MultiEdit") return allow();
+  if (tool_name !== "Write" && tool_name !== "Edit") return allow();
   const filePath = typeof tool_input.file_path === "string" ? tool_input.file_path : "";
   const text = textBeingWritten(tool_name, tool_input);
   if (!text || !isShellScript(filePath, text)) return allow();

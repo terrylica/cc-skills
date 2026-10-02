@@ -9,7 +9,7 @@
 `openwolf init` writes the following into the **target project**:
 
 - `.wolf/` directory — `anatomy.md`, `cerebrum.md`, `memory.md`, `buglog.json`, `token-ledger.json`, `OPENWOLF.md`, `identity.md`, `config.json`, `reframe-frameworks.md`, plus 6 compiled hook scripts under `.wolf/hooks/`.
-- 6 hook entries merged into `.claude/settings.json` (`SessionStart`, `PreToolUse:Read`, `PreToolUse:Write|Edit|MultiEdit`, `PostToolUse:Read`, `PostToolUse:Write|Edit|MultiEdit`, `Stop`).
+- 6 hook entries merged into `.claude/settings.json` (`SessionStart`, `PreToolUse:Read`, `PreToolUse:Write|Edit`, `PostToolUse:Read`, `PostToolUse:Write|Edit`, `Stop`).
 - `.claude/rules/openwolf.md` (cursor-style rules).
 - A 225-byte snippet **prepended** to `CLAUDE.md` that imports `@.wolf/OPENWOLF.md`.
 - An entry in `~/.openwolf/registry.json` (the global project registry).

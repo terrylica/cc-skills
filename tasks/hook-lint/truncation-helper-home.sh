@@ -36,7 +36,6 @@
 #
 # Parallel to:
 #   - iter-99 audit: no-raw-stdout-emission-in-PostToolUse (silent-drop invariant)
-#   - iter-101 audit: matcher Write|Edit must include MultiEdit (universal invariant)
 #   - iter-103 audit: NotebookEdit applicability matrix (informational variant)
 #   - iter-105 audit: unbounded-emission truncation-helper invariant
 #   - iter-106 audit (THIS): canonical-home invariant for the truncation helper

@@ -37,10 +37,9 @@ async function runHook(payload: object): Promise<string> {
 }
 
 describe("isMarkdownTableGuardEligibleTarget (pure gate)", () => {
-  it("accepts a .md Write/Edit/MultiEdit", () => {
+  it("accepts a .md Write/Edit", () => {
     expect(isMarkdownTableGuardEligibleTarget("Write", "/repo/a.md")).toBe(true);
     expect(isMarkdownTableGuardEligibleTarget("Edit", "/repo/a.markdown")).toBe(true);
-    expect(isMarkdownTableGuardEligibleTarget("MultiEdit", "/repo/a.md")).toBe(true);
   });
   it("rejects non-md files and non-edit tools", () => {
     expect(isMarkdownTableGuardEligibleTarget("Edit", "/repo/a.ts")).toBe(false);

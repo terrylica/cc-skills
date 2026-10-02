@@ -15,11 +15,8 @@ describe("readme-pypi-links activation gate", () => {
     expect(isReadmePypiEligibleTarget("Write", "/Users/me/proj/README.md", "/Users/me/proj")).toBe(true);
   });
 
-  it("fires for Edit and MultiEdit too", () => {
+  it("fires for Edit too", () => {
     expect(isReadmePypiEligibleTarget("Edit", "/Users/me/proj/README.md", "/Users/me/proj")).toBe(true);
-    expect(isReadmePypiEligibleTarget("MultiEdit", "/Users/me/proj/README.md", "/Users/me/proj")).toBe(
-      true,
-    );
   });
 
   it("skips a throwaway README.md in /tmp even when it is the cwd root (iter-124)", () => {
@@ -32,7 +29,7 @@ describe("readme-pypi-links activation gate", () => {
     );
   });
 
-  it("skips non-Write/Edit/MultiEdit tools", () => {
+  it("skips non-Write/Edit tools", () => {
     expect(isReadmePypiEligibleTarget("Bash", "/Users/me/proj/README.md", "/Users/me/proj")).toBe(false);
   });
 });

@@ -2,7 +2,7 @@
 /**
  * PreToolUse hook: live-credential exposure guard.
  *
- * Blocks a Write/Edit/MultiEdit whose NEW content would put a live credential
+ * Blocks a Write/Edit whose NEW content would put a live credential
  * on disk — before the bytes land, and therefore before they can be committed,
  * pushed and published.
  *
@@ -55,7 +55,7 @@ const HOOK_NAME = "pretooluse-secret-exposure-guard";
 const SECRET_SCAN_OK_MARKER = "SECRET-SCAN-OK";
 const SECRET_SCAN_OK_MINIMUM_REASON_CHARACTERS = 10;
 
-const FILE_EDIT_TOOL_NAMES: ReadonlySet<string> = new Set(["Write", "Edit", "MultiEdit"]);
+const FILE_EDIT_TOOL_NAMES: ReadonlySet<string> = new Set(["Write", "Edit"]);
 
 /**
  * Binary payloads are skipped: a NUL byte in the first kilobyte means the
@@ -67,7 +67,7 @@ function looksLikeBinaryPayload(content: string): boolean {
 }
 
 /**
- * Every string a Write/Edit/MultiEdit would ADD to disk. Only new content is
+ * Every string a Write/Edit would ADD to disk. Only new content is
  * scanned — this guard exists to stop a credential being introduced, not to
  * re-litigate one already on disk (that is the audit gate's job, and blocking
  * an unrelated edit to a file that already leaks would be unactionable).
@@ -83,15 +83,6 @@ export function collectNewContentFragmentsFromToolInput(
   push(toolInput.content);
   push(toolInput.new_string);
 
-  const edits = toolInput.edits;
-  if (Array.isArray(edits)) {
-    for (const edit of edits) {
-      if (edit && typeof edit === "object") {
-        push((edit as Record<string, unknown>).new_string);
-      }
-    }
-  }
-
   return fragments;
 }
 
@@ -100,7 +91,7 @@ export function collectNewContentFragmentsFromToolInput(
  * the deny reason, or `null` when the write is clean or explicitly excused.
  *
  * Fragments are scanned SEPARATELY so a context window cannot be manufactured
- * across two unrelated edits in one MultiEdit.
+ * across two unrelated pieces of new content.
  */
 export function evaluateNewContentForCredentialExposure(
   filePath: string,

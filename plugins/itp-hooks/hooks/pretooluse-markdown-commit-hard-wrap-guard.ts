@@ -6,7 +6,7 @@
  * broken mid-sentence at a fixed column instead of authored as one line the renderer reflows.
  *
  * Why at commit time: the edit-time reminder (`posttooluse-markdown-hard-wrap-reminder.ts`) only sees
- * Write/Edit/MultiEdit. Markdown written any other way — a heredoc, `python3 - <<EOF`, a generator
+ * Write/Edit. Markdown written any other way — a heredoc, `python3 - <<EOF`, a generator
  * script, `sed -i`, another program entirely — never reached it. Measured 2026-10-01: a session rewrote
  * dozens of `.md` files through Bash and Python, all hard-wrapped, with the reminder enabled and
  * silent throughout. A commit is the one boundary every authoring path crosses, whatever wrote the

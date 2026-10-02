@@ -152,7 +152,7 @@ fi
 echo "  ✓ PASS — all $ASSERTION_PASSED_COUNT assertions passed"
 echo ""
 echo "  🚀 Iter-103 NotebookEdit applicability audit ships preventive infrastructure"
-echo "     for the 4-tool canonical quadruple (Edit|MultiEdit|Write|NotebookEdit)."
+echo "     for the file-edit tools (Edit|Write|NotebookEdit)."
 echo "     Per-classifier applicability matrix documents the file-path-suffix vs"
 echo "     content-pattern dichotomy. Iter-104+ will adapt the 4 APPLICABLE"
 echo "     classifiers (version-guard, gpu-optimization, ssot-principles, memory-"

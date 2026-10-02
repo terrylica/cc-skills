@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# Iter-103 marketplace-wide NotebookEdit applicability audit. Per 2026 Anthropic canonical recommendation the file-edit tool quadruple is Edit|MultiEdit|Write|NotebookEdit. NotebookEdit has DIFFERENT payload shape (notebook_path + cell_id + new_source + edit_mode) operating on Jupyter .ipynb cells. This audit produces a per-classifier applicability matrix + surfaces hooks that SHOULD honor NotebookEdit because their content patterns apply to notebook cell source (e.g., hardcoded versions, PyTorch GPU patterns). Informational only — community-validated 2026 NotebookEdit bugs (insert-positioning bug + git diff noise + Jupyter MCP server recommendation) mean per-hook broadening is conditional, not universal.
+# Iter-103 marketplace-wide NotebookEdit applicability audit. Claude Code's file-edit tools are Edit|Write|NotebookEdit (tools reference). NotebookEdit has DIFFERENT payload shape (notebook_path + cell_id + new_source + edit_mode) operating on Jupyter .ipynb cells. This audit produces a per-classifier applicability matrix + surfaces hooks that SHOULD honor NotebookEdit because their content patterns apply to notebook cell source (e.g., hardcoded versions, PyTorch GPU patterns). Informational only — community-validated 2026 NotebookEdit bugs (insert-positioning bug + git diff noise + Jupyter MCP server recommendation) mean per-hook broadening is conditional, not universal.
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale
 # ────────────────────────────────────────────────────────────────────────
 #
-# Iter-102 surfaced via 2026 Anthropic + community best-practice web
-# research that the canonical "any file modification" hook matcher per
-# the official docs is `Edit|MultiEdit|Write|NotebookEdit` (4 tools, not
-# the 3-tool `Edit|MultiEdit|Write` iter-101 enforced). Iter-101's
-# matcher-hygiene audit therefore was also incomplete — it forced
-# MultiEdit but did not surface the NotebookEdit gap.
+# Claude Code's tools reference (https://code.claude.com/docs/en/tools-reference)
+# lists three file-edit tools: `Edit`, `Write` and `NotebookEdit`. The
+# repo's file-edit matchers are `Write|Edit`, so NotebookEdit is the one
+# file-edit tool they do not cover.
 #
 # However, NotebookEdit has a fundamentally different payload shape:
 #
@@ -53,7 +51,6 @@
 # Parallel to:
 #   - iter-94 audit: no-spawnSync-in-PostToolUse-orchestrator (perf invariant)
 #   - iter-99 audit: no-raw-stdout-emission-in-PostToolUse (silent-drop invariant)
-#   - iter-101 audit: matcher Write|Edit must include MultiEdit (universal invariant)
 #   - iter-103 audit (THIS): NotebookEdit applicability per-hook (conditional)
 #
 # Sources for iter-103 web research:
@@ -76,8 +73,8 @@ print_banner() {
 
 print_banner "Iter-103 Marketplace-Wide NotebookEdit Applicability Audit (Informational)"
 echo ""
-echo "  Theory: Per 2026 Anthropic canonical recommendation, the file-edit tool"
-echo "          quadruple is Edit|MultiEdit|Write|NotebookEdit. NotebookEdit has a"
+echo "  Theory: Claude Code's file-edit tools are Edit|Write|NotebookEdit."
+echo "          NotebookEdit has a"
 echo "          DIFFERENT payload shape (notebook_path + cell_id + new_source +"
 echo "          edit_mode) operating on Jupyter .ipynb cells, not file content."
 echo ""

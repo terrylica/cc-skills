@@ -8,7 +8,6 @@
  *   - Allows the sanctioned @typescript/typescript6 dual-install alias
  *   - Allows non-package.json files containing the same text
  *   - Honors ALLOW-LEGACY-TS escape hatch (both proposed and on-disk)
- *   - Allows MultiEdit (staged-migration convention)
  *   - Allows plan mode
  *   - Skips node_modules paths
  */
@@ -305,25 +304,7 @@ describe("pretooluse-typescript-version-guard", () => {
     });
   });
 
-  describe("MultiEdit and plan mode", () => {
-    it("should allow MultiEdit (staged-migration convention)", async () => {
-      const input = makePreToolUseInput({
-        tool_name: "MultiEdit",
-        tool_input: {
-          file_path: "/Users/test/package.json",
-          content: JSON.stringify({
-            devDependencies: {
-              typescript: "^5.6.0",
-            },
-          }),
-        },
-      });
-
-      const decision = await classifyTypeScriptVersionGuardForOrchestrator(input);
-
-      expect(decision.kind).toBe("allow");
-    });
-
+  describe("plan mode", () => {
     it("should allow plan mode", async () => {
       const input = makePreToolUseInput({
         tool_name: "Write",
