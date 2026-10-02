@@ -49,10 +49,10 @@
 #
 # USAGE:
 #
-#   scripts/iter148-empirical-validation-wrapper-comparing-baseline-versus-multiplexed-ssh-session-using-iter147-variance-harness-emitting-side-by-side-distribution-delta-table-for-get-git-auth-url-bottleneck-speedup-claim.sh
+#   scripts/iter148-ssh-multiplexing-speedup-check.sh
 #
 #   # With custom run count (same env var as iter-147):
-#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
+#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-ssh-multiplexing-speedup-check.sh
 #
 # DURATION: ~N × 26s × 2 conditions. For N=3 default, ~52s. For N=5, ~85s.
 # For N=10, ~3 minutes. Set N high enough that p50 stabilizes but not so high
@@ -72,7 +72,7 @@ set -euo pipefail
 ITER148_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER148_REPO_ROOT"
 
-ITER148_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH="scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py"
+ITER148_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH="scripts/iter147-release-timing-variance-harness.py"
 ITER148_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH="$ITER148_REPO_ROOT/$ITER148_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH"
 ITER148_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS="$HOME/.ssh/controlmasters"
 ITER148_SSH_CONTROLPERSIST_TTL_DURATION="10m"

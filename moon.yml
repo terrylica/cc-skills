@@ -132,7 +132,7 @@ tasks:
     # only to `command`. Declared as `script` it silently receives nothing and
     # exits 2 on usage — measured, not assumed. `shell: false` for the reason
     # in the header: a log path must reach the script verbatim.
-    command: "bash tasks/triage-hook-regression-suite-log-classifying-known-flake-mechanisms-wall-clock-scenario-gate-versus-subprocess-exit-code-verdict-with-unknown-bucket-for-unrecognised-failures.sh"
+    command: "bash tasks/triage-hook-regression-suite-log.sh"
     options:
       cache: false
       shell: false

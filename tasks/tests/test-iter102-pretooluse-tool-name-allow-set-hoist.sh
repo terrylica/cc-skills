@@ -103,7 +103,7 @@ fi
 # Backward-compat: verify the orchestrator still emits a non-error result on a
 # clean Write payload after the iter-102 migration. Synthesize a benign .py
 # write that shouldn't trip any of the 8 guards.
-PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts"
+PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-write-edit-orchestrator.ts"
 if [[ ! -f "$PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" ]]; then
     assert_fails "Case 6: PreToolUse orchestrator not found at $PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH"
 else

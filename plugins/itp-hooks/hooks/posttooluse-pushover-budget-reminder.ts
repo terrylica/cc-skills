@@ -58,7 +58,7 @@ import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch
 import {
   bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory,
   isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts,
-} from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
+} from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

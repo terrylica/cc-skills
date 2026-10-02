@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Iter-155 regression test pinning the architectural refactor: pure-bash RFC 8259 JSON escape function extracted from iter-153 advisor into shared library at scripts/lib/, refactored iter-153 to source the lib (zero behavior change — iter-153 + iter-154 tests must still pass), added --json mode to iter-152 dashboard sourcing the same lib (closes the AI-agent surface gap parallel to what iter-153 filled for the advisor). Asserts (a) shared lib exists at scripts/lib/iter155-...sh + bash-clean + shellcheck-clean, (b) lib exports the canonical function name + the iter154-shim-compat alias + the LIBRARY_LOADED_SENTINEL env var, (c) iter-153 advisor sources the lib via git rev-parse path construction, (d) iter-152 dashboard sources the lib via git rev-parse path construction, (e) iter-152 dashboard parses --json flag and dispatches to iter-155 JSON renderer, (f) --json output parses cleanly via independent python3 json.loads, (g) JSON schema includes all 5 panel keys + stable iter155_schema_version=1 + verdict from the trend signal, (h) iter-153 + iter-154 regression tests still pass after refactor (zero-behavior-change invariant).
+# Iter-155 regression test pinning the architectural refactor: pure-bash RFC 8259 JSON escape function extracted from iter-153 advisor into shared library at scripts/lib/, refactored iter-153 to source the lib (zero behavior change — iter-153 + iter-154 tests must still pass), added --json mode to iter-152 dashboard sourcing the same lib (closes the AI-agent surface gap parallel to what iter-153 filled for the advisor). Asserts (a) shared lib exists at scripts/lib/iter155-json-string-escape.sh + bash-clean + shellcheck-clean, (b) lib exports the canonical function name + the iter154-shim-compat alias + the LIBRARY_LOADED_SENTINEL env var, (c) iter-153 advisor sources the lib via git rev-parse path construction, (d) iter-152 dashboard sources the lib via git rev-parse path construction, (e) iter-152 dashboard parses --json flag and dispatches to iter-155 JSON renderer, (f) --json output parses cleanly via independent python3 json.loads, (g) JSON schema includes all 5 panel keys + stable iter155_schema_version=1 + verdict from the trend signal, (h) iter-153 + iter-154 regression tests still pass after refactor (zero-behavior-change invariant).
 set -euo pipefail
 
 ITER155_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER155_REPO_ROOT"
 
-ITER155_SHARED_LIB_RELATIVE_PATH="scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+ITER155_SHARED_LIB_RELATIVE_PATH="scripts/lib/iter155-json-string-escape.sh"
 ITER155_SHARED_LIB_ABSOLUTE_PATH="$ITER155_REPO_ROOT/$ITER155_SHARED_LIB_RELATIVE_PATH"
-ITER155_ITER153_ADVISOR_RELATIVE_PATH="scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER155_ITER153_ADVISOR_RELATIVE_PATH="scripts/iter153-commit-subject-advisor.sh"
 ITER155_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER155_REPO_ROOT/$ITER155_ITER153_ADVISOR_RELATIVE_PATH"
-ITER155_ITER152_DASHBOARD_RELATIVE_PATH="scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+ITER155_ITER152_DASHBOARD_RELATIVE_PATH="scripts/iter152-commit-subject-length-histogram.sh"
 ITER155_ITER152_DASHBOARD_ABSOLUTE_PATH="$ITER155_REPO_ROOT/$ITER155_ITER152_DASHBOARD_RELATIVE_PATH"
 
 ITER155_TOTAL_ASSERTIONS_EVALUATED=0

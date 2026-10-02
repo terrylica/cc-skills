@@ -181,13 +181,13 @@ moon run repo:release-sync
 
 ## Phase 2 (semantic-release) Internal Bottleneck Breakdown — iter-144/145/146
 
-The release pipeline's **Phase 2 (`moon run repo:release-version`, which runs semantic-release)** consumes ~30s of the typical ~45s release wall-clock (67%). Iter-144 instrumentation (`scripts/iter144-...py`) parses semantic-release's `DEBUG=semantic-release:*` stderr output to attribute cumulative milliseconds to each `semantic-release:<namespace>` subsystem, surfacing where the time actually goes.
+The release pipeline's **Phase 2 (`moon run repo:release-version`, which runs semantic-release)** consumes ~30s of the typical ~45s release wall-clock (67%). Iter-144 instrumentation (`scripts/iter144-release-step-timing-parser.py`) parses semantic-release's `DEBUG=semantic-release:*` stderr output to attribute cumulative milliseconds to each `semantic-release:<namespace>` subsystem, surfacing where the time actually goes.
 
 ### How to measure
 
 ```bash
 DEBUG=semantic-release:* npx semantic-release --dry-run --no-ci 2> /tmp/semrel-debug.log
-python3 scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py /tmp/semrel-debug.log
+python3 scripts/iter144-release-step-timing-parser.py /tmp/semrel-debug.log
 ```
 
 Operator-tunable Top-N count: set `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY=N` (default 10). The parser emits TWO ranking dimensions:
@@ -208,11 +208,11 @@ Operator-tunable Top-N count: set `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_
 
 ### Iter-145 forensic finding (FIXED)
 
-Iter-144 surfaced **5 silent `JSON.parse` SyntaxError stack traces per release**, swallowed by the `catch (error) { debug(error); }` block at `semantic-release/lib/git.js:346`. Root cause: 5 historical tags (the v4.x + v5.1.x cohort cataloged in `scripts/iter145-...sh`) lacked attached notes in `refs/notes/semantic-release-*`. The `%N` format placeholder returned empty string for those tags; `line.trim().split("\t")` produced a single-element array; destructuring yielded `notePart = undefined`; `JSON.parse(undefined)` coerced to `JSON.parse("undefined")` which threw `"undefined" is not valid JSON`.
+Iter-144 surfaced **5 silent `JSON.parse` SyntaxError stack traces per release**, swallowed by the `catch (error) { debug(error); }` block at `semantic-release/lib/git.js:346`. Root cause: 5 historical tags (the v4.x + v5.1.x cohort cataloged in `scripts/iter145-fix-empty-release-notes-refs.sh`) lacked attached notes in `refs/notes/semantic-release-*`. The `%N` format placeholder returned empty string for those tags; `line.trim().split("\t")` produced a single-element array; destructuring yielded `notePart = undefined`; `JSON.parse(undefined)` coerced to `JSON.parse("undefined")` which threw `"undefined" is not valid JSON`.
 
 Iter-145 fixed by backfilling canonical `{"channels":[null]}` notes attached to each tag's COMMIT (not tag object — annotated-tag-aware `tag^{commit}` dereferencing required). Verification: post-fix forensic count is 0.
 
-Re-run `scripts/iter145-fix-malformed-empty-semantic-release-notes-refs-...sh` on any new cc-skills clone to re-apply the local-only fix (notes refs are not pushed to remote in current config).
+Re-run `scripts/iter145-fix-empty-release-notes-refs.sh` on any new cc-skills clone to re-apply the local-only fix (notes refs are not pushed to remote in current config).
 
 ### Iter-146 finding: `get-git-auth-url`'s `verifyAuth` algorithm
 
@@ -228,7 +228,7 @@ This is a real network round-trip to GitHub doing SSH key exchange or HTTPS+TLS+
 
 OpenSSH ControlMaster persists an authenticated SSH session for a configurable TTL. Once primed, subsequent SSH operations to the same host reuse the persistent connection, skipping key exchange (~1.5s saved per call).
 
-Operator opt-in setup: run `scripts/iter146-configure-ssh-controlmaster-for-github-com-...sh` (idempotent, backs up `~/.ssh/config`, scoped to `Host github.com` only). After applying, the next release's `verifyAuth` cost should drop from ~1.7s to ~100-200ms per call.
+Operator opt-in setup: run `scripts/iter146-github-ssh-controlmaster-setup.sh` (idempotent, backs up `~/.ssh/config`, scoped to `Host github.com` only). After applying, the next release's `verifyAuth` cost should drop from ~1.7s to ~100-200ms per call.
 
 **This is a per-developer-machine optimization** — not pushed to the repo, not enforced for collaborators. The setup script is provided as documentation + automation but operators must consciously opt in (modifies `~/.ssh/config`).
 
@@ -259,13 +259,13 @@ The per-release wall-clock distribution is dominated by SSH-handshake and GitHub
 
 ```bash
 # Default 5 back-to-back dry-run captures, per-namespace p50/p95/mean/stddev/min/max/range:
-uv run --python 3.14 scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 
 # Custom run count via ITER147_VARIANCE_PROFILE_RUN_COUNT (must be at least 2 — variance undefined for n=1):
-ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-...py
+ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 
 # Replay existing /tmp/iter147-variance-profile-run-{i}.log without re-capturing (fast re-analysis):
-ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-...py
+ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 ```
 
 Output format includes a "variance-flag" column marking namespaces whose stddev/p50 ratio exceeds **0.20** — these are the namespaces where single-sample comparisons are unreliable, and any optimization targeting them must demonstrate distribution-level improvement (p50 or p95 shift across N samples), not point-sample improvement.
@@ -277,10 +277,10 @@ Output format includes a "variance-flag" column marking namespaces whose stddev/
 The iter-146 setup script docstring originally claimed "~1.7s → ~100-200ms (10-15x speedup)" sourced from OpenSSH community docs on warm-handshake reuse. **That claim was conjectural** — never measured on this machine, against this release pipeline, with this `semantic-release` version. Iter-148 ships a wrapper that runs the iter-147 variance harness in BOTH conditions (baseline + multiplexed) back-to-back and emits a side-by-side distribution delta table:
 
 ```bash
-scripts/iter148-empirical-validation-wrapper-comparing-baseline-versus-multiplexed-ssh-session-using-iter147-variance-harness-emitting-side-by-side-distribution-delta-table-for-get-git-auth-url-bottleneck-speedup-claim.sh
+scripts/iter148-ssh-multiplexing-speedup-check.sh
 
 # With custom run count (same env var as iter-147 harness):
-ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
+ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-ssh-multiplexing-speedup-check.sh
 ```
 
 #### Empirical results (cc-skills production machine, n=3 captures per condition)
@@ -323,7 +323,7 @@ The cc-skills conventional-commits arc ships **11 operator-facing tools** across
 
 **Going-forward convention** (iter-150 industry-standard adoption): subject ≤50 chars hard target, ≤72 chars hard cap; body wrapped at 72 chars per line; blank line separates subject from body. Canonical spec: [conventionalcommits.org](https://www.conventionalcommits.org/) + [cbea.ms/git-commit](https://cbea.ms/git-commit/).
 
-**Shared library**: All AI-agent JSON outputs share a single pure-bash RFC 8259 escape function at `scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh` (iter-155 SSoT). No python3 dependency.
+**Shared library**: All AI-agent JSON outputs share a single pure-bash RFC 8259 escape function at `scripts/lib/iter155-json-string-escape.sh` (iter-155 SSoT). No python3 dependency.
 
 **Iter-157 industry-standard automation**: The commit-msg hook installer is the cc-skills counterpart to commitlint's husky integration and `compilerla/conventional-pre-commit`. It uses the natural git workflow (`commit-msg` for validation, per 2026 best practices) and is fail-OPEN by default if the cc-skills repo isn't reachable (won't block commits in a broken environment). Set `ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND=closed` for hard-dependency semantics. Bypass for emergencies: `git commit --no-verify` (per the cc-skills policy: only when explicitly necessary).
 
@@ -545,7 +545,7 @@ Two-line subject convention demonstrated: this commit's headline is 41 chars (we
 
 Iter-155 is an architectural refactor extending the conventional-commits arc with cross-script SSoT and AI-agent dashboard parity:
 
-**Architectural debt eliminated**: iter-154's pure-bash RFC 8259 JSON escape function was a genuinely reusable utility locked inside the iter-153 advisor script. Iter-155 extracts it to a shared library at `scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh` and refactors iter-153 to source it with zero behavior change (iter-153 + iter-154 regression tests both still pass).
+**Architectural debt eliminated**: iter-154's pure-bash RFC 8259 JSON escape function was a genuinely reusable utility locked inside the iter-153 advisor script. Iter-155 extracts it to a shared library at `scripts/lib/iter155-json-string-escape.sh` and refactors iter-153 to source it with zero behavior change (iter-153 + iter-154 regression tests both still pass).
 
 **File-size pressure relief**: iter-153 advisor shrank from 554 lines to 499 lines (back under the 500-line warn threshold), removing the FILE-SIZE-OK suppression marker.
 

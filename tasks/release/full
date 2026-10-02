@@ -150,11 +150,11 @@ fi
 #
 #   # before
 #   ITER147_VARIANCE_PROFILE_RUN_COUNT=5 \\
-#     scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+#     scripts/iter147-release-timing-variance-harness.py
 #   # after (env-var on)
 #   RELEASE_SSH_MULTIPLEXING_ENABLED=1 GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=$HOME/.ssh/controlmasters/%r@%h:%p -o ControlPersist=10m" \\
 #     ITER147_VARIANCE_PROFILE_RUN_COUNT=5 \\
-#     scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+#     scripts/iter147-release-timing-variance-harness.py
 if [[ "${RELEASE_SSH_MULTIPLEXING_ENABLED:-0}" == "1" ]]; then
     ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION="$HOME/.ssh/controlmasters"
     mkdir -p "$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION"
@@ -184,7 +184,7 @@ if [[ "${RELEASE_SSH_MULTIPLEXING_ENABLED:-0}" == "1" ]]; then
     #   release pipeline too.
     #
     # PATTERN (lifted from
-    # `scripts/iter148-empirical-validation-wrapper-...sh`):
+    # `scripts/iter148-ssh-multiplexing-speedup-check.sh`):
     #
     #   `ssh -T -o BatchMode=yes -o ControlMaster=auto -o ControlPath=...
     #        -o ControlPersist=10m git@github.com`

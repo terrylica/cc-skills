@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-142 source-fingerprint regression test pinning the extraction of the post-release successCmd bash body from .releaserc.yml YAML literal heredoc into scripts/iter142-...sh — resolution of the lodash-template-vs-bash-default-value-parameter-expansion syntax conflict (Iter-140 introduced bash ${VAR:-default} inside the YAML literal, which @semantic-release/exec passed through lodash-es template() that JS-eval'd RELEASE_TIMING_PROFILE:-0 → SyntaxError, silently skipping the entire post-release verification block on v21.58.2). Pins: (a) extracted script exists at the verbose iter-142 path and is executable, (b) script contains the iter-140 instrumentation helpers verbatim (work not lost), (c) .releaserc.yml no longer embeds the bash heredoc, (d) .releaserc.yml's last successCmd invokes the extracted script with ${nextRelease.version} as argv[1], (e) .releaserc.yml is free of ${VAR:-default} bash-default-value syntax that triggers the lodash conflict, (f) SC2012/SC2045 ls-iteration patterns inherited from the YAML literal were replaced with shellcheck-clean glob-based idioms in the extracted script.
+# Iter-142 source-fingerprint regression test pinning the extraction of the post-release successCmd bash body from .releaserc.yml YAML literal heredoc into scripts/iter142-post-release-verification.sh — resolution of the lodash-template-vs-bash-default-value-parameter-expansion syntax conflict (Iter-140 introduced bash ${VAR:-default} inside the YAML literal, which @semantic-release/exec passed through lodash-es template() that JS-eval'd RELEASE_TIMING_PROFILE:-0 → SyntaxError, silently skipping the entire post-release verification block on v21.58.2). Pins: (a) extracted script exists at the verbose iter-142 path and is executable, (b) script contains the iter-140 instrumentation helpers verbatim (work not lost), (c) .releaserc.yml no longer embeds the bash heredoc, (d) .releaserc.yml's last successCmd invokes the extracted script with ${nextRelease.version} as argv[1], (e) .releaserc.yml is free of ${VAR:-default} bash-default-value syntax that triggers the lodash conflict, (f) SC2012/SC2045 ls-iteration patterns inherited from the YAML literal were replaced with shellcheck-clean glob-based idioms in the extracted script.
 set -euo pipefail
 
 # Resolve repo root robustly (AUDIT_REPO_ROOT_OVERRIDE for harness reuse).
@@ -7,7 +7,7 @@ ITER142_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2
 cd "$ITER142_REPO_ROOT"
 
 ITER142_RELEASE_CONFIG_PATH="release.config.cjs"
-ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_RELATIVE_PATH="scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh"
+ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_RELATIVE_PATH="scripts/iter142-post-release-verification.sh"
 ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH="$ITER142_REPO_ROOT/$ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_RELATIVE_PATH"
 
 ITER142_TOTAL_ASSERTIONS_EVALUATED=0
@@ -60,7 +60,7 @@ echo ""
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo "  ITER-142 SOURCE-FINGERPRINT REGRESSION TEST"
 echo "  Pins: extraction of post-release successCmd bash body from .releaserc.yml"
-echo "        YAML literal heredoc into external scripts/iter142-...sh,"
+echo "        YAML literal heredoc into external scripts/iter142-post-release-verification.sh,"
 echo "        resolving the lodash-template-vs-bash-default-value syntax conflict"
 echo "        that broke v21.58.2 (SyntaxError: Unexpected token ':' inside"
 echo "        lodash-es template() on the literal-string \${RELEASE_TIMING_PROFILE:-0} bash"
@@ -185,7 +185,7 @@ iter142_assert_absent \
 iter142_assert_present \
     "D4: release.config.cjs successCmd invokes the extracted iter-142 script (template literal)" \
     "$ITER142_RELEASE_CONFIG_PATH" \
-    'successCmd: `\./scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict\.sh '
+    'successCmd: `\./scripts/iter142-post-release-verification\.sh '
 
 # ─── Group E: shellcheck-clean glob replacements for SC2012/SC2045 inherited ──
 echo ""

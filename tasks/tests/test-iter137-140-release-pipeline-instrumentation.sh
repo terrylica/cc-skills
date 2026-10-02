@@ -69,7 +69,7 @@ RELEASERC_YML_ABSOLUTE_PATH="$REPO_ROOT/.releaserc.yml"
 # for these symbols now search the extracted script instead. The extraction is a
 # pure code-relocation refactor that preserves behavior — invariants hold, just
 # in a different file — so iter-141 source-fingerprints still bind tightly.
-ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH_FOR_ITER140_HELPER_ASSERTIONS_AFTER_ITER142_RELOCATION="$REPO_ROOT/scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh"
+ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH_FOR_ITER140_HELPER_ASSERTIONS_AFTER_ITER142_RELOCATION="$REPO_ROOT/scripts/iter142-post-release-verification.sh"
 CHRONICLE_TEST_ABSOLUTE_PATH="$REPO_ROOT/tasks/tests/test-chronicle-slicing-37-assertion-stress.sh"
 LEGACY_CHRONICLE_TEST_RELEASE_DIR_PATH="$REPO_ROOT/tasks/release/test-chronicle-slicing"
 
@@ -286,7 +286,7 @@ echo ""
 echo "── ITER-140: successCmd per-step instrumentation + sleep-2 elimination forensic pin ──"
 
 # 4.A: per-step start/end helpers defined in extracted script (iter-142 relocated
-# from .releaserc.yml YAML literal heredoc to scripts/iter142-...sh — same
+# from .releaserc.yml YAML literal heredoc to scripts/iter142-post-release-verification.sh — same
 # invariants, new location.)
 __iter141_assert_substring_present \
     "Iter-140.D1: __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture helper defined in iter-142 extracted post-release verification script" \

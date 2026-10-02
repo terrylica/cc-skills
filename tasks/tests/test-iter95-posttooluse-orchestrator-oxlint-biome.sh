@@ -6,8 +6,8 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
-SHARED_LIB_HELPERS_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts"
+POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
+SHARED_LIB_HELPERS_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-async-helpers-iter95.ts"
 TY_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
 TSGO_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
 OXLINT_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts"
@@ -64,7 +64,7 @@ for classifier_file_absolute_path in \
     "$TSGO_TYPE_CHECK_ABSOLUTE_PATH" \
     "$OXLINT_CHECK_ABSOLUTE_PATH" \
     "$BIOME_LINT_ABSOLUTE_PATH"; do
-    if grep -q "posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95" "$classifier_file_absolute_path"; then
+    if grep -q "posttooluse-subhook-async-helpers-iter95" "$classifier_file_absolute_path"; then
         classifiers_importing_shared_lib_count=$((classifiers_importing_shared_lib_count + 1))
     fi
 done

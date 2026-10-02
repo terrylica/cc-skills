@@ -550,7 +550,7 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
 # Iter-176 BASH_SOURCE-relative path resolution: lib/ sits as a sibling
 # directory to this script (both under scripts/), so the anchor + '/lib/'
 # resolves correctly without forking git rev-parse.
-ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter155-json-string-escape.sh"
 if [[ -f "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH" ]]; then
     # shellcheck source=/dev/null
     source "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH"
@@ -560,7 +560,7 @@ fi
 # MAJOR/MINOR/PATCH/NONE preview against cc-skills .releaserc.yml bump
 # rules. Soft-fail if missing (degrades to no-preview, never blocks).
 # Iter-176 BASH_SOURCE-relative resolution (replaces git rev-parse fork).
-ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter161-semantic-release-version-bump-classifier-mapping-conventional-commit-type-and-breaking-change-marker-to-the-actual-major-minor-patch-bump-per-cc-skills-releaserc-yml-bump-rules-for-pre-commit-preview-overlay.sh"
+ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter161-semver-bump-classifier.sh"
 if [[ -f "$ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH" ]]; then
     # shellcheck source=/dev/null
     source "$ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH"
@@ -572,7 +572,7 @@ fi
 # changes (no subject `!` marker) were mis-predicted MINOR. Soft-fail
 # if missing.
 # Iter-176 BASH_SOURCE-relative resolution (replaces git rev-parse fork).
-ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter162-conventional-commits-breaking-change-footer-token-detector-applying-uppercase-required-and-blank-line-separator-rules-per-conventional-commits-v1-section-13-and-semantic-release-commit-analyzer-default-angular-preset-behavior.sh"
+ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter162-breaking-change-footer-detector.sh"
 if [[ -f "$ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH" ]]; then
     # shellcheck source=/dev/null
     source "$ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH"
@@ -586,7 +586,7 @@ fi
 # multi-second runtime per the 2026 semantic-release FAQ). Soft-fail
 # if missing.
 # Iter-176 BASH_SOURCE-relative resolution (replaces git rev-parse fork).
-ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter164-semver-next-version-resolver-applying-iter161-bump-label-to-parsed-major-minor-patch-components-of-current-git-describe-tag-per-semver-org-specification-section-2-increment-rules.sh"
+ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH="$ITER176_ITER153_ADVISOR_SCRIPT_OWN_DIRECTORY_RESOLVED_VIA_BASH_SOURCE_FOR_ZERO_FORK_LIB_PATH_RESOLUTION_ON_HOT_PATH/lib/iter164-next-version-resolver.sh"
 if [[ -f "$ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH" ]]; then
     # shellcheck source=/dev/null
     source "$ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH"

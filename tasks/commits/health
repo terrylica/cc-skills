@@ -5,7 +5,7 @@ set -euo pipefail
 # This task is a thin shim delegating to the iter-152 renderer script.
 # Kept as a separate file (vs inline bash) so the renderer can also be
 # invoked directly without moon.
-ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter152-commit-subject-length-histogram.sh"
 
 if [[ ! -x "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" ]]; then
     echo "  ✗ iter-152 renderer not found or not executable at:" >&2

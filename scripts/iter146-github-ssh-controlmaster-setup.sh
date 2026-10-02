@@ -53,7 +53,7 @@
 #   negotiation that do not accelerate from connection reuse — bringing
 #   the real-world speedup down to 3.30x. Still a substantial improvement;
 #   the iter-146 optimization is empirically validated and worth shipping.
-#   Methodology: iter-148 wrapper (scripts/iter148-...sh) ran the iter-147
+#   Methodology: iter-148 wrapper (scripts/iter148-ssh-multiplexing-speedup-check.sh) ran the iter-147
 #   variance harness in BOTH baseline and multiplexed conditions back-to-back
 #   and rendered side-by-side distribution delta.
 #
@@ -178,7 +178,7 @@ iter146_emit_post_setup_verification_instructions_for_operator() {
     echo ""
     echo "    DEBUG=semantic-release:* npx semantic-release --dry-run --no-ci \\"
     echo "      2> /tmp/iter146-post-setup.log"
-    echo "    python3 scripts/iter144-...py /tmp/iter146-post-setup.log"
+    echo "    python3 scripts/iter144-release-step-timing-parser.py /tmp/iter146-post-setup.log"
     echo ""
     echo "  NOTE: the FIRST release after setup still pays full SSH handshake cost"
     echo "  (cold connection — there's no cached session to reuse yet). All"

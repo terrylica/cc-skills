@@ -39,12 +39,12 @@ set -euo pipefail
 # ─── Step 1: locate iter-153 advisor via BASH_SOURCE-relative resolution ────
 #
 # When invoked from the pre-commit framework's cached clone, BASH_SOURCE[0]
-# points to <cache>/scripts/iter158-...sh, so the sibling iter-153 advisor
-# is at <cache>/scripts/iter153-...sh. This works regardless of where the
+# points to <cache>/scripts/iter158-pre-commit-entry-point.sh, so the sibling iter-153 advisor
+# is at <cache>/scripts/iter153-commit-subject-advisor.sh. This works regardless of where the
 # clone lives because it's relative.
 
 ITER158_ENTRY_POINT_SCRIPT_DIRECTORY_ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ITER158_ITER153_ADVISOR_RELATIVE_PATH="iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER158_ITER153_ADVISOR_RELATIVE_PATH="iter153-commit-subject-advisor.sh"
 ITER158_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER158_ENTRY_POINT_SCRIPT_DIRECTORY_ABSOLUTE_PATH/$ITER158_ITER153_ADVISOR_RELATIVE_PATH"
 
 if [[ ! -x "$ITER158_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then

@@ -10,13 +10,13 @@ REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 # variable because Case 1 still verifies the symbol's presence here via the
 # backward-compat re-export — that re-export is the contract by which the
 # iter-104 API surface remains stable for external consumers.
-POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts"
+POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-iter93.ts"
 # Iter-106 canonical home for the iter-104 helper + constant + marker suffix.
 # Iter-106 relocated the literal `export const` / `export function` definitions
 # to a dedicated cross-Pre/PostToolUse shared lib to eliminate the iter-105
 # cross-lib import awkwardness. Cases that inspect literal source text (Cases
 # 2, 3, 8) read FROM this shared-lib location.
-ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts"
+ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-iter106.ts"
 VALE_CLAUDE_MD_CLASSIFIER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-vale-claude-md.ts"
 
 for required_file in "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" "$VALE_CLAUDE_MD_CLASSIFIER_ABSOLUTE_PATH"; do
@@ -92,7 +92,7 @@ TEMP_E2E_DIR=$(mktemp -d -t iter104-e2e.XXXXXX)
 trap 'rm -rf "$TEMP_E2E_DIR"' EXIT
 TEMP_TS_FAST_PATH_TEST_FILE="$TEMP_E2E_DIR/test-fast-path.ts"
 cat > "$TEMP_TS_FAST_PATH_TEST_FILE" <<'TS'
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "/Users/terryli/eon/cc-skills/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "__POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH__";
 
 const smallReason = "[VALE] Found 1 error: Line 5: [ERROR] terminology mismatch";
 const result = truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(smallReason);
@@ -102,6 +102,7 @@ if (result === smallReason) {
   console.log("FAST-PATH-BROKEN: result-len=" + result.length + " input-len=" + smallReason.length);
 }
 TS
+ITER104_CONTRACT_LIB="$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" perl -pi -e 's{__POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH__}{$ENV{ITER104_CONTRACT_LIB}}g' "$TEMP_TS_FAST_PATH_TEST_FILE"
 set +e
 case5_fast_path_output=$(bun "$TEMP_TS_FAST_PATH_TEST_FILE" 2>&1)
 case5_fast_path_exit=$?
@@ -118,7 +119,7 @@ cat > "$TEMP_TS_TRUNCATION_TEST_FILE" <<'TS'
 import {
   MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER,
   truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
-} from "/Users/terryli/eon/cc-skills/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "__POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH__";
 
 // Synthesize an over-threshold input (12,000 chars of 'A' to definitively
 // exceed the 9000 safe threshold; would silently file-spill without truncation).
@@ -136,6 +137,7 @@ if (isBelowThreshold && hasMarker) {
   console.log("TRUNCATION-BROKEN result-len=" + result.length + " below-threshold=" + isBelowThreshold + " has-marker=" + hasMarker);
 }
 TS
+ITER104_CONTRACT_LIB="$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" perl -pi -e 's{__POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH__}{$ENV{ITER104_CONTRACT_LIB}}g' "$TEMP_TS_TRUNCATION_TEST_FILE"
 set +e
 case6_truncation_output=$(bun "$TEMP_TS_TRUNCATION_TEST_FILE" 2>&1)
 case6_truncation_exit=$?

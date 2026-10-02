@@ -76,13 +76,13 @@ import { existsSync, readFileSync } from "node:fs";
 import type {
   PostToolUseInput,
   PostToolUseSubhookDecision,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 
 // ============================================================================
 // CONSTANTS
