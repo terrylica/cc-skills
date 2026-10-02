@@ -43,16 +43,16 @@
 #   - Per-event-type breakdown (iter-68 feature: Stop 6/3 + SubagentStop 1/1
 #     + SessionEnd 1/1 + PreCompact 1/1 + Notification 1/1 — verifies the
 #     audit attributes scans+violations correctly per event type)
-#   - SessionEnd-specific schema diagnostic mentions "SessionEndOK returns
-#     EMPTY output" (NOT the {decision, reason} rule that applies to
+#   - SessionEnd-specific schema diagnostic quotes upstream "discards their
+#     JSON output fields" (NOT the {decision, reason} rule that applies to
 #     Stop/SubagentStop/PreCompact) — verifies the case-statement schema
 #     branch works
 #   - PreCompact-specific schema diagnostic mentions "Per official Anthropic
 #     PreCompact-hook schema" — verifies case-statement Stop-family branch
 #     emits the correct event-type interpolation
-#   - Notification-specific schema diagnostic mentions "Exit Code 2 Behavior:
-#     N/A" — verifies dedicated case-statement Notification branch emits the
-#     no-decision-capability rule
+#   - Notification-specific schema diagnostic quotes upstream "Exit code and
+#     stderr are ignored" — verifies dedicated case-statement Notification
+#     branch emits the no-decision-capability rule
 #   - Exit code (1 because fixtures #2, #5, #6, #7, #8, #9, #10 produce violations)
 #   - Per-fixture violation tag presence (#02, #04, #05, #06, #07, #08, #09, #10)
 #   - Diagnostic content (mentions iter-66 + GitHub #19115)
@@ -223,7 +223,7 @@ console.log(JSON.stringify({additionalContext: "pre-compaction summary never rea
 # additionalContext. Schema rule is DIFFERENT from all others — Notification
 # has NO decision capability at all (purely informational, exit-2 stderr
 # only per official Anthropic docs). Audit should emit Notification-specific
-# diagnostic mentioning "Exit Code 2 Behavior: N/A".
+# diagnostic quoting "Exit code and stderr are ignored".
 create_event_terminal_hook_fixture_plugin "fixture10-notification-hook-emits-additionalContext-violation" "notification-violation.ts" \
 '#!/usr/bin/env bun
 // Notification schema: purely informational, no decision capability.
@@ -350,10 +350,10 @@ fi
 # SessionEnd-specific schema diagnostic — verifies the case statement
 # in the violation accumulator emits the empty-output rule (NOT the
 # {decision, reason} rule which applies to Stop/SubagentStop only).
-if grep -q 'SessionEndOK returns EMPTY output' <<<"$AUDIT_OUTPUT"; then
+if grep -q 'discards their JSON output fields' <<<"$AUDIT_OUTPUT"; then
   assert_pass "SessionEnd violation diagnostic mentions empty-output schema rule (NOT {decision, reason}) — iter-68 per-event-type diagnostic correctly differentiates"
 else
-  assert_fail "SessionEnd diagnostic missing 'SessionEndOK returns EMPTY output' phrase — case-statement schema differentiation failed"
+  assert_fail "SessionEnd diagnostic missing 'discards their JSON output fields' phrase — case-statement schema differentiation failed"
 fi
 
 # Iter-69 pentad completion assertions: PreCompact + Notification coverage
@@ -394,10 +394,10 @@ fi
 # Notification-specific schema diagnostic — verifies Notification violation
 # message cites the no-decision-capability rule (NOT Stop-family rule;
 # Notification has its own case-statement branch).
-if grep -q 'Exit Code 2 Behavior: N/A' <<<"$AUDIT_OUTPUT"; then
-  assert_pass "Notification violation diagnostic mentions no-decision-capability schema rule ('Exit Code 2 Behavior: N/A') — iter-69 case-statement Notification branch working"
+if grep -q 'Exit code and stderr are ignored' <<<"$AUDIT_OUTPUT"; then
+  assert_pass "Notification violation diagnostic mentions no-decision-capability schema rule ('Exit code and stderr are ignored') — Notification branch working"
 else
-  assert_fail "Notification diagnostic missing 'Exit Code 2 Behavior: N/A' phrase — case-statement Notification branch failed"
+  assert_fail "Notification diagnostic missing 'Exit code and stderr are ignored' phrase — case-statement Notification branch failed"
 fi
 
 # ---------------------------------------------------------------------------
