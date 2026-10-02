@@ -5,9 +5,9 @@ set -euo pipefail
 ITER171_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER171_REPO_ROOT"
 
-ITER171_ITER150_RENDERER_ABSOLUTE_PATH="$ITER171_REPO_ROOT/scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
-ITER171_ITER152_HISTOGRAM_ABSOLUTE_PATH="$ITER171_REPO_ROOT/scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
-ITER171_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER171_REPO_ROOT/scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER171_ITER150_RENDERER_ABSOLUTE_PATH="$ITER171_REPO_ROOT/scripts/iter150-readable-git-log.sh"
+ITER171_ITER152_HISTOGRAM_ABSOLUTE_PATH="$ITER171_REPO_ROOT/scripts/iter152-commit-subject-length-histogram.sh"
+ITER171_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER171_REPO_ROOT/scripts/iter153-commit-subject-advisor.sh"
 
 # Synthetic UTF-8 probe subject: 6 ASCII chars ("feat: ") + 6 CJK chars (修复编码问题) + 3 ASCII chars ("XYZ") = 15 visible chars, 27 UTF-8 bytes.
 ITER171_SYNTHETIC_CJK_PROBE_SUBJECT_WITH_KNOWN_VISIBLE_CHAR_COUNT_OF_FIFTEEN_AND_UTF8_BYTE_COUNT_OF_TWENTYSEVEN="feat: 修复编码问题XYZ"

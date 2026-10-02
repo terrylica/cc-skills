@@ -5,7 +5,7 @@ set -euo pipefail
 ITER175_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER175_REPO_ROOT"
 
-ITER175_ITER152_DASHBOARD_ABSOLUTE_PATH="$ITER175_REPO_ROOT/scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+ITER175_ITER152_DASHBOARD_ABSOLUTE_PATH="$ITER175_REPO_ROOT/scripts/iter152-commit-subject-length-histogram.sh"
 
 ITER175_TOTAL_ASSERTIONS_EVALUATED=0
 ITER175_TOTAL_ASSERTIONS_FAILED=0

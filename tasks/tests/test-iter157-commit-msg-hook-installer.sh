@@ -4,10 +4,13 @@ set -euo pipefail
 
 ITER157_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER157_REPO_ROOT"
+# The installed hook locates the iter-153 advisor in ~/eon/cc-skills by default;
+# point it at the tree under test so a worktree or renamed script is what runs.
+export ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE="${ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE:-$ITER157_REPO_ROOT}"
 
-ITER157_HOOK_SOURCE_RELATIVE_PATH="scripts/iter157-installable-commit-msg-git-hook-delegating-to-iter153-strict-mode-advisor-for-automatic-rejection-of-compound-prefix-and-missing-type-silent-fail-class-violations-at-commit-time-closing-the-natural-git-workflow-integration-gap.sh"
+ITER157_HOOK_SOURCE_RELATIVE_PATH="scripts/iter157-commit-msg-hook.sh"
 ITER157_HOOK_SOURCE_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_HOOK_SOURCE_RELATIVE_PATH"
-ITER157_INSTALLER_RELATIVE_PATH="scripts/iter157-idempotent-installer-and-uninstaller-of-the-commit-msg-git-hook-managing-existing-hook-backup-restoration-with-cc-skills-managed-sentinel-marker-for-safe-detection-of-our-own-installs-vs-third-party.sh"
+ITER157_INSTALLER_RELATIVE_PATH="scripts/iter157-commit-msg-hook-installer.sh"
 ITER157_INSTALLER_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_INSTALLER_RELATIVE_PATH"
 ITER157_INSTALL_HOOK_TASK="$ITER157_REPO_ROOT/tasks/commits/install-hook"
 ITER157_UNINSTALL_HOOK_TASK="$ITER157_REPO_ROOT/tasks/commits/uninstall-hook"

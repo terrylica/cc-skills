@@ -35,7 +35,7 @@
 
 import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 import {
   buildLineTerminatorDenyMessage,
   detectOptionLineTerminators,

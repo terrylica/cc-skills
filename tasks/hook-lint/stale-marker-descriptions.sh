@@ -155,7 +155,7 @@ import {
   findFirstDiscriminatingCandidateSubstringMatchedInDescriptionOrNullWhenDescriptionIsUnmooredFromBothMarkerAndConsumerBasename,
   extractDiscriminatingHyphenSegmentsFromMarkerNameTokenIncludingSuffix,
   extractDiscriminatingHyphenSegmentsFromConsumerSourceFileRelativePathBasename,
-} from "$ITER121_AUDIT_REPO_ROOT_ABSOLUTE/plugins/itp-hooks/hooks/lib/iter121-stale-description-audit-algorithm-discriminating-hyphen-segment-extraction-from-marker-or-consumer-source-file-basename.ts";
+} from "$ITER121_AUDIT_REPO_ROOT_ABSOLUTE/plugins/itp-hooks/hooks/lib/iter121-marker-basename-segment-extraction.ts";
 
 interface StaleDescriptionCandidateHit {
   readonly originatingRegistryLifecycleLayerTag:

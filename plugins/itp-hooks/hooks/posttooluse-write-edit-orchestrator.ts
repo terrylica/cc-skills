@@ -27,8 +27,8 @@
  *
  *   The iter-89 firing originally proposed `async: true` (Anthropic's
  *   Jan-2026 flag) as a strict-dominant alternative to orchestrator
- *   inlining for PostToolUse (filename-encoded as `corrects-iter89-async-
- *   true-strict-dominance-claim` for forensic traceability). Iter-92's web research + classifier audit ruled that
+ *   inlining for PostToolUse (the file's former name encoded this as
+ *   `corrects-iter89-async-true-strict-dominance-claim`). Iter-92's web research + classifier audit ruled that
  *   strategy OUT for 15 of 17 marketplace PostToolUse hooks because async
  *   hooks cannot reliably inject `additionalContext` next-to-tool-result
  *   (the model advances before the hook finishes — see Anthropic timing
@@ -49,7 +49,7 @@
  *   Every registered subhook MUST conform to PostToolUseSubhookContract
  *   (pure async classifier, AbortSignal.timeout() cooperative cancellation,
  *   internal try/catch crash isolation). See
- *   `lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`.
+ *   `lib/posttooluse-subhook-contract-iter93.ts`.
  *
  * Iter-93 starting state: 1 subhook (ty-type-check) inlined; 14 remaining
  * context-injecting PostToolUse hooks queued for iter-94+ migration.
@@ -59,15 +59,15 @@ import type {
   PostToolUseInput,
   PostToolUseSubhookDecision,
   PostToolUseSubhookRegistryEntry,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 // Iter-106: import from the dedicated cross-Pre/PostToolUse shared lib (the
 // helper's canonical home as of iter-106; relocated from the PostToolUse
 // contract lib where iter-104 pragmatically introduced it).
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
 import { classifyTscTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsc-type-check.ts";
 import { classifyOxlintCheckForPostToolUseOrchestrator } from "./posttooluse-oxlint-check.ts";
