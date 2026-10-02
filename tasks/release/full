@@ -46,7 +46,7 @@ readonly CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR="$CC_SKILLS_REPO_ROOT/tasks/release"
 # second time, since the Phase 1 call-site below still invokes it), destroying the phase-1
 # wall-clock that iter-74 through iter-138 were built on. The absence of the
 # frontmatter line is asserted by Iter-139.C4 in
-# tasks/tests/test-iter137-138-139-140-…-sleep-2-elimination.sh:253, and the
+# tasks/tests/test-iter137-140-release-pipeline-instrumentation.sh:253, and the
 # exemption is recorded next to `release-full` in moon.yml.
 __iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary=()
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-gh-hooks-derive-account-from-origin-host-alias-not-retired-gh-account-env-or-dotsecrets-token-files.sh
+# test-gh-hooks-account-from-origin-host-alias.sh
 #
 # Regression test for the ADR 2026-06-21 host-alias migration of the gh-tools
 # hooks. Before this change both hooks detected the active GitHub account from

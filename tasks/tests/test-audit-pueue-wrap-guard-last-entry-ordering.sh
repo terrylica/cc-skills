@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-audit-pueue-wrap-guard-last-entry-ordering-detects-violation-when-soft-nudge-hook-follows-pueue-wrap-guard-in-hooks-json.sh
+# test-audit-pueue-wrap-guard-last-entry-ordering.sh
 #
 # Regression test for the iter-61 pueue-wrap-guard ordering audit at
 # tasks/hook-lint/pueue-wrap-last.sh.
