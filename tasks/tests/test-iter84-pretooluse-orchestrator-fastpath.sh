@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-84 regression test for pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts. Asserts: (1) non-Write/Edit fastpath returns allow, (2) Write under threshold returns allow, (3) Write over block threshold triggers belt-and-suspenders deny (stdout JSON deny + stderr diagnostic + exit 2 per iter-78/GitHub #37210), (4) FILE-SIZE-OK escape hatch is honored, (5) the orchestrator-emitted reason includes the orchestrator diagnostic prefix to distinguish it from a standalone subhook call.
+# Iter-84 regression test for pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts. Asserts: (1) non-Write/Edit fastpath returns allow, (2) Write under threshold returns allow, (3) Write over block threshold denies via stdout JSON with exit 0 plus a stderr diagnostic (exit 2 was dropped 2026-10-01 because it also hard-blocked ask), (4) FILE-SIZE-OK escape hatch is honored, (5) the orchestrator-emitted reason includes the orchestrator diagnostic prefix to distinguish it from a standalone subhook call.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -60,7 +60,7 @@ else
     assert_fails "Case 2: small Write; stdout=$case2_stdout"
 fi
 
-# ─── Case 3: large Write over BLOCK threshold → belt-and-suspenders deny ──────
+# ─── Case 3: large Write over BLOCK threshold → JSON deny, exit 0 ────────────
 # 2500-line .ts file (block threshold = 2000 since 2026-05-26 threshold doubling;
 # previously 1500-line fixture exceeded the old 1000 block but no longer). Expect:
 #   stdout: JSON with permissionDecision=deny + orchestrator prefix in reason
@@ -102,16 +102,16 @@ fi
 
 # (3d) stderr diagnostic line
 if [[ "$case3_stderr" == *'DENY from subhook=file-size-guard'* ]]; then
-    assert_passes "Case 3d: stderr diagnostic line emitted (belt-and-suspenders)"
+    assert_passes "Case 3d: stderr diagnostic line emitted (debug log)"
 else
     assert_fails "Case 3d: stderr missing diagnostic; stderr=$case3_stderr"
 fi
 
-# (3e) exit code 2
-if [[ "$case3_exit" == "2" ]]; then
-    assert_passes "Case 3e: exit code = 2 (belt-and-suspenders per GH #37210)"
+# (3e) exit code 0 — JSON deny, no exit 2 (exit 2 would also hard-block an ask)
+if [[ "$case3_exit" == "0" ]]; then
+    assert_passes "Case 3e: exit code = 0 (JSON deny; exit 2 would also block an ask)"
 else
-    assert_fails "Case 3e: exit code = $case3_exit, expected 2"
+    assert_fails "Case 3e: exit code = $case3_exit, expected 0"
 fi
 
 # ─── Case 4: FILE-SIZE-OK escape hatch in large file → allow ─────────────────

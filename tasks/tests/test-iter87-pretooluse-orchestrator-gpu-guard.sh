@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-87 regression test extending iter-86 orchestrator coverage. Verifies (1) gpu-optimization-guard inlined as 4th registry entry produces matching deny across all 6 GPU policy checks, (2) AbortSignal.timeout()-based cooperative-timeout refactor preserves the iter-84/85/86 belt-and-suspenders defense (stdout JSON + stderr + exitCode=2), (3) standalone gpu-optimization-guard.ts backward-compat (no orchestrator prefix), (4) idiomatic AbortSignal.timeout() rejection path correctly distinguishes TimeoutError from other classifier errors (negative test via slow-classifier fixture).
+# Iter-87 regression test extending iter-86 orchestrator coverage. Verifies (1) gpu-optimization-guard inlined as 4th registry entry produces matching deny across all 6 GPU policy checks, (2) AbortSignal.timeout()-based cooperative-timeout refactor preserves the deny emission (stdout JSON + stderr diagnostic, exit 0 since 2026-10-01), (3) standalone gpu-optimization-guard.ts backward-compat (no orchestrator prefix), (4) idiomatic AbortSignal.timeout() rejection path correctly distinguishes TimeoutError from other classifier errors (negative test via slow-classifier fixture).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -59,10 +59,10 @@ if [[ "$case1_stdout" == *'AMP (Automatic Mixed Precision)'* ]]; then
 else
     assert_fails "Case 1d: AMP policy diagnostic missing"
 fi
-if [[ "$case1_exit" == "2" ]]; then
-    assert_passes "Case 1e: orchestrator exits 2 (belt-and-suspenders preserved through AbortSignal refactor)"
+if [[ "$case1_exit" == "0" ]]; then
+    assert_passes "Case 1e: orchestrator exits 0 with JSON deny through the AbortSignal refactor"
 else
-    assert_fails "Case 1e: exit=$case1_exit, expected 2"
+    assert_fails "Case 1e: exit=$case1_exit, expected 0"
 fi
 
 # ─── Case 2: bypass comment honored ────────────────────────────────────────────

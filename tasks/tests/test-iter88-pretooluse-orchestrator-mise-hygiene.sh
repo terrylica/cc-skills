@@ -54,10 +54,10 @@ if [[ "$case1_stdout" == *'Secrets detected'* ]]; then
 else
     assert_fails "Case 1c: secrets policy diagnostic missing"
 fi
-if [[ "$case1_exit" == "2" ]]; then
-    assert_passes "Case 1d: orchestrator exits 2 on mise-hygiene deny"
+if [[ "$case1_exit" == "0" ]]; then
+    assert_passes "Case 1d: exit 0 (JSON deny) on mise-hygiene deny"
 else
-    assert_fails "Case 1d: exit=$case1_exit, expected 2"
+    assert_fails "Case 1d: exit=$case1_exit, expected 0"
 fi
 
 # ─── Case 2: .mise.local.toml with same secret → ALLOW (ignore-list) ──────────
@@ -123,10 +123,10 @@ if [[ "$case4_stdout" == *'hub-spoke'* ]]; then
 else
     assert_fails "Case 4b: hub-spoke suggestion missing"
 fi
-if [[ "$case4_exit" == "2" ]]; then
-    assert_passes "Case 4c: exit code 2 on line-count violation"
+if [[ "$case4_exit" == "0" ]]; then
+    assert_passes "Case 4c: exit 0 (JSON deny) on line-count violation"
 else
-    assert_fails "Case 4c: exit=$case4_exit, expected 2"
+    assert_fails "Case 4c: exit=$case4_exit, expected 0"
 fi
 
 # ─── Case 5: standalone mise-hygiene-guard still works (backward-compat) ──────
