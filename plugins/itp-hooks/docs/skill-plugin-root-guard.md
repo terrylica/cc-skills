@@ -4,16 +4,15 @@
 
 **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md) | **Sibling**: [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)
 
-## The incident that produced it (2026-08-05)
+## The symptom it prevents
 
-`/notes-commander:draft-hold`, invoked from an unrelated repo, died with:
+A skill whose SKILL.md runs `"$CLAUDE_PLUGIN_ROOT/skills/x/run.sh"` fails with something like:
 
 ```
-Error: Exit code 127
-(eval):1: no such file or directory: /skills/draft-hold/draft-hold.sh
+(eval):1: no such file or directory: /skills/x/run.sh
 ```
 
-Its SKILL.md said `DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"`. The variable was unset, zsh expanded it to the empty string, and the result was an absolute-looking `/skills/…` path — which reads like a missing **file** rather than a missing **variable**. The recovery was also wrong: globbing the version cache and taking the highest semver picked `23.4.1`, a directory marked `.orphaned_at`, while the live version was `23.5.0`.
+The variable is unset in the Bash tool, zsh expands it to the empty string, and the result is an absolute-looking `/skills/…` path that reads like a missing **file** rather than a missing **variable**. Recovering by globbing the version cache for the highest semver is also wrong (see below).
 
 ## What is actually true about `CLAUDE_PLUGIN_ROOT`
 
@@ -41,7 +40,7 @@ It is never exported into the Bash tool's environment. And a SKILL.md body is se
 | `NON_SUBSTITUTING_DEFAULT` | `${CLAUDE_PLUGIN_ROOT:-fallback}`       | The regex needs the closing brace right after the name, so this is never substituted either; it silently always takes the fallback |
 | `BRACED_IN_SHELL_CONTEXT`  | `${CLAUDE_PLUGIN_ROOT}` on a shell line | Correct in a manifest snippet, not in a shell command a skill tells the model to run                                               |
 
-The `:-` idiom deserves emphasis: it _looks_ defensive, and 51 call sites in this marketplace used it. Because it never substitutes, every one of them silently ran the **Layer-2 marketplace clone** rather than the installed version. It worked, but not for the reason its authors believed.
+The `:-` idiom deserves emphasis: it _looks_ defensive, but because it never substitutes, a fallback such as the **Layer-2 marketplace clone** path is always the one used, never the installed version. It can appear to work, but not for the reason its author believed.
 
 ## Scope and exemptions
 
@@ -65,17 +64,17 @@ Do **not** glob `~/.claude/plugins/cache/<mp>/<plugin>/*` for the highest versio
 SKILL-PLUGIN-ROOT-OK: <reason at least 10 characters>
 ```
 
-`FILE_WIDE` semantics: one marker anywhere in the file exempts the whole file, because the files that legitimately contain these patterns are documentation _about_ the variable. On Edit the marker is honored from the on-disk copy too (the iter-15 pattern), so an edit to an unrelated region of a marked file is not blocked.
+`FILE_WIDE` semantics: one marker anywhere in the file exempts the whole file, because the files that legitimately contain these patterns are documentation _about_ the variable. On Edit the marker is honored from the on-disk copy too, so an edit to an unrelated region of a marked file is not blocked.
 
-Currently marked: `plugin-dev`'s `path-patterns.md` / `advanced-topics.md` / `evolution-log.md`, `itp-hooks`'s `lifecycle-reference.md` / `hook-templates.md`, and the two SKILL.mds whose prose explains the rule. The `gh-tools` and `productivity-tools` `tether` skills were also marked until issue #127 deleted them — their probe-for-the-variable diagnostic block went with the skill.
+Currently marked: `plugin-dev`'s `path-patterns.md` / `advanced-topics.md` / `evolution-log.md`, `itp-hooks`'s `lifecycle-reference.md` / `hook-templates.md`, and the two SKILL.mds whose prose explains the rule (`notes-commander`'s `draft-park` and `macos-font-defaults`).
 
 ## Implementation
 
 - Classifier: `classifySkillPluginRootGuardForOrchestrator` in [`../hooks/pretooluse-skill-plugin-root-guard.ts`](../hooks/pretooluse-skill-plugin-root-guard.ts)
 - Registered as a subhook in the PreToolUse Write|Edit orchestrator, positioned early: an O(1) path filter (`/skills/` substring + `.md` suffix) then an O(1) content sentinel; the single disk read is deferred until a real candidate violation exists.
-- Tests: 18 in [`../hooks/pretooluse-skill-plugin-root-guard.test.ts`](../hooks/pretooluse-skill-plugin-root-guard.test.ts).
-- Marker registered in the iter-111 canonical registry.
+- Tests: [`../hooks/pretooluse-skill-plugin-root-guard.test.ts`](../hooks/pretooluse-skill-plugin-root-guard.test.ts).
+- Marker registered in the canonical marker registry, [`lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts).
 
-## Relationship to the retired iter-78 guard
+## What it does not police
 
-This guard **replaced** the iter-78 layer-3 stripped-path guard, which was unregistered the same day and deleted on 2026-10-01. Iter-78 policed the _opposite_ concern — which subtrees survive the Layer-2 to Layer-3 cache promotion — on a premise that no longer holds: a `diff -rq` of the L2 mirror against the live L3 cache for four plugins returns exactly one difference each (the `.in_use` marker Claude Code adds), and `scripts/` is present in the latest cached version of all 27 cc-skills plugins that ship one. With a false premise it produced only false positives; it fired three times in one session on documentation and test fixtures that merely mentioned a path. The full evidence is in `docs/LESSONS.md` (2026-08-05) and in git history.
+This guard is only about how a skill resolves its own path. It does not restrict which subtrees a skill may reference: the plugin cache copies a plugin's whole tree (a `diff -rq` of the marketplace clone against the installed cache differs only by the `.in_use` marker Claude Code adds), so `scripts/` and other non-skill directories are present in an installed plugin. A guard that once assumed otherwise was removed for producing only false positives; see `docs/LESSONS.md` (2026-08-05).

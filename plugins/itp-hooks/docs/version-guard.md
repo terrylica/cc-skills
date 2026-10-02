@@ -1,11 +1,32 @@
 # version-guard
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — created 2026-06-11 when the full-table snapshot docs were dissolved into per-hook spokes.
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`pretooluse-version-guard.ts`](../hooks/pretooluse-version-guard.ts), subhook `version-guard` of the [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) (first in the registry, timeout 3000 ms).
 
-## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+## What it blocks
 
-> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+A Write or Edit of a `.md` file whose new text (`content` for Write, `new_string` for Edit) contains a hardcoded version. The version belongs only in `Cargo.toml`, `pyproject.toml` or `package.json`; docs use a `<version>` placeholder or a registry link. A placeholder elsewhere in the same text does not exempt it.
 
-**Matcher**: (inlined in iter-85 orchestrator)
+Detected shapes (`HARDCODED_VERSION_DETECTION_REGEX_PATTERNS`):
 
-Version consistency validation (hardcoded version blocker for markdown). Renamed from `.mjs` to `.ts` in iter-85 for full TypeScript type-checking when imported by the orchestrator. Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84/85 orchestrator which imports `classifyVersionGuardForOrchestrator` from this file. See [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) and [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).
+Below, `N` stands for a run of digits; the spoke avoids literal versions so editing it is never blocked.
+
+- `= "N.N.N"` (TOML/Rust), `==N.N.N` and `~=N.N.N` (Python), `"version": "N.N.N"` (JSON)
+- `Version: N.N.N` and `**Version**: N.N.N` in prose
+- `vN.N.N`, but not `vN.N.N+`, which is a minimum requirement
+- pre-releases `N.N.N-alpha`, `-beta` or `-rc` (optionally `.N`), and calendar versions `YYYY.M.D`
+
+Two-segment versions, `>=` constraints and XML `version="N.N"` boilerplate are deliberately not matched, and fenced `xml`/`html`/`plist` code blocks are stripped before matching.
+
+## Exempt paths
+
+`HARDCODED_VERSION_EXEMPT_FILE_PATH_REGEX_PATTERNS`: any dot-prefixed directory (`.claude/`, `.github/`, `.planning/`, …), paths containing `CHANGELOG`, `MIGRATION`, `HISTORY` or `ADR-<n>`, directories `archive/`, `milestones/`, `planning/`, `plans/`, `reports/`, `output/`/`outputs/`, `adr/`, `development/`, `node_modules`, crate-level `crates/<name>/README.md`, anything under `/tmp/`, and `LOOP_CONTRACT*.md`.
+
+It is also skipped in plan mode ([plan-mode-detection.md](./plan-mode-detection.md); ADR [/docs/adr/2026-02-05-plan-mode-detection-hooks.md](/docs/adr/2026-02-05-plan-mode-detection-hooks.md)).
+
+## Escape hatch
+
+`SSoT-OK` anywhere in the new text (for example `# SSoT-OK` or `<!-- SSoT-OK -->`), case-sensitive and file-wide, detected by the shared marker helper in [`lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`](../hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts). The [ssot-principles](./ssot-principles.md) reminder honours the same token.
+
+## Code
+
+The classifier is `classifyVersionGuardForOrchestrator`. The file also runs standalone (`bun pretooluse-version-guard.ts < payload.json`) through its `import.meta.main` guard. See [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).
