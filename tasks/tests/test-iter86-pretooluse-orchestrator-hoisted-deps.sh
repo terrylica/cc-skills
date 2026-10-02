@@ -49,10 +49,10 @@ if [[ "$case1_stdout" == *'hoisted-deps-guard → DENY'* ]]; then
 else
     assert_fails "Case 1b: subhook attribution missing"
 fi
-if [[ "$case1_exit" == "2" ]]; then
-    assert_passes "Case 1c: exit code 2 (belt-and-suspenders defense)"
+if [[ "$case1_exit" == "0" ]]; then
+    assert_passes "Case 1c: exit code 0 (JSON deny)"
 else
-    assert_fails "Case 1c: exit=$case1_exit, expected 2"
+    assert_fails "Case 1c: exit=$case1_exit, expected 0"
 fi
 
 # ─── Case 2: Policy 3 (hoisted-deps) deny via orchestrator ─────────────────────
@@ -86,10 +86,10 @@ if [[ "$case2_stdout" == *'"permissionDecision":"deny"'* ]] && \
 else
     assert_fails "Case 2: stdout=$case2_stdout"
 fi
-if [[ "$case2_exit" == "2" ]]; then
-    assert_passes "Case 2b: exit code 2 on POLICY violation"
+if [[ "$case2_exit" == "0" ]]; then
+    assert_passes "Case 2b: exit 0 (JSON deny) on POLICY violation"
 else
-    assert_fails "Case 2b: exit=$case2_exit, expected 2"
+    assert_fails "Case 2b: exit=$case2_exit, expected 0"
 fi
 cd "$REPO_ROOT"
 
