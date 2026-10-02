@@ -6,7 +6,7 @@ ITER178_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2
 cd "$ITER178_REPO_ROOT"
 
 ITER178_PERF_BASELINE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/commits/perf-baseline"
-ITER178_ITER174_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
+ITER178_ITER174_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/tests/test-iter174-commits-toolkit-perf-baseline.sh"
 ITER178_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/commits/_default"
 
 ITER178_TOTAL_ASSERTIONS_EVALUATED=0
