@@ -28,6 +28,8 @@ LOG="/tmp/ssh-tunnel-companion.log"
 
 # Target host from config, never baked in — see libexec/ssh-tunnel-companion-runner.
 # May legitimately be empty on a machine that has not configured the tunnel; the
+# Tailscale CLI, wherever it is installed (Homebrew tailscaled, or the macOS app's helper/binary).
+TS_BIN="$(command -v tailscale 2>/dev/null || ls /opt/homebrew/bin/tailscale /usr/local/bin/tailscale /Applications/Tailscale.app/Contents/MacOS/Tailscale 2>/dev/null | head -1)"
 # menu then reports L1 as "not configured" rather than rendering a wrong host.
 SSH_TUNNEL_CONFIG="${SSH_TUNNEL_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ssh-tunnel-companion/config}"
 if [ -f "$SSH_TUNNEL_CONFIG" ]; then
@@ -142,7 +144,7 @@ else
     echo "Start Tunnel | sfimage=play.circle bash='$0' param1=start terminal=false refresh=true"
 fi
 if [ -n "$TUNNEL_HOST" ]; then
-    echo "Tailscale Ping | sfimage=antenna.radiowaves.left.and.right bash=/usr/local/bin/tailscale param1=ping param2=${TUNNEL_HOST} terminal=true"
+    echo "Tailscale Ping | sfimage=antenna.radiowaves.left.and.right bash=${TS_BIN} param1=ping param2=${TUNNEL_HOST} terminal=true"
 fi
 
 echo "---"
