@@ -56,10 +56,10 @@ if [[ "$case1_stdout" == *'class definition'* ]]; then
 else
     assert_fails "Case 1c: violation label missing"
 fi
-if [[ "$case1_exit" == "2" ]]; then
-    assert_passes "Case 1d: orchestrator exits 2 on pyi-stub-guard deny (belt-and-suspenders)"
+if [[ "$case1_exit" == "0" ]]; then
+    assert_passes "Case 1d: orchestrator exits 0 with JSON deny on pyi-stub-guard deny"
 else
-    assert_fails "Case 1d: exit=$case1_exit, expected 2"
+    assert_fails "Case 1d: exit=$case1_exit, expected 0"
 fi
 
 # ─── Case 2: __init__.pyi with top-level def → DENY (stricter PEP 561) ────────
@@ -78,10 +78,10 @@ if [[ "$case2_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case2_stdout
 else
     assert_fails "Case 2a: __init__.pyi PEP 561 guidance missing; got=${case2_stdout:0:200}"
 fi
-if [[ "$case2_exit" == "2" ]]; then
-    assert_passes "Case 2b: exit 2 on .pyi deny"
+if [[ "$case2_exit" == "0" ]]; then
+    assert_passes "Case 2b: exit 0 (JSON deny) on .pyi deny"
 else
-    assert_fails "Case 2b: exit=$case2_exit, expected 2"
+    assert_fails "Case 2b: exit=$case2_exit, expected 0"
 fi
 
 # ─── Case 3: non-init Python file (models.py) → ALLOW (O(1) suffix fastpath) ──

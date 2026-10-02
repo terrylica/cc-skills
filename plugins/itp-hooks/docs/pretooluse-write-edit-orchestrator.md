@@ -31,11 +31,7 @@ Subhook contract at [`lib/pretooluse-subhook-contract-for-in-process-orchestrato
 - Cooperative timeout via `AbortSignal.timeout()`
 - Crash isolation via try/catch
 
-Belt-and-suspenders deny defense per [GitHub #37210](https://github.com/anthropics/claude-code/issues/37210):
-
-- stdout JSON: `permissionDecision: "deny"`
-- stderr diagnostic
-- exit 2
+Decision emission: precedence is deny > ask > allow, so the first deny stops the run and an ask is held while later subhooks are checked for a deny. Deny and ask are both written to stdout as `hookSpecificOutput.permissionDecision` JSON with exit 0, plus a stderr diagnostic that reaches only the debug log. Exit 2 is never used: the [hooks reference](https://code.claude.com/docs/en/hooks#exit-code-2) says it "blocks whether or not you print JSON", so it turned every `ask` into a hard block (fixed 2026-10-01). The earlier exit-2-on-deny "belt-and-suspenders" cited [anthropics/claude-code#37210](https://github.com/anthropics/claude-code/issues/37210), which was closed not-planned after its reporter found exit 0 with the `hookSpecificOutput` wrapper denied Edit and Write correctly.
 
 ## Per-Subhook Deep Dives
 

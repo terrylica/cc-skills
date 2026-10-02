@@ -66,10 +66,10 @@ if [[ "$case1_stdout" == *'native-binary-guard → DENY'* ]]; then
 else
     assert_fails "Case 1b: subhook attribution missing"
 fi
-if [[ "$case1_exit" == "2" ]]; then
-    assert_passes "Case 1c: orchestrator exits 2 on shell-script-in-launchd-dir deny"
+if [[ "$case1_exit" == "0" ]]; then
+    assert_passes "Case 1c: exit 0 (JSON deny) on shell-script-in-launchd-dir deny"
 else
-    assert_fails "Case 1c: exit=$case1_exit, expected 2"
+    assert_fails "Case 1c: exit=$case1_exit, expected 0"
 fi
 
 # ─── Case 2: launchd .plist with /bin/bash as arg0 → DENY ─────────────────────
@@ -92,10 +92,10 @@ if [[ "$case2_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case2_stdout
 else
     assert_fails "Case 2a: plist /bin/bash deny missing; got=${case2_stdout:0:200}"
 fi
-if [[ "$case2_exit" == "2" ]]; then
-    assert_passes "Case 2b: exit 2 on plist /bin/bash deny"
+if [[ "$case2_exit" == "0" ]]; then
+    assert_passes "Case 2b: exit 0 (JSON deny) on plist /bin/bash deny"
 else
-    assert_fails "Case 2b: exit=$case2_exit, expected 2"
+    assert_fails "Case 2b: exit=$case2_exit, expected 0"
 fi
 
 # ─── Case 3: launchd .plist with .sh ProgramArguments path → DENY ─────────────
@@ -109,8 +109,8 @@ case3_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case3_payload" 2>/dev/null)
 case3_exit=$?
 set -e
 
-if [[ "$case3_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case3_exit" == "2" ]]; then
-    assert_passes "Case 3: plist with .sh ProgramArguments path → deny + exit 2"
+if [[ "$case3_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case3_exit" == "0" ]]; then
+    assert_passes "Case 3: plist with .sh ProgramArguments path → deny + exit 0"
 else
     assert_fails "Case 3: .sh ProgramArguments deny missing; exit=$case3_exit"
 fi
@@ -260,7 +260,7 @@ case11_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case11_payload" 2>/dev/null)
 case11_exit=$?
 set -e
 
-if [[ "$case11_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case11_stdout" == *'must be a NAMED script'* ]] && [[ "$case11_exit" == "2" ]]; then
+if [[ "$case11_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case11_stdout" == *'must be a NAMED script'* ]] && [[ "$case11_exit" == "0" ]]; then
     assert_passes "Case 11: plist arg0=/bin/bash WITH BASH-LAUNCHD-OK marker → DENY (marker does not waive named-arg0 rule)"
 else
     assert_fails "Case 11: bare-interpreter-arg0 not denied under marker; exit=$case11_exit; got=${case11_stdout:0:200}"
@@ -279,7 +279,7 @@ case12_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case12_payload" 2>/dev/null)
 case12_exit=$?
 set -e
 
-if [[ "$case12_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case12_stdout" == *'must be a NAMED script'* ]] && [[ "$case12_exit" == "2" ]]; then
+if [[ "$case12_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case12_stdout" == *'must be a NAMED script'* ]] && [[ "$case12_exit" == "0" ]]; then
     assert_passes "Case 12: plist arg0=bun → DENY (non-bash interpreters now caught)"
 else
     assert_fails "Case 12: bun arg0 not denied; exit=$case12_exit; got=${case12_stdout:0:200}"
