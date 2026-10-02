@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-chezmoi-sync-reminder-command-availability-fastpath-short-circuits-before-jq-when-chezmoi-not-installed.sh
+# test-chezmoi-reminder-fastpath-without-chezmoi.sh
 #
 # Regression test for iter-46 pre-jq-fastpath optimization on
 # chezmoi-sync-reminder.sh. The optimization moved `command -v chezmoi`

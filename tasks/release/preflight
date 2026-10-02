@@ -457,7 +457,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4: plugin manifest v
 # of preflight wall time. Iter-74 target: ~500ms (~75% reduction). The
 # scanner and its parity regression test:
 #   scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk
-#   tasks/tests/test-skill-md-self-evolution-sandwich-single-pass-awk-scanner-parity-against-iter73-fork-storm-bash-loop-baseline.sh
+#   tasks/tests/test-iter73-skill-md-sandwich-awk-scanner-parity.sh
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
@@ -561,7 +561,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide
 # green release (gap found 2026-07-18 while hardening draft-hold).
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running marketplace-wide Bun unit suite (tracked *.test.ts/mjs)..."
-if ! bash tasks/test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration.sh >/tmp/bun-unit-suite.log 2>&1; then
+if ! bash tasks/test-marketplace-bun-unit-suite.sh >/tmp/bun-unit-suite.log 2>&1; then
     echo "  ✗ Bun unit suite FAILED — see /tmp/bun-unit-suite.log"
     tail -20 /tmp/bun-unit-suite.log
     exit 1

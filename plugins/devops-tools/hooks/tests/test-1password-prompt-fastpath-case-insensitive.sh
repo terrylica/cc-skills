@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-userpromptsubmit-1password-context-injection-prejq-fastpath-preserves-case-insensitive-keyword-detection.sh
+# test-1password-prompt-fastpath-case-insensitive.sh
 #
 # Regression test for iter-41 pre-jq-fastpath on
 # userpromptsubmit-1password-context-injection.sh. Verifies that the

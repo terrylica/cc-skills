@@ -829,12 +829,12 @@ Opt-in flag for the iter-135 regression test's serial-mode-opt-out integration t
 
 ```bash
 ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1 \
-  bash tasks/tests/test-iter134-parallel-fan-out-preflight-audit-subprocesses-*.sh
+  bash tasks/tests/test-iter134-parallel-preflight-audit-fan-out.sh
 ```
 
 ```bash
 ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1 \
-  bash tasks/tests/test-iter130-and-iter131-bottleneck-ranking-summaries-*.sh
+  bash tasks/tests/test-iter130-131-bottleneck-ranking-summaries.sh
 ```
 
 #### `AUDIT_REPO_ROOT_OVERRIDE=/path/to/synthetic/fixture/repo` (iter-62)

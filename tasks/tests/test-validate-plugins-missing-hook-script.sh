@@ -156,7 +156,7 @@ assert_error_contains "home-rooted-marketplace-path-errors-with-in-repo-equivale
 # longer exists is indistinguishable from a test someone muted to get green.
 #
 # What replaced them is a test of the actual property rather than the proxy:
-# tasks/tests/test-proto-shim-does-not-write-an-ai-agent-ndjson-banner-*.sh
+# tasks/tests/test-proto-shim-no-ndjson-banner-on-stdout.sh
 # invokes the real shim 60-way concurrently and asserts stdout stays clean,
 # with its own positive control proving the detector can fire.
 #

@@ -138,7 +138,7 @@ cat > "$SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" <<EOF
 #!/usr/bin/env bash
 # $SYNTHETIC_TYPO_MARKER_TOKEN_DELIBERATELY_NOT_IN_REGISTRY — iter-111 regression test fixture.
 # This file is a temporary marker-injection target used ONLY by
-# test-iter111-marketplace-wide-producer-escape-hatch-marker-canonical-registry-and-typo-detection-audit.sh
+# test-iter111-escape-hatch-marker-registry-typo-audit.sh
 # and is removed by the test's cleanup trap. If you see this file in
 # the working tree after the test has run, the cleanup trap failed.
 echo "iter-111 synthetic typo fixture"
