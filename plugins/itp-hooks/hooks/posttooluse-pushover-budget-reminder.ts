@@ -69,7 +69,6 @@ interface HookInput {
     file_path?: string;
     content?: string;
     new_string?: string;
-    edits?: Array<{ old_string?: string; new_string?: string }>;
   };
   session_id?: string;
 }
@@ -203,9 +202,6 @@ function extractText(input: HookInput): string {
   if (tool === "Bash") return ti.command || "";
   if (tool === "Write") return ti.content || "";
   if (tool === "Edit") return ti.new_string || "";
-  if (tool === "MultiEdit") {
-    return (ti.edits || []).map((e) => e.new_string || "").join("\n");
-  }
   return "";
 }
 
@@ -217,13 +213,13 @@ function extractText(input: HookInput): string {
  * the temp-dir skip (which needs `tool_input.file_path`, invisible to the pure
  * `detectPushoverMessageConstruction` detector) is unit-testable without
  * spawning the hook process. Bash inline commands carry no file_path, so the
- * skip can only apply to the Write/Edit/MultiEdit arms.
+ * skip can only apply to the Write/Edit arms.
  */
 export function evaluatePushoverHookInput(input: HookInput): PushoverDetectionResult {
   const ti = input.tool_input || {};
   const filePath = ti.file_path || "";
   // Throwaway / non-durable scripts get no nudge (iter-124):
-  //   • Write/Edit/MultiEdit of a file inside a temp dir, OR a test/fixture file
+  //   • Write/Edit of a file inside a temp dir, OR a test/fixture file
   //   • a Bash command that materializes a throwaway script into a temp dir
   //     (heredoc / redirect / tee / mktemp) — Bash has no single file_path.
   if (

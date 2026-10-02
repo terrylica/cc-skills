@@ -11,7 +11,7 @@
 
 ## Quick navigation
 
-Jump directly to any of the 39 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 38 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
 **Runtime-hook markers** (31; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
@@ -47,11 +47,10 @@ Jump directly to any of the 39 registered markers below. Markers are listed alph
 - [`SSoT-OK`](#ssot-ok)
 - [`STALE-CHECKOUT-OK`](#stale-checkout-ok)
 
-**Audit-task markers** (8; consumed by `tasks/` audit scripts once per release-preflight):
+**Audit-task markers** (7; consumed by `tasks/` audit scripts once per release-preflight):
 
 - [`ESCAPE-HATCH-AUDIT-OK`](#escape-hatch-audit-ok-audit-task)
 - [`HOOK-OUTPUT-SIZE-CAP-OK`](#hook-output-size-cap-ok-audit-task)
-- [`MATCHER-NO-MULTIEDIT-OK`](#matcher-no-multiedit-ok-audit-task)
 - [`ORDERING-OK`](#ordering-ok-audit-task)
 - [`POSTTOOLUSE-RAW-STDOUT-OK`](#posttooluse-raw-stdout-ok-audit-task)
 - [`SPAWN-SYNC-OK`](#spawn-sync-ok-audit-task)
@@ -139,7 +138,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
-**What it does**: Suppress the broad process-signal guard (pretooluse-broad-process-signal-guard.ts, kill guard v2), which DENIES a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a target, a shared runtime or host program by name (`pkill node`, `killall bun`, `kill $(pgrep claude)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters. It checks Bash commands and the text of shell scripts written with Write/Edit/MultiEdit. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `BROAD-PROCESS-SIGNAL-OK: <reason>` with at least 10 characters. You should almost never need it: signal the PID you started (`cmd & pid=$!; kill "$pid"`), or list with `pgrep -fl '<specific command line>'` and kill by PID. `kill -1 <pid>` (SIGHUP), `kill -0 <pid>` probes, `pgrep` alone and mere mentions are never flagged, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/broad-process-signal-guard.md.
+**What it does**: Suppress the broad process-signal guard (pretooluse-broad-process-signal-guard.ts, kill guard v2), which DENIES a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a target, a shared runtime or host program by name (`pkill node`, `killall bun`, `kill $(pgrep claude)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters. It checks Bash commands and the text of shell scripts written with Write/Edit. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `BROAD-PROCESS-SIGNAL-OK: <reason>` with at least 10 characters. You should almost never need it: signal the PID you started (`cmd & pid=$!; kill "$pid"`), or list with `pgrep -fl '<specific command line>'` and kill by PID. `kill -1 <pid>` (SIGHUP), `kill -0 <pid>` probes, `pgrep` alone and mere mentions are never flagged, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/broad-process-signal-guard.md.
 
 **Example usage**:
 
@@ -360,7 +359,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Suppress the once-per-session temporal-leakage taxonomy reminder (posttooluse-leakage-taxonomy-reminder.ts). The reminder fires when a Write/Edit/MultiEdit of a text file writes language that ADJUDICATES leakage, and injects the five-category card (CB accept, PT accept-with-declaration, BP reject until exact records removed, EC reject as OOS, DN reject for that decision time) so the verdict is classified rather than flattened to "leaky, therefore reject". Detection is two-tiered on both sides: a DOMAIN leak term (look-ahead/lookahead/data-snooping/non-causal/acausal/contaminat*/leakage/CAT-[123]/prefix-invariance/qualified compounds such as `data leak`) fires against either a DECISIVE verdict word (falsif*/refut*/reject*/condemn*/manufactur*/spurious/overstat*/`no edge`/`not genuine`/rule out) within 200 characters or a WEAK one (fail*/invalid family/discard*/dismiss*/fatal*/artifact/collaps*/inflat*/`coin flip`) within 80, while a GENERIC bare `leak*` fires only against a DECISIVE word within 100. A ±80-character sense window additionally discards any leak hit whose neighbourhood names a non-temporal sense (memory/goroutine/descriptor, relu/torch, one-token/parser, filtfilt/zero-phase, water/gasket, `the press`/memo, gitleaks/credential), so a LeakyReLU import cannot spend the session's single reminder. Add a comment containing LEAK-TAXONOMY-OK (any comment style, e.g. `<!-- LEAK-TAXONOMY-OK -->`) when the document already applies the taxonomy, quotes someone else's verdict, or is the doctrine itself. The marker is honored from the edited fragment OR anywhere in the post-edit file — the whole-file arm is a real post-match file read, which is what keeps an ordinary Edit of the marker-bearing doctrine spoke from firing the hook on its own doctrine. Note this is a NON-BLOCKING context injection, never a deny — a guard that ruled out on suspicion would commit the over-ruling-out error the doctrine exists to prevent, so the marker only silences noise, it never unblocks work. Doctrine SSoT: ~/.claude/leakage-taxonomy-CLAUDE.md.
+**What it does**: Suppress the once-per-session temporal-leakage taxonomy reminder (posttooluse-leakage-taxonomy-reminder.ts). The reminder fires when a Write/Edit of a text file writes language that ADJUDICATES leakage, and injects the five-category card (CB accept, PT accept-with-declaration, BP reject until exact records removed, EC reject as OOS, DN reject for that decision time) so the verdict is classified rather than flattened to "leaky, therefore reject". Detection is two-tiered on both sides: a DOMAIN leak term (look-ahead/lookahead/data-snooping/non-causal/acausal/contaminat*/leakage/CAT-[123]/prefix-invariance/qualified compounds such as `data leak`) fires against either a DECISIVE verdict word (falsif*/refut*/reject*/condemn*/manufactur*/spurious/overstat*/`no edge`/`not genuine`/rule out) within 200 characters or a WEAK one (fail*/invalid family/discard*/dismiss*/fatal*/artifact/collaps*/inflat*/`coin flip`) within 80, while a GENERIC bare `leak*` fires only against a DECISIVE word within 100. A ±80-character sense window additionally discards any leak hit whose neighbourhood names a non-temporal sense (memory/goroutine/descriptor, relu/torch, one-token/parser, filtfilt/zero-phase, water/gasket, `the press`/memo, gitleaks/credential), so a LeakyReLU import cannot spend the session's single reminder. Add a comment containing LEAK-TAXONOMY-OK (any comment style, e.g. `<!-- LEAK-TAXONOMY-OK -->`) when the document already applies the taxonomy, quotes someone else's verdict, or is the doctrine itself. The marker is honored from the edited fragment OR anywhere in the post-edit file — the whole-file arm is a real post-match file read, which is what keeps an ordinary Edit of the marker-bearing doctrine spoke from firing the hook on its own doctrine. Note this is a NON-BLOCKING context injection, never a deny — a guard that ruled out on suspicion would commit the over-ruling-out error the doctrine exists to prevent, so the marker only silences noise, it never unblocks work. Doctrine SSoT: ~/.claude/leakage-taxonomy-CLAUDE.md.
 
 **Example usage**:
 
@@ -394,7 +393,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit/MultiEdit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose. The same file-level comment is honoured by the two sibling surfaces that share lib/markdown-net-new-hard-wraps.ts: posttooluse-bash-markdown-hard-wrap-reminder.ts (Markdown written by a Bash command) and pretooluse-markdown-commit-hard-wrap-guard.ts (DENIES a git commit that adds wraps; the marker anywhere in the commit command also passes the whole commit).
+**What it does**: Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose. The same file-level comment is honoured by the two sibling surfaces that share lib/markdown-net-new-hard-wraps.ts: posttooluse-bash-markdown-hard-wrap-reminder.ts (Markdown written by a Bash command) and pretooluse-markdown-commit-hard-wrap-guard.ts (DENIES a git commit that adds wraps; the marker anywhere in the commit command also passes the whole commit).
 
 **Example usage**:
 
@@ -428,7 +427,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Suppress the third-party-PII exposure reminder (posttooluse-pii-exposure-reminder.ts) for a docs/config file. The reminder fires when a Write/Edit/MultiEdit leaves an email address at a real routable domain, or a telephone number, in a .md/.txt/.yaml/.toml/.json-class file — the shape that put a contact's real name, business email and phone back into the published tree six days after an eleven-agent scrub removed them. Add a comment containing PII-SCAN-OK (any comment style, e.g. `<!-- PII-SCAN-OK -->`) when the contact data is intentional: a public maintainer address, an RFC or paper author, a quoted upstream document, or a vendor's published support line. No reason is required, because unlike a credential, deliberately published contact information is an ordinary and defensible thing for a repo to contain. Note this marker only silences a NON-BLOCKING reminder — the reminder never denies or undoes the edit, so the marker removes noise, it never unblocks work. Its blocking sibling for the credential half of the same incident uses SECRET-SCAN-OK, which does require a reason.
+**What it does**: Suppress the third-party-PII exposure reminder (posttooluse-pii-exposure-reminder.ts) for a docs/config file. The reminder fires when a Write/Edit leaves an email address at a real routable domain, or a telephone number, in a .md/.txt/.yaml/.toml/.json-class file — the shape that put a contact's real name, business email and phone back into the published tree six days after an eleven-agent scrub removed them. Add a comment containing PII-SCAN-OK (any comment style, e.g. `<!-- PII-SCAN-OK -->`) when the contact data is intentional: a public maintainer address, an RFC or paper author, a quoted upstream document, or a vendor's published support line. No reason is required, because unlike a credential, deliberately published contact information is an ordinary and defensible thing for a repo to contain. Note this marker only silences a NON-BLOCKING reminder — the reminder never denies or undoes the edit, so the marker removes noise, it never unblocks work. Its blocking sibling for the credential half of the same incident uses SECRET-SCAN-OK, which does require a reason.
 
 **Example usage**:
 
@@ -513,7 +512,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
-**What it does**: Suppress the live-credential exposure guard (pretooluse-secret-exposure-guard.ts), which HARD-BLOCKS a Write/Edit/MultiEdit whose new content matches one of three high-confidence credential shapes: a BotFather Telegram token (`<8-10 digit id>:AA<32+ chars>`), a bare 30-character mixed-alphanumeric token sitting within ±80 characters of a PUSHOVER / app_token / user_key / api_token cue, or an enumerated secret-manager provisioning command (`doppler secrets set`, `op item create|edit`, `vault set|put`, `gh secret set`, `wrangler secret put`, `aws secretsmanager …`, `security add-generic-password`) carrying a ≥16-character literal value that is not a recognized placeholder. Unlike almost every other marker in this registry, a JUSTIFICATION IS MANDATORY: write `SECRET-SCAN-OK: <reason>` with at least 10 characters of reason. That asymmetry is deliberate — in the 23-repo audit that motivated the guard, every leaked credential was accompanied by the belief that it was an example, so a bare marker would reproduce the exact failure. Legitimate uses are narrow: a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. If the value was ever live, the correct action is not this marker — it is to remove the value and ROTATE the credential.
+**What it does**: Suppress the live-credential exposure guard (pretooluse-secret-exposure-guard.ts), which HARD-BLOCKS a Write/Edit whose new content matches one of three high-confidence credential shapes: a BotFather Telegram token (`<8-10 digit id>:AA<32+ chars>`), a bare 30-character mixed-alphanumeric token sitting within ±80 characters of a PUSHOVER / app_token / user_key / api_token cue, or an enumerated secret-manager provisioning command (`doppler secrets set`, `op item create|edit`, `vault set|put`, `gh secret set`, `wrangler secret put`, `aws secretsmanager …`, `security add-generic-password`) carrying a ≥16-character literal value that is not a recognized placeholder. Unlike almost every other marker in this registry, a JUSTIFICATION IS MANDATORY: write `SECRET-SCAN-OK: <reason>` with at least 10 characters of reason. That asymmetry is deliberate — in the 23-repo audit that motivated the guard, every leaked credential was accompanied by the belief that it was an example, so a bare marker would reproduce the exact failure. Legitimate uses are narrow: a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. If the value was ever live, the correct action is not this marker — it is to remove the value and ROTATE the credential.
 
 **Example usage**:
 
@@ -564,7 +563,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
-**What it does**: Allow skill markdown (any `.md` under a `skills/` directory) to reference `CLAUDE_PLUGIN_ROOT` in a shape the runtime cannot honor — the bare `$CLAUDE_PLUGIN_ROOT` spelling, the `${CLAUDE_PLUGIN_ROOT:-fallback}` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., `SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit/MultiEdit the marker is honored from the on-disk copy too.
+**What it does**: Allow skill markdown (any `.md` under a `skills/` directory) to reference `CLAUDE_PLUGIN_ROOT` in a shape the runtime cannot honor — the bare `$CLAUDE_PLUGIN_ROOT` spelling, the `${CLAUDE_PLUGIN_ROOT:-fallback}` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., `SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit the marker is honored from the on-disk copy too.
 
 **Example usage**:
 
@@ -606,7 +605,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # STALE-CHECKOUT-OK
 ```
 
-## Audit-task marker catalog (8 registered markers consumed by tasks/ release-preflight audit scripts)
+## Audit-task marker catalog (7 registered markers consumed by tasks/ release-preflight audit scripts)
 
 These markers are honored by tasks/ audit scripts at release-preflight time — they opt a specific source file out of a release-blocking marketplace-wide invariant check. Detection runs ONCE per release (not on every tool invocation). Audit markers commonly require a ≥10-character reason after a colon because legitimate exceptions to release-blocking invariants demand justification.
 
@@ -640,22 +639,6 @@ These markers are honored by tasks/ audit scripts at release-preflight time — 
 
 ```
 # HOOK-OUTPUT-SIZE-CAP-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
-```
-
-## `MATCHER-NO-MULTIEDIT-OK` (audit-task)
-
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `tasks/hook-lint/matcher-multiedit.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
-
-**What it does**: Opt out of the iter-101 matcher-hygiene invariant for a specific hook entry. The invariant enforces that any hook matcher containing `Write|Edit` also includes `MultiEdit` (because MultiEdit is a distinct tool name in the Claude Code tool schema — pre-iter-100 hooks that matched `Write|Edit` silently skipped MultiEdit invocations). Use this opt-out for the rare hook that deliberately ignores MultiEdit (e.g., a hook that only operates on single-file Write operations and has no semantic for batch edits). Requires ≥10-character justification.
-
-**Example usage**:
-
-```
-# MATCHER-NO-MULTIEDIT-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
 ```
 
 ## `ORDERING-OK` (audit-task)

@@ -11,9 +11,9 @@
 
 ## Hooks
 
-| Hook                       | Event       | Matcher                | Purpose                             |
-| -------------------------- | ----------- | ---------------------- | ----------------------------------- |
-| `chezmoi-sync-reminder.sh` | PostToolUse | Edit\|Write\|MultiEdit | Reminder when editing tracked files |
+| Hook                       | Event       | Matcher     | Purpose                             |
+| -------------------------- | ----------- | ----------- | ----------------------------------- |
+| `chezmoi-sync-reminder.sh` | PostToolUse | Edit\|Write | Reminder when editing tracked files |
 
 `hooks/hooks.json` is the only registration — Claude Code loads it from the plugin.
 

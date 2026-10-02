@@ -160,7 +160,7 @@ export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessio
   input: PostToolUseInput,
 ): Promise<PostToolUseSubhookDecision> {
   try {
-    // Iter-100: honor Write|Edit|MultiEdit via canonical contract helper
+    // Honor Write|Edit via the canonical contract helper.
     // (replaces local Write||Edit equality; centralizes the allow-set so
     // future Anthropic tool additions update ONE constant, not N classifiers).
     if (!isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(input.tool_name)) {

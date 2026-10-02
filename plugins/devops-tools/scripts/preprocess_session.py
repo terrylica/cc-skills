@@ -47,7 +47,7 @@ def extract_text_from_content(items) -> tuple[str, list[str], list[str], list[st
     from claude_code_log.models import (
         TextContent, ToolUseContent, ToolResultContent, ImageContent,
         ThinkingContent, BashInput, ReadInput, WriteInput, EditInput,
-        MultiEditInput, TaskInput,
+        TaskInput,
     )
 
     # Track meta-tool IDs to skip their results

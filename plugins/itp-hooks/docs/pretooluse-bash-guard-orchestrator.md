@@ -30,7 +30,7 @@ Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orch
 ## What stays outside it
 
 - **`pretooluse-subprocess-stdin-inlet-guard.ts`** and **`pretooluse-pueue-wrap-guard.ts`** rewrite the command through `updatedInput`. Claude Code keeps only the last hook's `updatedInput` ([anthropics/claude-code#15897](https://github.com/anthropics/claude-code/issues/15897)), so they stay separate entries, and pueue-wrap stays last (invariant 3 in the hub).
-- **`pretooluse-process-storm-guard.mjs`** and **`pretooluse-broad-process-signal-guard.ts`** also inspect files written with Write, Edit and MultiEdit. Their Bash path runs inside the orchestrator, and they keep a `Write|Edit|MultiEdit` entry of their own.
+- **`pretooluse-process-storm-guard.mjs`** and **`pretooluse-broad-process-signal-guard.ts`** also inspect files written with Write and Edit. Their Bash path runs inside the orchestrator, and they keep a `Write|Edit` entry of their own.
 
 ## Why not the `if` field
 

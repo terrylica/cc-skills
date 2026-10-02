@@ -19,7 +19,7 @@
  *   3. Sanctioned @typescript/typescript6 compat alias → ALLOW (explicit pass-through)
  *   4. Latest / dist-tags / unresolvable protocols → ALLOW (fail-open)
  *
- * Skip: non-package.json files, node_modules paths, MultiEdit (staged-migration
+ * Skip: non-package.json files, node_modules paths
  * convention), plan mode.
  *
  * Escape hatch: ALLOW-LEGACY-TS file-wide marker. Iter-15 fix: for Edit, read
@@ -106,7 +106,6 @@ const logger = createHookLogger("TYPESCRIPT-VERSION-GUARD");
  *   1. tool_name not Write/Edit → ALLOW
  *   2. file_path basename is NOT "package.json" → ALLOW
  *   3. file_path contains "node_modules" → ALLOW
- *   4. MultiEdit → ALLOW (staged-migration convention)
  *   5. Plan mode → ALLOW
  *   6. content escape-hatch present → ALLOW
  *   7. Edit AND existing on-disk file contains escape hatch (iter-15 fix) → ALLOW
@@ -118,14 +117,8 @@ export async function classifyTypeScriptVersionGuardForOrchestrator(
 ): Promise<PreToolUseSubhookDecision> {
   const { tool_name, tool_input = {} } = input;
 
-  // Iter-102: route through canonical contract helper
+  // Only Write and Edit carry the file content this classifier reads.
   if (!isFileEditToolNameHonoredByPreToolUseBlockingSubhook(tool_name)) {
-    return ALLOW_DECISION;
-  }
-
-  // Iter-102 staged-migration short-circuit: MultiEdit payload-shape
-  // adaptation is iter-103+ per-classifier work. Preserves status quo.
-  if (tool_name === "MultiEdit") {
     return ALLOW_DECISION;
   }
 

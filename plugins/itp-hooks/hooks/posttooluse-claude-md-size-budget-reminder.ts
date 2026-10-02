@@ -17,7 +17,7 @@
  *
  * ─── Behaviour ────────────────────────────────────────────────────────────
  *
- * Trigger:   After Write / Edit / MultiEdit on a file whose basename is
+ * Trigger:   After Write / Edit on a file whose basename is
  *            exactly `CLAUDE.md`. (Spokes like `principles-CLAUDE.md` are
  *            intentionally NOT matched — they are on-demand Reads, not
  *            auto-loaded, so the 40k auto-load limit does not apply to them.)
