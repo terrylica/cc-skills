@@ -425,7 +425,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 2-3: GH_TOKEN + GH_A
 # slowed preflight; post-iter-167's 228ms median is negligible vs. the
 # ~10-second preflight total.
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
-ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME="$(dirname "$0")/../../scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME="$(dirname "$0")/../../scripts/iter165-pending-release-preview.sh"
 if [[ -x "$ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME" ]]; then
     echo "→ Iter-169 pending-release preview (informational, post-iter-167 ~228ms at N=50):"
     bash "$ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME" 2>&1 | sed 's/^/    /' || true

@@ -17,7 +17,7 @@ import {
   classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator,
   buildTypeScriptUpgradeReminderMessage,
 } from "./posttooluse-typescript-upgrade-reminder.ts";
-import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-iter93.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Test fixtures

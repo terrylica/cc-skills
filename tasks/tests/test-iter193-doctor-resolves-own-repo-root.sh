@@ -7,7 +7,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 ITER193_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 cd "$ITER193_REPO_ROOT"
 
-ITER193_DOCTOR_ABSOLUTE_PATH="$ITER193_REPO_ROOT/scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-checking-each-iter150-through-iter158-tool-for-presence-executability-and-functional-correctness-with-per-check-wall-clock-latency-reporting-and-json-mode.sh"
+ITER193_DOCTOR_ABSOLUTE_PATH="$ITER193_REPO_ROOT/scripts/iter160-commits-toolkit-doctor.sh"
 
 ITER193_ASSERTIONS_EVALUATED=0
 ITER193_ASSERTIONS_FAILED=0

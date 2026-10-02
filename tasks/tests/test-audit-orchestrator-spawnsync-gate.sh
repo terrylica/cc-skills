@@ -14,7 +14,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AUDIT="$REPO_ROOT/tasks/hook-lint/orchestrator-spawnsync.sh"
-ORCH_NAME="posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+ORCH_NAME="posttooluse-write-edit-orchestrator.ts"
 FIXTURE="$(mktemp -d -t spawnsync-gate.XXXXXX)"
 trap 'rm -rf "$FIXTURE"' EXIT
 

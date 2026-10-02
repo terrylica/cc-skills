@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-84 regression test for pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts. Asserts: (1) non-Write/Edit fastpath returns allow, (2) Write under threshold returns allow, (3) Write over block threshold denies via stdout JSON with exit 0 plus a stderr diagnostic (exit 2 was dropped 2026-10-01 because it also hard-blocked ask), (4) FILE-SIZE-OK escape hatch is honored, (5) the orchestrator-emitted reason includes the orchestrator diagnostic prefix to distinguish it from a standalone subhook call.
+# Iter-84 regression test for pretooluse-write-edit-orchestrator.ts. Asserts: (1) non-Write/Edit fastpath returns allow, (2) Write under threshold returns allow, (3) Write over block threshold denies via stdout JSON with exit 0 plus a stderr diagnostic (exit 2 was dropped 2026-10-01 because it also hard-blocked ask), (4) FILE-SIZE-OK escape hatch is honored, (5) the orchestrator-emitted reason includes the orchestrator diagnostic prefix to distinguish it from a standalone subhook call.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -17,7 +17,7 @@ generate_n_repeated_lines_for_oversized_fixture() {
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ORCHESTRATOR_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts"
+ORCHESTRATOR_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-write-edit-orchestrator.ts"
 
 if [[ ! -f "$ORCHESTRATOR_HOOK_PATH" ]]; then
     echo "FAIL: Orchestrator hook not found at $ORCHESTRATOR_HOOK_PATH"

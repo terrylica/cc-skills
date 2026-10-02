@@ -6,7 +6,7 @@ ITER163_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2
 cd "$ITER163_REPO_ROOT"
 
 ITER163_DOCTOR_TASK_ABSOLUTE_PATH="$ITER163_REPO_ROOT/tasks/commits/status"
-ITER163_ITER160_DOCTOR_SCRIPT_ABSOLUTE_PATH="$ITER163_REPO_ROOT/scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-checking-each-iter150-through-iter158-tool-for-presence-executability-and-functional-correctness-with-per-check-wall-clock-latency-reporting-and-json-mode.sh"
+ITER163_ITER160_DOCTOR_SCRIPT_ABSOLUTE_PATH="$ITER163_REPO_ROOT/scripts/iter160-commits-toolkit-doctor.sh"
 
 ITER163_TOTAL_ASSERTIONS_EVALUATED=0
 ITER163_TOTAL_ASSERTIONS_FAILED=0

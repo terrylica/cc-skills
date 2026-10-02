@@ -5,7 +5,7 @@ set -euo pipefail
 ITER173_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER173_REPO_ROOT"
 
-ITER173_ITER150_RENDERER_ABSOLUTE_PATH="$ITER173_REPO_ROOT/scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
+ITER173_ITER150_RENDERER_ABSOLUTE_PATH="$ITER173_REPO_ROOT/scripts/iter150-readable-git-log.sh"
 
 ITER173_SYNTHETIC_CJK_PROBE_SUBJECT_FOR_END_TO_END_RENDER_VERIFICATION="feat: 修复编码问题XYZ"
 

@@ -5,7 +5,7 @@ set -euo pipefail
 ITER150_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER150_REPO_ROOT"
 
-ITER150_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
+ITER150_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter150-readable-git-log.sh"
 ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH="$ITER150_REPO_ROOT/$ITER150_RENDERER_SCRIPT_RELATIVE_PATH"
 ITER150_TASK_WRAPPER_RELATIVE_PATH="tasks/release/history"
 ITER150_TASK_WRAPPER_ABSOLUTE_PATH="$ITER150_REPO_ROOT/$ITER150_TASK_WRAPPER_RELATIVE_PATH"

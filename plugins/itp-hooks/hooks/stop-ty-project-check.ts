@@ -39,7 +39,7 @@ import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
-} from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95";
+} from "./lib/posttooluse-subhook-async-helpers-iter95";
 import { TY_PROJECT_CHECK_ARGS } from "./lib/stop-ty-project-check-args";
 
 // --- Constants ---

@@ -6,9 +6,9 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 SSOT_PRINCIPLES_CLASSIFIER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
-SHARED_LIB_HELPERS_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts"
+SHARED_LIB_HELPERS_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-async-helpers-iter95.ts"
 STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/orchestrator-spawnsync.sh"
 HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 
@@ -119,7 +119,7 @@ fi
 # ─── Case 7: orchestrator description records iter-97 milestone or later ─────
 # Forward-compat: assert progress is AT LEAST 6/15 (iter-97 milestone).
 # Iter-98+ bumping to 7/15 etc. must not regress this test.
-case7_described_count=$(jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-edit-time-orchestrator-aggregating")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -oE 'Runs [0-9]+ ' | grep -oE '[0-9]+' || echo 0)
+case7_described_count=$(jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-write-edit-orchestrator")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -oE 'Runs [0-9]+ ' | grep -oE '[0-9]+' || echo 0)
 case7_registry_count=$(grep -cE '^    name: "' "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH" || true)
 if [[ "${case7_described_count}" -ge 6 && "${case7_described_count}" == "${case7_registry_count}" ]]; then
     assert_passes "Case 7: hooks.json orchestrator description count matches registry and is at or above the iter-97 baseline (6; current ${case7_described_count})"
