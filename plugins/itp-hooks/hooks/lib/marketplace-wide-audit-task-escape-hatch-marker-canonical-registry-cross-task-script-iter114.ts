@@ -190,7 +190,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
-        "Opt out of the iter-67 / iter-68 / iter-69 Stop/SubagentStop/SessionEnd/PreCompact/Notification additionalContext-emission silent-drop pentad invariant for a specific hook source file. The invariant enforces that the five lifecycle-tail event types emit ONLY {decision, reason} per the official Anthropic schema (additionalContext from these events is silently read by NO consumer and dropped from Claude's context). Use this opt-out for hooks that emit additionalContext INTENTIONALLY to make iter-66-style stderr-route output explicit. Requires ≥10-character justification.",
+        "Opt out of the Stop/SubagentStop/SessionEnd/PreCompact/Notification additionalContext invariant for a specific hook source file. On Stop and SubagentStop, upstream \"Stop decision control\" (https://code.claude.com/docs/en/hooks#stop-decision-control) documents hookSpecificOutput.additionalContext as feedback that keeps the conversation going through the same loop protections as decision:\"block\", so an informational summary emitted that way forces another turn; on PreCompact, SessionEnd and Notification the field is not part of the output schema. Use this opt-out for a hook that reads additionalContext from subhook stdout without re-emitting it, or a Stop hook that deliberately uses it to continue the conversation. Requires ≥10-character justification.",
     },
     {
       markerNameTokenIncludingSuffix: "WILDCARD-MATCHER-OK",
