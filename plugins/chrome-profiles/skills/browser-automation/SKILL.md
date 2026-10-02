@@ -20,7 +20,7 @@ CP="$(cc-plugin-root chrome-profiles)/scripts/chrome-profile.sh"
 | --- | --- | --- |
 | 0. **An API or OAuth token** | the site's API with a scoped, short-lived token from the vault/Keychain | The site has an API for the job. **No browser at all**: the most reliable and the safest identity. |
 | 1. **No browser, plain HTTP** | `curl` / `httpx` | The page renders server-side. |
-| 2. **A browser with its own profile** | the `playwright` MCP server or `chromium.launch()` (throwaway); a per-tool, sign-in-once profile on a debug port (`chrome-debug-port-control.sh`) | You need JavaScript; and, if a login is needed, the tool signs in once in **its own** profile. The default for anything unattended. |
+| 2. **A browser with its own profile** | the `playwright-throwaway-headless` MCP server or `chromium.launch()` (throwaway); a per-tool, sign-in-once profile on a debug port (`chrome-debug-port-control.sh`) | You need JavaScript; and, if a login is needed, the tool signs in once in **its own** profile. The default for anything unattended. |
 | 3. **Your real Chrome** | the servers below | Supervised work that needs **your own signed-in session**, or a site that blocks automated browsers. |
 
 ## Who signs in, and how
@@ -66,12 +66,13 @@ bash "$CP" setup-main               # optional: one server that sees every profi
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `chrome-<name>` (from `setup`)                 | ONE profile, resolved by email at every start                                                                                                                                 | **None**, once the token is stored. Chrome shows a "started debugging this browser" bar while attached — leave it; it is the visible sign automation is live |
 | `chrome-main` (from `setup-main`)              | Every profile's tabs in one list. Target a page by opening it with `open <email> <url>` first, then selecting it; confirm the signed-in account **on the page** before acting | Chrome's **Allow** dialog, once per Claude Code session. It cannot be remembered (by design)                                                                 |
-| `playwright` (`npx -y @playwright/mcp@latest`) | Its own throwaway browser (rung 2)                                                                                                                                            | None                                                                                                                                                         |
+| `playwright-throwaway-headless` (`npx -y @playwright/mcp@latest --headless --isolated`) | Its own throwaway browser (rung 2), in memory, no window | None |
 
 Prefer `chrome-<name>` for unattended work. Use `chrome-main` when you need DevTools-level inspection (network, performance) or a page in a profile you have not set up.
 
 ## 5. Things that will bite
 
+- **The throwaway server must be headless, isolated and named as such.** Registered as plain `playwright`, it opened a visible, signed-out Chrome window (with an "unsupported command-line flag: --disable-blink-features=AutomationControlled" bar) in every session that called it, and since its tools share names with the signed-in extension servers, sessions wanting your signed-in profile picked it by mistake. `doctor` flags a throwaway registration without `--headless --isolated` or without `throwaway` in its name.
 - **Install the extension in the target profile only.** Every profile that has it is drivable by anything holding its token.
 - **A password manager's inline menu can break the extension's connection** (another extension's frame in the page detaches it). Turn off that extension's site access for the sites you automate, or finish that page through `chrome-main`.
 - **Set form values by script rather than synthetic keystrokes** when a field misbehaves; it also stops autofill pop-ups from opening.

@@ -287,6 +287,15 @@ for n, v in sorted(cfg.items()):
         say("⚠", f"{n}: hard-pinned to {d} = {who}; folder names drift — re-register with: chrome-profile.sh setup {who if who != 'NOBODY' else '<email>'}")
     elif "--extension" in a:
         say("✗", f"{n}: --extension without a profile pin connects to the LAST-USED profile")
+    # A throwaway @playwright/mcp (no --extension) opens a VISIBLE, signed-out Chrome window per Claude
+    # session on its first tool call, and its tools share names with the signed-in extension servers,
+    # so a session wanting the signed-in profile can pick it by mistake and leave a blank window behind.
+    elif any("@playwright/mcp" in x for x in a):
+        problems = [p for p, ok_ in (("--headless", "--headless" in a), ("--isolated", "--isolated" in a)) if not ok_]
+        if problems:
+            say("⚠", f"{n}: throwaway Playwright without {' '.join(problems)} opens a visible signed-out window per session; add them")
+        if "throwaway" not in n:
+            say("⚠", f"{n}: name it so it cannot be mistaken for a signed-in server (e.g. playwright-throwaway-headless)")
     if "playwright-mcp" in a and any(x.endswith("chrome-profile.sh") for x in [v.get("command", "")] + a):
         i = a.index("playwright-mcp")
         email = a[i + 1] if len(a) > i + 1 else ""
