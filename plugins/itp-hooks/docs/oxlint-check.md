@@ -1,11 +1,26 @@
 # oxlint-check
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — created 2026-06-11 when the full-table snapshot docs were dissolved into per-hook spokes.
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`posttooluse-oxlint-check.ts`](../hooks/posttooluse-oxlint-check.ts), subhook `oxlint-check` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md) (orchestrator timeout 5000 ms).
 
-## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+## What it does
 
-> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+After a Write or Edit of a `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` or `.cts` file, it runs:
 
-**Matcher**: (inlined in iter-95 orchestrator)
+```
+oxlint -D correctness -D suspicious -A no-unused-vars -A no-empty-file -f unix <file>
+```
 
-oxlint correctness+suspicious lint on JS/TS files (~50ms, every edit). **Iter-95 third inlined PostToolUse subhook (3/15 in arc)** — async Bun.spawn via the new shared lib helpers (`executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail`). Only correctness + suspicious categories enabled — these catch RUNTIME bugs (const reassignment, duplicate keys, debugger statements) rather than style preferences (best handled by config-level enforcement). Algorithm encoded in `classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator`; alias `classifyOxlintCheckForPostToolUseOrchestrator`. Standalone hook still runnable via `import.meta.main` guard.
+oxlint takes about 40–65 ms on a single file. Only the `correctness` and `suspicious` categories are enabled because they catch runtime bugs (const reassignment, duplicate keys, `debugger` statements); style categories are left to project config. A non-zero exit shows the per-line diagnostics to Claude as additional context, with oxlint's summary line stripped. It is informational: a PostToolUse hook cannot undo the edit.
+
+[biome-lint](./biome-lint.md) runs in parallel on the same files and covers rules oxlint's default config misses.
+
+## Skips and failure modes
+
+- Files under `node_modules/` and throwaway files in temp directories (the shared helper in [`lib/shared-temp-dir-edit-path-detection-iter124.ts`](../hooks/lib/shared-temp-dir-edit-path-detection-iter124.ts)) are not linted.
+- If `oxlint` is not installed, it shows an install reminder (`bun add -g oxlint`) once per session.
+- The oxlint subprocess has its own 4000 ms timeout; on timeout or any error the subhook reports nothing.
+- Output is truncated to stay below Claude Code's 10,000-character hook-output limit.
+
+## Code
+
+The classifier is `classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifyOxlintCheckForPostToolUseOrchestrator`. Subprocesses go through the async helper `executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail` in [`lib/posttooluse-subhook-async-helpers-iter95.ts`](../hooks/lib/posttooluse-subhook-async-helpers-iter95.ts). The file also runs standalone through its `import.meta.main` guard.

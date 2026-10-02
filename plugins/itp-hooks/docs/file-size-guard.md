@@ -1,10 +1,8 @@
 # File Size Bloat Guard
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — moved verbatim from the hub 2026-06-11 (CLAUDE.md size-guard refactor: hub was 112k chars, limit 40k).
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`pretooluse-file-size-guard.ts`](../hooks/pretooluse-file-size-guard.ts), subhook `file-size-guard` of the [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) (timeout 4500 ms).
 
-## File Size Bloat Guard
-
-The `pretooluse-file-size-guard.ts` hook prevents single-file bloat by checking line count before Write/Edit operations. Uses tiered approach: warn via PostToolUse (soft notification), block via `deny` (hard block with guidance) at the block threshold.
+The hook prevents single-file bloat by checking line count before Write/Edit operations. It is tiered: above the block threshold it denies with splitting guidance; between warn and block it allows, and the soft reminder comes from `checkFileSizeReminder()` in [`posttooluse-reminder.ts`](../hooks/posttooluse-reminder.ts).
 
 ### Detection
 
@@ -15,27 +13,30 @@ The `pretooluse-file-size-guard.ts` hook prevents single-file bloat by checking 
 
 ### Default Thresholds
 
-| Extension                  | Warn | Block |
-| -------------------------- | ---- | ----- |
-| `.rs`, `.py`, `.ts`, `.go` | 1000 | 2000  |
-| `.md`                      | 1600 | 3000  |
-| `.toml`                    | 400  | 1000  |
-| `.json`                    | 2000 | 6000  |
-| Other                      | 1000 | 2000  |
+| Extension                                         | Warn | Block |
+| ------------------------------------------------- | ---- | ----- |
+| `.rs`, `.py`, `.ts`, `.tsx`, `.js`, `.jsx`, `.go` | 1000 | 2000  |
+| `.md`                                             | 1600 | 3000  |
+| `.toml`                                           | 400  | 1000  |
+| `.json`                                           | 2000 | 6000  |
+| Other                                             | 1000 | 2000  |
 
-**History**: Doubled 2026-05-26 (was 500/1000 default) to reduce reminder noise and false-positive blocks on the iter-84 → iter-98 in-process hook orchestrators that intentionally combine many subhook classifiers into one bun process. The PostToolUse soft reminder in `posttooluse-reminder.ts` also moved to WARN=1000 / BLOCK=2000.
+The limits are generous on purpose: the in-process hook orchestrators combine many subhook classifiers in one file and are legitimately large.
+
+The guard itself only enforces the **Block** column. The soft reminder in `posttooluse-reminder.ts` uses a fixed 1000–2000 band, not this table, and only for code and config extensions (`.rs .py .ts .tsx .js .jsx .go .java .c .cpp .h .hpp .rb .swift .kt .sh .bash .toml .yml .yaml .json`) — never `.md`. So a per-extension Warn value, including one set in the config file, currently has no effect.
 
 ### Exclusions
 
-Lock files (`*.lock`, `package-lock.json`, `Cargo.lock`, `uv.lock`), generated files (`*.generated.*`, `*.min.js`, `*.min.css`).
+- Wildcard patterns, always exempt: `*.lock`, `*.generated.*`, `*.min.js`, `*.min.css`.
+- Exact file names (`package-lock.json`, `Cargo.lock`, `uv.lock`, and any name added in config) are exempt only once the file's first git commit is more than a week old; an untracked or new file is still checked.
 
 ### Escape Hatch
 
-Add `# FILE-SIZE-OK` comment anywhere in the file to suppress the warning.
+Add a `# FILE-SIZE-OK` comment anywhere in the resulting file content to suppress the block (case-sensitive substring; the token itself can be changed with `escapeComment` in the config file).
 
 ### Configuration
 
-Create `.claude/file-size-guard.json` (project-level) or `~/.claude/file-size-guard.json` (global):
+Create `.claude/file-size-guard.json` under the session's working directory (project-level) or `~/.claude/file-size-guard.json` (global). The first one found wins; its `defaults` and `extensions` are merged over the built-ins and its `excludes` appended:
 
 ```json
 {
@@ -48,12 +49,3 @@ Create `.claude/file-size-guard.json` (project-level) or `~/.claude/file-size-gu
 ### Plan Mode
 
 Automatically skipped when Claude is in planning phase.
-
-
-## Original hub-table narrative (PreToolUse, moved 2026-06-11)
-
-> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
-
-**Matcher**: (inlined in iter-84 orchestrator)
-
-File size bloat prevention (per-extension limits). Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84 orchestrator which imports `classifyFileSizeGuardForOrchestrator` from this file. See [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) and [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).

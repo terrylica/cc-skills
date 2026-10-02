@@ -1,11 +1,25 @@
 # pyi-stub-guard
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — created 2026-06-11 when the full-table snapshot docs were dissolved into per-hook spokes.
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`pretooluse-pyi-stub-guard.ts`](../hooks/pretooluse-pyi-stub-guard.ts), subhook `pyi-stub-guard` of the [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) (timeout 3000 ms).
 
-## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+Despite the file name, this guard is about package init files, not `.pyi` stubs in general: it keeps `__init__.py` and `__init__.pyi` thin re-export layers. Definitions belong in dedicated modules (`models.py`, `utils.py`, `constants.pyi`, …).
 
-> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+## What it blocks
 
-**Matcher**: (inlined in iter-89 orchestrator)
+A Write or Edit of a path ending in `__init__.py` or `__init__.pyi` whose new text (`content` for Write, `new_string` for Edit) has an unindented:
 
-**Filename-vs-algorithm naming drift surfaced + remediated in iter-89.** Actual algorithm: blocks Write/Edit on Python `__init__.py` AND `__init__.pyi` files that contain top-level `class`/`def`/decorator definitions (PEP 561 + clean-package-structure: init files MUST be thin re-export layers; definitions belong in dedicated modules like `models.py`/`utils.py`/`constants.pyi`). The precise algorithm-encoding classifier name is `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator`; the alias `classifyPyiStubGuardForOrchestrator` is maintained for symmetric naming with sibling subhooks. Honors docstring state (no false-positives inside triple-quote blocks), exempts `__getattr__`/`__dir__`/`__init_subclass__`/`_lazy_import` boilerplate (.py only — .pyi has stricter PEP 561 rules), and applies a re-export-dominated-write heuristic (≥70% imports) that exempts index files with incidental annotations. Escape hatch: `# INIT-MONOLITH-OK` comment in content. Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84/85/86/87/88/89 orchestrator which imports `classifyPyiStubGuardForOrchestrator` from this file. Lightest-first registry position: AFTER `mise-hygiene-guard` and BEFORE `gpu-optimization-guard` (cheap `__init__.py`/`__init__.pyi` filename-suffix `endsWith()` fastpath).
+- `class Name…` definition,
+- `def name(` or `async def name(` definition, or
+- `@overload`, `@dataclass_transform` or `@final` decorator.
+
+The scan ignores comment lines, indented lines, and text inside triple-quoted docstrings. The deny message lists at most five violations and suggests where each definition should live.
+
+## Exemptions
+
+- **Boilerplate** (`__init__.py` only; `__init__.pyi` follows the stricter PEP 561 rules): `def __getattr__(`, `def __dir__(`, `def __init_subclass__(` and `def _lazy_import(` — the PEP 562 lazy-import pattern.
+- **Re-export-dominated Write**: if more than 70% of the non-blank, non-comment lines are `from …`/`import …` lines, the write is allowed. This applies to Write only, because an Edit's `new_string` is a fragment.
+- **Escape hatch**: `# INIT-MONOLITH-OK` anywhere in the new text.
+
+## Code
+
+The classifier is `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator`, exported to the orchestrator under the alias `classifyPyiStubGuardForOrchestrator`. The file also runs standalone (`bun pretooluse-pyi-stub-guard.ts < payload.json`) through its `import.meta.main` guard.

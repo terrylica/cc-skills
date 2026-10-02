@@ -8,7 +8,7 @@
 
 1. **Keep this file a slim hub.** The size guard warns at 36k and Claude Code stops fully loading a `CLAUDE.md` over **40,000 characters** (counted in UTF-16 code units, not bytes — see `hooks/posttooluse-claude-md-size-budget-reminder.ts`). Prettier repads every cell in a table to its widest row, so one long cell inflates the whole table; **keep every Purpose cell to a short clause** and put the narrative in the hook's own spoke. Measure after formatting, never before.
 2. **`hooks.json` is the SSoT for registration**, not this file. A hook listed here but unregistered there does not run.
-3. **`pretooluse-pueue-wrap-guard.ts` MUST stay the LAST PreToolUse entry** in `hooks.json` (iter-61 audit) — it auto-wraps long-running commands, so any guard after it never sees the unwrapped command.
+3. **`pretooluse-pueue-wrap-guard.ts` MUST stay the LAST PreToolUse entry** in `hooks.json` (audited by `tasks/hook-lint/pueue-wrap-last.sh`) — it auto-wraps long-running commands, so any guard after it never sees the unwrapped command.
 4. **A new Bash guard goes into `BASH_GUARD_REGISTRY`** in `hooks/pretooluse-bash-guard-orchestrator.ts`, not into `hooks.json` (#111). Export its `main()` and gate the top-level call on `import.meta.main`. The exception is a guard that rewrites the command through `updatedInput`, which stays a separate entry.
 5. **No full-table snapshot docs.** A spoke owns one subject; a doc that mirrors these tables drifts out of sync with the spokes. [docs/spoke-index.md](./docs/spoke-index.md) is an index of subjects, not a snapshot of hook rows.
 6. **TypeScript/Bun is preferred for new hooks** (per `lifecycle-reference.md`); bash is acceptable only for simple pattern matching.

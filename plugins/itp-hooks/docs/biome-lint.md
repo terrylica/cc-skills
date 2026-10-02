@@ -1,11 +1,33 @@
 # biome-lint
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — created 2026-06-11 when the full-table snapshot docs were dissolved into per-hook spokes.
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`posttooluse-biome-lint.ts`](../hooks/posttooluse-biome-lint.ts), subhook `biome-lint` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md) (orchestrator timeout 5000 ms).
 
-## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+## What it does
 
-> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+After a Write or Edit of a `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts` or `.cts` file, it runs `biome lint --no-errors-on-unmatched --max-diagnostics=20 --error-on-warnings --diagnostic-level=info <file>` (typically 40–80 ms) and shows any diagnostics to Claude as additional context. It is informational: a PostToolUse hook cannot undo the edit.
 
-**Matcher**: (inlined in iter-95 orchestrator)
+It complements [oxlint-check](./oxlint-check.md) rather than replacing it; both run in parallel on the same edit. Biome adds rules oxlint's default config misses, such as `useConst`, `noDoubleEquals`, `noImplicitAnyLet` and `noAssignInExpressions`.
 
-biome complementary lint on JS/TS (~40-80ms). **Iter-95 fourth inlined PostToolUse subhook (4/15 in arc)** — async Bun.spawn via shared lib helpers. COMPLEMENTARY-TO-OXLINT (not a replacement): catches rules oxlint misses with default config — useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAnyLet, noAssignInExpressions. 6 noisy rules suppressed via the `BIOME_LINT_RULES_SUPPRESSED_AT_HOOK_TIME_BECAUSE_TOO_NOISY_FOR_REAL_CODEBASES` constant (noExplicitAny, useNodejsImportProtocol, noUnusedVariables, noNonNullAssertion, useTemplate, noUnusedImports — 67% false-positive rate on real codebases). Algorithm encoded in `classifyBiomeComplementaryToOxlintLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator`; alias `classifyBiomeLintForPostToolUseOrchestrator`. Standalone hook still runnable via `import.meta.main` guard.
+## Suppressed rules
+
+Six rules are passed as `--skip` because they are too noisy at hook time on real codebases; enforce them in a project's `biome.json` instead. The list is the constant `BIOME_LINT_RULES_SUPPRESSED_AT_HOOK_TIME_BECAUSE_TOO_NOISY_FOR_REAL_CODEBASES`:
+
+- `lint/suspicious/noExplicitAny`
+- `lint/style/useNodejsImportProtocol`
+- `lint/correctness/noUnusedVariables`
+- `lint/style/noNonNullAssertion`
+- `lint/style/useTemplate`
+- `lint/correctness/noUnusedImports`
+
+`useNodejsImportProtocol` is skipped, so the hook does not report it, even though the file header comment and the install reminder still list it among biome's unique catches.
+
+## Skips and failure modes
+
+- Files under `node_modules/` and throwaway files in temp directories (the shared helper in [`lib/shared-temp-dir-edit-path-detection-iter124.ts`](../hooks/lib/shared-temp-dir-edit-path-detection-iter124.ts)) are not linted.
+- If `biome` is not installed, it shows an install reminder (`bun add -g @biomejs/biome`) once per session.
+- The biome subprocess has its own 4000 ms timeout; on timeout or any error the subhook reports nothing.
+- Output is truncated to stay below Claude Code's 10,000-character hook-output limit.
+
+## Code
+
+The classifier is `classifyBiomeComplementaryToOxlintLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifyBiomeLintForPostToolUseOrchestrator`. The file also runs standalone through its `import.meta.main` guard.

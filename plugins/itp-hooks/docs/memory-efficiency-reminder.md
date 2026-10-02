@@ -4,37 +4,30 @@
 
 ## Overview
 
-The `posttooluse-memory-efficiency-reminder.ts` hook (inlined in iter-98 orchestrator) surfaces a once-per-session memory-efficiency reminder on the first eligible code-file Write/Edit.
+[`posttooluse-memory-efficiency-reminder.ts`](../hooks/posttooluse-memory-efficiency-reminder.ts) is subhook `memory-efficiency-reminder` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md) (orchestrator timeout 1000 ms). It shows a static memory-efficiency reminder once per session, on the first eligible code-file Write/Edit. It spawns no subprocess; the only work is the gate-file claim.
 
-Pure static reminder (no subprocess spawn, sub-ms gate-claim only).
-
-## Iter-98 Critical Bug Fix
-
-Pre-iter-98 the standalone hook emitted the reminder via plain `console.log` (raw text — transcript-only, NOT Claude-visible per iter-66/93 forensic finding + Anthropic PostToolUse schema).
-
-Iter-98 orchestrator path emits proper `additional_context` decision (Claude-visible system reminder via aggregated `{decision: block, reason}` JSON); standalone CLI now also emits JSON not raw text.
-
-Also remediated a pre-iter-98 race-unsafe `existsSync(...) + writeFileSync(...)` gate pattern (atomic O_EXCL via shared helper now).
+The reminder reaches Claude as `additional_context` through the orchestrator's merged `{"decision": "block", "reason": …}` output. A PostToolUse hook that prints plain text instead lands only in the transcript, so any standalone use must keep emitting JSON.
 
 ## What It Covers
 
-- Zero-copy patterns
-- Pre-allocation strategies
-- Cache-locality optimization
-- Lazy-evaluation techniques
+The message is a four-row table plus a line of anti-patterns:
+
+- Avoid copies: zero-copy, views, slices, borrowing, move semantics
+- Avoid allocation: pre-allocation, buffer reuse, arenas, object pools
+- Cache efficiency: contiguous data, locality, SoA
+- Lazy evaluation: streaming, iterators, generators, predicate pushdown, lazy frames
+- Anti-patterns: Python list → Arrow copies, `df.to_dict()` in loops, materializing lazy frames with `.values()`, repeated `pd.concat` instead of a pre-sized buffer
+
+## When it fires
+
+- Tool is `Write` or `Edit`, and the file extension is one of `.py .rs .ts .tsx .js .go .java .kt .rb .cpp .c .h .zig`.
+- Not a test file (paths containing `test_`, `tests/`, `__tests__/`, `_test.`, `_spec.`, `.test.` or `.spec.`), and not a throwaway file in a temp directory.
+- First such edit in the session: the gate is an atomic `O_EXCL` file at `/tmp/.claude-memory-efficiency-reminder/<session-id>.reminded`, claimed through `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`.
 
 ## Escape Hatch
 
-Add `MEMORY-EFFICIENCY-OK` to suppress the reminder.
+There is none. The reminder fires at most once per session, so there is nothing to suppress per file.
 
-Algorithm encoded in `classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator`; alias `classifyMemoryEfficiencyReminderForPostToolUseOrchestrator`.
+## Code
 
-Standalone hook still runnable via `import.meta.main` guard.
-
-## Original hub-table narrative (PostToolUse, moved 2026-06-11)
-
-> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
-
-**Matcher**: (inlined in iter-98 orchestrator)
-
-Surfaces a once-per-session memory-efficiency reminder (zero-copy, pre-allocation, cache-locality, lazy-evaluation patterns) on the first eligible code-file Write/Edit. **Iter-98 SEVENTH inlined PostToolUse subhook (7/15 in arc)** — pure static reminder (no subprocess spawn, sub-ms gate-claim only). **Iter-98 ALSO FIXED a long-standing silent context-drop bug**: pre-iter-98 the standalone hook emitted the reminder via plain `console.log` (raw text — transcript-only, NOT Claude-visible per iter-66/93 forensic finding + Anthropic PostToolUse schema). The iter-92 async-eligibility audit had classified this hook as `[M] MIXED` (couldn't statically pattern-match the silent-drop), so the bug was in plain sight without surfacing. Iter-98 orchestrator path emits proper `additional_context` decision (Claude-visible system reminder via aggregated `{decision: block, reason}` JSON); standalone CLI now also emits JSON not raw text. Also remediated a pre-iter-98 race-unsafe `existsSync(...) + writeFileSync(...)` gate pattern (atomic O_EXCL via shared helper now). Algorithm encoded in `classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator`; alias `classifyMemoryEfficiencyReminderForPostToolUseOrchestrator`. Standalone hook still runnable via `import.meta.main` guard.
+The classifier is `classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifyMemoryEfficiencyReminderForPostToolUseOrchestrator`. The file also runs standalone through its `import.meta.main` guard.

@@ -39,7 +39,7 @@ Only **new** content is scanned (`content`, `new_string`). Matched values are re
 | Email    | An address at a real, routable domain                                                                         | `example.com/.org/.net`, `.test`/`.invalid`/`.local`, `users.noreply.github.com`, the operator's own addresses, role local-parts (`support@`, `info@`, `noreply@`, …) |
 | Phone    | E.164 (`+1 604 321 7788`) anywhere; bare NANP `nnn-nnn-nnnn` **only** beside a telephony cue within ±40 chars | `555-01xx` (the NANP reserved fictional range), version strings, IP-like text, ID ranges like `100-200-3000` with no cue                                              |
 
-Scanned extensions are prose and config only (`.md .markdown .txt .rst .adoc .json .jsonc .yaml .yml .toml .ini .cfg .conf .env .csv .html`); source files are out of scope, and temp scratch is exempt via the iter-124 shared helper.
+Scanned extensions are prose and config only (`.md .markdown .txt .rst .adoc .json .jsonc .yaml .yml .toml .ini .cfg .conf .env .csv .html`); source files are out of scope, and throwaway files in temp directories are exempt via the shared helper in [`lib/shared-temp-dir-edit-path-detection-iter124.ts`](../hooks/lib/shared-temp-dir-edit-path-detection-iter124.ts).
 
 ## Why the asymmetry
 
@@ -52,7 +52,7 @@ The credential regexes are structurally distinctive and the cost of a miss is a 
 | `SECRET-SCAN-OK: <reason>` | `pretooluse-secret-exposure-guard.ts`  | **Yes — ≥10 characters** |
 | `PII-SCAN-OK`              | `posttooluse-pii-exposure-reminder.ts` | No                       |
 
-Both are FILE_WIDE and case-sensitive, registered in the iter-111 canonical registry.
+Both are FILE_WIDE and case-sensitive, registered in the canonical marker registry ([`lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts)).
 
 The mandatory reason on `SECRET-SCAN-OK` is deliberate and unusual for this repo: in the audit, **every** leaked credential was accompanied by the belief that it was just an example, so a bare marker would reproduce the exact failure the guard exists to prevent. Legitimate uses are narrow — a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. **If the value was ever live, the marker is the wrong answer: remove it and rotate the credential.**
 
@@ -82,7 +82,7 @@ The two hooks above could not have caught it. **They inspect file writes; no fil
 
 ### Mechanism: `scripts/commit-message-exposure-guard.ts`, run from the `commit-msg` git hook
 
-Invoked as Step 3b of the iter-157 commit-msg hook body, before the conventional-commit classifier (a message that leaks must be rejected however well-formed its subject is). A PreToolUse guard on `Bash` was rejected as the primary mechanism: it would only see agent commits with an inline `-m`, and would miss operator-typed commits, `-F file`, editor sessions, `--amend`, and any other git client. `commit-msg` is git's own interception point and sees all of them — and this repo already runs a `pre-commit` PII guard and this very `commit-msg` hook, so it extends an established pattern rather than adding a parallel one.
+Invoked as Step 3b of the commit-msg hook body, [`scripts/iter157-commit-msg-hook.sh`](../../../scripts/iter157-commit-msg-hook.sh), before the conventional-commit classifier (a message that leaks must be rejected however well-formed its subject is). A PreToolUse guard on `Bash` was rejected as the primary mechanism: it would only see agent commits with an inline `-m`, and would miss operator-typed commits, `-F file`, editor sessions, `--amend`, and any other git client. `commit-msg` is git's own interception point and sees all of them — and this repo already runs a `pre-commit` PII guard and this very `commit-msg` hook, so it extends an established pattern rather than adding a parallel one.
 
 | Property         | Behaviour                                                                             |
 | ---------------- | ------------------------------------------------------------------------------------- |
@@ -93,7 +93,7 @@ Invoked as Step 3b of the iter-157 commit-msg hook body, before the conventional
 | Escape hatch     | `SECRET-SCAN-OK: <reason ≥10 chars>` in the message — same marker, same gate          |
 | Failure mode     | Fail-OPEN and loud (a crashing or missing guard must not make the repo uncommittable) |
 
-**The scissors exclusion is load-bearing.** The most likely commit this guard ever sees is the one that *removes* a leaked value; with `commit --verbose` that value sits in the diff below the scissors. Scanning it would block precisely the commit that fixes the problem.
+**The scissors exclusion is load-bearing.** The most likely commit this guard ever sees is the one that _removes_ a leaked value; with `commit --verbose` that value sits in the diff below the scissors. Scanning it would block precisely the commit that fixes the problem.
 
 Reporting is class + line + **redacted** excerpt, never the value — echoing it into hook output (scrollback, CI logs, screenshots, agent transcripts) would be the same republication error one level up.
 
