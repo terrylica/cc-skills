@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Unit tests for typescript-seven-compiler-option-shape-validator-for-tsconfig-files.ts
+ * Unit tests for tsconfig-ts7-option-validator.ts
  *
  * Coverage:
  *   - Detects hard-error: baseUrl option removed
@@ -25,7 +25,7 @@ import {
   evaluateTypeScriptSevenCompilerOptionShapeConformance,
   extractHardErrorViolationsFromTypeScriptSevenCompilerOptionShapeConformance,
   type TypeScriptSevenCompilerOptionShapeViolation,
-} from "./typescript-seven-compiler-option-shape-validator-for-tsconfig-files.ts";
+} from "./tsconfig-ts7-option-validator.ts";
 
 // ============================================================================
 // Test fixture helpers
@@ -51,7 +51,7 @@ function getWarningCount(violations: TypeScriptSevenCompilerOptionShapeViolation
 // Test suite: Hard-error detection
 // ============================================================================
 
-describe("typescript-seven-compiler-option-shape-validator", () => {
+describe("tsconfig-ts7-option-validator", () => {
   describe("hard-error: removed options", () => {
     it("should detect baseUrl as hard-error", () => {
       const content = '{"compilerOptions": {"baseUrl": "."}}';

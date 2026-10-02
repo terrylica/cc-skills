@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bench-posttooluse-1password-pattern-reminder-prejq-fastpath-bailout-microsecond-overhead.sh
+# bench-1password-reminder-fastpath-overhead.sh
 #
 # Bench iter-40's pre-jq-fastpath optimization to the
 # posttooluse-1password-pattern-reminder.sh hook. The optimization replaces

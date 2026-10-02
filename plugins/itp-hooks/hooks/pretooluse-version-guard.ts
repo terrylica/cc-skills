@@ -44,7 +44,7 @@ import {
   denyDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 
 // ============================================================================
 // VERSION PATTERNS - Expanded based on codebase audit
@@ -97,7 +97,7 @@ const HARDCODED_VERSION_DETECTION_REGEX_PATTERNS: readonly RegExp[] = [
 import {
   hasFileWideEscapeHatchMarkerInContent,
   type EscapeHatchMarkerDetectionConfiguration,
-} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./lib/escape-hatch-marker-detection-iter107.ts";
 const VERSION_GUARD_SSOT_OK_ESCAPE_HATCH_CONFIGURATION: Pick<
   EscapeHatchMarkerDetectionConfiguration,
   "markerNameTokenIncludingSuffix" | "caseSensitivityMode" | "requireMinimumReasonCharacterCountAfterColonOrZeroForOptional"

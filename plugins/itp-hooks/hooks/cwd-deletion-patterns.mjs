@@ -28,7 +28,7 @@ import { resolve } from "node:path";
  * grep. The canonical detection path is now the helper call below; no
  * grandfathered raw-regex API surface remains.
  */
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 const CWD_DELETION_GUARD_ESCAPE_HATCH_CONFIGURATION = {
   markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
   caseSensitivityMode: "CASE_INSENSITIVE",

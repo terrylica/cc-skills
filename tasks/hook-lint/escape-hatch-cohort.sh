@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-107 marketplace-wide informational inventory audit: enumerates hand-rolled escape-hatch-marker detection patterns across plugins/itp-hooks/hooks/ source files and reports which hooks would benefit from migrating to the iter-107 canonical shared helper (lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts). Informational by default — future iters may promote to --strict once all migrations land.
+# Iter-107 marketplace-wide informational inventory audit: enumerates hand-rolled escape-hatch-marker detection patterns across plugins/itp-hooks/hooks/ source files and reports which hooks would benefit from migrating to the iter-107 canonical shared helper (lib/escape-hatch-marker-detection-iter107.ts). Informational by default — future iters may promote to --strict once all migrations land.
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale
@@ -30,7 +30,7 @@
 #   1. Discovers every hook source file with an `ESCAPE_HATCH` constant
 #      or a marker-regex literal (`/[A-Z][A-Z0-9-]+-OK/`)
 #   2. Reports which hooks have ALREADY migrated to the shared helper
-#      (via `from "./lib/shared-escape-hatch-marker-detection-helper-..."`
+#      (via `from "./lib/escape-hatch-marker-detection-iter107"`
 #      import)
 #   3. Reports which hooks still use hand-rolled detection and would
 #      benefit from migration
@@ -50,7 +50,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITP_HOOKS_SOURCE_DIRECTORY="$REPO_ROOT/plugins/itp-hooks/hooks"
-ITER107_SHARED_HELPER_RELATIVE_IMPORT_PATH="./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts"
+ITER107_SHARED_HELPER_RELATIVE_IMPORT_PATH="./lib/escape-hatch-marker-detection-iter107.ts"
 
 print_banner() {
     echo "════════════════════════════════════════════════════════════════════════════════"
@@ -125,7 +125,7 @@ declare -a ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_COHORT_RELATIVE_PATHS=(
     # rather than a file — AskUserQuestion carries no command string — which is why the
     # helper is called with the JSON blob. Cohort grows from 10 → 11 members. Remove this
     # member when the guard is deleted after upstream fixes claude-code#88836.
-    "plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts"
+    "plugins/itp-hooks/hooks/pretooluse-askuserquestion-line-terminator-guard.ts"
     # 2026-09-08 addition: the Chrome remote-debugging launch guard reads the
     # CHROME-DEBUG-PORT-OK marker via the iter-107 canonical helper (CASE_SENSITIVE /
     # FILE_WIDE, ≥10-char reason). Scanned content is the Bash command string.
@@ -148,7 +148,7 @@ for hook_source_file_absolute_path in "$ITP_HOOKS_SOURCE_DIRECTORY"/*.ts "$ITP_H
     hook_relative_path="${hook_source_file_absolute_path#"$REPO_ROOT/"}"
 
     # Migrated: hook imports from the iter-107 shared helper
-    if grep -q "from \"\\./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107" "$hook_source_file_absolute_path" 2>/dev/null; then
+    if grep -q "from \"\\./lib/escape-hatch-marker-detection-iter107" "$hook_source_file_absolute_path" 2>/dev/null; then
         MIGRATED_HOOKS_USING_SHARED_HELPER+=("$hook_relative_path")
         continue
     fi
@@ -174,7 +174,7 @@ for cohort_member_relative_path in "${ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_CO
         CANONICAL_COHORT_MEMBERS_FAILING_HELPER_IMPORT_INVARIANT+=("$cohort_member_relative_path (FILE NOT FOUND)")
         continue
     fi
-    if ! grep -q "from \"\\./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107" "$cohort_member_absolute_path"; then
+    if ! grep -q "from \"\\./lib/escape-hatch-marker-detection-iter107" "$cohort_member_absolute_path"; then
         CANONICAL_COHORT_MEMBERS_FAILING_HELPER_IMPORT_INVARIANT+=("$cohort_member_relative_path (helper import missing)")
     fi
 done
@@ -252,7 +252,7 @@ fi
 if [[ $ITER110_STRICT_BLOCK_VIOLATION_COUNT -gt 0 ]]; then
     echo "  ✗ AUDIT FAILED — $ITER110_STRICT_BLOCK_VIOLATION_COUNT strict-block violation(s)"
     echo "  Fix: migrate the listed hook(s) to the iter-107 canonical shared helper at"
-    echo "       plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts"
+    echo "       plugins/itp-hooks/hooks/lib/escape-hatch-marker-detection-iter107.ts"
     exit 1
 fi
 
