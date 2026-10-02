@@ -304,7 +304,7 @@ Nothing to install. The itp-hooks hooks are shipped in `plugins/itp-hooks/hooks/
 ### What the shipped hooks provide
 
 - **PreToolUse guards**: the Write/Edit orchestrator (version, shell-safety, TypeScript-version, hoisted-deps, mise-hygiene and more), plus per-tool Bash guards
-- **PostToolUse reminder**: prompts ADR sync after Bash/Write/Edit/MultiEdit
+- **PostToolUse reminder**: prompts ADR sync after Bash/Write/Edit
 
 **IMPORTANT:** A newly enabled plugin's hooks take effect after a Claude Code session restart.
 

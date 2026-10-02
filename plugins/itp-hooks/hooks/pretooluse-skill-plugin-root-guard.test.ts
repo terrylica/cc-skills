@@ -191,17 +191,6 @@ describe("classifier decisions", () => {
     expect(decision.kind).toBe("deny");
   });
 
-  test("covers the MultiEdit payload shape", async () => {
-    const decision = await classifySkillPluginRootGuardForOrchestrator({
-      tool_name: "MultiEdit",
-      tool_input: {
-        file_path: SKILL_MD,
-        edits: [{ new_string: "harmless" }, { new_string: `y="${BARE}/b"` }],
-      },
-    } as unknown as PreToolUseInput);
-    expect(decision.kind).toBe("deny");
-  });
-
   test("ignores non-file-edit tools", async () => {
     const decision = await classifySkillPluginRootGuardForOrchestrator({
       tool_name: "Bash",

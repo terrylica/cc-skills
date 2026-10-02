@@ -232,15 +232,8 @@ export async function classifyValeTerminologyConformanceOnClaudeMdGuardForOrches
 ): Promise<PreToolUseSubhookDecision> {
   const { tool_name, tool_input } = input;
 
-  // Iter-102: route through canonical contract helper (closes iter-101 residual gap).
+  // Only Write and Edit carry the file content this classifier reads.
   if (!isFileEditToolNameHonoredByPreToolUseBlockingSubhook(tool_name)) {
-    return ALLOW_DECISION;
-  }
-  // Iter-102 staged-migration short-circuit: MultiEdit payload-shape
-  // adaptation is iter-103+ per-classifier work. Preserves status quo
-  // (vale-claude-md-guard's downstream Write/Edit content-extraction
-  // branches don't yet handle tool_input.edits[]).
-  if (tool_name === "MultiEdit") {
     return ALLOW_DECISION;
   }
 

@@ -105,12 +105,6 @@ describe("classifyClaudeMdCharacterCountBudgetForPostToolUseOrchestrator", () =>
     expect(d.kind).toBe("noop");
   });
 
-  test("MultiEdit honored: 41k CLAUDE.md via MultiEdit → additional_context", async () => {
-    const p = fixture("multiedit", "CLAUDE.md", "x".repeat(41_000));
-    const d = await classifyClaudeMdCharacterCountBudgetForPostToolUseOrchestrator(writeInput(p, "MultiEdit"));
-    expect(d.kind).toBe("additional_context");
-  });
-
   test("relative file_path resolved via cwd → fires (not a silent miss)", async () => {
     fixture("relcwd", "CLAUDE.md", "x".repeat(41_000));
     const d = await classifyClaudeMdCharacterCountBudgetForPostToolUseOrchestrator({

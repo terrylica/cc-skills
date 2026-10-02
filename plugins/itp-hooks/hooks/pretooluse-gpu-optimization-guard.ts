@@ -396,13 +396,8 @@ export async function classifyGpuOptimizationGuardForOrchestrator(
   input: PreToolUseInput,
 ): Promise<PreToolUseSubhookDecision> {
   const toolName = input.tool_name || "";
-  // Iter-102: route through canonical contract helper (closes iter-101 residual gap).
+  // Only Write and Edit carry the file content this classifier reads.
   if (!isFileEditToolNameHonoredByPreToolUseBlockingSubhook(toolName)) {
-    return ALLOW_DECISION;
-  }
-  // Iter-102 staged-migration short-circuit: MultiEdit payload-shape
-  // adaptation is iter-103+ per-classifier work. Preserves status quo.
-  if (toolName === "MultiEdit") {
     return ALLOW_DECISION;
   }
 

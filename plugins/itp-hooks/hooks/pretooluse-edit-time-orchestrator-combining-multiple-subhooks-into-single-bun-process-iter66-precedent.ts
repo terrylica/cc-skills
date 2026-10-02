@@ -149,7 +149,7 @@ export const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubho
       timeoutMs: 3000,
       classify: classifySkillPluginRootGuardForOrchestrator,
       description:
-        "Blocks Write/Edit/MultiEdit on skill markdown (any .md under a skills/ directory) that references CLAUDE_PLUGIN_ROOT in a shape the runtime cannot honor. Three deniable kinds: BARE_SPELLING (bare $CLAUDE_PLUGIN_ROOT — the substitution regex requires braces, so it is unsubstitutable everywhere, manifests included), NON_SUBSTITUTING_DEFAULT (the braced form carrying a ':-fallback' shell default — the regex needs the closing brace right after the name, so this silently always takes the hardcoded fallback and pins the skill to the L2 marketplace clone instead of the installed version), and BRACED_IN_SHELL_CONTEXT (the braced form on a non-JSON line — a SKILL.md body is served to the model verbatim on the Skill-tool path, so nothing substitutes it and Bash sees an unset variable). JSON manifest lines (key-value or array-element shape) keep the braced form and are exempt. Origin: the 2026-08-05 /notes-commander:draft-hold exit-127 incident, whose upstream cause was two reference docs teaching the rule inverted. Steers to the cc-plugin-root resolver (scripts/cc-plugin-root), which reads installed_plugins.json for the LIVE install path rather than globbing the version cache (which retains orphaned versions). Registry position EARLY — O(1) path filter (/skills/ substring + .md suffix) then an O(1) content-sentinel check; the single disk read is deferred until a real candidate violation exists. Escape hatch: FILE_WIDE `SKILL-PLUGIN-ROOT-OK: <reason ≥10 chars>`, honored in the proposed text or in the on-disk file (iter-15 pattern) so docs ABOUT the variable stay editable.",
+        "Blocks Write/Edit on skill markdown (any .md under a skills/ directory) that references CLAUDE_PLUGIN_ROOT in a shape the runtime cannot honor. Three deniable kinds: BARE_SPELLING (bare $CLAUDE_PLUGIN_ROOT — the substitution regex requires braces, so it is unsubstitutable everywhere, manifests included), NON_SUBSTITUTING_DEFAULT (the braced form carrying a ':-fallback' shell default — the regex needs the closing brace right after the name, so this silently always takes the hardcoded fallback and pins the skill to the L2 marketplace clone instead of the installed version), and BRACED_IN_SHELL_CONTEXT (the braced form on a non-JSON line — a SKILL.md body is served to the model verbatim on the Skill-tool path, so nothing substitutes it and Bash sees an unset variable). JSON manifest lines (key-value or array-element shape) keep the braced form and are exempt. Origin: the 2026-08-05 /notes-commander:draft-hold exit-127 incident, whose upstream cause was two reference docs teaching the rule inverted. Steers to the cc-plugin-root resolver (scripts/cc-plugin-root), which reads installed_plugins.json for the LIVE install path rather than globbing the version cache (which retains orphaned versions). Registry position EARLY — O(1) path filter (/skills/ substring + .md suffix) then an O(1) content-sentinel check; the single disk read is deferred until a real candidate violation exists. Escape hatch: FILE_WIDE `SKILL-PLUGIN-ROOT-OK: <reason ≥10 chars>`, honored in the proposed text or in the on-disk file (iter-15 pattern) so docs ABOUT the variable stay editable.",
     },
     {
       name: "typescript-version-guard",
@@ -426,25 +426,10 @@ export async function main(
   const input = await parseStdinOrAllow("pretooluse-edit-time-orchestrator");
   if (!input) return;
 
-  // Fastpath: only run the registry on Write/Edit.
-  //
-  // THE OLD COMMENT HERE WAS WRONG and actively dangerous. It said any other tool "shouldn't happen
-  // given the hooks.json matcher" — but the matcher IS `Write|Edit|MultiEdit`, so MultiEdit reaches
-  // this line on every multi-edit and is dropped here. That reads like an obvious one-line bug, and
-  // it was recommended to me as one.
-  //
-  // It is not a bug, it is the load-bearing half of a staged migration. iter-102 widened the
-  // tool-name gate inside the classifiers to accept MultiEdit, but per-classifier PAYLOAD
-  // adaptation is iter-103 work: a MultiEdit carries `edits[]`, not `content`/`new_string`. Every
-  // classifier therefore short-circuits MultiEdit to ALLOW straight after the tool-name check.
-  //
-  // So forwarding MultiEdit from here would be a no-op for ten of the eleven classifiers and, until
-  // the sibling fix in this same commit, would have activated exactly ONE — shell-script-safety —
-  // against a payload whose `new_string` is undefined. Measured before changing anything.
-  //
-  // OPENING THIS IS AN iter-103 DECISION, not a typo fix: it requires a content extractor that folds
-  // `tool_input.edits[].new_string`, and a per-classifier review of what "the proposed file" means
-  // when a MultiEdit applies several edits in sequence.
+  // Fastpath: only run the registry on Write/Edit. The hooks.json matcher is `Write|Edit`, the two
+  // file-content tools Claude Code ships, so any other tool name reaching this line is outside every
+  // classifier's scope and is allowed through unchecked. NotebookEdit is deliberately not matched: its
+  // payload is a notebook cell, not file content.
   if (input.tool_name !== "Write" && input.tool_name !== "Edit") {
     return allow();
   }
