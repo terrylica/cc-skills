@@ -219,7 +219,6 @@ function shouldSkipPath(path: string, includeWorktrees: boolean): boolean {
 
   // Exclude vendored third-party clones and research archives
   const vendoredPatterns = [
-    "ralph-reference-repos",
     "nt/repos",
     "cc-skills-garch-fix",
     "cc-skills-interactive-json-form",
