@@ -51,7 +51,7 @@ tasks:
   # ── Uniform vocabulary (Nx-convergence rule 2) ─────────────────────────────
   test:
     description: "Marketplace-wide Bun unit suite over every tracked .ts/.mjs test."
-    script: "bash tasks/test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration.sh"
+    script: "bash tasks/test-marketplace-bun-unit-suite.sh"
 
   test-hooks:
     description: "Marketplace-wide hook regression suite (the bash test-file cohort under tasks/tests/)."
@@ -166,7 +166,7 @@ tasks:
   # would move preflight OUTSIDE that wrapper, run it twice, and silently
   # destroy the phase-1 number that iter-74 through iter-138 were built on. The
   # absence is asserted by Iter-139.C4 in
-  # tasks/tests/test-iter137-138-139-140-…-sleep-2-elimination.sh:253. Do not
+  # tasks/tests/test-iter137-140-release-pipeline-instrumentation.sh:253. Do not
   # "correct" this for consistency with its siblings — the same declaration is
   # right on two tasks and wrong on this one (#138).
   release-full:

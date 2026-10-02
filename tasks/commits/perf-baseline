@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ITER178_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
+ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/tests/test-iter174-commits-toolkit-perf-baseline.sh"
 
 if [[ ! -x "$ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH" ]]; then
     echo "  ✗ iter-174 perf-baseline harness not found or not executable at:" >&2

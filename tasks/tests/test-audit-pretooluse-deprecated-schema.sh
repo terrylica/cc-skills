@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-audit-pretooluse-hooks-deprecated-schema-detection-classifies-modern-correct-helper-wrapped-no-decision-and-flags-deprecated-with-nonzero-exit.sh
+# test-audit-pretooluse-deprecated-schema.sh
 #
 # Regression test for the iter-60 PreToolUse schema-correctness audit at
 # tasks/hook-lint/pretooluse-decision-schema.sh.

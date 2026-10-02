@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-posttooluse-1password-pattern-reminder-only-fires-when-op-is-leading-executable-not-heredoc-text.sh
+# test-1password-reminder-only-on-leading-op.sh
 #
 # Regression test for iter-39 false-positive fix in
 # posttooluse-1password-pattern-reminder.sh. The hook used to fire on
