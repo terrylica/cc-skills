@@ -59,7 +59,6 @@ interface HookInput {
     content?: string;
     old_string?: string;
     new_string?: string;
-    edits?: Array<{ old_string?: string; new_string?: string }>;
   };
   session_id?: string;
 }
@@ -133,7 +132,7 @@ function firstRuleName(text: string): string {
 }
 
 /**
- * Net-new detection: Write fires on any hit in content; Edit/MultiEdit fire
+ * Net-new detection: Write fires on any hit in content; Edit fires
  * only when new_string introduces MORE hits than old_string removes (so
  * touching a line that already carried a legacy fallback does not nag).
  */
@@ -186,10 +185,9 @@ export function detectNetNewInventedFallback(input: HookInput): { matched: boole
       : { matched: false, rule: "" };
   }
 
-  const pairs: Array<{ oldS: string; newS: string }> =
-    input.tool_name === "MultiEdit"
-      ? (ti.edits || []).map((e) => ({ oldS: e.old_string || "", newS: e.new_string || "" }))
-      : [{ oldS: ti.old_string || "", newS: ti.new_string || "" }];
+  const pairs: Array<{ oldS: string; newS: string }> = [
+    { oldS: ti.old_string || "", newS: ti.new_string || "" },
+  ];
 
   for (const { oldS, newS } of pairs) {
     if (
@@ -234,7 +232,7 @@ async function main(): Promise<void> {
     process.exit(0); // invalid JSON → fail-open
   }
 
-  if (!["Bash", "Write", "Edit", "MultiEdit"].includes(input.tool_name)) process.exit(0);
+  if (!["Bash", "Write", "Edit"].includes(input.tool_name)) process.exit(0);
 
   const { matched, rule } = detectNetNewInventedFallback(input);
   if (matched) {

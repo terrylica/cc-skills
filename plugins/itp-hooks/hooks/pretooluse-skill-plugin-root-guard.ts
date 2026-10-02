@@ -2,7 +2,7 @@
 /**
  * PreToolUse subhook: Skill CLAUDE_PLUGIN_ROOT Guard
  *
- * Blocks Write/Edit/MultiEdit on skill markdown (any `.md` under a `skills/`
+ * Blocks Write/Edit on skill markdown (any `.md` under a `skills/`
  * directory — SKILL.md bodies and their `references/`) that introduces a
  * CLAUDE_PLUGIN_ROOT reference the runtime cannot honor.
  *
@@ -59,7 +59,7 @@
  * Escape hatch (FILE_WIDE — one marker exempts the whole file, because the
  * files that legitimately discuss this variable are documentation ABOUT it):
  *     SKILL-PLUGIN-ROOT-OK: <reason at least 10 characters>
- * For Edit/MultiEdit the marker is honored whether it appears in the new text
+ * For Edit the marker is honored whether it appears in the new text
  * or anywhere in the file already on disk (the iter-15 fix pattern).
  *
  * Contract: pure classifier per
@@ -238,18 +238,12 @@ function extractProposedContentBlobs(input: PreToolUseInput): string[] {
   const toolInput = (input.tool_input ?? {}) as {
     content?: string;
     new_string?: string;
-    edits?: Array<{ new_string?: string }>;
   };
   if (input.tool_name === "Write") {
     return toolInput.content ? [toolInput.content] : [];
   }
   if (input.tool_name === "Edit") {
     return toolInput.new_string ? [toolInput.new_string] : [];
-  }
-  if (input.tool_name === "MultiEdit") {
-    return (toolInput.edits ?? [])
-      .map((singleEdit) => singleEdit.new_string ?? "")
-      .filter((blob) => blob.length > 0);
   }
   return [];
 }

@@ -2,12 +2,12 @@
 
 Two hooks and one shared detector library, closing the structural gap that let live credentials and a third party's personal data reach public repositories.
 
-| File                                             | Lifecycle                            | Behaviour                         |
-| ------------------------------------------------ | ------------------------------------ | --------------------------------- |
-| `hooks/lib/secret-and-pii-exposure-detector.ts`  | —                                    | Pure detectors + message builders |
-| `hooks/pretooluse-secret-exposure-guard.ts`      | PreToolUse `Write\|Edit\|MultiEdit`  | **Hard deny** on credentials      |
-| `hooks/posttooluse-pii-exposure-reminder.ts`     | PostToolUse `Write\|Edit\|MultiEdit` | Non-blocking reminder on PII      |
-| `hooks/pretooluse-secret-exposure-guard.test.ts` | —                                    | 48 bun tests, positive + negative |
+| File                                             | Lifecycle                 | Behaviour                         |
+| ------------------------------------------------ | ------------------------- | --------------------------------- |
+| `hooks/lib/secret-and-pii-exposure-detector.ts`  | —                         | Pure detectors + message builders |
+| `hooks/pretooluse-secret-exposure-guard.ts`      | PreToolUse `Write\|Edit`  | **Hard deny** on credentials      |
+| `hooks/posttooluse-pii-exposure-reminder.ts`     | PostToolUse `Write\|Edit` | Non-blocking reminder on PII      |
+| `hooks/pretooluse-secret-exposure-guard.test.ts` | —                         | 48 bun tests, positive + negative |
 
 ## The incident (2026-08-28)
 
@@ -30,7 +30,7 @@ Two lessons drive the design. First, **`docs/` is the dangerous directory, not `
 | Pushover-style bare token    | A bare 30-char mixed-alphanumeric run **within ±80 chars** of a `PUSHOVER` / `app_token` / `user_key` / `api_token` / `--token` cue                                                                   | The same 30-char shape with no cue, `$PUSHOVER_APP_TOKEN`, `<pushover-app-token>`, all-letter runs |
 | Provisioning command literal | `doppler secrets set`, `op item create\|edit`, `vault set\|put`, `gh secret set`, `wrangler secret put`, `aws secretsmanager …`, `security add-generic-password` + a ≥16-char non-placeholder literal | Placeholder values, `$VAR` references, prose flag values containing whitespace                     |
 
-Only **new** content is scanned (`content`, `new_string`, `edits[].new_string`), and MultiEdit fragments are scanned **separately**, so a naming cue in one edit cannot license a token blob in another. Matched values are redacted before they reach the transcript.
+Only **new** content is scanned (`content`, `new_string`). Matched values are redacted before they reach the transcript.
 
 ### PII class → **reminder only** (PostToolUse `decision: "block"` context injection)
 
@@ -84,14 +84,14 @@ The two hooks above could not have caught it. **They inspect file writes; no fil
 
 Invoked as Step 3b of the iter-157 commit-msg hook body, before the conventional-commit classifier (a message that leaks must be rejected however well-formed its subject is). A PreToolUse guard on `Bash` was rejected as the primary mechanism: it would only see agent commits with an inline `-m`, and would miss operator-typed commits, `-F file`, editor sessions, `--amend`, and any other git client. `commit-msg` is git's own interception point and sees all of them — and this repo already runs a `pre-commit` PII guard and this very `commit-msg` hook, so it extends an established pattern rather than adding a parallel one.
 
-| Property        | Behaviour                                                                                |
-| --------------- | ---------------------------------------------------------------------------------------- |
-| Credential kinds | **BLOCK** (exit 1) — same three detectors as the file surface                            |
-| PII kinds        | **REMIND** (exit 0) — same asymmetry, same reasoning                                     |
-| Skipped          | Merge/Revert/fixup!/squash!/amend! subjects; empty messages                              |
-| Never scanned    | `#` comment lines, and everything below the `--verbose` `>8` scissors line               |
-| Escape hatch     | `SECRET-SCAN-OK: <reason ≥10 chars>` in the message — same marker, same gate             |
-| Failure mode     | Fail-OPEN and loud (a crashing or missing guard must not make the repo uncommittable)    |
+| Property         | Behaviour                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| Credential kinds | **BLOCK** (exit 1) — same three detectors as the file surface                         |
+| PII kinds        | **REMIND** (exit 0) — same asymmetry, same reasoning                                  |
+| Skipped          | Merge/Revert/fixup!/squash!/amend! subjects; empty messages                           |
+| Never scanned    | `#` comment lines, and everything below the `--verbose` `>8` scissors line            |
+| Escape hatch     | `SECRET-SCAN-OK: <reason ≥10 chars>` in the message — same marker, same gate          |
+| Failure mode     | Fail-OPEN and loud (a crashing or missing guard must not make the repo uncommittable) |
 
 **The scissors exclusion is load-bearing.** The most likely commit this guard ever sees is the one that *removes* a leaked value; with `commit --verbose` that value sits in the diff below the scissors. Scanning it would block precisely the commit that fixes the problem.
 
@@ -101,12 +101,12 @@ Reporting is class + line + **redacted** excerpt, never the value — echoing it
 
 All three are PII-class (remind), because none is a usable credential on its own. What they leak is **attribution**: whose account, which client, which deal.
 
-| Kind                                 | Shape                                        | Required cue within ±80 chars                    |
-| ------------------------------------ | -------------------------------------------- | ------------------------------------------------ |
-| `aws-account-id`                     | bare 12-digit run                            | `aws` / `arn:aws` / `account id` / `iam` / `sts` |
-| `client-scoped-workers-dev-hostname` | `<project>.<account>.workers.dev`            | none — but ≥2 labels, and no placeholder label   |
-| `vault-item-identifier`              | 26-char `[a-z2-7]` base32 blob               | `1password` / `op item` / `op://` / `item id`    |
-| `hardware-mac-address`               | six colon/hyphen-separated hex octets        | none — the shape is distinctive enough           |
+| Kind                                 | Shape                                 | Required cue within ±80 chars                    |
+| ------------------------------------ | ------------------------------------- | ------------------------------------------------ |
+| `aws-account-id`                     | bare 12-digit run                     | `aws` / `arn:aws` / `account id` / `iam` / `sts` |
+| `client-scoped-workers-dev-hostname` | `<project>.<account>.workers.dev`     | none — but ≥2 labels, and no placeholder label   |
+| `vault-item-identifier`              | 26-char `[a-z2-7]` base32 blob        | `1password` / `op item` / `op://` / `item id`    |
+| `hardware-mac-address`               | six colon/hyphen-separated hex octets | none — the shape is distinctive enough           |
 
 Documentation filler never fires: AWS's own `123456789012`, all-zero runs, single-label `foo.workers.dev`, and any placeholder label, and — for MAC addresses — any single repeated octet (`00:…`, `ff:…`, `aa:…`), the RFC 7042 documentation ranges, and hex words like `de:ad:be:ef:…`. A longer hex run printed in octet pairs (a hash, a key fingerprint) is rejected by the boundary lookarounds.
 

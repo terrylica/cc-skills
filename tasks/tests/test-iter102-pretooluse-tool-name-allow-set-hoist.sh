@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-102 regression test for PreToolUse canonical-helper hoist (mirrors iter-100's PostToolUse-side helper hoist). Verifies the FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS allowlist + isFileEditToolNameHonoredByPreToolUseBlockingSubhook helper exist in the contract lib, all 8 inlined classifiers import + use the canonical helper, the legacy hardcoded tool_name !== Write && tool_name !== Edit guard pattern is removed from all 8, and the iter-102 staged-migration MultiEdit short-circuit preserves status quo (preventing false-positives until iter-103+ per-classifier MultiEdit content-extraction work).
+# Iter-102 regression test for PreToolUse canonical-helper hoist (mirrors iter-100's PostToolUse-side helper hoist). Verifies the FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS allowlist + isFileEditToolNameHonoredByPreToolUseBlockingSubhook helper exist in the contract lib, the allow-set is exactly Write + Edit (the two file-content tools in the Claude Code tools reference), all 8 inlined classifiers import + use the canonical helper, the legacy hardcoded tool_name !== Write && tool_name !== Edit guard pattern is removed from all 8, and the orchestrator lets a tool name outside the allow-set through without a deny.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -44,18 +44,12 @@ else
     assert_fails "Case 1: canonical allowlist constant or helper missing from PreToolUse contract lib"
 fi
 
-# ─── Case 2: allowlist constant contains all 3 file-edit tool names ──────────
-case2_allowlist_block=$(awk '/FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS/,/\);/' "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" | head -10)
-case2_has_write=0
-case2_has_edit=0
-case2_has_multiedit=0
-[[ "$case2_allowlist_block" == *'"Write"'* ]] && case2_has_write=1
-[[ "$case2_allowlist_block" == *'"Edit"'* ]] && case2_has_edit=1
-[[ "$case2_allowlist_block" == *'"MultiEdit"'* ]] && case2_has_multiedit=1
-if [[ "$case2_has_write" == "1" ]] && [[ "$case2_has_edit" == "1" ]] && [[ "$case2_has_multiedit" == "1" ]]; then
-    assert_passes "Case 2: PreToolUse allowlist constant contains Write + Edit + MultiEdit"
+# ─── Case 2: allowlist constant is exactly Write + Edit ─────────────────────
+if grep -qF 'FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS' "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && \
+   grep -qF 'ReadonlySet<string> = new Set(["Write", "Edit"]);' "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH"; then
+    assert_passes "Case 2: PreToolUse allowlist constant is exactly Write + Edit"
 else
-    assert_fails "Case 2: PreToolUse allowlist constant missing entries (write=$case2_has_write edit=$case2_has_edit multiedit=$case2_has_multiedit)"
+    assert_fails "Case 2: PreToolUse allowlist constant is not exactly new Set([\"Write\", \"Edit\"])"
 fi
 
 # ─── Case 3: all 8 inlined classifiers import the canonical helper ───────────
@@ -92,20 +86,17 @@ else
     assert_fails "Case 4: $case4_classifiers_with_legacy_guard_count/8 classifiers still have legacy hardcoded tool_name guard"
 fi
 
-# ─── Case 5: iter-102 staged-migration MultiEdit short-circuit present ───────
-# Each classifier should have the explicit `if (tool_name === "MultiEdit") return ALLOW_DECISION;`
-# placeholder to preserve status quo until iter-103+ per-classifier MultiEdit
-# content extraction lands.
-case5_classifiers_with_multiedit_short_circuit_count=0
-for classifier_path in "${EIGHT_INLINED_PRETOOLUSE_CLASSIFIER_ABSOLUTE_PATHS[@]}"; do
-    if grep -qE '(tool_name|toolName).*===.*"MultiEdit"' "$classifier_path"; then
-        case5_classifiers_with_multiedit_short_circuit_count=$((case5_classifiers_with_multiedit_short_circuit_count + 1))
-    fi
-done
-if [[ "$case5_classifiers_with_multiedit_short_circuit_count" == "8" ]]; then
-    assert_passes "Case 5: iter-102 staged-migration MultiEdit short-circuit present in all 8 classifiers (preserves status quo until iter-103+)"
+# ─── Case 5: helper accepts Write/Edit and rejects every other tool name ─────
+set +e
+case5_helper_verdicts=$(cd "$REPO_ROOT" && bun -e '
+import { isFileEditToolNameHonoredByPreToolUseBlockingSubhook as h } from "./plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+console.log(["Write", "Edit", "NotebookEdit", "Bash", ""].map((t) => h(t)).join(","));
+' 2>/dev/null)
+set -e
+if [[ "$case5_helper_verdicts" == "true,true,false,false,false" ]]; then
+    assert_passes "Case 5: helper honors Write + Edit and rejects NotebookEdit, Bash and an empty name"
 else
-    assert_fails "Case 5: only $case5_classifiers_with_multiedit_short_circuit_count/8 classifiers have iter-102 MultiEdit short-circuit"
+    assert_fails "Case 5: helper verdicts for Write,Edit,NotebookEdit,Bash,'' were '$case5_helper_verdicts' (expected true,true,false,false,false)"
 fi
 
 # ─── Case 6: e2e — PreToolUse orchestrator on Write payload still works ─────
@@ -135,48 +126,36 @@ JSON
     fi
 fi
 
-# ─── Case 7: e2e — MultiEdit payload routes through but classifiers no-op ────
-# Iter-102 staged-migration behavior: orchestrator routes MultiEdit (iter-101
-# matcher broadening) to each classifier, classifier hits canonical helper
-# (passes) then MultiEdit short-circuit (returns ALLOW), net = silent allow.
-# Verify orchestrator emits NO deny on a MultiEdit payload.
+# ─── Case 7: e2e — a tool name outside the allow-set is allowed through ─────
+# The orchestrator's fastpath returns allow for anything but Write/Edit, so a
+# NotebookEdit payload (a notebook cell, not file content) must exit 0 with no
+# deny even when the target path would trip a classifier for a Write.
 if [[ -f "$PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" ]]; then
-    TEMP_MULTIEDIT_PAYLOAD_FILE="$TEMP_E2E_DIR/payload-multiedit.json"
-    TEMP_MULTIEDIT_PY_FILE="$TEMP_E2E_DIR/multiedit-sample.py"
-    cat > "$TEMP_MULTIEDIT_PY_FILE" <<'PY'
-import os
-def x():
-    return os.environ.get("X", "1")
-PY
-    cat > "$TEMP_MULTIEDIT_PAYLOAD_FILE" <<JSON
-{"tool_name":"MultiEdit","session_id":"iter102-multiedit-$(date +%s%N)","tool_input":{"file_path":"$TEMP_MULTIEDIT_PY_FILE","edits":[{"old_string":"return os.environ.get(\"X\", \"1\")","new_string":"return os.environ.get(\"X\", \"1\")  # iter-102"}]}}
+    TEMP_OTHER_TOOL_PAYLOAD_FILE="$TEMP_E2E_DIR/payload-other-tool.json"
+    cat > "$TEMP_OTHER_TOOL_PAYLOAD_FILE" <<JSON
+{"tool_name":"NotebookEdit","session_id":"iter102-other-tool-$(date +%s%N)","tool_input":{"notebook_path":"$TEMP_E2E_DIR/sample.ipynb","new_source":"x = 1"}}
 JSON
     set +e
-    case7_stdout=$(bun "$PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" < "$TEMP_MULTIEDIT_PAYLOAD_FILE" 2>/dev/null)
+    case7_stdout=$(bun "$PRETOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" < "$TEMP_OTHER_TOOL_PAYLOAD_FILE" 2>/dev/null)
     case7_exit=$?
     set -e
-    # iter-102 staged: classifiers self-skip on MultiEdit → no deny
     case7_has_deny=0
     [[ "$case7_stdout" == *'"permissionDecision":"deny"'* ]] && case7_has_deny=1
     if [[ "$case7_exit" == "0" ]] && [[ "$case7_has_deny" == "0" ]]; then
-        assert_passes "Case 7: iter-102 staged-migration — MultiEdit routes through orchestrator + 8 classifiers self-skip (no false-positive deny)"
+        assert_passes "Case 7: tool name outside the allow-set (NotebookEdit) passes the orchestrator with no deny"
     else
-        assert_fails "Case 7: MultiEdit path broken (exit=$case7_exit, has_deny=$case7_has_deny, stdout-head='${case7_stdout:0:200}')"
+        assert_fails "Case 7: non-file-edit tool path broken (exit=$case7_exit, has_deny=$case7_has_deny, stdout-head='${case7_stdout:0:200}')"
     fi
 fi
 
-# ─── Case 8: lib file contains iter-102 design rationale + iter-103 follow-up ──
-# Documentation invariant: the helper hoist comment block must mention both
-# (a) the iter-100 PostToolUse precedent + (b) the iter-103+ per-classifier
-# MultiEdit content-extraction follow-up + (c) NotebookEdit non-acceptance
-# rationale. These are NOT informational — they prevent future maintainers
-# from re-discovering the same staged-migration decision points.
-if grep -q "iter-100" "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && \
-   grep -q "iter-103" "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && \
+# ─── Case 8: lib documents the allow-set source + NotebookEdit exclusion ─────
+# Documentation invariant: the helper comment must cite the upstream tools
+# reference the allow-set is derived from, and say why NotebookEdit is out.
+if grep -q "code.claude.com/docs/en/tools-reference" "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && \
    grep -q "NotebookEdit" "$PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH"; then
-    assert_passes "Case 8: contract lib documents iter-100 precedent + iter-103 follow-up scope + NotebookEdit non-acceptance"
+    assert_passes "Case 8: contract lib cites the tools reference + documents NotebookEdit non-acceptance"
 else
-    assert_fails "Case 8: contract lib missing iter-102 design rationale sections"
+    assert_fails "Case 8: contract lib missing the tools-reference citation or the NotebookEdit rationale"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
@@ -200,5 +179,3 @@ echo "     classifiers (file-size-guard, vale-claude-md-guard, version-guard,"
 echo "     hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-"
 echo "     guard, gpu-optimization-guard). Future Anthropic tool-name additions"
 echo "     update ONE constant, not 8 classifier files."
-echo "  🚀 Iter-102 staged-migration MultiEdit short-circuit preserves status quo"
-echo "     until iter-103+ per-classifier MultiEdit content-extraction work."

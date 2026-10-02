@@ -65,7 +65,7 @@ Do **not** glob `~/.claude/plugins/cache/<mp>/<plugin>/*` for the highest versio
 SKILL-PLUGIN-ROOT-OK: <reason at least 10 characters>
 ```
 
-`FILE_WIDE` semantics: one marker anywhere in the file exempts the whole file, because the files that legitimately contain these patterns are documentation _about_ the variable. On Edit/MultiEdit the marker is honored from the on-disk copy too (the iter-15 pattern), so an edit to an unrelated region of a marked file is not blocked.
+`FILE_WIDE` semantics: one marker anywhere in the file exempts the whole file, because the files that legitimately contain these patterns are documentation _about_ the variable. On Edit the marker is honored from the on-disk copy too (the iter-15 pattern), so an edit to an unrelated region of a marked file is not blocked.
 
 Currently marked: `plugin-dev`'s `path-patterns.md` / `advanced-topics.md` / `evolution-log.md`, `itp-hooks`'s `lifecycle-reference.md` / `hook-templates.md`, and the two SKILL.mds whose prose explains the rule. The `gh-tools` and `productivity-tools` `tether` skills were also marked until issue #127 deleted them — their probe-for-the-variable diagnostic block went with the skill.
 

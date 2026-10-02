@@ -32,7 +32,7 @@
  * per ADR 2025-12-17. `block` does NOT undo the completed tool; it surfaces
  * `reason` as a system reminder. This hook NEVER blocks real work.
  *
- * NET-NEW ONLY. For Edit/MultiEdit, the site count in `new_string` must exceed
+ * NET-NEW ONLY. For Edit, the site count in `new_string` must exceed
  * the count in `old_string`, so touching a line near a pre-existing site does
  * not fire. For Write, the whole content is scanned — a new file is entirely
  * net-new, and an overwrite of an existing file is a rewrite of its content.
@@ -56,7 +56,6 @@ interface HookInput {
     content?: string;
     old_string?: string;
     new_string?: string;
-    edits?: { old_string?: string; new_string?: string }[];
   };
 }
 
@@ -86,16 +85,6 @@ export function detectNetNewSigpipeSites(input: HookInput): SigpipeSite[] {
     const before = scanFragment(filePath, input.tool_input?.old_string);
     const after = scanFragment(filePath, input.tool_input?.new_string);
     return after.length > before.length ? after.slice(before.length) : [];
-  }
-
-  if (input.tool_name === "MultiEdit") {
-    const out: SigpipeSite[] = [];
-    for (const edit of input.tool_input?.edits ?? []) {
-      const before = scanFragment(filePath, edit.old_string);
-      const after = scanFragment(filePath, edit.new_string);
-      if (after.length > before.length) out.push(...after.slice(before.length));
-    }
-    return out;
   }
 
   return [];
@@ -153,7 +142,7 @@ async function main(): Promise<void> {
     process.exit(0); // invalid JSON → fail-open
   }
 
-  if (!["Write", "Edit", "MultiEdit"].includes(input.tool_name)) process.exit(0);
+  if (!["Write", "Edit"].includes(input.tool_name)) process.exit(0);
 
   const sites = detectNetNewSigpipeSites(input);
   if (sites.length > 0) {

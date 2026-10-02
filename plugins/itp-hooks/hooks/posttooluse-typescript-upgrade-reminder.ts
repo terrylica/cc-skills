@@ -29,7 +29,7 @@
  * ── Skip conditions (noop) ────────────────────────────────────────────────
  *
  * The reminder does NOT fire if:
- *   1. Tool is not Write/Edit/MultiEdit
+ *   1. Tool is not Write/Edit
  *   2. File path is inside a temporary scratch directory (iter-124 helper)
  *   3. File extension is not .ts/.tsx/.mts/.cts (TypeScript files) and not
  *      package.json or tsconfig.json

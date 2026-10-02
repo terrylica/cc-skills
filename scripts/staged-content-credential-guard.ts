@@ -9,7 +9,7 @@
  * them they leave one hole large enough to drive every real incident through:
  *
  *   1. `pretooluse-secret-exposure-guard.ts` blocks a CREDENTIAL in the payload
- *      of an agent's Write / Edit / MultiEdit. It sees a tool call, not a file:
+ *      of an agent's Write / Edit. It sees a tool call, not a file:
  *      bytes that arrive by any other route are invisible to it.
  *   2. `commit-message-exposure-guard.ts` blocks a credential in the COMMIT
  *      MESSAGE. That is the semantic-release republication surface, and nothing

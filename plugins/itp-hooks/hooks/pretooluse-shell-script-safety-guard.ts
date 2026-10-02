@@ -135,21 +135,6 @@ export async function classifyShellScriptSafetyGuardForOrchestrator(
       return ALLOW_DECISION;
     }
 
-    // THE ONLY CLASSIFIER IN THE COHORT THAT LACKED THIS. Its ten siblings (file-size, vale,
-    // version, hoisted-deps, mise-hygiene, pyi-stub, native-binary, gpu-optimization,
-    // typescript-version, skill-plugin-root) all short-circuit MultiEdit to ALLOW, because iter-102
-    // widened the tool-name gate but left per-classifier payload adaptation to iter-103: a MultiEdit
-    // carries `edits[]`, not `content`/`new_string`, so the Edit branch below would read `undefined`.
-    //
-    // It was harmless only because the orchestrator's own fastpath never forwards MultiEdit. The
-    // moment someone "fixes" that fastpath — which looks like an obvious one-line correction, and
-    // was recommended to me as one — this guard alone would start running on a payload shape it
-    // cannot read, while the other ten stayed correctly inert. Closing the inconsistency here means
-    // opening the fastpath later is a decision about capability rather than an accident.
-    if (input.tool_name === "MultiEdit") {
-      return ALLOW_DECISION;
-    }
-
     const filePath = input.tool_input.file_path;
     const newFileContent = input.tool_input.content;
 

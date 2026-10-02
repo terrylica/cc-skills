@@ -2,7 +2,7 @@
 /**
  * PostToolUse hook: third-party-PII exposure reminder.
  *
- * Fires after a Write/Edit/MultiEdit of a durable text file whose POST-EDIT
+ * Fires after a Write/Edit of a durable text file whose POST-EDIT
  * content contains a third-party email address or telephone number, and injects
  * a Claude-visible reminder that the data may not belong in a published tree.
  *
@@ -56,7 +56,7 @@ interface PostToolUseInput {
   };
 }
 
-const FILE_EDIT_TOOL_NAMES: ReadonlySet<string> = new Set(["Write", "Edit", "MultiEdit"]);
+const FILE_EDIT_TOOL_NAMES: ReadonlySet<string> = new Set(["Write", "Edit"]);
 
 /**
  * Documentation and configuration surfaces only.

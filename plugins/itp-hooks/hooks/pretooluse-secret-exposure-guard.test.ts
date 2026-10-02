@@ -249,14 +249,9 @@ describe("shared placeholder helpers", () => {
 });
 
 describe("PreToolUse credential guard", () => {
-  test("collects new content from Write, Edit and MultiEdit shapes", () => {
+  test("collects new content from Write and Edit shapes", () => {
     expect(collectNewContentFragmentsFromToolInput({ content: "a" })).toEqual(["a"]);
     expect(collectNewContentFragmentsFromToolInput({ new_string: "b" })).toEqual(["b"]);
-    expect(
-      collectNewContentFragmentsFromToolInput({
-        edits: [{ new_string: "c" }, { new_string: "d" }, { old_string: "ignored" }],
-      }),
-    ).toEqual(["c", "d"]);
   });
 
   test("denies a doc write that carries a live-shaped token", () => {
@@ -292,7 +287,7 @@ describe("PreToolUse credential guard", () => {
     ).not.toBeNull();
   });
 
-  test("MultiEdit fragments are scanned separately so context cannot be stitched", () => {
+  test("fragments are scanned separately so context cannot be stitched", () => {
     // "PUSHOVER" in one edit must not license a 30-char blob in a different edit.
     expect(
       evaluateNewContentForCredentialExposure("notes.md", [
