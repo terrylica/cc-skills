@@ -1,3 +1,16 @@
+## [33.1.2](https://github.com/terrylica/cc-skills/compare/v33.1.1...v33.1.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* **itp-hooks:** emit Write/Edit orchestrator ask as JSON with exit 0 ([f92a5f9](https://github.com/terrylica/cc-skills/commit/f92a5f936818fe40c7bfc503435f15d3582f45f1)), closes [code.claude.com/docs/en/hooks#exit-code-2](https://github.com/code.claude.com/docs/en/hooks/issues/exit-code-2) [anthropics/claude-code#37210](https://github.com/anthropics/claude-code/issues/37210)
+
+The PreToolUse Write/Edit orchestrator set exit code 2 for both deny and
+
+* **ssh-tunnel-companion:** resolve the Tailscale CLI instead of hard-coding the macOS app's helper path ([277e427](https://github.com/terrylica/cc-skills/commit/277e427ad851745511fca170e72b7e5a9540d3d8))
+
+The 'Tailscale Ping' menu action called /usr/local/bin/tailscale, which exists only when the standalone macOS app installs its CLI helper. Machines running the open-source tailscaled from Homebrew have /opt/homebrew/bin/tailscale instead, and the action failed there. The plugin now uses whichever is installed: PATH first, then Homebrew, the app helper, and the app binary.
+
 ## [33.1.1](https://github.com/terrylica/cc-skills/compare/v33.1.0...v33.1.1) (2026-10-02)
 
 # [33.1.0](https://github.com/terrylica/cc-skills/compare/v33.0.1...v33.1.0) (2026-10-01)
