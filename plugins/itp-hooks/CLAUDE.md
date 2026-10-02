@@ -32,7 +32,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-gpu-optimization-guard.ts`                       | Write\|Edit orch.        | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                       |
 | `pretooluse-mise-hygiene-guard.ts`                           | Write\|Edit orch.        | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                           |
 | `pretooluse-file-size-guard.ts`                              | Write\|Edit orch.        | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                              |
-| `pretooluse-edit-time-orchestrator-…-iter66-precedent.ts`    | Write\|Edit              | Iter-84→91 orchestrator; all 8 subhooks       | [→](./docs/pretooluse-write-edit-orchestrator.md)           |
+| `pretooluse-edit-time-orchestrator-…-iter66-precedent.ts`    | Write\|Edit              | Runs the 11 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)           |
 | `pretooluse-native-binary-guard.ts`                          | Write\|Edit orch.        | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                          |
 | `pretooluse-pyi-stub-guard.ts`                               | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                               |
 | `pretooluse-uv-enforcement-guard.ts`                         | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                         |

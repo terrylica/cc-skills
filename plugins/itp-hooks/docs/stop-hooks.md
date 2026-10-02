@@ -1,22 +1,26 @@
-# Stop-hook schema correctness (iter-66 trinity + iter-69 pentad)
+# Stop-hook output: where summaries go
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — moved verbatim from the hub 2026-06-11 (CLAUDE.md size-guard refactor: hub was 112k chars, limit 40k).
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md).
 
-### iter-66 Stop-hook schema-correctness note (iter-68 trinity + iter-69 pentad expansion)
+## What each event does with hook output
 
-Per the official Anthropic Claude Code hook schema (verbatim example documented in [GitHub issue #19115](https://github.com/anthropics/claude-code/issues/19115) and the official docs at code.claude.com/docs/en/hooks), the **additionalContext-silently-dropped pentad** comprises five event types with three distinct schema sub-rules but a unified silent-drop symptom:
+From the [Claude Code hooks reference](https://code.claude.com/docs/en/hooks) (decision-control table, "Stop decision control" and the exit-code table):
 
-- **Stop, SubagentStop, PreCompact** support only `{decision: "block", reason}` in their stdout JSON. SubagentStop "uses the same decision control format as Stop"; PreCompact shares the same schema family (the `decision` field is documented as shared across Stop / SubagentStop / PreCompact / PostToolUse / PostToolUseFailure / PostToolBatch / UserPromptSubmit / UserPromptExpansion / ConfigChange — only value is "block").
-- **SessionEnd** has an even narrower schema: per Go type definitions ([CorridorSecurity/hookshot](https://pkg.go.dev/github.com/CorridorSecurity/hookshot/claude)), `SessionEndOK` returns _empty output_ — SessionEnd cannot inject any context at all because the session is terminating.
-- **Notification** is purely informational with NO decision-control capability ("Exit Code 2 Behavior: N/A — shows stderr to user only, no blocking capability"). Subtypes: `permission_prompt`, `idle_prompt`, `auth_success`. Only stderr on exit 2 reaches the user.
+| Event              | `additionalContext`                                                                                                                                                                                                                                                 | Blocking                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Stop, SubagentStop | Accepted as `hookSpecificOutput.additionalContext`, but it **continues the conversation**: "The conversation continues so Claude can act on it", under the same loop protections as `decision: "block"` (`stop_hook_active` and the 8-consecutive-continuation cap) | `decision: "block"` or exit 2 prevents Claude from stopping |
+| PreCompact         | Not part of its decision pattern                                                                                                                                                                                                                                    | `decision: "block"` or exit 2 blocks compaction             |
+| SessionEnd         | Discarded: "Claude Code discards their JSON output fields"                                                                                                                                                                                                          | No decision control; stderr is shown to the user only       |
+| Notification       | Not part of its decision pattern                                                                                                                                                                                                                                    | No blocking; "Exit code and stderr are ignored"             |
 
-Any `additionalContext` field — top-level OR nested in `hookSpecificOutput` — on any of these five event types is read by NO field consumer in Claude Code and is silently dropped.
+So on Stop, `additionalContext` is not a passive note: every emission keeps Claude running for another turn. An informational summary must not use it.
 
-This is a different schema from PostToolUse / UserPromptSubmit / SessionStart, where `hookSpecificOutput.additionalContext` IS supported.
+## How itp-hooks routes Stop summaries
 
-**Implication for itp-hooks Stop subhooks**: `stop-markdown-lint.ts`, `stop-ty-project-check.ts`, and `stop-hook-error-summary.ts` each emit `{additionalContext: "summary"}` to their stdout. The `stop-orchestrator.ts` aggregates these — pre-iter-66 it then re-emitted `{additionalContext: aggregated}` to its own stdout, where Claude Code silently dropped it. **iter-66 routes the aggregated summary to stderr** (transcript-visible via Ctrl-R), so operators can still see subhook summaries during debugging. Claude itself does NOT see these on next-turn context — but it never did via the broken stdout route either.
+`stop-orchestrator.ts` runs the Stop subhooks (`stop-subprocess-session-cleanup.ts`, `stop-hook-error-summary.ts`, `stop-ty-project-check.ts`, `stop-markdown-lint.ts`) and writes their aggregated summary to **stderr**, where it is visible in the transcript for debugging but does not keep the session going.
 
-If a future subhook needs to inject context that Claude actually reads, the orchestrator must instead emit `{decision: "block", reason: "<context as instruction>"}`, which keeps Claude running and surfaces the reason as a system reminder. This is reserved for **truly critical** findings (currently only `stop-loop-stall-guard.ts` uses this path via `asyncRewake`).
+A subhook that genuinely needs Claude to act before stopping returns `decision: "block"` with a `reason`; the orchestrator joins those reasons and emits them on stdout. No itp-hooks Stop subhook does so today.
 
-**Preventive infrastructure** (iter-67 + iter-68 + iter-69): the marketplace-wide audit at `tasks/hook-lint/stop-additional-context.sh` scans every registered Stop / SubagentStop / SessionEnd / PreCompact / Notification hook (the full pentad) for unjustified `additionalContext` emissions and blocks tag publish on violation (release:preflight Check 4j). The escape hatch is a `STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason ≥ 10 chars>` source comment. Marketplace currently has 5 Stop hooks (4 CLEAN, 1 WITH-OK-MARKER) and 0 SubagentStop / SessionEnd / PreCompact / Notification hooks — the gate is preventive for the four event types not currently used.
+## The guard
 
+`tasks/hook-lint/stop-additional-context.sh` (part of `moon run repo:hook-lint`, so it runs on every push) scans every registered Stop, SubagentStop, SessionEnd, PreCompact and Notification hook and fails on an `additionalContext` emission without a justification. The escape hatch is a `STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason ≥ 10 chars>` source comment, for a hook that deliberately continues the conversation.
