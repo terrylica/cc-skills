@@ -27,7 +27,7 @@ docs/
 
 **Location**: `docs/design/YYYY-MM-DD-slug/spec.md`
 
-**Relationship**: partial, not 1:1 — 33 of 59 ADRs have a design spec. The shortfall is structural rather than a backlog: `/itp:go` preflight creates an ADR automatically for every change, while a design spec is written only when an implementation needs one. Do not read a missing spec as an omission to fix.
+**Relationship**: partial, not 1:1 — 30 of 52 ADRs have a design spec. The shortfall is structural rather than a backlog: `/itp:go` preflight creates an ADR automatically for every change, while a design spec is written only when an implementation needs one. Do not read a missing spec as an omission to fix.
 
 **Content**: Implementation details, code snippets, file modifications.
 
