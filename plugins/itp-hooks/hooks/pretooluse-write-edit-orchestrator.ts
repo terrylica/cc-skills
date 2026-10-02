@@ -105,7 +105,7 @@ import {
 import type {
   PreToolUseSubhookRegistryEntry,
   PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 import { classifyFileSizeGuardForOrchestrator } from "./pretooluse-file-size-guard.ts";
 import { classifyVersionGuardForOrchestrator } from "./pretooluse-version-guard.ts";
 import { classifyTypeScriptVersionGuardForOrchestrator } from "./pretooluse-typescript-version-guard.ts";

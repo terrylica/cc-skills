@@ -9,7 +9,7 @@ import {
 
 const HOOK_PATH = join(
   import.meta.dir,
-  "pretooluse-askuserquestion-option-line-terminator-guard.ts",
+  "pretooluse-askuserquestion-line-terminator-guard.ts",
 );
 
 // Built by code point: a literal U+2028/U+2029 in this source would terminate the line.

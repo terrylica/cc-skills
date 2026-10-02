@@ -38,7 +38,7 @@ import {
   denyDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 
 // ============================================================================
 // Pure helpers (synchronous, no I/O contract violations)

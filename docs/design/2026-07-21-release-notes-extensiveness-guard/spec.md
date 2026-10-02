@@ -22,8 +22,8 @@ raw commit dump. Global by construction (ships in the always-installed
 | `plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts`      | Thin stdin/stdout driver                    |
 | `plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.test.ts` | 27 unit + subprocess tests                  |
 | `plugins/itp-hooks/hooks/hooks.json`                                           | Registration (before `pueue-wrap-guard`)    |
-| `plugins/itp-hooks/hooks/lib/…-registry-…-iter111.ts`                          | `RELEASE-NOTES-OK` marker entry             |
-| `tasks/…escape-hatch-marker-detection-inventory…`                        | iter-110 consumer cohort membership         |
+| `plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts`          | `RELEASE-NOTES-OK` marker entry             |
+| `tasks/…escape-hatch-marker-detection-inventory…`                              | iter-110 consumer cohort membership         |
 | `plugins/itp-hooks/docs/release-notes-extensiveness-guard.md`                  | Spoke                                       |
 | `~/.claude/release-notes-doctrine-CLAUDE.md`                                   | Doctrine SSoT + hub row                     |
 

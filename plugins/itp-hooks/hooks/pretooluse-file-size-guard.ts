@@ -45,7 +45,7 @@ import {
   denyDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 
 // ============================================================================
 // Configuration
@@ -204,7 +204,7 @@ function isExcluded(config: GuardConfig, filePath: string): boolean {
 // via .claude/file-size-guard.json), so the marker is supplied via the
 // classifier's `config.escapeComment` field rather than a hardcoded
 // configuration object at module load time.
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 function hasEscapeComment(content: string, escapeComment: string): boolean {
   return hasFileWideEscapeHatchMarkerInContent(content, {
     markerNameTokenIncludingSuffix: escapeComment,
