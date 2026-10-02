@@ -184,7 +184,7 @@ A classifier:
 
 Orchestrator behaviour a subhook author needs to know:
 
-- **PreToolUse**: on deny or ask the orchestrator writes the JSON decision to stdout, a diagnostic to stderr, and sets exit code 2. Because exit 2 always blocks (see the output table), an `ask` from a Write/Edit subhook blocks rather than prompting.
+- **PreToolUse**: the first deny wins and stops the run; an ask is held while the remaining subhooks are checked for a deny. Either decision goes to stdout as `hookSpecificOutput.permissionDecision` JSON with exit 0, plus a diagnostic on stderr that only reaches the debug log. Never exit 2: it blocks whatever the JSON says (see the output table), so an `ask` would block instead of prompting.
 - **PreToolUse**: the edit-time classifiers run for `Write` and `Edit` only. A `MultiEdit` is allowed without any check, because its payload (`tool_input.edits[]`) has not been adapted into "the proposed file" for any classifier. Closing that gap needs a content extractor and a per-classifier review, not a one-line change — see the comment above the tool-name check in the orchestrator.
 - **PostToolUse**: the orchestrator prints nothing when every subhook returns noop. When two or more contribute, each section is prefixed `[orchestrator-subhook: <name>]`. A subhook that times out contributes a short "timed out — verify manually" note instead of silence. The merged reason is truncated below the 10,000-character cap.
 
