@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-85 regression test extending iter-84 orchestrator coverage. Verifies: (1) version-guard subhook inlined as second registry entry produces matching deny output as standalone, (2) the iter-85-audit-driven belt-and-suspenders defense now covers BOTH deny AND ask paths (previously only deny had stderr+exit2), (3) stdout-drain-before-exit pattern (process.exitCode=2 instead of process.exit(2)) preserves full JSON payload integrity, (4) registry-order-is-lightest-first invariant — version-guard's O(1) extension+path filter runs BEFORE file-size-guard's sync fs.readFileSync.
+# Iter-85 regression test extending iter-84 orchestrator coverage. Verifies: (1) version-guard subhook inlined as second registry entry produces matching deny output as standalone, (2) deny is emitted as stdout JSON with exit 0 plus a stderr diagnostic (the iter-85 exit-2-on-deny-and-ask defense was removed 2026-10-01 because exit 2 hard-blocked ask), (3) stdout-drain-before-exit preserves full JSON payload integrity, (4) registry-order-is-lightest-first invariant — version-guard's O(1) extension+path filter runs BEFORE file-size-guard's sync fs.readFileSync.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -63,15 +63,15 @@ else
 fi
 
 if [[ "$case1_stderr" == *'DENY from subhook=version-guard'* ]]; then
-    assert_passes "Case 1c: stderr diagnostic line emitted (belt-and-suspenders)"
+    assert_passes "Case 1c: stderr diagnostic line emitted (debug log)"
 else
     assert_fails "Case 1c: stderr diagnostic missing; got=$case1_stderr"
 fi
 
-if [[ "$case1_exit" == "2" ]]; then
-    assert_passes "Case 1d: exit code 2 (process.exitCode pattern, drain-before-exit)"
+if [[ "$case1_exit" == "0" ]]; then
+    assert_passes "Case 1d: exit code 0 (JSON deny, stdout drained before exit)"
 else
-    assert_fails "Case 1d: exit code = $case1_exit, expected 2"
+    assert_fails "Case 1d: exit code = $case1_exit, expected 0"
 fi
 
 # ─── Case 2: version-guard inlined classifier allows exempted CHANGELOG path
@@ -110,7 +110,7 @@ fi
 
 # ─── Case 4: stdout-drain-before-exit integrity check
 # Force a large deny reason and verify the entire JSON arrives on stdout
-# even with the immediate exitCode=2. This is the iter-85 audit fix for
+# even when the process exits right after the write. This is the iter-85 audit fix for
 # the previously-noted process.exit(2) truncation hazard.
 case4_payload_file=$(mktemp -t iter85-orch-test-case4.XXXXXX.json)
 trap 'rm -f "$case1_payload_file" "$case1_stderr_file" "$case2_payload_file" "$case4_payload_file"' EXIT
@@ -129,7 +129,7 @@ set -e
 if grep -q '"permissionDecision":"deny"' <<<"$case4_stdout"; then
     # Validate JSON parses cleanly via bun's JSON.parse
     if echo "$case4_stdout" | bun -e 'JSON.parse(await Bun.stdin.text())' 2>/dev/null; then
-        assert_passes "Case 4a: large deny payload arrives intact (stdout drain before exitCode=2)"
+        assert_passes "Case 4a: large deny payload arrives intact (stdout drain before exit)"
     else
         assert_fails "Case 4a: stdout JSON malformed (truncation suspected); got=$case4_stdout"
     fi
@@ -137,10 +137,10 @@ else
     assert_fails "Case 4a: missing deny in stdout; got=$case4_stdout"
 fi
 
-if [[ "$case4_exit" == "2" ]]; then
-    assert_passes "Case 4b: exit code 2 on multi-version deny"
+if [[ "$case4_exit" == "0" ]]; then
+    assert_passes "Case 4b: exit 0 (JSON deny) on multi-version deny"
 else
-    assert_fails "Case 4b: exit code = $case4_exit, expected 2"
+    assert_fails "Case 4b: exit code = $case4_exit, expected 0"
 fi
 
 # ─── Case 5: registry-order invariant — version-guard runs before file-size-guard
