@@ -54,7 +54,7 @@
  */
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 import {
   bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory,
   isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts,

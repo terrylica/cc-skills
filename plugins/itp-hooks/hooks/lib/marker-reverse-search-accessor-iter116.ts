@@ -58,11 +58,11 @@
 import {
   MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY,
   type MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry,
-} from "./marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts";
+} from "./escape-hatch-marker-registry-iter111.ts";
 import {
   MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY,
   type MarketplaceWideAuditTaskEscapeHatchMarkerCanonicalRegistryEntry,
-} from "./marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts";
+} from "./audit-task-marker-registry-iter114.ts";
 
 /**
  * Discriminated-union shape encoding which canonical registry the hit

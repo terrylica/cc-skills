@@ -37,7 +37,7 @@ For semantic-release, "releasable" = commits whose subject is `feat`/`fix`/`perf
 
 ## Escape hatch
 
-`RELEASE-NOTES-OK: <≥10-char reason>` anywhere in the command — for a genuinely un-narratable release (pure dependency/chore bump, re-tag). Reason-gated so the bypass is deliberate. Registered in the canonical marker registry ([`lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts)) (CASE_SENSITIVE, FILE_WIDE, ≥10-char reason).
+`RELEASE-NOTES-OK: <≥10-char reason>` anywhere in the command — for a genuinely un-narratable release (pure dependency/chore bump, re-tag). Reason-gated so the bypass is deliberate. Registered in the canonical marker registry ([`lib/escape-hatch-marker-registry-iter111.ts`](../hooks/lib/escape-hatch-marker-registry-iter111.ts)) (CASE_SENSITIVE, FILE_WIDE, ≥10-char reason).
 
 ## Tests
 

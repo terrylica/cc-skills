@@ -1,5 +1,5 @@
 #!/usr/bin/env awk -f
-# hook-schema-correctness-classifier-single-pass-awk-scanner.awk
+# hook-schema-classifier-scanner.awk
 #
 # Iter-79 single-pass cross-file scanner that replaces the fork-exec
 # storm in `tasks/release/preflight` Check 4f (iter-60 PreToolUse

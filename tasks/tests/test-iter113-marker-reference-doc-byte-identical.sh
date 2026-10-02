@@ -14,7 +14,7 @@ ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-
 # 13th legitimate marker (INVENTED-FALLBACK-OK, 2026-06-11) was registered,
 # even though the generator emitted it correctly. One quoted
 # markerNameTokenIncludingSuffix field per entry, in registry order.
-ITER111_RUNTIME_HOOK_REGISTRY_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
+ITER111_RUNTIME_HOOK_REGISTRY_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts"
 ITER111_BASELINE_MARKER_TOKENS=()
 while IFS= read -r _iter111_marker_token_line; do
     ITER111_BASELINE_MARKER_TOKENS+=("$_iter111_marker_token_line")

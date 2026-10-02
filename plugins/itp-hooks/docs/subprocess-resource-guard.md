@@ -4,7 +4,7 @@
 
 <!-- SSoT-OK: the ty version under "Residual risk" records the local uv tool pin, not a package version. -->
 
-**Module**: [`hooks/lib/subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124.ts`](../hooks/lib/subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124.ts), used through the shared spawn helper in [`hooks/lib/posttooluse-subhook-async-helpers-iter95.ts`](../hooks/lib/posttooluse-subhook-async-helpers-iter95.ts)
+**Module**: [`hooks/lib/subprocess-rss-watchdog-and-slot-guard-iter124.ts`](../hooks/lib/subprocess-rss-watchdog-and-slot-guard-iter124.ts), used through the shared spawn helper in [`hooks/lib/posttooluse-subhook-async-helpers-iter95.ts`](../hooks/lib/posttooluse-subhook-async-helpers-iter95.ts)
 
 Bounds hook-spawned subprocesses that can allocate without limit. Opt-in per tool via `residentMemoryGuardedToolName` on the shared spawn helper. Currently enabled for `ty` on BOTH the per-file PostToolUse check AND the project-wide Stop hook; `tsc`/`oxlint`/`biome` spawn through the same helper and can adopt it by adding one field.
 
@@ -108,7 +108,7 @@ The ty subhooks surface a memory kill to the operator rather than swallowing it 
 
 ## Testing
 
-[`subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124.test.ts`](../hooks/lib/subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124.test.ts) covers slot exhaustion at exactly N, dead-holder reclaim, live-holder protection, SIGKILL above ceiling, **no false positive below it**, disarm after exit (pid-reuse safety), argv quoting against filename injection (asserted _behaviourally_ — the escaped text does appear in the command string, so a substring assertion would fail while the code is correct), and that `RLIMIT_CPU` is still enforced by this kernel.
+[`subprocess-rss-watchdog-and-slot-guard-iter124.test.ts`](../hooks/lib/subprocess-rss-watchdog-and-slot-guard-iter124.test.ts) covers slot exhaustion at exactly N, dead-holder reclaim, live-holder protection, SIGKILL above ceiling, **no false positive below it**, disarm after exit (pid-reuse safety), argv quoting against filename injection (asserted _behaviourally_ — the escaped text does appear in the command string, so a substring assertion would fail while the code is correct), and that `RLIMIT_CPU` is still enforced by this kernel.
 
 **Every allocation in the suite is capped at 120 MB**, so it can never reproduce the failure it guards against.
 
