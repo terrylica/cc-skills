@@ -1,14 +1,21 @@
 # ty Type Checker Configuration
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — moved verbatim from the hub 2026-06-11 (CLAUDE.md size-guard refactor: hub was 112k chars, limit 40k).
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hooks: [`posttooluse-ty-type-check.ts`](../hooks/posttooluse-ty-type-check.ts) (subhook `ty-type-check` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md), orchestrator timeout 5000 ms) and [`stop-ty-project-check.ts`](../hooks/stop-ty-project-check.ts) (run by `stop-orchestrator.ts` as `ty-check`, 15000 ms).
 
-## ty Type Checker Configuration
+## Two levels
 
-ty runs at two levels: **per-file** on every .py/.pyi edit (PostToolUse) and **project-wide** on session exit (Stop hook). Both always pass `--python-version 3.14` explicitly to override ty's default of Python 3.14.
+ty runs **per-file** on every `.py`/`.pyi` edit (PostToolUse) and **project-wide** on session exit (Stop hook). They resolve the Python version differently:
 
-### Recommended ty.toml
+| Level               | Command                                                         | Python version                                                                                                                                                      |
+| ------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-file (edit)     | `ty check <file> --python-version 3.14 --output-format concise` | Always 3.14; the flag overrides any repo pin                                                                                                                        |
+| Project-wide (Stop) | `ty check . --output-format concise --exit-zero`                | No flag (args in [`lib/stop-ty-project-check-args.ts`](../hooks/lib/stop-ty-project-check-args.ts)): `ty.toml` → `requires-python` → active env → ty's 3.14 default |
 
-Projects using ty should also pin the version in `ty.toml` for consistency when running ty manually:
+The Stop hook leaves the version to ty so a repository's own pin wins (issue #157).
+
+## Recommended ty.toml
+
+Projects using ty should pin the version in `ty.toml` so manual `ty check` runs and the Stop hook agree:
 
 ```toml
 [environment]
@@ -18,21 +25,23 @@ python-version = "3.14"
 output-format = "concise"
 ```
 
-The hooks pass `--python-version 3.14` explicitly regardless of `ty.toml`, but having the config ensures manual `ty check` runs also use 3.13.
+## Per-file check
 
-### Silent Failures Only
+- Skips paths under `/.venv/` or `/node_modules/`, throwaway files in temp directories, and files no longer on disk.
+- If `ty` is not installed, shows an install reminder (`uv tool install ty`) once per session.
+- Exit codes 2 (configuration error) and 101 (ty internal bug) are treated as ty problems, not type errors, and report nothing; so do timeouts (the subprocess has its own 4000 ms limit).
+- Real diagnostics are shown to Claude as additional context with an error/warning summary line, capped at 30 lines and truncated below Claude Code's 10,000-character hook-output limit.
 
-The hooks never block on ty configuration errors (exit code 2) or internal bugs (exit code 101). These are treated as ty issues, not type errors, and the hook exits silently. Only actual type diagnostics trigger a block/context message.
+## Resource guard
 
-### Gate File Mechanism
+Both levels spawn ty through the shared async helper with `residentMemoryGuardedToolName: "ty"`, so they get the machine-wide concurrency slots and RSS watchdog described in [subprocess-resource-guard.md](./subprocess-resource-guard.md). When every slot is busy the check is skipped quietly. A watchdog memory kill is **not** swallowed: both hooks report it with the observed peak, because silence after such a kill is how the 2026-07-30 freeze recurred.
 
-The PostToolUse hook writes a gate file to `/tmp/.claude-ty-edits/{sessionId}.edited` after each .py/.pyi edit. The Stop hook checks for these gate files to decide whether to run the project-wide check. Gate files are cleaned up after the Stop hook runs.
+## Gate File Mechanism
 
+The PostToolUse hook touches `/tmp/.claude-ty-edits/<session-id>.edited` after each eligible `.py`/`.pyi` edit. The Stop hook runs only if that directory holds any `.edited` file, `ty` is on `PATH` (no install reminder at exit), and the working directory has a `pyproject.toml` or a top-level `.py` file. It then deletes the whole `/tmp/.claude-ty-edits/` directory, including other sessions' gate files.
 
-## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+The Stop hook output is informational `additionalContext` (first 20 diagnostic lines plus error, warning and file counts) and it fails open: any error prints `{}` and never blocks session exit.
 
-> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+## Code
 
-**Matcher**: (inlined in iter-93 orchestrator)
-
-ty type checker on .py/.pyi files with --python-version 3.14, concise output (every edit). **Iter-93 first inlined PostToolUse subhook** — kicks off the iter-93+ PostToolUse Write\|Edit migration arc (Path B per iter-92 audit; async:true was ruled out for context-injecting hooks). Standalone hook still runnable via `import.meta.main` guard for direct CLI invocation; the Write\|Edit hooks.json entry now points to `posttooluse-write-edit-orchestrator.ts` which imports `classifyTyTypeCheckForPostToolUseOrchestrator` from this file (algorithm encoded in `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator`, alias preserved for symmetric naming).
+The per-file classifier is `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifyTyTypeCheckForPostToolUseOrchestrator`. The file also runs standalone through its `import.meta.main` guard.

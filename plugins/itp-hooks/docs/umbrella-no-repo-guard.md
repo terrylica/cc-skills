@@ -4,7 +4,7 @@ An **umbrella folder** represents an owner or namespace and _contains_ repositor
 
 > "~/work should never become a repository because it is representing user, but never a repository."
 
-This guard is a PreToolUse hook on `Bash` that refuses commands which would turn an umbrella folder into a git repository.
+This guard is a PreToolUse `Bash` guard, run inside [`pretooluse-bash-guard-orchestrator.ts`](./pretooluse-bash-guard-orchestrator.md) (registry entry `pretooluse-umbrella-no-repo-guard`, timeout 4000 ms), that refuses commands which would turn an umbrella folder into a git repository.
 
 ## Why a hook, when a filesystem sentinel already exists
 
@@ -61,7 +61,3 @@ Recorded in `~/.claude/decisions-security-CLAUDE.md`:
 ## Tests
 
 `plugins/itp-hooks/hooks/pretooluse-umbrella-no-repo-guard.test.sh` — both directions, including that the escape hatch is honoured and that an unrelated command merely _mentioning_ git is allowed through.
-
-## Note
-
-This adds a 17th `PreToolUse:Bash` matcher block. Issue #111 tracks collapsing those into one orchestrator using the `iter66` pattern already applied to `Write|Edit`; this guard makes that consolidation marginally more valuable rather than addressing it.

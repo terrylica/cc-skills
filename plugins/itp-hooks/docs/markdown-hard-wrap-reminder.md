@@ -1,6 +1,6 @@
 # Markdown hard-wrap reminder (net-new)
 
-**Hook**: [`posttooluse-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.ts) — inlined subhook of the iter-93 PostToolUse orchestrator · **Escape hatch**: `<!-- MD-HARD-WRAP-OK -->` — an HTML comment; merely naming the token no longer suppresses · **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md)
+**Hook**: [`posttooluse-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.ts) — subhook `markdown-hard-wrap-reminder` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md) · **Escape hatch**: `<!-- MD-HARD-WRAP-OK -->` — an HTML comment; merely naming the token does not suppress · **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md)
 
 Reminds Claude when a `Write`/`Edit` of a `.md` file **introduces** prose broken mid-sentence at a fixed column, instead of authored as one line the renderer reflows.
 
@@ -140,7 +140,7 @@ Put the marker in an **HTML comment, in live markdown**:
 <!-- MD-HARD-WRAP-OK: verbatim quoted email, the line breaks are the content -->
 ```
 
-`CASE_SENSITIVE`, `FILE_WIDE` (one invocation exempts the whole file), no reason required though one is polite; registered in the [iter-111 canonical registry](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts). Pre-existing wraps never fire, so the marker is only needed for wrapping you are adding on purpose.
+`CASE_SENSITIVE`, `FILE_WIDE` (one invocation exempts the whole file), no reason required though one is polite; registered in the [canonical marker registry](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts). Pre-existing wraps never fire, so the marker is only needed for wrapping you are adding on purpose.
 
 ### Why it is not a plain substring match any more (issue #106 finding 1)
 
@@ -166,16 +166,16 @@ Verified against every file on this machine that names the marker: the five genu
 
 - **Never blocks.** `additional_context` folded into the orchestrator's aggregated `{decision: "block", reason}`, which for PostToolUse is context injection, not rejection.
 - **Fail-open.** Any parse or logic error → `noop`. Malformed input, missing `tool_input`, unknown tool → silent.
-- **Cheap, but it does read the file.** No subprocess; every scan is a linear in-process pass, and registry position is last behind an O(1) extension pre-filter. This bullet used to claim "pure single-pass scan of the edited fragment; no subprocess, **no file read**", and the second half was never true — `detectNetNewMarkdownHardWraps` takes a `fileContentAfterEdit` parameter and the classifier reads the post-edit file from disk on every eligible edit, which is exactly what gives the fence scanner whole-file context. The behaviour was right; the sentence describing it was not (issue #106 finding 5). Measured cost of adding the joiner pass and the markdown-aware hatch scan, on `docs/HOOKS.md` (273 KB, 10 runs): **5.5 → 8.9 ms per edit**; on the 1.4 MB `CHANGELOG.md`, 48.5 ms. Do not compare against `CHANGELOG.md`'s old 0.7 ms — that number existed only because the file names the escape token, so the buggy substring match short-circuited the whole hook.
+- **Cheap, but it does read the file.** No subprocess; every scan is a linear in-process pass, and registry position is last behind an O(1) extension pre-filter. The classifier reads the post-edit file from disk on every eligible edit (`detectNetNewMarkdownHardWraps` takes a `fileContentAfterEdit` parameter), which is what gives the fence scanner whole-file context. On an idle machine that costs about 9 ms per edit on `docs/HOOKS.md` (273 KB) and about 50 ms on the 1.4 MB `CHANGELOG.md`.
 
-Those three figures were taken on an **idle machine**, and they are wall-clock, so treat them as an order of magnitude and not as a threshold. Do not turn them into a gate. The lesson is one the `iter-174` perf harness in this repo learned the expensive way and wrote down in its own header: wall-clock assertions are load-sensitive, and its scenario A6 was converted to gate on a **fork count** instead — which read exactly 23 on an idle box, at load average 46, and under 12-way fork contention, while A6's own wall clock swung 646 → 1364 ms in the same runs. Same process, same instant: the counted quantity never moved, the timed one nearly doubled. If the hard-wrap hook ever needs a performance gate, count work (scans, passes, allocations), don't time it.
+Those figures are wall-clock on an idle machine, so treat them as an order of magnitude, not a threshold, and do not turn them into a gate: wall-clock assertions are load-sensitive. If the hook ever needs a performance gate, count work (scans, passes, allocations) rather than timing it — the approach [`tasks/tests/test-iter174-commits-toolkit-perf-baseline.sh`](../../../tasks/tests/test-iter174-commits-toolkit-perf-baseline.sh) takes with its load-invariant fork count.
 
-- **Temp-scratch exempt** via the shared iter-124 helper — `/tmp/notes.md` is never nudged. The exemption is **absolute paths under `/tmp`, `/private/tmp`, `/var/folders`, `/private/var/folders`, `/dev/shm` and the live `$TMPDIR`** — a per-machine set, not a per-repo one. A **gitignored `tmp/` inside a repo is NOT exempt** and will be nudged (issue #106 finding 4). That is deliberate and stays: the helper is shared by every PostToolUse lint subhook, so teaching it to treat a repo-relative `tmp/` as scratch would change ty, tsc, oxlint, biome and vale at the same time, and "it is gitignored" is a weaker signal than it looks — a scratch brief in `tmp/` is still routinely lifted into an issue body, which is the surface this reminder exists for. Put throwaway markdown under `$TMPDIR` if you want silence, or invoke the escape hatch.
+- **Temp-scratch exempt** via the shared helper in [`lib/shared-temp-dir-edit-path-detection-iter124.ts`](../hooks/lib/shared-temp-dir-edit-path-detection-iter124.ts) — `/tmp/notes.md` is never nudged. The exemption is **absolute paths under `/tmp`, `/private/tmp`, `/var/folders`, `/private/var/folders`, `/dev/shm` and the live `$TMPDIR`** — a per-machine set, not a per-repo one. A **gitignored `tmp/` inside a repo is NOT exempt** and will be nudged. That is deliberate and stays: the helper is shared by every PostToolUse lint subhook, so teaching it to treat a repo-relative `tmp/` as scratch would change ty, tsc, oxlint, biome and vale at the same time, and "it is gitignored" is a weaker signal than it looks — a scratch brief in `tmp/` is still routinely lifted into an issue body, which is the surface this reminder exists for. Put throwaway markdown under `$TMPDIR` if you want silence, or invoke the escape hatch.
 - **Out of scope**: git commit and annotated tag messages. 72-column wrapping is correct there; the reflow belongs at the publish boundary, which the sibling guards own.
 
 ## Tests
 
-[`posttooluse-markdown-hard-wrap-reminder.test.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.test.ts) — 44 tests. Six are load-bearing:
+[`posttooluse-markdown-hard-wrap-reminder.test.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.test.ts). Six tests are load-bearing:
 
 - _"stays SILENT when an Edit rewords inside an already-wrapped paragraph"_ — if it regresses, the hook nags on 169 files.
 - _"does NOT flag two shell lines edited inside a bash fence"_ — if it regresses, the hook fires on every command-example edit.
@@ -186,9 +186,9 @@ Those three figures were taken on an **idle machine**, and they are wall-clock, 
 
 The escape-hatch tests build the marker literal at run time (`["MD-HARD-WRAP", "OK"].join("-")`) rather than spelling it, because a test file for a suppression token is not where you want to discover that spelling it suppresses something.
 
-[`lib/hard-wrap-detector.test.ts`](../hooks/lib/hard-wrap-detector.test.ts) — 35 tests, covering the badge rows, the nested/third-level/ordered sub-bullets, and the two cases that must STAY code (an indented block with no list context, and one after a dedent to column zero).
+[`lib/hard-wrap-detector.test.ts`](../hooks/lib/hard-wrap-detector.test.ts) — covers the badge rows, the nested/third-level/ordered sub-bullets, and the two cases that must STAY code (an indented block with no list context, and one after a dedent to column zero).
 
-[`lib/shared-escape-hatch-marker-detection-helper-…-iter107.test.ts`](../hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.test.ts) — 22 tests on the marker grammar itself: the four real-world opt-out shapes (one-line, reasoned, marker-on-its-own-line, multi-line with an interior code span), nine mention shapes that must NOT suppress, and the knobs (case sensitivity, minimum-reason gate, CRLF). Every mention case also asserts that the OLD whole-file substring match _does_ fire on it, so the file is a permanent record of the defect.
+[`lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.test.ts`](../hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.test.ts) — the marker grammar itself: the four real-world opt-out shapes (one-line, reasoned, marker-on-its-own-line, multi-line with an interior code span), nine mention shapes that must NOT suppress, and the knobs (case sensitivity, minimum-reason gate, CRLF). Every mention case also asserts that a plain whole-file substring match _would_ fire on it, which is why that match is not used for documents.
 
 [`lib/gfm-unwrap.test.ts`](../hooks/lib/gfm-unwrap.test.ts) — the joiner, now including four tests pinning `computeJoinedWithNextLineMask` to the joiner it is derived from: its true-count must equal `joinsPerformed`, and the removed breaks must match the output's line count exactly. The mask cannot drift from the joiner without one of those failing.
 
