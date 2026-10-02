@@ -1,20 +1,20 @@
 # itp-hooks Spoke Index
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — the annotated index of every doc in this directory. Moved out of the hub 2026-08-30 (the hub sat at 37.8k of a 40k hard character limit, and prettier's table repadding pushed any single-row edit over it).
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — the annotated index of every doc in this directory. It lives outside the hub so the hub stays under its 40k-character limit.
 
 Each spoke is the SSoT for its own subject. The hub carries only the hook inventory and the invariants; every narrative lives here or below.
 
 ## Orchestrators and lifecycle
 
-| Spoke                                                                              | Topic                                                                              |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | Iter-84→91 PreToolUse orchestrator arc                                             |
-| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 24 guards in one process                        |
-| [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | Iter-93+ PostToolUse orchestrator arc                                              |
-| [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                           |
-| [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook schema correctness (iter-66 trinity + iter-69 pentad, silent-drop rules) |
-| [plan-mode-detection.md](./plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                               |
-| [read-only-command-detection.md](./read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                        |
+| Spoke                                                                              | Topic                                                                         |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process      |
+| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 24 guards in one process                   |
+| [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks           |
+| [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                      |
+| [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook output: where each event's output goes and how summaries are routed |
+| [plan-mode-detection.md](./plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                          |
+| [read-only-command-detection.md](./read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                   |
 
 ## Guards — safety and destructive-action prevention
 
@@ -31,19 +31,19 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 
 ## Guards — code, config and toolchain policy
 
-| Spoke                                                      | Topic                                                                                                                                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [file-size-guard.md](./file-size-guard.md)                 | File-size thresholds, exclusions, configuration                                                                                                                   |
-| [inline-ignore-policy.md](./inline-ignore-policy.md)       | Inline-ignore hierarchy + detection patterns                                                                                                                      |
-| [hoisted-deps-guard.md](./hoisted-deps-guard.md)           | pyproject.toml root-only + path-escape + sub-package dependency-groups policies                                                                                   |
-| [mise-hygiene-guard.md](./mise-hygiene-guard.md)           | mise.toml secrets detection + size hygiene                                                                                                                        |
-| [uv-enforcement-guard.md](./uv-enforcement-guard.md)       | Non-UV Python package operations blocked (SSH-to-remote bypasses, by directive)                                                                                   |
-| [pyi-stub-guard.md](./pyi-stub-guard.md)                   | Top-level definitions in Python `__init__` files blocked                                                                                                          |
-| [python-preference-nudge.md](./python-preference-nudge.md) | Python-preference nudge + per-file `python-allowlist.toml` (reason-gated, no blanket suppression)                                                                 |
-| [gpu-optimization-guard.md](./gpu-optimization-guard.md)   | GPU optimization enforcement (6 policy checks)                                                                                                                    |
-| [native-binary-guard.md](./native-binary-guard.md)         | Launchd native-binary enforcement + TCC anti-patterns                                                                                                             |
-| [version-guard.md](./version-guard.md)                     | Hardcoded-version blocker for markdown                                                                                                                            |
-| [skill-plugin-root-guard.md](./skill-plugin-root-guard.md) | Why `CLAUDE_PLUGIN_ROOT` works in manifests but not in skills, the three deniable shapes, the `cc-plugin-root` resolver, and why iter-78 was retired the same day |
+| Spoke                                                      | Topic                                                                                                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [file-size-guard.md](./file-size-guard.md)                 | File-size thresholds, exclusions, configuration                                                                                                      |
+| [inline-ignore-policy.md](./inline-ignore-policy.md)       | Inline-ignore hierarchy + detection patterns                                                                                                         |
+| [hoisted-deps-guard.md](./hoisted-deps-guard.md)           | pyproject.toml root-only + path-escape + sub-package dependency-groups policies                                                                      |
+| [mise-hygiene-guard.md](./mise-hygiene-guard.md)           | mise.toml secrets detection + size hygiene                                                                                                           |
+| [uv-enforcement-guard.md](./uv-enforcement-guard.md)       | Non-UV Python package operations blocked (SSH-to-remote bypasses, by directive)                                                                      |
+| [pyi-stub-guard.md](./pyi-stub-guard.md)                   | Top-level definitions in Python `__init__` files blocked                                                                                             |
+| [python-preference-nudge.md](./python-preference-nudge.md) | Python-preference nudge + per-file `python-allowlist.toml` (reason-gated, no blanket suppression)                                                    |
+| [gpu-optimization-guard.md](./gpu-optimization-guard.md)   | GPU optimization enforcement (6 policy checks)                                                                                                       |
+| [native-binary-guard.md](./native-binary-guard.md)         | Launchd native-binary enforcement + TCC anti-patterns                                                                                                |
+| [version-guard.md](./version-guard.md)                     | Hardcoded-version blocker for markdown                                                                                                               |
+| [skill-plugin-root-guard.md](./skill-plugin-root-guard.md) | Why `CLAUDE_PLUGIN_ROOT` works in manifests but not in skills, the three deniable shapes, the `cc-plugin-root` resolver, and what it does not police |
 
 ## Job orchestration and process discipline
 
@@ -51,21 +51,21 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [pueue-reminder.md](./pueue-reminder.md)                         | Pueue reminder detection patterns + exceptions                                                                                     |
 | [pueue-local-guard.md](./pueue-local-guard.md)                   | Pueue commands must target the local daemon                                                                                        |
-| [pueue-wrap-guard.md](./pueue-wrap-guard.md)                     | Auto-wrapping long-running commands with pueue; why it MUST stay the last PreToolUse entry (iter-61 audit)                         |
+| [pueue-wrap-guard.md](./pueue-wrap-guard.md)                     | Auto-wrapping long-running commands with pueue; why it MUST stay the last PreToolUse entry                                         |
 | [cargo-tty-guard.md](./cargo-tty-guard.md)                       | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md)) |
-| [memory-efficiency-reminder.md](./memory-efficiency-reminder.md) | Memory-efficiency reminder + iter-98 silent-drop fix                                                                               |
+| [memory-efficiency-reminder.md](./memory-efficiency-reminder.md) | Once-per-session memory-efficiency reminder                                                                                        |
 
 ## Linters, type checkers and correctness
 
-| Spoke                                                              | Topic                                                         |
-| ------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [code-correctness-philosophy.md](./code-correctness-philosophy.md) | What is/isn't checked and why                                 |
-| [ty-type-checker.md](./ty-type-checker.md)                         | ty configuration, gate files, silent-failure handling         |
-| [tsc-type-check.md](./tsc-type-check.md)                           | tsc project-scoped type check (native TypeScript 7+ compiler) |
-| [oxlint-check.md](./oxlint-check.md)                               | oxlint correctness + suspicious lint on JS/TS edits           |
-| [biome-lint.md](./biome-lint.md)                                   | biome complementary-to-oxlint lint on JS/TS edits             |
-| [lsp-configuration.md](./lsp-configuration.md)                     | LSP disabled-state config (process-storm history)             |
-| [ssot-principles.md](./ssot-principles.md)                         | SSoT/DI reminder hook + ast-grep rules                        |
+| Spoke                                                              | Topic                                                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| [code-correctness-philosophy.md](./code-correctness-philosophy.md) | What is/isn't checked and why                                                              |
+| [ty-type-checker.md](./ty-type-checker.md)                         | ty per-file and project-wide checks, Python-version resolution, gate files, resource guard |
+| [tsc-type-check.md](./tsc-type-check.md)                           | tsc project-scoped type check (native TypeScript 7+ compiler)                              |
+| [oxlint-check.md](./oxlint-check.md)                               | oxlint correctness + suspicious lint on JS/TS edits                                        |
+| [biome-lint.md](./biome-lint.md)                                   | biome complementary-to-oxlint lint on JS/TS edits                                          |
+| [lsp-configuration.md](./lsp-configuration.md)                     | LSP disabled-state config (process-storm history)                                          |
+| [ssot-principles.md](./ssot-principles.md)                         | SSoT/DI reminder hook + ast-grep rules                                                     |
 
 ## Documentation, terminology and outbound content
 
