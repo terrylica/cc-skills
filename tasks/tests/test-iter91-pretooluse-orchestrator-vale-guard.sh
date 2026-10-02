@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-ORCHESTRATOR_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts"
+ORCHESTRATOR_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-write-edit-orchestrator.ts"
 STANDALONE_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
 SUBHOOK_CONTRACT_AUDIT_TASK_PATH="$REPO_ROOT/tasks/hook-lint/orchestrator-subhook-contract.sh"
 HOOKS_JSON_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
@@ -125,7 +125,7 @@ fi
 # subhook entries — is preserved by matching on COMMAND substring (the
 # orchestrator binary's unique filename suffix) rather than the matcher
 # string itself, decoupling this test from future matcher broadenings.
-case6_orchestrator_entry_count=$(jq '[.hooks.PreToolUse[] | select(.hooks[].command | test("pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent"))] | length' "$HOOKS_JSON_PATH")
+case6_orchestrator_entry_count=$(jq '[.hooks.PreToolUse[] | select(.hooks[].command | test("pretooluse-write-edit-orchestrator"))] | length' "$HOOKS_JSON_PATH")
 if [[ "$case6_orchestrator_entry_count" == "1" ]]; then
     assert_passes "Case 6a: hooks.json contains exactly 1 PreToolUse orchestrator entry (matcher-string-decoupled check)"
 else
@@ -141,9 +141,9 @@ fi
 # ─── Case 7: hooks.json description's subhook count matches the registry ───
 # The description states "Runs N Write/Edit guards"; N must equal the number of
 # registry entries in the orchestrator source and include vale-claude-md-guard.
-case7_described_count=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("pretooluse-edit-time-orchestrator")) | .description' "$HOOKS_JSON_PATH" 2>/dev/null | grep -oE 'Runs [0-9]+ ' | grep -oE '[0-9]+' || echo 0)
+case7_described_count=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("pretooluse-write-edit-orchestrator")) | .description' "$HOOKS_JSON_PATH" 2>/dev/null | grep -oE 'Runs [0-9]+ ' | grep -oE '[0-9]+' || echo 0)
 case7_registry_count=$(grep -cE '^      name: "' "$ORCHESTRATOR_HOOK_PATH" || true)
-case7_names_vale=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("pretooluse-edit-time-orchestrator")) | .description' "$HOOKS_JSON_PATH" 2>/dev/null | grep -c 'vale-claude-md' || true)
+case7_names_vale=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("pretooluse-write-edit-orchestrator")) | .description' "$HOOKS_JSON_PATH" 2>/dev/null | grep -c 'vale-claude-md' || true)
 if [[ "${case7_described_count}" -ge 8 && "${case7_described_count}" == "${case7_registry_count}" && "${case7_names_vale}" -ge 1 ]]; then
     assert_passes "Case 7: hooks.json description names ${case7_described_count} subhooks incl. vale-claude-md, matching the registry"
 else

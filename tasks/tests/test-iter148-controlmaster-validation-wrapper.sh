@@ -5,9 +5,9 @@ set -euo pipefail
 ITER148_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER148_REPO_ROOT"
 
-ITER148_WRAPPER_SCRIPT_RELATIVE_PATH="scripts/iter148-empirical-validation-wrapper-comparing-baseline-versus-multiplexed-ssh-session-using-iter147-variance-harness-emitting-side-by-side-distribution-delta-table-for-get-git-auth-url-bottleneck-speedup-claim.sh"
+ITER148_WRAPPER_SCRIPT_RELATIVE_PATH="scripts/iter148-ssh-multiplexing-speedup-check.sh"
 ITER148_WRAPPER_SCRIPT_ABSOLUTE_PATH="$ITER148_REPO_ROOT/$ITER148_WRAPPER_SCRIPT_RELATIVE_PATH"
-ITER148_VARIANCE_HARNESS_RELATIVE_PATH="scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py"
+ITER148_VARIANCE_HARNESS_RELATIVE_PATH="scripts/iter147-release-timing-variance-harness.py"
 ITER148_RELEASE_MD_DOC_RELATIVE_PATH="docs/RELEASE.md"
 
 ITER148_TOTAL_ASSERTIONS_EVALUATED=0

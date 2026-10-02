@@ -6,7 +6,7 @@ set -euo pipefail
 # Kept as a separate file (vs inline bash) so the advisor can also be
 # invoked directly without moon (e.g., from operator shell
 # functions, editor pre-commit hooks, or CI dry-runs).
-ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter153-commit-subject-advisor.sh"
 
 if [[ ! -x "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" ]]; then
     echo "  ✗ iter-153 advisor not found or not executable at:" >&2

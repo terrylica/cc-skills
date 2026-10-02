@@ -32,7 +32,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
 #
 #   moon run repo:test-hooks > /tmp/suite.log 2>&1 || true
-#   bash tasks/triage-hook-regression-suite-log-...-unrecognised-failures.sh /tmp/suite.log
+#   bash tasks/triage-hook-regression-suite-log.sh /tmp/suite.log
 #
 # Exits 0 always: this is a diagnostic, not a gate. A triage tool that can fail
 # gives you two problems to debug instead of one.

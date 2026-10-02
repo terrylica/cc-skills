@@ -12,7 +12,7 @@ import {
   lookupAllCanonicalRegistryEntriesByConsumerHookOrAuditTaskSourceFileRelativePathAcrossBothRegistries as lookupByConsumerPath,
   rankAllRegisteredConsumerSourceFilePathsByLevenshteinDistanceFromOperatorSuppliedQueryAndReturnTopKClosestMatches as rankConsumerPaths,
   renderSingleReverseSearchHitAsHumanReadableTerminalBlock as renderReverseHit,
-} from "../plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts";
+} from "../plugins/itp-hooks/hooks/lib/marker-reverse-search-accessor-iter116.ts";
 import {
   findAllRegisteredMarkerNameTokensWhoseTokenContainsQueryStringCaseInsensitively as findMarkersBySubstring,
   listAllDistinctMarkerNameTokensAcrossBothRegistriesSortedAlphabetically as listAllMarkerTokens,
@@ -21,8 +21,8 @@ import {
   rankAllRegisteredMarkerNameTokensByLevenshteinDistanceFromOperatorSuppliedQueryAndReturnTopKClosestMatches as rankMarkerTokens,
   renderSingleForwardSearchHitAsHumanReadableTerminalBlock as renderForwardHit,
   type EscapeHatchMarkerForwardSearchHitWithRegistryProvenanceTag as ForwardHit,
-} from "../plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-forward-search-accessor-by-marker-name-token-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter122.ts";
-import { classifyOperatorQueryShapeForUnifiedLookupDispatchRouting as classifyQuery } from "../plugins/itp-hooks/hooks/lib/iter123-unified-lookup-query-shape-auto-detection-router-dispatching-to-iter116-reverse-or-iter122-forward-search-direction-based-on-slash-and-upper-kebab-case-marker-shape-heuristics.ts";
+} from "../plugins/itp-hooks/hooks/lib/marker-forward-search-accessor-iter122.ts";
+import { classifyOperatorQueryShapeForUnifiedLookupDispatchRouting as classifyQuery } from "../plugins/itp-hooks/hooks/lib/iter123-marker-lookup-direction-router.ts";
 
 const EXIT_FOUND = 0;
 const EXIT_USAGE = 1;

@@ -52,7 +52,7 @@
 #
 # USAGE:
 #
-#   source scripts/lib/iter164-...sh
+#   source scripts/lib/iter164-next-version-resolver.sh
 #   iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules \
 #       "v21.71.0" "MINOR"
 #   echo "$ITER164_RESOLVED_NEXT_SEMVER_VERSION_STRING_AFTER_APPLYING_BUMP_LABEL_TO_CURRENT_TAG"

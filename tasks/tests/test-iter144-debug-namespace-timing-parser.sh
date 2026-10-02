@@ -5,7 +5,7 @@ set -euo pipefail
 ITER144_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER144_REPO_ROOT"
 
-ITER144_PARSER_SCRIPT_RELATIVE_PATH="scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py"
+ITER144_PARSER_SCRIPT_RELATIVE_PATH="scripts/iter144-release-step-timing-parser.py"
 ITER144_PARSER_SCRIPT_ABSOLUTE_PATH="$ITER144_REPO_ROOT/$ITER144_PARSER_SCRIPT_RELATIVE_PATH"
 
 ITER144_TOTAL_ASSERTIONS_EVALUATED=0

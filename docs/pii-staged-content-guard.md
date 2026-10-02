@@ -85,4 +85,4 @@ bash scripts/install-hooks.sh
 
 ## Follow-up
 
-`scripts/install-hooks.sh` predates the safer git-hook installer convention in `scripts/iter157-*.sh`, which carries a sentinel marker, backs up a pre-existing hook, checks idempotency, and resolves `$GIT_DIR` properly so it works in worktrees. `install-hooks.sh` does none of that and clobbers any existing `pre-commit` unconditionally. Migrating it onto the iter157 pattern is worth doing on its own, and deliberately was not bundled into this security change.
+`scripts/install-hooks.sh` predates the safer git-hook installer convention in `scripts/iter157-commit-msg-hook-installer.sh`, which carries a sentinel marker, backs up a pre-existing hook, checks idempotency, and resolves `$GIT_DIR` properly so it works in worktrees. `install-hooks.sh` does none of that and clobbers any existing `pre-commit` unconditionally. Migrating it onto the iter157 pattern is worth doing on its own, and deliberately was not bundled into this security change.

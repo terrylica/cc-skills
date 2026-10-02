@@ -150,13 +150,13 @@ import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   type PostToolUseInput,
   type PostToolUseSubhookDecision,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
-import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
+import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 // Iter-124: a throwaway scratch copy must not consume the once-per-session
 // gate, or the first REAL adjudication of the session goes unreminded.
-import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Constants

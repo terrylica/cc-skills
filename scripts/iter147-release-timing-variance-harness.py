@@ -32,7 +32,7 @@
 #      capturing stderr to /tmp/iter147-variance-profile-run-{i}.log.
 #
 #   2. Parses each capture with the iter-144 parser
-#      (scripts/iter144-...py) to extract per-namespace cumulative-ms.
+#      (scripts/iter144-release-step-timing-parser.py) to extract per-namespace cumulative-ms.
 #
 #   3. Aggregates per-namespace timings across runs into a dict-of-lists
 #      and computes p50 (median), p95, mean, stddev, min, max, range.
@@ -59,13 +59,13 @@
 # USAGE:
 #
 #   # Default: 5 back-to-back runs.
-#   uv run --python 3.14 scripts/iter147-...py
+#   uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 #
 #   # Custom run count:
-#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-...py
+#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 #
 #   # Replay existing logs without re-running (e.g., after a long capture):
-#   ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-...py
+#   ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 #
 # WORKING-DIRECTORY-CLEANLINESS GOTCHA:
 #
@@ -140,7 +140,7 @@ def iter147_locate_iter144_parser_absolute_path_from_sibling_scripts_directory_r
     this_script_absolute_path = Path(__file__).resolve()
     sibling_scripts_directory_absolute_path = this_script_absolute_path.parent
     iter144_parser_filename = (
-        "iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py"
+        "iter144-release-step-timing-parser.py"
     )
     iter144_parser_absolute_path = sibling_scripts_directory_absolute_path / iter144_parser_filename
     if not iter144_parser_absolute_path.is_file():

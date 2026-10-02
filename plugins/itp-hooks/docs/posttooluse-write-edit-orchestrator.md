@@ -4,7 +4,7 @@
 
 ## Overview
 
-`hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts` is registered in `hooks/hooks.json` as one PostToolUse entry with matcher `Write|Edit`. It runs every edit-time reminder and lint check in a single bun process and merges what they report into one Claude-visible message.
+`hooks/posttooluse-write-edit-orchestrator.ts` is registered in `hooks/hooks.json` as one PostToolUse entry with matcher `Write|Edit`. It runs every edit-time reminder and lint check in a single bun process and merges what they report into one Claude-visible message.
 
 ## Subhook registry
 
@@ -35,11 +35,11 @@ The registry is `POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orc
 
 ## Contract
 
-The subhook contract is [`lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`](../hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts). A subhook:
+The subhook contract is [`lib/posttooluse-subhook-contract-iter93.ts`](../hooks/lib/posttooluse-subhook-contract-iter93.ts). A subhook:
 
 - does no stdin/stdout I/O and never calls `process.exit`;
 - tests the tool name with `isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook()`, whose allow-set is exactly `Write` and `Edit`;
-- runs subprocesses with the async helpers in `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts`, never `Bun.spawnSync`, which would block the event loop and serialise the whole `Promise.all` ([Bun docs](https://bun.com/docs/api/spawn)); `tasks/hook-lint/orchestrator-spawnsync.sh` enforces this;
+- runs subprocesses with the async helpers in `lib/posttooluse-subhook-async-helpers-iter95.ts`, never `Bun.spawnSync`, which would block the event loop and serialise the whole `Promise.all` ([Bun docs](https://bun.com/docs/api/spawn)); `tasks/hook-lint/orchestrator-spawnsync.sh` enforces this;
 - claims once-per-session reminders through the shared atomic `O_EXCL` gate-file helpers in the same file;
 - skips throwaway files in temp directories with the shared temp-scratch helper when it reminds on edited content.
 
