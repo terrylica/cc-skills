@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-subprocess-stdin-inlet-guard-iter63-matcher-narrowed-to-bash-wraps-with-dev-null-redirect-skips-ssh-and-defensively-early-exits-on-non-bash-tool-names.sh
+# test-iter63-stdin-inlet-guard-bash-only-matcher.sh
 #
 # Regression test for the iter-63 matcher-narrowing perf optimization on
 # plugins/itp-hooks/hooks/pretooluse-subprocess-stdin-inlet-guard.ts.

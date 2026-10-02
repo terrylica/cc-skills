@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-path-owner-guard-blocks-gh-repo-create-remote-push-to-wrong-owner-for-local-path-registry-ssot.sh
+# test-path-owner-guard-blocks-wrong-owner.sh
 #
 # Regression test for pretooluse-path-owner-guard.mjs — the guard that enforces the
 # local-path → GitHub-owner policy (SSoT: ~/.claude/path-owner-registry.toml).

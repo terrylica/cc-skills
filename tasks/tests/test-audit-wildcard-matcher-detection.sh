@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-audit-wildcard-matcher-detects-star-and-null-matchers-classifies-with-and-without-ok-marker-escape-hatch-with-min-reason-length-and-exits-nonzero-on-violation.sh
+# test-audit-wildcard-matcher-detection.sh
 #
 # Regression test for the iter-65 wildcard-matcher audit at
 # tasks/hook-lint/wildcard-matcher.sh.

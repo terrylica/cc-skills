@@ -1126,7 +1126,7 @@ export async function validateHookCommandHygiene(rootDir = process.cwd()) {
           // So the prefix is NOT a workaround for a fixed bug; it is the only
           // thing that keeps a failing hook diagnosable while #1110 is open.
           // The TEST that replaced this lint
-          // (tasks/tests/test-proto-shim-does-not-write-an-ai-agent-ndjson-banner-*.sh)
+          // (tasks/tests/test-proto-shim-no-ndjson-banner-on-stdout.sh)
           // stays — it asserts the #1105 property directly, which a lint cannot.
           // The two are complementary: the test proves the banner is gone, this
           // lint keeps the error path readable.

@@ -70,7 +70,7 @@ RELEASERC_YML_ABSOLUTE_PATH="$REPO_ROOT/.releaserc.yml"
 # pure code-relocation refactor that preserves behavior — invariants hold, just
 # in a different file — so iter-141 source-fingerprints still bind tightly.
 ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH_FOR_ITER140_HELPER_ASSERTIONS_AFTER_ITER142_RELOCATION="$REPO_ROOT/scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh"
-CHRONICLE_TEST_ABSOLUTE_PATH="$REPO_ROOT/tasks/tests/test-chronicle-slicing-37-assertion-stress-test-against-boundary-mtimes-jsonl-vs-brotli-subagent-recursion-and-visibility-gate-parsing.sh"
+CHRONICLE_TEST_ABSOLUTE_PATH="$REPO_ROOT/tasks/tests/test-chronicle-slicing-37-assertion-stress.sh"
 LEGACY_CHRONICLE_TEST_RELEASE_DIR_PATH="$REPO_ROOT/tasks/release/test-chronicle-slicing"
 
 ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=0
