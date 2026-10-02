@@ -1,3 +1,5 @@
+## [33.1.3](https://github.com/terrylica/cc-skills/compare/v33.1.2...v33.1.3) (2026-10-02)
+
 ## [33.1.2](https://github.com/terrylica/cc-skills/compare/v33.1.1...v33.1.2) (2026-10-02)
 
 
