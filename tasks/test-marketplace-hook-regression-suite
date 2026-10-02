@@ -360,9 +360,9 @@ FAILED_TEST_FILES_LIST=()
 # until xargs invokes the per-test bash subprocess.
 # BSD-xargs-portability hardening (iter-90 forensic finding): macOS BSD
 # `xargs -I {}` has a default `-S` (replacement-string size) limit of
-# 255 bytes per assembled invocation. When the iter-90 test filename
-# (`test-pretooluse-edit-time-orchestrator-iter90-...verified.sh`,
-# 233 chars) was added to the marketplace test corpus, the assembled
+# 255 bytes per assembled invocation. When a 233-character test filename
+# (since renamed to `test-iter90-pretooluse-orchestrator-native-binary.sh`)
+# was added to the marketplace test corpus, the assembled
 # command per invocation grew to ~280 chars (path prefix + filename +
 # bash body + output dir), exceeding 255 and triggering
 # `xargs: command line cannot be assembled, too long`. The fix sets
