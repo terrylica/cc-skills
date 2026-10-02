@@ -1,90 +1,46 @@
-# PostToolUse Write/Edit Orchestrator (Iter-93→98)
+# PostToolUse Write/Edit Orchestrator
 
 **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md) | **Topic**: Inlined context-injecting subhooks
 
 ## Overview
 
-The iter-93 → iter-98 PostToolUse Write|Edit migration arc (Path B, orchestrator inlining) consolidated context-injecting subhooks into a single bun process via `posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts`.
+`hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts` is registered in `hooks/hooks.json` as one PostToolUse entry with matcher `Write|Edit`. It runs every edit-time reminder and lint check in a single bun process and merges what they report into one Claude-visible message.
 
-**Path context**: Iter-92 audit ruled out Path A (async:true sweep via Anthropic's Jan-2026 schema flag) for context-injecting hooks because they must merge results; orchestrator inlining provides the merging capability.
+## Subhook registry
 
-## Core Design: Multi-Aggregation Semantics
+The registry is `POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orchestrator source; it is the source of truth for this table. It holds 12 subhooks, all run concurrently:
 
-Runs ALL subhooks in parallel via `Promise.all` (no short-circuit, unlike PreToolUse):
+| #   | Subhook                       | Reports, after a Write/Edit…                                                                        | Timeout  | Spoke                                                                |
+| --- | ----------------------------- | --------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------- |
+| 1   | `leakage-taxonomy-reminder`   | the temporal-leakage taxonomy card, once per session, when new text adjudicates leakage             | 2000 ms  | `~/.claude/leakage-taxonomy-CLAUDE.md`                               |
+| 2   | `ty-type-check`               | `ty` type errors in an edited `.py`/`.pyi`                                                          | 5000 ms  | [ty-type-checker.md](./ty-type-checker.md)                           |
+| 3   | `tsc-type-check`              | project-scoped `tsc` errors in an edited `.ts`/`.tsx`                                               | 5000 ms  | [tsc-type-check.md](./tsc-type-check.md)                             |
+| 4   | `oxlint-check`                | oxlint correctness and suspicious findings in JS/TS                                                 | 5000 ms  | [oxlint-check.md](./oxlint-check.md)                                 |
+| 5   | `biome-lint`                  | biome findings that complement oxlint in JS/TS                                                      | 5000 ms  | [biome-lint.md](./biome-lint.md)                                     |
+| 6   | `vale-claude-md`              | vale terminology findings in an edited `CLAUDE.md` (informational)                                  | 12000 ms | [vale-terminology-enforcement.md](./vale-terminology-enforcement.md) |
+| 7   | `memory-efficiency-reminder`  | a memory-efficiency reminder, once per session, on the first eligible code-file edit                | 1000 ms  | [memory-efficiency-reminder.md](./memory-efficiency-reminder.md)     |
+| 8   | `ssot-principles`             | SSoT / dependency-injection anti-patterns found with ast-grep, once per session                     | 3000 ms  | [ssot-principles.md](./ssot-principles.md)                           |
+| 9   | `claude-md-size-budget`       | a hub-and-spoke refactor reminder when a `CLAUDE.md` reaches 36,000 characters (90% of 40,000)      | 2000 ms  | this page (escape `CLAUDE-MD-SIZE-OK`)                               |
+| 10  | `python-preference-nudge`     | a language-preference reminder on a `.py` edit not allowed by an ancestor `python-allowlist.toml`   | 2000 ms  | [python-preference-nudge.md](./python-preference-nudge.md)           |
+| 11  | `typescript-upgrade-reminder` | a TypeScript 7 upgrade reminder, once per session, on the first TS / `package.json` / tsconfig edit | 2000 ms  | `Skill(typescript-7)`                                                |
+| 12  | `markdown-hard-wrap-reminder` | hard-wrapped prose that the edit added to a `.md` file                                              | 2000 ms  | [markdown-hard-wrap-reminder.md](./markdown-hard-wrap-reminder.md)   |
 
-- Merges every non-empty `additional_context` payload into ONE consolidated `{decision: "block", reason: aggregate}` JSON
-- Per-section `[orchestrator-subhook: <name>]` provenance prefix (iter-94 usability enhancement)
-- Emits NOTHING when all subhooks return `noop` (preserves legacy silent-allow semantics)
+## Run semantics
 
-## Cold-Start Savings
+- Every subhook runs at once under `Promise.all`; none can stop another. A PostToolUse hook cannot undo the tool call, so there is nothing to short-circuit.
+- Each subhook returns `noop` or `additional_context`. The orchestrator prints nothing when every subhook returns `noop`.
+- Otherwise it prints one `{"decision": "block", "reason": …}` object whose reason concatenates every contribution. When two or more subhooks contribute, each section is prefixed `[orchestrator-subhook: <name>]`. `decision: "block"` here does not undo the edit; it is the PostToolUse channel that shows `reason` to Claude.
+- A subhook that exceeds its timeout contributes a short "timed out — verify manually" note instead of silence; one that throws is logged and contributes nothing.
+- The merged reason is truncated to stay below Claude Code's 10,000-character hook-output limit.
 
-**Projection**: `(15-1) × 17ms ≈ 238ms` per Write|Edit cold-start savings (using iter-87's empirically-corrected 17ms per-subhook cost).
+## Contract
 
-## Inlined Subhooks (7/15 complete as of iter-98, iter-126 tsc migration)
+The subhook contract is [`lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`](../hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts). A subhook:
 
-1. **ty-type-check** (iter-93) → Python static type check (--python-version 3.14)
-2. **tsc-type-check** (iter-126 migrated from tsgo) → TypeScript type check (project-scoped, native tsc)
-3. **oxlint-check** (iter-95) → Correctness + suspicious lint (JS/TS)
-4. **biome-lint** (iter-95) → Complementary lint (catches oxlint gaps)
-5. **vale-claude-md** (iter-96) → Vale terminology on CLAUDE.md (informational)
-6. **ssot-principles** (iter-97) → SSoT/DI anti-pattern detection (ast-grep, once per session)
-7. **memory-efficiency-reminder** (iter-98) → Once-per-session best-practices nudge
-
-**Remaining (8 planned)**: lsp-diagnostic-collection, pylint-json, clippy-report, etc. (queue order TBD by iter-99+)
-
-## Async Requirement (Iter-94 Critical Invariant)
-
-Every inlined classifier MUST use `Bun.spawn` (async) — `Bun.spawnSync` halts the JS event loop and defeats `Promise.all` parallelism per [Bun docs](https://bun.com/docs/api/spawn) + 2026 community guidance.
-
-The static audit task `tasks/hook-lint/orchestrator-spawnsync.sh` prevents regression.
-
-## Contract & Isolation
-
-Contract at [`lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`](../hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts) enforces:
-
-- Pure-function discipline per subhook
-- Async via `Bun.spawn`
-- Cooperative timeout via shared lib helpers
-- Max buffer guardrails for concurrent stream drain
+- does no stdin/stdout I/O and never calls `process.exit`;
+- tests the tool name with `isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook()`, whose allow-set is exactly `Write` and `Edit`;
+- runs subprocesses with the async helpers in `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts`, never `Bun.spawnSync`, which would block the event loop and serialise the whole `Promise.all` ([Bun docs](https://bun.com/docs/api/spawn)); `tasks/hook-lint/orchestrator-spawnsync.sh` enforces this;
+- claims once-per-session reminders through the shared atomic `O_EXCL` gate-file helpers in the same file;
+- skips throwaway files in temp directories with the shared temp-scratch helper when it reminds on edited content.
 
 See [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).
-
-## Per-Subhook Deep Dives
-
-See individual spoke docs:
-
-- [ty-type-checker.md](./ty-type-checker.md)
-- [tsc-type-check.md](./tsc-type-check.md)
-- [oxlint-check.md](./oxlint-check.md)
-- [biome-lint.md](./biome-lint.md)
-- [vale-terminology-enforcement.md](./vale-terminology-enforcement.md)
-- [ssot-principles.md](./ssot-principles.md)
-- [memory-efficiency-reminder.md](./memory-efficiency-reminder.md)
-
-## Migration Timeline
-
-| Iter | Subhooks Inlined           | Count | Key Changes                                                                                                                                       |
-| ---- | -------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 93   | ty-type-check              | 1     | **Arc kick-off** — Path B (orchestrator inlining)                                                                                                 |
-| 94   | tsgo-type-check            | 2     | Project-scoped filtering; Bun.spawn-only invariant                                                                                                |
-| 95   | oxlint-check, biome-lint   | 4     | Shared lib helper hoists (async-spawn)                                                                                                            |
-| 96   | vale-claude-md             | 5     | Informational (not blocking); line-scoping ±3-line buffer                                                                                         |
-| 97   | ssot-principles            | 6     | **FIRST real Promise.all parallel fan-out**                                                                                                       |
-| 98   | memory-efficiency-reminder | 7     | Once-per-session gate via atomic claim helper                                                                                                     |
-| —    | claude-md-size-budget      | 8     | CLAUDE.md char-budget (90% of 40k) refactor reminder                                                                                              |
-| —    | python-preference-nudge    | 9     | Per-`.py` language-preference nudge; ancestor `python-allowlist.toml` (reason-gated); temp-scratch exempt — [spoke](./python-preference-nudge.md) |
-| 126  | tsc-type-check (migrated)  | 2     | TypeScript 7 native tsc replaces frozen tsgo; `--singleThreaded` tuning for dev machines                                                          |
-
-## Iter-98 Bug Fix: Silent Context Drop
-
-Pre-iter-98 the standalone `memory-efficiency-reminder.ts` hook emitted the reminder via plain `console.log` (raw text — transcript-only, NOT Claude-visible per iter-66/93 forensic finding). Iter-98 orchestrator path emits proper `additional_context` decision (Claude-visible system reminder); standalone CLI now also emits JSON not raw text.
-
-Also fixed a race-unsafe `existsSync(...) + writeFileSync(...)` gate pattern (atomic O_EXCL via shared helper now).
-
-## Original hub-table narrative (PostToolUse, moved 2026-06-11)
-
-> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
-
-**Matcher**: Write\|Edit
-
-**Iter-93→iter-94 PostToolUse edit-time orchestrator (2/15 inlined: ty-type-check + tsgo-type-check)**. Combines context-injecting PostToolUse subhooks into one bun process with **MULTI-AGGREGATION semantics**: runs ALL subhooks in parallel via `Promise.all` (no short-circuit, unlike the PreToolUse first-deny-short-circuit orchestrator), merges every non-empty `additional_context` payload into ONE consolidated `{decision: "block", reason: aggregate}` JSON with per-section `[orchestrator-subhook: <name>]` provenance prefix (iter-94 usability enhancement). Emits NOTHING when all subhooks return `noop` (preserves legacy silent-allow semantics). **Iter-94 critical perf invariant**: every inlined classifier MUST use `Bun.spawn` (async) — `Bun.spawnSync` halts the JS event loop and defeats `Promise.all` parallelism per [Bun docs](https://bun.com/docs/api/spawn) + 2026 community guidance. The static audit task `tasks/hook-lint/orchestrator-spawnsync.sh` prevents regression. Path B (orchestrator inlining) replaces iter-89's ruled-out Path A (async:true sweep) per the iter-92 audit findings. Final-state projection: `(15-1) × 17ms ≈ 238ms` per Write\|Edit cold-start savings. Contract at [`lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`](../hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts). See [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).
