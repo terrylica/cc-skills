@@ -15,7 +15,7 @@ import { describe, expect, test } from "bun:test";
 import {
   hasFileWideEscapeHatchMarkerInContent,
   hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent,
-} from "./shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./escape-hatch-marker-detection-iter107.ts";
 
 const MARKER = ["MD-HARD-WRAP", "OK"].join("-");
 const TICK = "`";

@@ -27,7 +27,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { computeJoinedWithNextLineMask } from "./gfm-unwrap.ts";
 import { detectHardWraps, type WrapIssue } from "./hard-wrap-detector.ts";
-import { hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent } from "./shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent } from "./escape-hatch-marker-detection-iter107.ts";
 
 export type { WrapIssue } from "./hard-wrap-detector.ts";
 

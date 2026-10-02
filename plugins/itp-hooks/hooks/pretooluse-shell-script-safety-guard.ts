@@ -35,12 +35,12 @@ import {
   denyDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 import {
   detectAllShellSafetyDefects,
   isShellScript,
   type ShellSafetyDefect,
-} from "./lib/shell-script-safety-detector-status-loss-and-masked-substitution-iter119.ts";
+} from "./lib/shell-script-status-loss-detector-iter119.ts";
 
 // ============================================================================
 // Utilities

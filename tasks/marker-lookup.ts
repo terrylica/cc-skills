@@ -28,8 +28,8 @@ const EXIT_FOUND = 0;
 const EXIT_USAGE = 1;
 const EXIT_NOT_FOUND = 2;
 const DID_YOU_MEAN_COUNT = 3;
-const RUNTIME_REGISTRY = "plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts";
-const AUDIT_REGISTRY = "plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts";
+const RUNTIME_REGISTRY = "plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts";
+const AUDIT_REGISTRY = "plugins/itp-hooks/hooks/lib/audit-task-marker-registry-iter114.ts";
 
 const USAGE = `Usage: tasks/marker-lookup.ts [--json] [--direction=forward|reverse|auto] <query>
 

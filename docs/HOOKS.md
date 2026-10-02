@@ -172,7 +172,7 @@ All four live in `plugins/itp-hooks/hooks/`. Shared behaviour of the three in-pr
 
 The contracts are in `plugins/itp-hooks/hooks/lib/`:
 
-- PreToolUse: `pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts` — `PreToolUseSubhookClassifierFunction` returns `ALLOW_DECISION`, `denyDecision(reason)` or `askDecision(reason)`.
+- PreToolUse: `pretooluse-subhook-contract-iter84.ts` — `PreToolUseSubhookClassifierFunction` returns `ALLOW_DECISION`, `denyDecision(reason)` or `askDecision(reason)`.
 - PostToolUse: `posttooluse-subhook-contract-iter93.ts` — `PostToolUseSubhookClassifierFunction` returns `POSTTOOLUSE_SUBHOOK_NOOP_DECISION` or `buildPostToolUseAdditionalContextDecision(message)`.
 
 A classifier:
@@ -203,8 +203,8 @@ Orchestrator behaviour a subhook author needs to know:
 
 An escape hatch is a token such as `FILE-SIZE-OK` that an author writes in a file or command to opt out of one check. Markers are UPPER-KEBAB-CASE ending in `-OK`, `-SKIP` or `-WRAP` (`SSoT-OK` is the one grandfathered mixed-case marker), so they never collide with code identifiers and are matched as plain substrings in any comment style (`#`, `//`, `<!-- -->`).
 
-- **Detect** with the shared helper `plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`: `hasFileWideEscapeHatchMarkerInContent(content, config)` for a file-wide marker, `detectEscapeHatchMarkerCoveringTargetSourceLine(lines, index, config)` for per-line scope. The config takes the marker token, a window mode (`SAME_LINE_ONLY`, `SAME_LINE_OR_PRECEDING_N_LINES`, `FILE_WIDE`), a case mode (`CASE_SENSITIVE` by default — leave it), and an optional minimum reason length after the colon.
-- **Register** a runtime-hook marker in `lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`, or a marker read by a `tasks/hook-lint/` audit in `lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts`.
+- **Detect** with the shared helper `plugins/itp-hooks/hooks/lib/escape-hatch-marker-detection-iter107.ts`: `hasFileWideEscapeHatchMarkerInContent(content, config)` for a file-wide marker, `detectEscapeHatchMarkerCoveringTargetSourceLine(lines, index, config)` for per-line scope. The config takes the marker token, a window mode (`SAME_LINE_ONLY`, `SAME_LINE_OR_PRECEDING_N_LINES`, `FILE_WIDE`), a case mode (`CASE_SENSITIVE` by default — leave it), and an optional minimum reason length after the colon.
+- **Register** a runtime-hook marker in `lib/escape-hatch-marker-registry-iter111.ts`, or a marker read by a `tasks/hook-lint/` audit in `lib/audit-task-marker-registry-iter114.ts`.
 - **Regenerate** the reference doc: `bash tasks/hook-lint/marker-reference-doc.sh` rewrites [`docs/marketplace-escape-hatch-marker-reference.md`](./marketplace-escape-hatch-marker-reference.md) from both registries. Commit it with the registry change.
 
 The gate enforces all three: `escape-hatch-cohort.sh` fails on hand-rolled marker detection, `marker-typos.sh` fails on a marker-shaped token in a plugin file that no registry knows (it catches typos such as `PROCSS-STORM-OK`), `marker-reference-doc.sh --check` fails when the generated doc is out of date, and `stale-marker-descriptions.sh` flags a registry description that no longer names its marker or consumer.

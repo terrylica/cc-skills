@@ -4,7 +4,7 @@ import {
   findTypeScriptDependencySpecifiersInPackageJsonText,
   isBlockingTypeScriptVersionSpecifierVerdict,
   MINIMUM_ALLOWED_TYPESCRIPT_MAJOR_VERSION,
-} from "./typescript-version-specifier-minimum-major-policy-evaluator.ts";
+} from "./typescript-version-specifier-policy.ts";
 
 describe("evaluateTypeScriptVersionSpecifier — conformant", () => {
   for (const specifier of ["latest", "next", "beta", "rc", "*", "", "LATEST"]) {

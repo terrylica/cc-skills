@@ -72,7 +72,7 @@
  * 1. Add the consumer-side detection call in the hook source file using
  *    `hasFileWideEscapeHatchMarkerInContent(...)` or
  *    `detectEscapeHatchMarkerCoveringTargetSourceLine(...)` from
- *    `./shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`.
+ *    `./escape-hatch-marker-detection-iter107.ts`.
  * 2. Add an entry to `MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY`
  *    below with all fields populated.
  * 3. Add the consumer hook to the iter-110 canonical-cohort array in
@@ -91,7 +91,7 @@
 import type {
   EscapeHatchMarkerCaseSensitivityMode,
   EscapeHatchMarkerWindowSemanticsMode,
-} from "./shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./escape-hatch-marker-detection-iter107.ts";
 
 export interface MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry {
   /**
@@ -456,7 +456,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
     {
       markerNameTokenIncludingSuffix: "ASK-OPTION-NEWLINE-OK",
       consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts",
+        "plugins/itp-hooks/hooks/pretooluse-askuserquestion-line-terminator-guard.ts",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,

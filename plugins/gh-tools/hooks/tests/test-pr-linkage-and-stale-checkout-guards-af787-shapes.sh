@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-pr-linkage-labels-and-stale-checkout-guards-fire-on-the-real-research-repo-787-failure-shapes.sh
+# test-pr-linkage-and-stale-checkout-guards-af787-shapes.sh
 #
 # Both hooks under test were written from one incident: example-org/research-repo#787, 2026-09-15.
 #

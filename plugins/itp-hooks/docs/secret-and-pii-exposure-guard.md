@@ -52,7 +52,7 @@ The credential regexes are structurally distinctive and the cost of a miss is a 
 | `SECRET-SCAN-OK: <reason>` | `pretooluse-secret-exposure-guard.ts`  | **Yes — ≥10 characters** |
 | `PII-SCAN-OK`              | `posttooluse-pii-exposure-reminder.ts` | No                       |
 
-Both are FILE_WIDE and case-sensitive, registered in the canonical marker registry ([`lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts)).
+Both are FILE_WIDE and case-sensitive, registered in the canonical marker registry ([`lib/escape-hatch-marker-registry-iter111.ts`](../hooks/lib/escape-hatch-marker-registry-iter111.ts)).
 
 The mandatory reason on `SECRET-SCAN-OK` is deliberate and unusual for this repo: in the audit, **every** leaked credential was accompanied by the belief that it was just an example, so a bare marker would reproduce the exact failure the guard exists to prevent. Legitimate uses are narrow — a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. **If the value was ever live, the marker is the wrong answer: remove it and rotate the credential.**
 

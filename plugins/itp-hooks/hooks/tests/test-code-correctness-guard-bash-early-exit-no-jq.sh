@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-code-correctness-guard-bash-branch-early-exit-zero-skips-stderr-and-command-jq-spawns.sh
+# test-code-correctness-guard-bash-early-exit-no-jq.sh
 #
 # Regression test for iter-56 Bash-branch early-exit jq-batching
 # optimization on code-correctness-guard.sh. The optimization:
@@ -33,9 +33,9 @@
 #       AND the STDERR content is preserved through the @tsv round-trip
 #       (including any embedded newlines).
 #
-# Verbose filename per the user directive — encodes the exact code
-# path being tested ("bash-branch-early-exit-zero-skips-stderr-and-
-# command-jq-spawns"). Future maintainers searching for "code-
+# The filename names the code path being tested (the Bash branch's
+# early exit 0 skips the stderr and command jq spawns). Future
+# maintainers searching for "code-
 # correctness early exit", "jq batching bash branch", or "iter-56"
 # will surface this regression guard.
 

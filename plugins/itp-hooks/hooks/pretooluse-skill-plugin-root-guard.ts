@@ -63,7 +63,7 @@
  * or anywhere in the file already on disk (the iter-15 fix pattern).
  *
  * Contract: pure classifier per
- * `lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts`
+ * `lib/pretooluse-subhook-contract-iter84.ts`
  * — no stdin/stdout/process.exit, bounded time, never throws, fail-open.
  */
 
@@ -73,11 +73,11 @@ import {
   denyDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 import {
   hasFileWideEscapeHatchMarkerInContent,
   type EscapeHatchMarkerDetectionConfiguration,
-} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./lib/escape-hatch-marker-detection-iter107.ts";
 
 const SKILL_PLUGIN_ROOT_ESCAPE_HATCH_CONFIGURATION: EscapeHatchMarkerDetectionConfiguration =
   {

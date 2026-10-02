@@ -30,7 +30,7 @@ import {
   evaluateTypeScriptVersionSpecifier,
   findTypeScriptDependencySpecifiersInPackageJsonText,
   isBlockingTypeScriptVersionSpecifierVerdict,
-} from "../plugins/itp-hooks/hooks/lib/typescript-version-specifier-minimum-major-policy-evaluator.ts";
+} from "../plugins/itp-hooks/hooks/lib/typescript-version-specifier-policy.ts";
 
 // ============================================================================
 // CLI Argument Parsing

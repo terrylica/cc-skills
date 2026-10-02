@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-chezmoi-sync-reminder-plan-mode-bash-builtin-substring-fastpath-bails-without-jq-spawn.sh
+# test-chezmoi-reminder-plan-mode-fastpath-without-jq.sh
 #
 # Regression test for iter-47 plan-mode-bash-builtin-substring-fastpath
 # optimization on chezmoi-sync-reminder.sh. The optimization replaces
@@ -23,11 +23,10 @@
 #   (D) BEHAVIORAL: a payload with NO `permission_mode` key does NOT
 #       trigger plan-mode bail — the hook proceeds normally.
 #
-# Verbose filename per the user directive — encodes the exact optimization
-# being tested ("plan-mode-bash-builtin-substring-fastpath-bails-without-
-# jq-spawn") so future maintainers searching for "plan-mode fastpath",
-# "case-glob substring", "without-jq", or any component term surface this
-# regression guard.
+# The filename names the optimization being tested (the plan-mode
+# bash-builtin substring fastpath bails without spawning jq) so future
+# maintainers searching for "plan-mode fastpath", "case-glob substring",
+# "without-jq", or any component term surface this regression guard.
 
 set -euo pipefail
 

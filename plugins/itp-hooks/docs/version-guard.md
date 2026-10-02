@@ -25,7 +25,7 @@ It is also skipped in plan mode ([plan-mode-detection.md](./plan-mode-detection.
 
 ## Escape hatch
 
-`SSoT-OK` anywhere in the new text (for example `# SSoT-OK` or `<!-- SSoT-OK -->`), case-sensitive and file-wide, detected by the shared marker helper in [`lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`](../hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts). The [ssot-principles](./ssot-principles.md) reminder honours the same token.
+`SSoT-OK` anywhere in the new text (for example `# SSoT-OK` or `<!-- SSoT-OK -->`), case-sensitive and file-wide, detected by the shared marker helper in [`lib/escape-hatch-marker-detection-iter107.ts`](../hooks/lib/escape-hatch-marker-detection-iter107.ts). The [ssot-principles](./ssot-principles.md) reminder honours the same token.
 
 ## Code
 

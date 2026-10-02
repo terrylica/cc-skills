@@ -38,7 +38,7 @@ import { trackHookError } from "./lib/hook-error-tracker.ts";
 // canonical declaration. The pre-iter-112 leading-`#` requirement was
 // incidental to the implementation (never documented as a constraint),
 // so widening the prefix tolerance is operator-friendly.
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 // Iter-124: skip lint/quality nudges on throwaway scripts edited in temp dirs.
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 

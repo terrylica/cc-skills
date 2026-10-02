@@ -17,7 +17,7 @@ import {
   releaseMachineWideConcurrencySlotSwallowingAllFilesystemErrors,
   tryAcquireMachineWideConcurrencySlotForGuardedSubprocess,
   wrapArgvWithKernelEnforcedCpuSecondsCeiling,
-} from "./subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124";
+} from "./subprocess-rss-watchdog-and-slot-guard-iter124";
 
 const scratchDirectory = mkdtempSync(join(tmpdir(), "subprocess-guard-test-"));
 

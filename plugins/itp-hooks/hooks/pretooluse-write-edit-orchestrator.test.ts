@@ -12,7 +12,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import type { PreToolUseSubhookRegistryEntry } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+import type { PreToolUseSubhookRegistryEntry } from "./lib/pretooluse-subhook-contract-iter84.ts";
 import {
   buildPermissionDecisionResponse,
   runEditTimeSubhookRegistry,

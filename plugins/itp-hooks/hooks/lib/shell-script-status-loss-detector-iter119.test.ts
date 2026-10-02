@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // # PROCESS-STORM-OK
 /**
- * Tests for shell-script-safety-detector-status-loss-and-masked-substitution-iter119.ts
+ * Tests for shell-script-status-loss-detector-iter119.ts
  *
  * Comprehensive coverage of both RULE 1 (STATUS-LOSS-AFTER-IF) and RULE 2 (MASKED-COMMAND-SUBSTITUTION),
  * including all empirical facts A-H from the requirements (explicit named cases).
@@ -19,7 +19,7 @@ import {
   detectShellMaskedCommandSubstitutionDefects,
   detectAllShellSafetyDefects,
   isShellScript,
-} from "./shell-script-safety-detector-status-loss-and-masked-substitution-iter119.ts";
+} from "./shell-script-status-loss-detector-iter119.ts";
 
 // ============================================================================
 // File Detection Tests

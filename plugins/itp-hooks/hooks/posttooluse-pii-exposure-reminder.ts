@@ -42,7 +42,7 @@ import {
   buildPiiReminder,
   detectThirdPartyPiiExposure,
 } from "./lib/secret-and-pii-exposure-detector.ts";
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 
 const HOOK_NAME = "posttooluse-pii-exposure-reminder";

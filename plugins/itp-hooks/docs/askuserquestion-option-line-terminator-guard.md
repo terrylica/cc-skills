@@ -1,9 +1,9 @@
 # AskUserQuestion option line-terminator guard
 
-- **Hook**: `pretooluse-askuserquestion-option-line-terminator-guard.ts` (PreToolUse, matcher `AskUserQuestion` — the first hook in this plugin to match that tool)
+- **Hook**: `pretooluse-askuserquestion-line-terminator-guard.ts` (PreToolUse, matcher `AskUserQuestion` — the first hook in this plugin to match that tool)
 - **Detector SSoT**: `hooks/lib/askuserquestion-option-line-terminator-detector.ts` (pure, dependency-free)
-- **Shared libs consumed**: `hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts` (marker), `hooks/lib/shared-truncation-helper-iter106.ts` (deny-reason cap)
-- **Tests**: `hooks/pretooluse-askuserquestion-option-line-terminator-guard.test.ts` (16 bun tests)
+- **Shared libs consumed**: `hooks/lib/escape-hatch-marker-detection-iter107.ts` (marker), `hooks/lib/shared-truncation-helper-iter106.ts` (deny-reason cap)
+- **Tests**: `hooks/pretooluse-askuserquestion-line-terminator-guard.test.ts` (16 bun tests)
 - **Escape hatch**: `ASK-OPTION-NEWLINE-OK` anywhere in the tool input — named here and in the hook source, never in the deny message (see "Why the deny message does not name the escape hatch")
 - **Timeout**: `5` in `hooks.json`. That field is **seconds**, not milliseconds — Claude Code multiplies a hook's `timeout` by 1000, and its settings schema describes the field as "Timeout in seconds for this specific command". A four-digit value here would park the interactive question dialog for over an hour, and the timeout is the only backstop against a hang because the hook's top-level `catch` only covers a throw.
 - **Upstream**: [anthropics/claude-code#88836](https://github.com/anthropics/claude-code/issues/88836) — open regression, introduced in 2.1.235
