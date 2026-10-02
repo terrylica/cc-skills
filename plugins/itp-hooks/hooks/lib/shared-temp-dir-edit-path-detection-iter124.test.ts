@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory as bashWritesTemp,
   isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts as isTemp,
-} from "./shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
+} from "./shared-temp-dir-edit-path-detection-iter124.ts";
 
 describe("temp-path detector — static temp roots", () => {
   test.each([

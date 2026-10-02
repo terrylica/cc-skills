@@ -6,7 +6,7 @@ set -euo pipefail
 # Kept as a separate file (vs inline bash) so the renderer can also be
 # invoked directly without moon (e.g., from CI logs, ad-hoc
 # operator review, or aliased into the operator's shell rc).
-ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
+ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter150-readable-git-log.sh"
 
 if [[ ! -x "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" ]]; then
     echo "  ✗ iter-150 renderer not found or not executable at:" >&2

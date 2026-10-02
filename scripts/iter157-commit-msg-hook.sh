@@ -52,7 +52,7 @@ iter157_locate_cc_skills_repo_path_via_env_override_or_git_config_or_canonical_d
 }
 
 ITER157_CC_SKILLS_REPO_PATH=$(iter157_locate_cc_skills_repo_path_via_env_override_or_git_config_or_canonical_default_location)
-ITER157_ITER153_ADVISOR_RELATIVE_PATH="scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER157_ITER153_ADVISOR_RELATIVE_PATH="scripts/iter153-commit-subject-advisor.sh"
 ITER157_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER157_CC_SKILLS_REPO_PATH/$ITER157_ITER153_ADVISOR_RELATIVE_PATH"
 
 if [[ ! -x "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then

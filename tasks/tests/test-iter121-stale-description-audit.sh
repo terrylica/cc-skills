@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-ITER121_ALGORITHM_LIBRARY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/iter121-stale-description-audit-algorithm-discriminating-hyphen-segment-extraction-from-marker-or-consumer-source-file-basename.ts"
+ITER121_ALGORITHM_LIBRARY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/iter121-marker-basename-segment-extraction.ts"
 ITER121_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/stale-marker-descriptions.sh"
 
 ASSERTION_PASSED_COUNT=0

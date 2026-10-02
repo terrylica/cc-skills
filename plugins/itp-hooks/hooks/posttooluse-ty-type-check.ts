@@ -21,7 +21,7 @@
  * directly in this file (verbatim copies between ty + tsc). With iter-95
  * adding oxlint + biome (3rd + 4th subhooks), 4 copies of the same
  * helpers would drift. Iter-95 hoists them to
- * `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts`
+ * `lib/posttooluse-subhook-async-helpers-iter95.ts`
  * so every classifier imports the same implementation. Iter-95 also adds
  * a `maxBuffer` (default 8MiB per Bun docs) safety net to bound runaway
  * subprocess output.
@@ -32,21 +32,21 @@ import { join, basename } from "node:path";
 import type {
   PostToolUseInput,
   PostToolUseSubhookDecision,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 // Iter-106: import from the dedicated cross-Pre/PostToolUse shared lib (the
 // helper's canonical home as of iter-106; relocated from the PostToolUse
 // contract lib where iter-104 pragmatically introduced it).
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
   tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolByName,
-} from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+} from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 // Iter-124: skip linting/type-checking throwaway scripts edited in temp dirs.
-import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 
 // --- Constants ---
 

@@ -79,7 +79,7 @@ import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   type PostToolUseInput,
   type PostToolUseSubhookDecision,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import {
   contentHash,
@@ -92,7 +92,7 @@ import {
   wrapsAddedBetween,
   type WrapIssue,
 } from "./lib/markdown-net-new-hard-wraps.ts";
-import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 
 const HOOK_NAME = "markdown-hard-wrap-reminder";
 

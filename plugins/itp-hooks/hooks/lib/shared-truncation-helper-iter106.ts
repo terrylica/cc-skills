@@ -15,7 +15,7 @@
  *
  *     pretooluse-vale-claude-md-guard.ts
  *       imports truncateHookOutputToStayBelowClaudeFileSpilloverThreshold
- *       FROM ./lib/posttooluse-subhook-contract-...iter93.ts
+ *       FROM ./lib/posttooluse-subhook-contract-iter93.ts
  *
  * The helper is PURE STRING TRUNCATION — it has no PostToolUse-specific
  * semantics; it's about the Claude-visible 10,000-character hook-output cap

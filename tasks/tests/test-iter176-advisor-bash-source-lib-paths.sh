@@ -5,7 +5,7 @@ set -euo pipefail
 ITER176_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER176_REPO_ROOT"
 
-ITER176_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER176_REPO_ROOT/scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+ITER176_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER176_REPO_ROOT/scripts/iter153-commit-subject-advisor.sh"
 
 ITER176_TOTAL_ASSERTIONS_EVALUATED=0
 ITER176_TOTAL_ASSERTIONS_FAILED=0

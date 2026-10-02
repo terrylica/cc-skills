@@ -4,7 +4,7 @@
 
 ## Overview
 
-`hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts` is registered in `hooks/hooks.json` as one PreToolUse entry with matcher `Write|Edit`. It runs every edit-time blocking check in a single bun process, so a Write or Edit pays one bun cold start instead of one per check.
+`hooks/pretooluse-write-edit-orchestrator.ts` is registered in `hooks/hooks.json` as one PreToolUse entry with matcher `Write|Edit`. It runs every edit-time blocking check in a single bun process, so a Write or Edit pays one bun cold start instead of one per check.
 
 Any tool name other than `Write` or `Edit` is allowed before the registry runs.
 

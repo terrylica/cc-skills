@@ -53,7 +53,7 @@ Limitations (documented honestly, not glossed over):
       because the body isn't executed. To time the publish/success steps
       accurately, the parser must be run against a LIVE release log (e.g.
       `DEBUG=semantic-release:* moon run repo:release-version 2> /tmp/log;
-      ./scripts/iter144-...py /tmp/log`).
+      ./scripts/iter144-release-step-timing-parser.py /tmp/log`).
     - The currently-active step before the first "options for X" marker
       is attributed to the "(unattributed-pre-plugin-pipeline-bootstrap)"
       bucket (typically config-load / get-tags / get-commits — runs once,
@@ -65,7 +65,7 @@ Limitations (documented honestly, not glossed over):
       in preflight; iter-143 regression test uses python3 for YAML parsing).
 
 Usage:
-    python3 scripts/iter144-...py <debug-log-file>
+    python3 scripts/iter144-release-step-timing-parser.py <debug-log-file>
     [ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY=N]
         (default 10, mirrors iter-130/139/140 top-N convention)
 """

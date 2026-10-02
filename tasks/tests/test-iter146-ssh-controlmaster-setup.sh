@@ -5,7 +5,7 @@ set -euo pipefail
 ITER146_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER146_REPO_ROOT"
 
-ITER146_SETUP_SCRIPT_RELATIVE_PATH="scripts/iter146-configure-ssh-controlmaster-for-github-com-to-cache-ssh-connection-and-eliminate-repeat-handshake-cost-per-release-via-openssh-connection-multiplexing.sh"
+ITER146_SETUP_SCRIPT_RELATIVE_PATH="scripts/iter146-github-ssh-controlmaster-setup.sh"
 ITER146_SETUP_SCRIPT_ABSOLUTE_PATH="$ITER146_REPO_ROOT/$ITER146_SETUP_SCRIPT_RELATIVE_PATH"
 ITER146_RELEASE_MD_DOC_RELATIVE_PATH="docs/RELEASE.md"
 

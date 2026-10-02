@@ -46,7 +46,7 @@ import {
   recordSeenMarkdownContent,
   runGit,
 } from "./lib/markdown-net-new-hard-wraps.ts";
-import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
 import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 const HOOK_NAME = "bash-markdown-hard-wrap-reminder";

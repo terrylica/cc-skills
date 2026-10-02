@@ -5,7 +5,7 @@ set -euo pipefail
 ITER159_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER159_REPO_ROOT"
 
-ITER159_EMPIRICAL_HARNESS_RELATIVE_PATH="scripts/iter159-empirical-end-to-end-validation-harness-exercising-iter158-pre-commit-framework-manifest-through-real-pre-commit-binary-invocation-proving-the-manifest-claim-is-empirically-real-not-just-structurally-valid.sh"
+ITER159_EMPIRICAL_HARNESS_RELATIVE_PATH="scripts/iter159-pre-commit-manifest-e2e-check.sh"
 ITER159_EMPIRICAL_HARNESS_ABSOLUTE_PATH="$ITER159_REPO_ROOT/$ITER159_EMPIRICAL_HARNESS_RELATIVE_PATH"
 
 ITER159_TOTAL_ASSERTIONS_EVALUATED=0

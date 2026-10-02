@@ -236,7 +236,7 @@ const logger = createHookLogger("FILE-SIZE-GUARD");
  * Pure classifier conforming to PreToolUseSubhookClassifierFunction.
  *
  * Same logic as the standalone main() below, but factored out so the
- * iter-84 `pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts`
+ * iter-84 `pretooluse-write-edit-orchestrator.ts`
  * can call it directly without subprocess-spawning this file (which would
  * cost a full bun cold-start per Write|Edit and defeat the orchestrator's
  * purpose).

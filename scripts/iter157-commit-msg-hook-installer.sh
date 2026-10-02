@@ -26,7 +26,7 @@ set -euo pipefail
 # invoked from inside an unrelated target repo. Using `git rev-parse
 # --show-toplevel` here would resolve to the target repo, not cc-skills.
 ITER157_INSTALLER_SCRIPT_DIRECTORY_ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ITER157_HOOK_SOURCE_SCRIPT_RELATIVE_PATH="iter157-installable-commit-msg-git-hook-delegating-to-iter153-strict-mode-advisor-for-automatic-rejection-of-compound-prefix-and-missing-type-silent-fail-class-violations-at-commit-time-closing-the-natural-git-workflow-integration-gap.sh"
+ITER157_HOOK_SOURCE_SCRIPT_RELATIVE_PATH="iter157-commit-msg-hook.sh"
 ITER157_HOOK_SOURCE_SCRIPT_ABSOLUTE_PATH="$ITER157_INSTALLER_SCRIPT_DIRECTORY_ABSOLUTE_PATH/$ITER157_HOOK_SOURCE_SCRIPT_RELATIVE_PATH"
 ITER157_CC_SKILLS_MANAGED_COMMIT_MSG_HOOK_SENTINEL_MARKER="ITER157_CC_SKILLS_MANAGED_COMMIT_MSG_HOOK_DO_NOT_EDIT_DIRECTLY_REGENERATE_VIA_MISE_RUN_COMMITS_INSTALL_HOOK"
 ITER157_TARGET_GIT_DIR=""
@@ -56,7 +56,7 @@ iter157_render_hook_body_with_sentinel_marker_embedded_for_safe_uninstall_detect
     printf '#!/usr/bin/env bash\n'
     printf '# %s\n' "$ITER157_CC_SKILLS_MANAGED_COMMIT_MSG_HOOK_SENTINEL_MARKER"
     printf '# Source: %s\n' "$ITER157_HOOK_SOURCE_SCRIPT_RELATIVE_PATH"
-    printf '# Installed by: scripts/iter157-idempotent-installer-and-uninstaller-...sh\n'
+    printf '# Installed by: scripts/iter157-commit-msg-hook-installer.sh\n'
     printf '# Regenerate: moon run repo:commits-install-hook\n'
     printf '# Remove:     moon run repo:commits-uninstall-hook\n'
     printf '#\n'

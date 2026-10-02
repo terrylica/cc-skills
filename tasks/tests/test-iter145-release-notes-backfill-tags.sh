@@ -5,7 +5,7 @@ set -euo pipefail
 ITER145_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER145_REPO_ROOT"
 
-ITER145_BACKFILL_SCRIPT_RELATIVE_PATH="scripts/iter145-fix-malformed-empty-semantic-release-notes-refs-by-overwriting-with-canonical-channels-null-json-content-matching-eight-hundred-seventy-two-sibling-refs-discovered-by-iter144-debug-namespace-stderr-parser-forensic-finding.sh"
+ITER145_BACKFILL_SCRIPT_RELATIVE_PATH="scripts/iter145-fix-empty-release-notes-refs.sh"
 ITER145_BACKFILL_SCRIPT_ABSOLUTE_PATH="$ITER145_REPO_ROOT/$ITER145_BACKFILL_SCRIPT_RELATIVE_PATH"
 
 ITER145_KNOWN_AFFECTED_HISTORICAL_TAGS_FROM_ITER144_FORENSIC_FINDING=(

@@ -169,7 +169,7 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
     # Iter-124: skip static analysis on throwaway scratch scripts edited inside
     # temporary directories. Carefully linting a file that exists only to be run
     # once and discarded is wasted wall-clock + wasted Claude context. Mirror of
-    # lib/shared-temporary-directory-edited-file-path-detection-...-iter124.ts
+    # lib/shared-temp-dir-edit-path-detection-iter124.ts
     # (the TS lint subhooks share the same temp-root set). Honors $TMPDIR and its
     # macOS /private realpath twin.
     case "$FILE_PATH" in

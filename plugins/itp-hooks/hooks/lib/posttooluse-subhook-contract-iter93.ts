@@ -3,7 +3,7 @@
  *
  * Defines the pure-function contract that every PostToolUse subhook MUST
  * satisfy to be registered in the iter-93 PostToolUse orchestrator
- * (`posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts`).
+ * (`posttooluse-write-edit-orchestrator.ts`).
  *
  * Why a SEPARATE contract from iter-84's PreToolUseSubhookContract
  * (motivation distinct from the PreToolUse design):
@@ -252,7 +252,7 @@ export function isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(
 // Iter-106 RELOCATES the canonical home of these 3 exports to a dedicated
 // cross-Pre/PostToolUse shared lib:
 //
-//   ./shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts
+//   ./shared-truncation-helper-iter106.ts
 //
 // The transitive re-exports below preserve the iter-104 PostToolUse-contract-
 // lib API surface so existing audit tasks, regression tests, documentation,
@@ -263,4 +263,4 @@ export {
   MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER,
   HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_OF_CONTEXT_LOSS,
   truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
-} from "./shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
+} from "./shared-truncation-helper-iter106.ts";

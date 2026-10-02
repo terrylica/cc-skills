@@ -52,7 +52,7 @@
 #
 # USAGE:
 #
-#   source scripts/lib/iter161-...sh
+#   source scripts/lib/iter161-semver-bump-classifier.sh
 #   iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules \
 #       "feat" "false"
 #   echo "$ITER161_CLASSIFIED_SEMVER_BUMP_LABEL_PER_RELEASERC_YML_BUMP_RULES"

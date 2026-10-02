@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
-} from "./posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95";
+} from "./posttooluse-subhook-async-helpers-iter95";
 
 const scratchDirectory = mkdtempSync(join(tmpdir(), "stop-hook-guard-test-"));
 

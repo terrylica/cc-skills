@@ -70,17 +70,17 @@
 import type {
   PostToolUseInput,
   PostToolUseSubhookDecision,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
-} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+} from "./lib/posttooluse-subhook-contract-iter93.ts";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
-import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
-import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
+import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  TypeScript-relevant file detection
@@ -168,7 +168,7 @@ async function getConcreteTypeScriptDriftReport(editedFilePath: string): Promise
 
     // Try to run the drift guard with a 5-second timeout
     const { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } =
-      await import("./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts");
+      await import("./lib/posttooluse-subhook-async-helpers-iter95.ts");
 
     const result = await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
       ["typescript-version-drift-guard", "--json", "--roots", projectRoot],

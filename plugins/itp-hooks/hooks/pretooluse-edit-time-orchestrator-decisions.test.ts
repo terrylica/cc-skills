@@ -16,13 +16,13 @@ import type { PreToolUseSubhookRegistryEntry } from "./lib/pretooluse-subhook-co
 import {
   buildPermissionDecisionResponse,
   runEditTimeSubhookRegistry,
-} from "./pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts";
+} from "./pretooluse-write-edit-orchestrator.ts";
 import type { PreToolUseInput } from "./pretooluse-helpers.ts";
 
 const HOOKS_DIR = new URL(".", import.meta.url).pathname;
 const ORCHESTRATOR = join(
   HOOKS_DIR,
-  "pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
+  "pretooluse-write-edit-orchestrator.ts",
 );
 
 const WRITE_PAYLOAD = JSON.stringify({

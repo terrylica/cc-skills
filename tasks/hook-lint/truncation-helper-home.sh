@@ -15,8 +15,7 @@
 # Iter-106 relocates the canonical home of the helper + threshold constant +
 # truncation-marker suffix to a dedicated cross-Pre/PostToolUse shared lib:
 #
-#   plugins/itp-hooks/hooks/lib/shared-truncation-helper-against-claude-file-
-#   spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts
+#   plugins/itp-hooks/hooks/lib/shared-truncation-helper-iter106.ts
 #
 # Backward compat is preserved by transitive re-exports from the PostToolUse
 # contract lib (so external audit tasks, regression tests, and documentation
@@ -60,9 +59,9 @@ echo "          iter-106 eliminates it by establishing a dedicated shared lib"
 echo "          as the canonical home for cross-Pre/PostToolUse helpers."
 echo ""
 
-SHARED_LIB_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts"
+SHARED_LIB_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/shared-truncation-helper-iter106.ts"
 SHARED_LIB_ABSOLUTE_PATH="$REPO_ROOT/$SHARED_LIB_RELATIVE_PATH"
-POSTTOOLUSE_CONTRACT_LIB_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts"
+POSTTOOLUSE_CONTRACT_LIB_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-iter93.ts"
 POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/$POSTTOOLUSE_CONTRACT_LIB_RELATIVE_PATH"
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -95,7 +94,7 @@ echo "  ✓ Step 1: iter-106 shared-lib exists and holds the literal canonical d
 #  compatibility (so iter-104-era external references continue to work)
 # ══════════════════════════════════════════════════════════════════════════
 
-# The PostToolUse contract lib should have `export { ... } from "./shared-truncation-helper-..."`
+# The PostToolUse contract lib should have `export { ... } from "./shared-truncation-helper-iter106"`
 # rather than `export const ...` / `export function ...` for the three symbols.
 if ! grep -q 'truncateHookOutputToStayBelowClaudeFileSpilloverThreshold' "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH"; then
     echo "  ✗ AUDIT FAILED — PostToolUse contract lib does NOT re-export the truncation helper"
@@ -103,7 +102,7 @@ if ! grep -q 'truncateHookOutputToStayBelowClaudeFileSpilloverThreshold' "$POSTT
     exit 1
 fi
 
-if ! grep -q 'from "./shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106' "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH"; then
+if ! grep -q 'from "./shared-truncation-helper-iter106' "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH"; then
     echo "  ✗ AUDIT FAILED — PostToolUse contract lib does NOT re-export FROM the iter-106 shared lib"
     echo "    (the re-export must transitively delegate to the canonical home)."
     exit 1
@@ -134,7 +133,7 @@ declare -a EIGHT_COHORT_HOOK_RELATIVE_PATHS=(
     "plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
     "plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
     "plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
-    "plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+    "plugins/itp-hooks/hooks/posttooluse-write-edit-orchestrator.ts"
 )
 
 declare -a COHORT_HOOKS_MISSING_DIRECT_SHARED_LIB_IMPORT=()
@@ -148,7 +147,7 @@ for cohort_hook_relative_path in "${EIGHT_COHORT_HOOK_RELATIVE_PATHS[@]}"; do
     fi
     # Each cohort hook MUST import `truncateHookOutputToStayBelowClaudeFileSpilloverThreshold`
     # from the iter-106 shared-lib path. The single-line import grep is robust:
-    if grep -qE 'truncateHookOutputToStayBelowClaudeFileSpilloverThreshold.*from "\./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106' "$cohort_hook_absolute_path"; then
+    if grep -qE 'truncateHookOutputToStayBelowClaudeFileSpilloverThreshold.*from "\./lib/shared-truncation-helper-iter106' "$cohort_hook_absolute_path"; then
         COHORT_HOOKS_WITH_DIRECT_SHARED_LIB_IMPORT_COUNT=$((COHORT_HOOKS_WITH_DIRECT_SHARED_LIB_IMPORT_COUNT + 1))
         continue
     fi
@@ -156,7 +155,7 @@ for cohort_hook_relative_path in "${EIGHT_COHORT_HOOK_RELATIVE_PATHS[@]}"; do
     # from the shared lib (covers the multi-line { ... } from "..." style).
     helper_imported_from_shared_lib=$(awk '
         /truncateHookOutputToStayBelowClaudeFileSpilloverThreshold/ { in_block=1 }
-        in_block && /from .*shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106/ {
+        in_block && /from .*shared-truncation-helper-iter106/ {
             print "YES"; exit
         }
         /^[^/]*from "/ { in_block=0 }
@@ -193,8 +192,8 @@ for violation in "${COHORT_HOOKS_MISSING_DIRECT_SHARED_LIB_IMPORT[@]}"; do
 done
 echo ""
 echo "  Fix: import truncateHookOutputToStayBelowClaudeFileSpilloverThreshold from"
-echo "       ./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts"
-echo "       NOT from ./lib/posttooluse-subhook-contract-for-in-process-orchestrator-..."
+echo "       ./lib/shared-truncation-helper-iter106.ts"
+echo "       NOT from ./lib/posttooluse-subhook-contract-iter93.ts"
 echo "       (the iter-106 canonical home is the dedicated shared lib; PostToolUse"
 echo "       contract lib re-exports remain available for backward compat but new"
 echo "       code should import from the canonical home directly)."

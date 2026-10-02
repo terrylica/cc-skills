@@ -27,7 +27,7 @@
 #
 # Iter-159 empirically validated this: an earlier draft used `language: system`,
 # which treats `entry` as a $PATH-resolvable command — pre-commit could not
-# locate `scripts/iter158-...sh` because the cloned cache is not on $PATH. The
+# locate `scripts/iter158-pre-commit-entry-point.sh` because the cloned cache is not on $PATH. The
 # iter-159 end-to-end harness caught the bug before it reached upstream
 # consumers of the manifest.
 
@@ -40,7 +40,7 @@
     violations that semantic-release silently skips. The iter-150 50/72
     long-subject overlay remains informational even in strict mode (does
     not block commits).
-  entry: scripts/iter158-pre-commit-framework-entry-point-script-locating-iter153-advisor-via-bash-source-relative-path-resolution-for-consumption-by-polyglot-pre-commit-framework-from-its-hidden-cached-clone-of-cc-skills.sh
+  entry: scripts/iter158-pre-commit-entry-point.sh
   language: script
   stages: [commit-msg]
   pass_filenames: true

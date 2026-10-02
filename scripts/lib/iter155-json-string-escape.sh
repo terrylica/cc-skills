@@ -68,7 +68,7 @@
 #   # In a consumer bash script:
 #
 #   # shellcheck source=/dev/null
-#   source "$(git rev-parse --show-toplevel)/scripts/lib/iter155-...sh"
+#   source "$(git rev-parse --show-toplevel)/scripts/lib/iter155-json-string-escape.sh"
 #
 #   escaped=$(iter155_pure_bash_rfc8259_compliant_json_string_escape_handling_all_seven_named_escapes_plus_generic_uxxxx_for_control_chars "$raw_input")
 #   printf '{"key": %s}\n' "$escaped"

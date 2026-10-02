@@ -5,7 +5,7 @@ set -euo pipefail
 ITER160_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER160_REPO_ROOT"
 
-ITER160_STATUS_SCRIPT_RELATIVE_PATH="scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-checking-each-iter150-through-iter158-tool-for-presence-executability-and-functional-correctness-with-per-check-wall-clock-latency-reporting-and-json-mode.sh"
+ITER160_STATUS_SCRIPT_RELATIVE_PATH="scripts/iter160-commits-toolkit-doctor.sh"
 ITER160_STATUS_SCRIPT_ABSOLUTE_PATH="$ITER160_REPO_ROOT/$ITER160_STATUS_SCRIPT_RELATIVE_PATH"
 ITER160_TASK_SHIM_ABSOLUTE_PATH="$ITER160_REPO_ROOT/tasks/commits/status"
 
