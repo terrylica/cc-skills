@@ -243,21 +243,15 @@ while IFS= read -r hooks_json; do
         VIOLATION_LINES+="               the field being emitted, but Claude Code never reads it."$'\n'
         ;;
       SessionEnd)
-        VIOLATION_LINES+="               Per Go type definitions in CorridorSecurity/hookshot (mirroring"$'\n'
-        VIOLATION_LINES+="               the official schema), SessionEndOK returns EMPTY output —"$'\n'
-        VIOLATION_LINES+="               SessionEnd hooks cannot inject any context (session is"$'\n'
-        VIOLATION_LINES+="               terminating). Any additionalContext field (or any other output"$'\n'
-        VIOLATION_LINES+="               field) is silently dropped — the hook author sees the field being"$'\n'
-        VIOLATION_LINES+="               emitted, but Claude Code never reads it."$'\n'
+        VIOLATION_LINES+="               Upstream SessionEnd (code.claude.com/docs/en/hooks#sessionend):"$'\n'
+        VIOLATION_LINES+="               \"SessionEnd hooks have no decision control\" and \"Claude Code"$'\n'
+        VIOLATION_LINES+="               discards their JSON output fields\". additionalContext emitted"$'\n'
+        VIOLATION_LINES+="               here is never read; only stderr is shown, to the user."$'\n'
         ;;
       Notification)
-        VIOLATION_LINES+="               Per official Anthropic docs (code.claude.com/docs/en/hooks),"$'\n'
-        VIOLATION_LINES+="               Notification hooks are purely informational with NO decision-"$'\n'
-        VIOLATION_LINES+="               control capability ('Exit Code 2 Behavior: N/A — shows stderr to"$'\n'
-        VIOLATION_LINES+="               user only, no blocking capability'). Subtypes: permission_prompt,"$'\n'
-        VIOLATION_LINES+="               idle_prompt, auth_success. Any output field including"$'\n'
-        VIOLATION_LINES+="               additionalContext is silently dropped — only stderr on exit 2"$'\n'
-        VIOLATION_LINES+="               reaches the user."$'\n'
+        VIOLATION_LINES+="               Upstream exit-code table (code.claude.com/docs/en/hooks): for"$'\n'
+        VIOLATION_LINES+="               Notification, \"Exit code and stderr are ignored\", and it has no"$'\n'
+        VIOLATION_LINES+="               decision control. additionalContext emitted here is never read."$'\n'
         ;;
     esac
     VIOLATION_LINES+="      Fix:     route informational summary text to PROCESS.STDERR instead of stdout"$'\n'
