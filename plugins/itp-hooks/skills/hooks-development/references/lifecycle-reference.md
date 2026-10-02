@@ -509,7 +509,6 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 |                         | Context injection     | Append git branch, recent changes, sprint goals to prompts   |
 |                         | Policy validation     | Validate prompts against team policies or coding standards   |
 |                         | Keyword blocking      | Block forbidden keywords or dangerous instructions           |
-|                         | Ralph Wiggum          | Inject reminders about testing or documentation              |
 |                         | Prompt capture        | Cache prompt text + timestamp for Stop hook session summary  |
 | · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
 | **PreToolUse**          | Destructive blocking  | Block `rm -rf`, `git push --force`, `DROP TABLE`             |
@@ -563,7 +562,6 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 | **Stop**                | Premature prevention  | Block if tests failing or task incomplete                    |
 |                         | Test suites           | Run `npm test`, `pytest`, `cargo test` on every stop         |
 |                         | AI summaries          | Generate completion summaries with TTS playback              |
-|                         | Ralph Wiggum          | Force Claude to verify task completion                       |
 |                         | Validation gates      | Ensure code compiles, lints pass, tests succeed              |
 |                         | Auto-commits          | Create git commits or PR drafts when work completes          |
 |                         | Team notifications    | Send completion notifications to channels                    |

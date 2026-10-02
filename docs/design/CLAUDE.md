@@ -6,7 +6,7 @@ Context for design specifications in cc-skills.
 
 ## Overview
 
-Design specs are implementation specifications that pair with ADRs, though not 1:1 — 33 of 59 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
+Design specs are implementation specifications that pair with ADRs, though not 1:1 — 30 of 52 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
 
 ## Directory Structure
 
@@ -37,9 +37,7 @@ docs/design/
 ├── 2025-12-12-mlflow-python-skill/
 ├── 2025-12-14-alpha-forge-worktree-management/
 ├── 2025-12-15-iterm2-layout-config/
-├── 2025-12-20-ralph-rssi-eternal-loop/
 ├── 2025-12-27-fake-data-guard-universal/
-├── 2026-01-02-ralph-guidance-freshness-detection/
 ├── 2026-01-02-session-chronicle-s3-sharing/
 ├── 2026-01-10-uv-reminder-hook/
 └── 2026-01-18-sred-dynamic-discovery/

@@ -11,7 +11,7 @@ set -euo pipefail
 WORKTREE_PATH="${1:-}"
 DELETE_BRANCH="${2:-}"
 
-# Dynamic worktree detection (ADR: 2025-12-29-ralph-constraint-scanning.md)
+# Dynamic worktree detection
 # Uses git rev-parse --git-common-dir instead of hardcoded path
 detect_alpha_forge_root() {
     local git_common_dir

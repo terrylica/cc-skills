@@ -24,7 +24,7 @@ their keep:
    dependents.
 
 This follows the same reasoning and convention as
-[2026-04-20-remove-ru-plugin](./2026-04-20-remove-ru-plugin.md) (native `/loop`
+the 2026-04-20 removal of the `ru` plugin (native `/loop`
 superseded a bespoke loop plugin).
 
 ## Decision
@@ -53,9 +53,7 @@ Remove both plugins entirely from cc-skills:
 **Both:**
 
 - Drop their listings from `README.md`, `plugins/CLAUDE.md`, and other hubs.
-- **Keep historical records**: [2026-04-20-autonomous-loop.md](./2026-04-20-autonomous-loop.md),
-  its design spec, and the `remove-ru-plugin` ADR document past decisions and are
-  **not** rewritten.
+- The autonomous-loop ADR, its design spec and the `remove-ru-plugin` ADR were kept at the time; they were deleted on 2026-10-01 with the rest of the Ralph lineage and remain in version history.
 
 Marketplace plugin count: 38 → **36**.
 
