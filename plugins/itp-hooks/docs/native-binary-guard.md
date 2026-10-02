@@ -1,10 +1,8 @@
 # Native Binary Guard (macOS Launchd)
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — moved verbatim from the hub 2026-06-11 (CLAUDE.md size-guard refactor: hub was 112k chars, limit 40k).
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`pretooluse-native-binary-guard.ts`](../hooks/pretooluse-native-binary-guard.ts), subhook `native-binary-guard` of the [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) (timeout 4000 ms).
 
-## Native Binary Guard (macOS Launchd)
-
-The `pretooluse-native-binary-guard.ts` hook enforces that all macOS launchd services use compiled native binaries (Swift preferred), never bash scripts.
+The hook enforces that all macOS launchd services use compiled native binaries (Swift preferred), never bash scripts.
 
 ### Why
 
@@ -32,7 +30,9 @@ Only triggers for files in these directories:
 
 ### Performance
 
-Uses a **raw-stdin fast path**: checks for launchd-related keywords (`.plist`, `.sh`, `LaunchAgent`, `automation/`) in the raw stdin string BEFORE JSON parsing. For 99%+ of Write/Edit calls (normal code files), exits in <1ms without parsing JSON.
+Inside the orchestrator, the first check is an O(1) substring test of the parsed `file_path` against the three directories above (`isLaunchdRelatedDirectoryPath()`), so ordinary code edits return immediately. Run standalone, the file instead prefilters the raw stdin for launchd-related keywords (`.plist`, `.sh`, `LaunchAgent`, `automation/`) before parsing JSON.
+
+A shell script is recognised by a `.sh`/`.bash` extension or a first-line `#!/bin/bash`, `#!/usr/bin/bash`, `#!/bin/sh` or `#!/usr/bin/sh` shebang in the new text.
 
 ### Required Pattern
 
@@ -71,14 +71,9 @@ Reference: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner.swift`
 
 ### Escape Hatch
 
-Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass the
-"must be a compiled native binary" requirement.
+Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass the "must be a compiled native binary" requirement. The marker is matched case-insensitively anywhere in the new text; for an Edit whose `new_string` lacks it, the file on disk is checked too, so a marked file stays exempt when an unrelated region is edited.
 
-**The marker does NOT waive the named-`arg0` requirement.** A bare interpreter as launchd `arg0`
-(`/bin/bash`, `/bin/sh`, `bun`, `node`, `python`, `env`, …) is denied for `.plist` files **even
-with the marker**, because macOS Login Items shows `basename(arg0)` → a generic "bash"/"bun" entry
-regardless of the script passed as a later argument. Keep bash if you want, but point `arg0` at a
-_named_ script and put the interpreter inside it (shebang or `exec`):
+**The marker does NOT waive the named-`arg0` requirement.** A bare interpreter as launchd `arg0` (`/bin/bash`, `/bin/sh`, `bun`, `node`, `python`, `env`, …) is denied for `.plist` files **even with the marker**, because macOS Login Items shows `basename(arg0)` → a generic "bash"/"bun" entry regardless of the script passed as a later argument. Keep bash if you want, but point `arg0` at a _named_ script and put the interpreter inside it (shebang or `exec`):
 
 ```xml
 <key>ProgramArguments</key><array><string>/path/to/my-named-tool</string></array>
@@ -135,10 +130,6 @@ rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
 - Examples: `~/.claude/automation/calendar-alarm-sweep/swift-cli/` (CalendarAnnounce.swift, CalendarAlarmSweep.swift)
 - Credential caching: `~/.claude/automation/gmail-token-refresher/main.swift`
 
-## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+### Code
 
-> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
-
-**Matcher**: (inlined in iter-90 orchestrator)
-
-Blocks Write/Edit on macOS launchd-related files (under `~/.claude/automation/`, `~/Library/LaunchAgents/`, `~/Library/LaunchDaemons/`) that introduce shell scripts (`.sh`/`.bash` extension or bash/sh shebang) or plist `<string>/bin/bash</string>` / `<string>...something.sh</string>` ProgramArguments references. Forces compiled native binaries (Swift preferred) so launchd services show proper names in System Settings > Login Items instead of generic 'bash' entry. The precise algorithm-encoding classifier name is `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator`; the alias `classifyNativeBinaryGuardForOrchestrator` preserves symmetric naming with sibling subhooks. Iter-15 fix preserved: `Edit` whose `new_string` omits the `BASH-LAUNCHD-OK` marker still inherits the file-wide opt-out via `await Bun.file(filePath).text()` lookup. Standalone hook retains its raw-stdin LAUNCHD-RELATED-KEYWORD prefilter (cheaper than JSON.parse for non-launchd payloads in direct-CLI mode); the orchestrator path replaces this with an equivalent O(1) `isLaunchdRelatedDirectoryPath()` substring scan on the already-parsed `file_path`. Lightest-first registry position: AFTER `pyi-stub-guard` and BEFORE `gpu-optimization-guard`. Escape hatch: `# BASH-LAUNCHD-OK` (or `<!-- BASH-LAUNCHD-OK -->` in plists).
+The classifier is `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator`, exported to the orchestrator under the alias `classifyNativeBinaryGuardForOrchestrator`. The file also runs standalone through its `import.meta.main` guard.

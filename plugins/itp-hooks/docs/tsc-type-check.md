@@ -1,128 +1,53 @@
 # tsc-type-check
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — native TypeScript 7+ compiler hook.
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`posttooluse-tsc-type-check.ts`](../hooks/posttooluse-tsc-type-check.ts), subhook `tsc-type-check` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md) (orchestrator timeout 5000 ms).
 
 ## Overview
 
-Native TypeScript compiler type checker on `.ts`/`.tsx` files — uses the `tsc` binary from TypeScript 7+ (Go-based, included in `typescript@latest`). **Iter-126 migration from deprecated `tsgo` (@typescript/native-preview is now FROZEN).**
-
-**Matcher**: (inlined in iter-126 orchestrator)
+Type-checks with the native TypeScript compiler after every Write/Edit of a `.ts`/`.tsx` file. TypeScript 7 ships the Go-native compiler as `tsc` itself, installed by `typescript@latest`; there is no separate `tsgo` binary to install.
 
 ## Behavior
 
-Runs `tsc --noEmit --singleThreaded` after every Write/Edit of a `.ts`/`.tsx` file.
+1. **Skips** files under `node_modules/`, throwaway files in temp directories, and any file with no `tsconfig.json` in it or an ancestor directory.
+2. **Project scoping**: walks up from the edited file to the nearest `tsconfig.json` directory and runs `tsc --noEmit --singleThreaded` from there.
+3. **Binary resolution** (preference order):
+   - `node_modules/.bin/tsc` in the tsconfig directory or an ancestor
+   - `tsc` on `PATH`
+   - neither found → a once-per-session install reminder (`npm install -D typescript@latest`)
+4. **Output filtering**: keeps only error lines that start with the edited file's tsconfig-relative path or contain its absolute path, so pre-existing errors in other files are not blamed on this edit. No matching lines → no output.
+5. **Performance**: `--singleThreaded` stops tsc spawning parallel checker workers on every edit. The subprocess runs through the async `Bun.spawn` helper with its own 4000 ms timeout; on timeout or spawn failure the subhook reports nothing. A full-project check is typically around 200 ms.
+6. Output is truncated to stay below Claude Code's 10,000-character hook-output limit.
 
-### Key Design Points
+The hook prefers a project-local `tsc` so the compiler version matches the project's lockfile rather than whatever is global on the machine.
 
-1. **Binary resolution** (preference order):
-   - Project's local `node_modules/.bin/tsc` (walks up to find it)
-   - System PATH `tsc`
-   - Falls back to once-per-session install reminder on ENOENT
+## Code
 
-2. **Project-scoped execution**:
-   - Walks up the filesystem to find the nearest `tsconfig.json` directory
-   - Runs from that directory to respect TypeScript's project-scoped type checking
-   - Filters output to errors referencing the edited file's tsconfig-relative path
-   - Avoids "blame innocent files" — pre-existing errors in other files are suppressed
+The classifier is `classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifyTscTypeCheckForPostToolUseOrchestrator`.
 
-3. **Performance tuning**:
-   - Passes `--singleThreaded` to prevent 4-worker checker spawn per keystroke (unnecessary parallelism on dev machines where tsc is I/O-dominated, not CPU-bound)
-   - Async `Bun.spawn` (iter-94 refactor preserved; no `spawnSync` blocking the event loop)
-   - 4000ms cooperative timeout with `AbortSignal`
-
-4. **Iteration history**:
-   - **Iter-94** (2026-06): Introduced `tsgo` — Go-native compiler from `@typescript/native-preview`
-   - **Iter-126** (2026-07): Migrated to native `tsc` (TypeScript 7+), deprecated tsgo because `@typescript/native-preview` is frozen
-
-### Algorithm
-
-Encoded in `classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator`; re-exported as `classifyTscTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks (ty, oxlint, biome).
-
-### Standalone CLI
-
-Runnable via `import.meta.main` guard for direct invocation:
+The file also runs standalone through its `import.meta.main` guard:
 
 ```bash
 echo '{"tool_input": {"file_path": "src/example.ts"}, "session_id": "test"}' | \
   bun plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts
 ```
 
-## Migration from tsgo (Iter-126)
-
-### What Changed
-
-| Aspect       | tsgo                                  | tsc                                                                        |
-| ------------ | ------------------------------------- | -------------------------------------------------------------------------- |
-| Binary       | `@typescript/native-preview` (frozen) | TypeScript 7+ (included in `typescript@latest`)                            |
-| Command      | `tsgo --noEmit`                       | `tsc --noEmit --singleThreaded`                                            |
-| Installation | Separate global binary                | No separate step; bundled in `npm install -D typescript@latest`            |
-| Perf         | ~170ms full-project check             | ~200ms full-project check (similar, I/O-dominated)                         |
-| Threading    | Not exposed to user                   | Explicit `--singleThreaded` avoids unnecessary parallelism on dev machines |
-
-### Migration Path
-
-Projects using `@typescript/native-preview` should:
-
-1. Remove `@typescript/native-preview` from `package.json` (if installed)
-2. Ensure `typescript@latest` is installed:
-
-   ```bash
-   npm install -D typescript@latest
-   ```
-
-3. Commit the updated `package-lock.json` (or equivalent lockfile)
-4. The hook will automatically detect and use the local `tsc` binary
-
-No code changes required; the hook is backward compatible.
-
-### Why Not Use Global tsc?
-
-The hook prefers a **project-local** `tsc` (from `node_modules/.bin/tsc`) over any system PATH `tsc`. This ensures:
-
-- TypeScript version matches the project's pinned version
-- Multi-project machines don't have conflicting global tooling
-- CI/CD environments are reproducible
-
 ## Test Coverage
 
-`posttooluse-tsc-type-check.test.ts` covers:
-
-- Basic skip conditions (non-.ts/.tsx, node_modules, missing tsconfig)
-- Temp directory exemption (iter-124)
-- Install reminder (once-per-session gate-file)
-- Export aliases for orchestrator integration
-- Error handling (fail-open discipline)
-
-**Current**: 15/15 tests pass.
-
-## Integration
-
-Inlined in the PostToolUse edit-time orchestrator as the 2nd subhook (after `ty-type-check`, before `oxlint-check`). Runs in parallel with `oxlint`, `biome`, and `ssot-principles` via `Promise.all` (iter-94+ architecture).
-
-### Registry Entry
-
-```typescript
-{
-  name: "tsc-type-check",
-  timeoutMs: 5000,
-  classify: classifyTscTypeCheckForPostToolUseOrchestrator,
-  description: "..."
-}
-```
+[`posttooluse-tsc-type-check.test.ts`](../hooks/posttooluse-tsc-type-check.test.ts) covers the skip conditions (non-`.ts`/`.tsx`, `node_modules`, missing tsconfig), the temp-directory exemption, the once-per-session install reminder, the export aliases, and fail-open error handling.
 
 ## Doctrine
 
-- **SSoT**: `~/.claude/typescript-latest-CLAUDE.md` (TypeScript 7 = Go-native tsc era)
-- **Compliance**: Hook enforces TypeScript 7+ via `classifyTscTypeCheckForPostToolUseOrchestrator`
-- **Escape hatch**: None (type checking is always-on post-edit)
+- **SSoT**: `Skill(typescript-7)` — TypeScript 7 (the Go-native `tsc`) is the only TypeScript.
+- The hook does not check the TypeScript version; `pretooluse-typescript-version-guard.ts` (subhook `typescript-version-guard` of the [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md)) blocks pre-7 declarations in `package.json`.
+- **Escape hatch**: none; type checking is always on after an edit.
 
 ## Known Limitations
 
-1. **No support for older TypeScript**: Requires TypeScript 7.0+ (uses native `tsc`)
-2. **Performance not optimized for massive monorepos**: 200ms is practical for typical projects; projects with >100K files should tune `tsconfig.json`'s `include`/`exclude` scopes
+1. **TypeScript 7+ only in practice**: `--singleThreaded` is a TypeScript 7 option. An older local `tsc` rejects it, and because that error names no source file the output filter drops it, so the hook reports nothing.
+2. **Large monorepos**: each check is a full-project check, so very large projects should narrow `tsconfig.json`'s `include`/`exclude`.
 
 ## See Also
 
-- [Orchestrator arc](./posttooluse-write-edit-orchestrator.md) (how subhooks are combined)
+- [Orchestrator](./posttooluse-write-edit-orchestrator.md) (how subhooks are combined)
 - [ty-type-check](./ty-type-checker.md) (Python type checking parallel)
 - [oxlint-check](./oxlint-check.md) (complementary JS/TS linting)
