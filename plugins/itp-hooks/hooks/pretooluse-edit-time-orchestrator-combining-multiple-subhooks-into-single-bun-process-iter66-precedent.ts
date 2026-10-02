@@ -44,23 +44,32 @@
  *      and are logged to stderr (orchestrator does NOT enforce hard
  *      process kill because there's no subprocess to kill; this is a
  *      cooperative timeout that signals via diagnostic log).
- *   4. Subhook order is deterministic (registry-array iteration order);
- *      first-deny-wins matches Claude Code's own multi-hook semantics.
+ *   4. Subhook order is deterministic (registry-array iteration order).
+ *      Aggregation follows Claude Code's own precedence for several hooks,
+ *      deny > ask > allow: the first deny wins and stops the run; an ask is
+ *      held while the remaining subhooks are checked for a deny.
  *
  * ════════════════════════════════════════════════════════════════════════
- *  Belt-and-suspenders deny defense (iter-78 / GitHub #37210)
+ *  Decision emission: JSON on stdout, exit 0 — for deny AND ask
  * ════════════════════════════════════════════════════════════════════════
  *
- * When a subhook returns `deny`, the orchestrator emits THREE deny signals
- * concurrently, because GitHub #37210 documents that Claude Code's Edit
- * tool ignores stdout-JSON `permissionDecision: "deny"` in some build
- * versions, while still respecting stderr + exit 2:
+ * Both decisions are one `hookSpecificOutput.permissionDecision` JSON line
+ * on stdout, and the process exits 0. Per code.claude.com/docs/en/hooks:
+ *   - "Exit 2 means a blocking error. On events that can block, exit 2
+ *     blocks whether or not you print JSON" — so the exit 2 this file used
+ *     to set on `ask` turned every ask into a hard block, never a prompt.
+ *   - "Choose one approach per hook: either use exit codes alone for
+ *     signaling, or exit 0 and print JSON for structured control." `ask`
+ *     exists only as JSON, so JSON-with-exit-0 is the one approach that
+ *     covers both decisions; `"deny"` in that JSON "prevents the tool call".
  *
- *   (1) stdout JSON: {hookSpecificOutput: {permissionDecision: "deny", ...}}
- *   (2) stderr diagnostic: "[orchestrator] DENY: <subhook> — <reason>"
- *   (3) process.exit(2)
- *
- * (The pattern was first used by the iter-78 guard, since deleted.)
+ * Until 2026-10-01 a deny also set exit 2 ("belt-and-suspenders", citing
+ * GitHub anthropics/claude-code#37210). That issue was closed not-planned
+ * after its reporter found their own hook's flat JSON and exit 2 were the
+ * cause; exit 0 with the `hookSpecificOutput` wrapper denied Edit/Write
+ * correctly. The Bash guard orchestrator already emits deny this way.
+ * A stderr diagnostic line is still written; on exit 0 it reaches only
+ * the debug log.
  *
  * ════════════════════════════════════════════════════════════════════════
  *  Iter-84 registry contents (PROOF-OF-CONCEPT — single subhook)
@@ -116,10 +125,10 @@ import { classifySkillPluginRootGuardForOrchestrator } from "./pretooluse-skill-
 // Lightest-first ordering rationale: subhooks with O(1) early-exit fastpaths
 // (non-Write/Edit tools, non-markdown files, plan mode) should run BEFORE
 // subhooks that do file I/O or large content scans. The orchestrator
-// short-circuits on first deny/ask, so the cheapest filters win the most
+// short-circuits on the first deny, so the cheapest filters win the most
 // when the registry grows.
 
-const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegistryEntry[] =
+export const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegistryEntry[] =
   [
     {
       name: "version-guard",
@@ -309,67 +318,111 @@ async function executeSubhookWithCooperativeTimeoutAndCrashIsolation(
 const ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX =
   "[pretooluse-edit-time-orchestrator]";
 
+/** A non-allow verdict from the registry, attributed to the subhook that gave it. */
+export interface EditTimeOrchestratorVerdict {
+  kind: "deny" | "ask";
+  subhookName: string;
+  reason: string;
+}
+
 /**
- * Emit a deny/ask decision with belt-and-suspenders defense per GH #37210
- * (iter-78 pattern):
- *   (1) stdout JSON with hookSpecificOutput.permissionDecision = <decision>
- *   (2) stderr diagnostic line (always respected even when Edit-tool
- *       ignores stdout-JSON deny in some Claude Code build versions)
- *   (3) process.exitCode = 2  (iter-85 hardening — replaces process.exit(2);
- *       the exitCode pattern lets bun's event loop drain stdout buffers
- *       BEFORE the process terminates, eliminating the truncation hazard
- *       the iter-84 audit flagged where short-JSON-then-immediate-exit
- *       could race the kernel write buffer)
- *
- * Iter-85 audit-driven hardening: the `ask` decision path now uses the
- * same belt-and-suspenders defense as `deny` (previously `ask` only
- * emitted stdout JSON, which would silently fail on the same Claude Code
- * build versions that drop stdout-JSON deny).
- *
- * Uses a callback-form stdout.write to wait for flush completion before
- * setting exitCode and returning. Defense-in-depth: even if the callback
- * never fires (e.g., stdout closed early), the function still returns and
- * the caller's natural process exit picks up the exitCode value.
+ * The single PreToolUse JSON response for a deny or ask verdict. Exported so
+ * tests can pin the exact shape Claude Code reads.
  */
-function emitBeltAndSuspendersBlockingDecisionWithStdoutDrainBeforeExitCodeTwo(
-  decisionKind: "deny" | "ask",
-  subhookName: string,
-  reason: string,
-): Promise<void> {
-  const stdoutBlockingDecisionJsonPayload = {
+export function buildPermissionDecisionResponse(
+  verdict: EditTimeOrchestratorVerdict,
+): object {
+  return {
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
-      permissionDecision: decisionKind,
-      permissionDecisionReason: `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ${subhookName} → ${decisionKind.toUpperCase()}\n${reason}`,
+      permissionDecision: verdict.kind,
+      permissionDecisionReason: `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ${verdict.subhookName} → ${verdict.kind.toUpperCase()}\n${verdict.reason}`,
     },
   };
-  const serializedJsonLine =
-    JSON.stringify(stdoutBlockingDecisionJsonPayload) + "\n";
+}
 
-  // (2) stderr diagnostic — fire synchronously so it's queued before we wait on stdout
+/**
+ * Emit a deny or ask as PreToolUse JSON on stdout and leave the exit code at 0.
+ * Exit 0 is load-bearing: the hooks reference says exit 2 blocks "whether or
+ * not you print JSON", so exit 2 would turn an ask into a hard block (see the
+ * file header).
+ *
+ * Waits for the stdout write callback before resolving, so the process cannot
+ * end with the JSON line still buffered (the iter-84 truncation hazard). If the
+ * callback never fires (stdout closed early) the write is abandoned and the
+ * process still exits 0; Claude Code then sees no decision, which on this
+ * event means the normal permission flow.
+ */
+export function emitPermissionDecisionAndDrainStdout(
+  verdict: EditTimeOrchestratorVerdict,
+): Promise<void> {
+  const serializedJsonLine =
+    JSON.stringify(buildPermissionDecisionResponse(verdict)) + "\n";
+
+  // Diagnostic only: on exit 0 Claude Code sends stderr to the debug log.
   process.stderr.write(
-    `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ${decisionKind.toUpperCase()} from subhook=${subhookName}: ${reason}\n`,
+    `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ${verdict.kind.toUpperCase()} from subhook=${verdict.subhookName}: ${verdict.reason}\n`,
   );
 
-  // (3) exitCode (not exit() — lets bun drain stdout naturally before termination)
-  process.exitCode = 2;
+  process.exitCode = 0;
 
-  // (1) stdout JSON with drain-await — Promise resolves once the kernel
-  // accepts the bytes, eliminating the race the iter-84 audit flagged
-  // where process.exit(2) before drain could truncate the JSON payload.
   return new Promise<void>((resolve) => {
-    const writeAcceptedByKernel = process.stdout.write(serializedJsonLine, () =>
-      resolve(),
-    );
-    if (writeAcceptedByKernel) {
-      // Already drained synchronously; the callback will still fire on
-      // next tick but we don't have to wait for it.
-      resolve();
-    }
+    process.stdout.write(serializedJsonLine, () => resolve());
   });
 }
 
-async function main(): Promise<void> {
+/**
+ * Run every subhook against one input and fold their verdicts with Claude
+ * Code's precedence, deny > ask > allow: the first deny returns at once; the
+ * first ask is held while later subhooks are still checked for a deny.
+ * Returns null when every subhook allowed (timeouts and throws fail open).
+ */
+export async function runEditTimeSubhookRegistry(
+  input: PreToolUseInput,
+  registry: readonly PreToolUseSubhookRegistryEntry[] = PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY,
+): Promise<EditTimeOrchestratorVerdict | null> {
+  let heldAsk: EditTimeOrchestratorVerdict | null = null;
+
+  for (const entry of registry) {
+    const result = await executeSubhookWithCooperativeTimeoutAndCrashIsolation(
+      entry,
+      input,
+    );
+
+    if (result.timedOut) {
+      process.stderr.write(
+        `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} TIMEOUT subhook=${entry.name} after ${entry.timeoutMs}ms — fail-open allow\n`,
+      );
+      continue;
+    }
+
+    if (result.errored) {
+      process.stderr.write(
+        `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ERROR subhook=${entry.name}: ${result.errorMessage} — fail-open allow\n`,
+      );
+      trackHookError(
+        `pretooluse-edit-time-orchestrator/${entry.name}`,
+        result.errorMessage ?? "(unknown)",
+      );
+      continue;
+    }
+
+    const reason = result.decision.reason ?? "(no reason given)";
+    if (result.decision.kind === "deny") {
+      return { kind: "deny", subhookName: entry.name, reason };
+    }
+    if (result.decision.kind === "ask" && heldAsk === null) {
+      heldAsk = { kind: "ask", subhookName: entry.name, reason };
+    }
+    // allow (or a second ask) → continue to next subhook
+  }
+
+  return heldAsk;
+}
+
+export async function main(
+  registry: readonly PreToolUseSubhookRegistryEntry[] = PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY,
+): Promise<void> {
   const input = await parseStdinOrAllow("pretooluse-edit-time-orchestrator");
   if (!input) return;
 
@@ -396,72 +449,45 @@ async function main(): Promise<void> {
     return allow();
   }
 
-  // Iterate registry in order; first deny/ask short-circuits.
-  for (const entry of PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY) {
-    const result = await executeSubhookWithCooperativeTimeoutAndCrashIsolation(
-      entry,
-      input,
-    );
-
-    if (result.timedOut) {
-      process.stderr.write(
-        `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} TIMEOUT subhook=${entry.name} after ${entry.timeoutMs}ms — fail-open allow\n`,
-      );
-      continue;
-    }
-
-    if (result.errored) {
-      process.stderr.write(
-        `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ERROR subhook=${entry.name}: ${result.errorMessage} — fail-open allow\n`,
-      );
-      trackHookError(
-        `pretooluse-edit-time-orchestrator/${entry.name}`,
-        result.errorMessage ?? "(unknown)",
-      );
-      continue;
-    }
-
-    if (result.decision.kind === "deny" || result.decision.kind === "ask") {
-      await emitBeltAndSuspendersBlockingDecisionWithStdoutDrainBeforeExitCodeTwo(
-        result.decision.kind,
-        entry.name,
-        result.decision.reason ?? "(no reason given)",
-      );
-      return; // exitCode=2 is already set; let bun's event loop finish naturally
-    }
-    // allow → continue to next subhook
+  // deny > ask > allow (see runEditTimeSubhookRegistry).
+  const verdict = await runEditTimeSubhookRegistry(input, registry);
+  if (verdict !== null) {
+    await emitPermissionDecisionAndDrainStdout(verdict);
+    return;
   }
 
   // All subhooks returned allow (or fail-open allow).
   allow();
 }
 
-// Iter-85 audit-driven hardening: install a process-level unhandled-rejection
-// handler BEFORE main() runs. Bun's current default behavior is to log
-// unhandled rejections to stderr but NOT exit the process. Node's behavior
-// is the opposite. If the runtime under us ever switches to Node-compatible
-// "exit-on-unhandled-rejection" semantics, the orchestrator would die mid-
-// registry and skip remaining subhooks. This handler fails-open (allow) so
-// the tool call still proceeds when a subhook's internal promise rejects
-// without being caught by the per-subhook try/catch + Promise.race wrap.
-process.on("unhandledRejection", (reason: unknown) => {
-  const message = reason instanceof Error ? reason.message : String(reason);
-  process.stderr.write(
-    `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} unhandledRejection: ${message} — fail-open allow\n`,
-  );
-  trackHookError(
-    "pretooluse-edit-time-orchestrator/unhandledRejection",
-    message,
-  );
-  // Don't allow() here — main() will still complete and emit allow normally.
-  // Explicit allow() here would emit duplicate JSON to stdout.
-});
+if (import.meta.main) {
+  // Iter-85 audit-driven hardening: install a process-level unhandled-rejection
+  // handler BEFORE main() runs. Bun's current default behavior is to log
+  // unhandled rejections to stderr but NOT exit the process. Node's behavior
+  // is the opposite. If the runtime under us ever switches to Node-compatible
+  // "exit-on-unhandled-rejection" semantics, the orchestrator would die mid-
+  // registry and skip remaining subhooks. This handler fails-open (allow) so
+  // the tool call still proceeds when a subhook's internal promise rejects
+  // without being caught by the per-subhook try/catch + Promise.race wrap.
+  process.on("unhandledRejection", (reason: unknown) => {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    process.stderr.write(
+      `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} unhandledRejection: ${message} — fail-open allow\n`,
+    );
+    trackHookError(
+      "pretooluse-edit-time-orchestrator/unhandledRejection",
+      message,
+    );
+    // Don't allow() here — main() will still complete and emit allow normally.
+    // Explicit allow() here would emit duplicate JSON to stdout.
+  });
 
-main().catch((err) => {
-  const message = err instanceof Error ? err.message : String(err);
-  process.stderr.write(
-    `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} fatal: ${message}\n`,
-  );
-  trackHookError("pretooluse-edit-time-orchestrator", message);
-  allow(); // Fail-open at the outermost layer
-});
+  main().catch((err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} fatal: ${message}\n`,
+    );
+    trackHookError("pretooluse-edit-time-orchestrator", message);
+    allow(); // Fail-open at the outermost layer
+  });
+}

@@ -45,10 +45,12 @@ import type { PreToolUseInput } from "../pretooluse-helpers.ts";
  *   the registry; if every subhook returns `allow`, the orchestrator emits
  *   a single `allow` decision to Claude Code.
  * - `deny`  — subhook objects. Orchestrator short-circuits the registry,
- *   emits a `deny` decision (with belt-and-suspenders stderr + exit 2
- *   per GitHub #37210 / iter-78), and never calls remaining subhooks.
- * - `ask`   — subhook wants the user to confirm. Same short-circuit as
- *   `deny` but emits `ask` to Claude Code.
+ *   emits a `deny` decision as PreToolUse JSON with exit 0, and never
+ *   calls remaining subhooks.
+ * - `ask`   — subhook wants the user to confirm. The orchestrator holds the
+ *   first ask while it checks the remaining subhooks for a deny (deny >
+ *   ask), then emits `ask` as PreToolUse JSON with exit 0 — never exit 2,
+ *   which would block instead of prompting.
  */
 export type PreToolUseSubhookDecisionKind = "allow" | "deny" | "ask";
 
