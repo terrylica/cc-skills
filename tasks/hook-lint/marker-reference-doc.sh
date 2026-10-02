@@ -24,8 +24,7 @@
 #      browsing without requiring a build step.
 #
 #   3. The companion test
-#      tasks/tests/test-iter113-marketplace-escape-hatch-marker-
-#      reference-doc-is-in-sync-with-iter111-canonical-registry.sh runs the
+#      tasks/tests/test-iter113-marker-reference-doc-byte-identical.sh runs the
 #      generator and diffs the output against the on-disk doc. Drift is a
 #      release blocker (informational in iter-113, strict-promoted in
 #      iter-114+ alongside the AUDIT-marker family registry expansion).

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-audit-stop-hook-additionalContext-emission-detects-stdout-json-emission-distinguishes-read-only-aggregation-honors-min-reason-length-escape-hatch-and-strips-comments.sh
+# test-audit-stop-hook-additional-context-emission.sh
 #
 # Regression test for the iter-67 Stop-hook additionalContext-emission
 # audit at tasks/hook-lint/stop-additional-context.sh.

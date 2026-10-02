@@ -175,8 +175,7 @@ __iter188_fail_fast_if_this_runner_does_not_survive_its_own_syntax_check() {
 __iter188_fail_fast_if_this_runner_does_not_survive_its_own_syntax_check
 
 # Iter-75 recursion guard. The parity regression test for the parallel
-# runner (test-marketplace-hook-regression-suite-parallel-runner-iter75-
-# parity-against-iter50-sequential-baseline-and-iter54-fail-output-ux.sh)
+# runner (test-iter75-hook-suite-parallel-runner-parity.sh)
 # lives in tasks/tests/ — which means THIS runner auto-discovers
 # and runs it. The parity test itself invokes THIS runner to verify
 # integration parity, which would cause infinite recursion without a

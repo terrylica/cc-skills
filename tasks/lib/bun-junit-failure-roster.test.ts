@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { failingTestcases, formatRoster } from "./bun-junit-failure-roster";
 
 const WRAPPER =
-  "test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration.sh";
+  "test-marketplace-bun-unit-suite.sh";
 const TASKS = join(import.meta.dir, "..");
 
 const SAMPLE = `<?xml version="1.0" encoding="UTF-8"?>

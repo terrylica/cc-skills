@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-webfetch-github-guard-prejq-fastpath-bash-builtin-case-glob-short-circuits-on-non-github-urls.sh
+# test-webfetch-github-guard-fastpath-non-github.sh
 #
 # Regression test for iter-55 pre-jq-fastpath optimization on
 # webfetch-github-guard.sh. The optimization made two changes:

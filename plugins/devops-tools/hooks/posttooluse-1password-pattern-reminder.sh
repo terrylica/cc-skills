@@ -86,7 +86,7 @@ COMMAND=$(echo "$PAYLOAD" | jq -r '.tool_input.command // empty' 2>/dev/null) ||
 # cases (`op read`, `OP_SA_TOKEN=foo op read`, etc.) covered.
 #
 # Regression-tested by:
-#   test-posttooluse-1password-pattern-reminder-only-fires-when-op-is-leading-executable-not-heredoc-text.sh
+#   test-1password-reminder-only-on-leading-op.sh
 #
 # Word-boundary at the end (`[[:space:]]|$`) still prevents matching `open`,
 # `optical`, etc. that start with the literal letters `op`.
