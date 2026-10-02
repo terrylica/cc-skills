@@ -236,26 +236,20 @@ async function main() {
     aggregated.reason = blockReasons.join("\n\n");
   }
 
-  // iter-66: aggregated additionalContext goes to STDERR, NOT into the
-  // stdout JSON object. Stop-hook schema (per official Anthropic docs)
-  // supports only {decision, reason} — any additionalContext field is
-  // silently ignored by Claude Code. Stderr is captured and shown in
-  // the hook output panel (Ctrl-R), so operators can still see subhook
-  // summaries. Claude does not see this on next-turn context — but
-  // Claude wouldn't have seen it via the old stdout route either; the
-  // pre-iter-66 behavior was silently broken.
+  // Aggregated additionalContext goes to STDERR, not into the stdout JSON.
+  // Stop does accept hookSpecificOutput.additionalContext, but it continues
+  // the conversation (https://code.claude.com/docs/en/hooks, "Stop decision
+  // control"), so informational summaries would keep Claude running every
+  // turn. Stderr keeps them visible in the transcript without continuing.
   if (additionalContexts.length > 0) {
     const summary = additionalContexts.join("\n\n");
     process.stderr.write(
-      `[stop-orchestrator] Aggregated subhook summary (visible to operators via Ctrl-R; NOT injected into Claude's next-turn context — Stop-hook schema does not support additionalContext):\n${summary}\n`
+      `[stop-orchestrator] Aggregated subhook summary (transcript only; not sent as additionalContext, which would continue the conversation):\n${summary}\n`
     );
   }
 
-  // Empty object = silent allow. JSON.stringify({}) when nothing matters.
-  // Note: per iter-66, aggregated.additionalContext is NEVER set on this
-  // object — it would be silently dropped by Claude Code's Stop-hook
-  // schema. The `AggregatedOutput` type still includes the field for
-  // backward source-compat but it's unused in the emission path.
+  // Empty object = silent allow. aggregated.additionalContext is never set
+  // here; see the stderr routing above.
   process.stdout.write(JSON.stringify(aggregated));
 }
 

@@ -79,7 +79,7 @@ describe("posttooluse-typescript-upgrade-reminder", () => {
     });
 
     describe("noop on non-file-edit tools", () => {
-      it("returns noop when tool_name is not Write/Edit/MultiEdit", async () => {
+      it("returns noop when tool_name is not Write/Edit", async () => {
         const sessionId = freshSessionId("noop-tool");
         const input: PostToolUseInput = {
           tool_name: "Bash",
@@ -204,10 +204,10 @@ describe("posttooluse-typescript-upgrade-reminder", () => {
         expect(decision.kind).toBe("additional_context");
       });
 
-      it("emits additional_context for .cts MultiEdit on first call", async () => {
-        const sessionId = freshSessionId("first-cts-multiedit");
+      it("emits additional_context for .cts Edit on first call", async () => {
+        const sessionId = freshSessionId("first-cts-edit");
         const input: PostToolUseInput = {
-          tool_name: "MultiEdit",
+          tool_name: "Edit",
           tool_input: { file_path: "/project/src/index.cts" },
           session_id: sessionId,
         };

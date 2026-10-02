@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-114 regression test for the audit-task escape-hatch marker registry. Verifies (1) iter-114 audit-task registry TypeScript file exists with all documented exports (entry interface + registry array + lookup + list-all helpers); (2) registry contains all 8 iter-114 baseline audit markers (ESCAPE-HATCH-AUDIT-OK, HOOK-OUTPUT-SIZE-CAP-OK, MATCHER-NO-MULTIEDIT-OK, ORDERING-OK, POSTTOOLUSE-RAW-STDOUT-OK, SPAWN-SYNC-OK, STOP-HOOK-ADDITIONAL-CONTEXT-OK, WILDCARD-MATCHER-OK); (3) every registered audit marker references an EXISTING tasks/audit-*.sh consumer task file; (4) iter-113 doc generator renders audit-task section alongside runtime section in operator-facing reference doc with all 8 baseline audit markers; (5) lookup-by-name helper resolves known + returns undefined for unknown; (6) generator idempotency invariant still holds with the two-registry input.
+# Iter-114 regression test for the audit-task escape-hatch marker registry. Verifies (1) iter-114 audit-task registry TypeScript file exists with all documented exports (entry interface + registry array + lookup + list-all helpers); (2) registry contains all 7 current audit markers (ESCAPE-HATCH-AUDIT-OK, HOOK-OUTPUT-SIZE-CAP-OK, ORDERING-OK, POSTTOOLUSE-RAW-STDOUT-OK, SPAWN-SYNC-OK, STOP-HOOK-ADDITIONAL-CONTEXT-OK, WILDCARD-MATCHER-OK); (3) every registered audit marker references an EXISTING tasks/audit-*.sh consumer task file; (4) iter-113 doc generator renders audit-task section alongside runtime section in operator-facing reference doc with all 8 baseline audit markers; (5) lookup-by-name helper resolves known + returns undefined for unknown; (6) generator idempotency invariant still holds with the two-registry input.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -13,7 +13,6 @@ ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/marker-reference
 ITER114_BASELINE_AUDIT_MARKER_TOKENS=(
     "ESCAPE-HATCH-AUDIT-OK"
     "HOOK-OUTPUT-SIZE-CAP-OK"
-    "MATCHER-NO-MULTIEDIT-OK"
     "ORDERING-OK"
     "POSTTOOLUSE-RAW-STDOUT-OK"
     "SPAWN-SYNC-OK"
@@ -42,7 +41,7 @@ else
     assert_fails "Case 1: iter-114 audit-task registry missing or missing required exports"
 fi
 
-# ─── Case 2: registry contains all 8 iter-114 baseline audit markers ─────
+# ─── Case 2: registry contains all 7 current audit markers ─────
 MISSING_BASELINE_AUDIT_MARKER_COUNT=0
 for baseline_marker_token in "${ITER114_BASELINE_AUDIT_MARKER_TOKENS[@]}"; do
     if ! grep -q "markerNameTokenIncludingSuffix: \"$baseline_marker_token\"" "$ITER114_AUDIT_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH"; then
@@ -51,7 +50,7 @@ for baseline_marker_token in "${ITER114_BASELINE_AUDIT_MARKER_TOKENS[@]}"; do
     fi
 done
 if [[ "$MISSING_BASELINE_AUDIT_MARKER_COUNT" -eq 0 ]]; then
-    assert_passes "Case 2: registry contains all 8 iter-114 baseline audit markers"
+    assert_passes "Case 2: registry contains all 7 current audit markers"
 else
     assert_fails "Case 2: registry missing $MISSING_BASELINE_AUDIT_MARKER_COUNT baseline audit marker(s)"
 fi
@@ -117,7 +116,7 @@ for baseline_marker_token in "${ITER114_BASELINE_AUDIT_MARKER_TOKENS[@]}"; do
 done
 if [[ "$MISSING_AUDIT_SECTION_COUNT" -eq 0 ]] && \
    grep -qE '## Audit-task marker catalog' "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"; then
-    assert_passes "Case 4: iter-113 doc generator renders all 8 audit-task marker sections in the dedicated audit-task catalog (operators get one artifact for both marker families)"
+    assert_passes "Case 4: iter-113 doc generator renders all 7 audit-task marker sections in the dedicated audit-task catalog (operators get one artifact for both marker families)"
 else
     assert_fails "Case 4: $MISSING_AUDIT_SECTION_COUNT audit-task marker section(s) missing OR catalog preamble missing"
 fi
@@ -161,10 +160,10 @@ if (unknownEntry === undefined) {
   console.log(\`PROBE-5B-FAIL: unknown-audit-marker lookup returned \${JSON.stringify(unknownEntry)} (expected undefined)\`);
 }
 
-// Probe 5c: list-all returns 8 sorted audit markers
+// Probe 5c: list-all returns 7 sorted audit markers
 const sortedAuditMarkers = listAllAuditTaskCanonicalRegistryMarkerNameTokensSortedAlphabetically();
 const sortedAlphabetically =
-  sortedAuditMarkers.length === 8 &&
+  sortedAuditMarkers.length === 7 &&
   sortedAuditMarkers.every((marker, index) => {
     if (index === 0) return true;
     return sortedAuditMarkers[index - 1].localeCompare(marker) <= 0;
@@ -185,7 +184,7 @@ probe_exit_code=$?
 set -e
 
 if [[ "$probe_output" == *"PROBE-5A-PASS"* ]] && [[ "$probe_output" == *"PROBE-5B-PASS"* ]] && [[ "$probe_output" == *"PROBE-5C-PASS"* ]]; then
-    assert_passes "Case 5: audit-task registry lookup + list-all helpers work correctly (known marker resolves with full field set, unknown returns undefined, list-all returns sorted 8-element array)"
+    assert_passes "Case 5: audit-task registry lookup + list-all helpers work correctly (known marker resolves with full field set, unknown returns undefined, list-all returns sorted 7-element array)"
 else
     assert_fails "Case 5: audit-task registry helper probes failed (exit=$probe_exit_code, output=$probe_output)"
 fi
@@ -237,11 +236,11 @@ echo "     established. Marketplace now has TWO parallel registries:"
 echo "     - iter-111 RUNTIME-HOOK markers (12 entries; consumed by"
 echo "       Pre/PostToolUse hooks via the iter-107 helper on every"
 echo "       Write/Edit/Bash invocation — hot path)"
-echo "     - iter-114 AUDIT-TASK markers (8 entries; consumed by tasks/"
+echo "     - iter-114 AUDIT-TASK markers (7 entries; consumed by tasks/"
 echo "       audit scripts via bash grep at release-preflight time — cold"
 echo "       path, runs once per release)"
 echo "  🚀 iter-113 doc generator extended: operator-facing reference doc"
-echo "     now renders BOTH catalogs (20 total markers) in alphabetical"
+echo "     now renders BOTH catalogs in alphabetical"
 echo "     order with distinct sections — single artifact for marker"
 echo "     discovery across both lifecycle layers."
 echo "  🚀 Iter-115+ candidates:"

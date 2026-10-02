@@ -2,7 +2,7 @@
 /**
  * PostToolUse hook: temporal-leakage adjudication taxonomy reminder.
  *
- * Fires on Write/Edit/MultiEdit of a TEXT file when the NEW content contains
+ * Fires on Write/Edit of a TEXT file when the NEW content contains
  * language that ADJUDICATES temporal leakage — a leak-family term sitting next
  * to a verdict word ("the H1 join is non-causal, so the reported AUC is
  * manufactured"). It injects the five-category taxonomy so the verdict is
@@ -120,11 +120,9 @@
  * hygiene rather than the load-bearing rule it was originally billed as; it
  * keeps a future vocabulary addition from silently re-creating the collapse.
  *
- * Detection runs on the NEW content only (Write `content`, Edit `new_string`,
- * each MultiEdit fragment independently), never on the whole file — the hook
- * responds to a verdict being WRITTEN, not to one that was already there.
- * MultiEdit fragments are scanned SEPARATELY so proximity cannot be manufactured
- * by two unrelated edits landing adjacent in a concatenation.
+ * Detection runs on the NEW content only (Write `content`, Edit `new_string`),
+ * never on the whole file — the hook responds to a verdict being WRITTEN, not
+ * to one that was already there.
  *
  * Suppression is the mirror image and IS whole-file: `LEAK-TAXONOMY-OK` in the
  * edited fragment OR anywhere in the post-edit file silences it, because the
@@ -373,13 +371,12 @@ export const LEAKAGE_TAXONOMY_ADJUDICATION_STATIC_REMINDER_MESSAGE = [
 //  Types
 // ══════════════════════════════════════════════════════════════════════════
 
-/** `PostToolUseInput.tool_input` with the MultiEdit `edits[]` array named. */
-interface MultiEditCapableToolInput {
+/** `PostToolUseInput.tool_input` with the Write and Edit fields named. */
+interface FileEditToolInput {
   file_path?: string;
   content?: string;
   old_string?: string;
   new_string?: string;
-  edits?: Array<{ old_string?: string; new_string?: string }>;
 }
 
 /** A matched adjudication: which two terms conjoined, how far apart, at which tiers. */
@@ -425,7 +422,7 @@ function looksLikeBinaryPayloadRatherThanText(text: string): boolean {
 }
 
 /**
- * Pure activation gate (exported for tests): a Write/Edit/MultiEdit of a
+ * Pure activation gate (exported for tests): a Write/Edit of a
  * durable text file, never a throwaway copy in a temp scratch dir.
  */
 export function isLeakageTaxonomyReminderEligibleTarget(
@@ -642,10 +639,7 @@ export function isLeakTaxonomySuppressedByWholeFilePostEditMarker(filePath: stri
 /**
  * The verdict this tool call WROTE (exported for tests), or `null`.
  *
- * Scans the NEW content only — Write `content`, Edit `new_string`, and each
- * MultiEdit fragment independently. Fragments are never concatenated: doing so
- * would let a "leak" at the tail of edit 1 conjoin with a "fails" at the head
- * of edit 2, an adjacency that exists nowhere in the file.
+ * Scans the NEW content only — Write `content` or Edit `new_string`.
  *
  * Whole-file suppression is NOT done here — it is a separate, explicitly
  * ordered step in `classify()` (see
@@ -655,14 +649,10 @@ export function isLeakTaxonomySuppressedByWholeFilePostEditMarker(filePath: stri
 export function detectTemporalLeakageAdjudicationVerdictLanguage(
   input: PostToolUseInput,
 ): LeakageAdjudicationMatch | null {
-  const toolInput = (input.tool_input || {}) as MultiEditCapableToolInput;
+  const toolInput = (input.tool_input || {}) as FileEditToolInput;
 
   const newContentFragments: string[] =
-    input.tool_name === "Write"
-      ? [toolInput.content || ""]
-      : input.tool_name === "MultiEdit"
-        ? (toolInput.edits || []).map((e) => e.new_string || "")
-        : [toolInput.new_string || ""];
+    input.tool_name === "Write" ? [toolInput.content || ""] : [toolInput.new_string || ""];
 
   for (const fragment of newContentFragments) {
     if (!fragment) continue;
@@ -701,7 +691,7 @@ export function sanitizeSessionIdentifierForGateFilePathComponent(rawSessionId: 
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
- * Classify a PostToolUse Write|Edit|MultiEdit for temporal-leakage-adjudication
+ * Classify a PostToolUse Write|Edit for temporal-leakage-adjudication
  * language and, ONCE PER SESSION, inject the taxonomy card.
  *
  *   - Returns `additional_context` on the first eligible adjudication of the

@@ -1,244 +1,66 @@
 #!/usr/bin/env bash
-# Audit every plugins/*/hooks/hooks.json REGISTERED Stop, SubagentStop, SessionEnd, PreCompact, AND Notification hook source file for emission of the additionalContext field in stdout JSON. All five event types share the same silent-drop mechanism but with three distinct schema sub-rules: (1) Stop+SubagentStop+PreCompact read only {decision:'block', reason} per Anthropic docs (code.claude.com/docs/en/hooks); (2) SessionEnd reads NO output fields at all (per Go type definitions in CorridorSecurity/hookshot — SessionEndOK returns empty output, session is terminating); (3) Notification is purely informational with no decision/blocking capability (Anthropic docs: 'no blocking — exit 2 shows stderr only'). Any additionalContext field on any of these five event types is silently dropped by Claude Code. iter-66 fixed the itp-hooks stop-orchestrator silent-drop bug; iter-67 scaled to a Stop-only audit; iter-68 extended to SubagentStop + SessionEnd; iter-69 completes the additionalContext-silently-dropped pentad by adding PreCompact + Notification. Strips JSDoc and line comments before scanning. Escape hatch: STOP-HOOK-ADDITIONAL-CONTEXT-OK source comment with reason ≥ 10 chars applies to all five event types. Exits non-zero on any unjustified emission. Symmetric companion to iter-60 / iter-62 / iter-65 / iter-67 schema-correctness gates.
+# Audit every plugins/*/hooks/hooks.json REGISTERED Stop, SubagentStop, SessionEnd, PreCompact and Notification hook source file for the additionalContext field in non-comment code. For Stop and SubagentStop the field is NOT dropped: upstream "Stop decision control" (https://code.claude.com/docs/en/hooks#stop-decision-control) documents hookSpecificOutput.additionalContext as feedback that keeps the conversation going ("The conversation continues so Claude can act on it"), through the same loop protections as decision:"block". So an informational Stop summary emitted that way forces another turn instead of informing anyone; real continuation should be an explicit decision:"block" + reason. PreCompact, SessionEnd and Notification have no additionalContext in their output schema. Strips JSDoc and line comments before scanning. Escape hatch: STOP-HOOK-ADDITIONAL-CONTEXT-OK source comment with reason >= 10 chars applies to all five event types. Exits non-zero on any unjustified use.
 #
 # tasks/hook-lint/stop-additional-context.sh
 #
-# Iter-67 self-explanatory-scaffolding audit — preventive companion to
-# iter-66 (single-hook orchestrator additionalContext silent-drop fix).
-# Iter-68 expansion: extended scope from Stop-only to the full trinity
-# of additionalContext-silently-dropped event types — Stop, SubagentStop,
-# and SessionEnd. See "Iter-68 scope expansion" section below.
+# Why each event type is in scope (upstream: https://code.claude.com/docs/en/hooks):
 #
-# Background (mechanism):
+#   1. Stop / SubagentStop. The "Stop decision control" table lists
+#      `hookSpecificOutput.additionalContext` as "Non-error feedback for
+#      Claude. The conversation continues so Claude can act on it, but
+#      unlike `decision: "block"` it is shown in the transcript as hook
+#      feedback rather than a hook error", and adds: "It keeps the
+#      conversation going through the same loop protections as
+#      `decision: "block"`, namely the `stop_hook_active` input and the
+#      8-consecutive-continuation cap". SubagentStop "use[s] the same
+#      decision control format as Stop hooks". A Stop hook that prints an
+#      informational summary this way therefore prevents Claude from
+#      stopping on every turn it fires, up to the cap. That is the hazard
+#      this audit guards: the itp-hooks stop-orchestrator once emitted its
+#      aggregated subhook summary as additionalContext; it now routes that
+#      summary to stderr. A hook that genuinely wants Claude to continue
+#      should say so with decision:"block" + reason, or carry the marker.
+#   2. PreCompact. The decision-control table gives PreCompact only
+#      top-level `decision: "block"` + `reason`; "Stop and SubagentStop
+#      also accept `hookSpecificOutput.additionalContext`", PreCompact
+#      does not, so the field is ignored.
+#   3. SessionEnd. "SessionEnd hooks have no decision control ... Claude
+#      Code discards their JSON output fields".
+#   4. Notification. No decision control and no additionalContext field.
 #
-#   Per the official Anthropic Claude Code Stop-hook schema (verbatim
-#   example documented in GitHub issue #19115 and the official docs at
-#   code.claude.com/docs/en/hooks):
-#
-#     {
-#       "decision": "block" | undefined,
-#       "reason":   "Must be provided when Claude is blocked from stopping"
-#     }
-#
-#   These are the ONLY top-level fields Claude Code reads from a Stop
-#   hook's stdout JSON. Any other field — most notably `additionalContext`
-#   (top-level OR nested inside hookSpecificOutput) — is silently
-#   ignored. From the hook author's perspective the JSON looks valid;
-#   from Claude Code's perspective the extra field doesn't exist.
-#
-#   This is a different schema from PostToolUse / UserPromptSubmit /
-#   SessionStart, where hookSpecificOutput.additionalContext IS read
-#   and injected as a system reminder into Claude's next-turn context.
-#
-#   iter-66 forensic: itp-hooks stop-orchestrator was pre-iter-66
-#   emitting {additionalContext: <aggregated subhook summary>} to its
-#   stdout JSON. Claude Code parsed the JSON, found no `decision`
-#   field, treated the Stop as "don't block", and silently ignored
-#   the additionalContext field entirely. Subhook summaries from
-#   stop-markdown-lint, stop-ty-project-check, and stop-hook-error-
-#   summary reached no one — operators got no transcript visibility,
-#   Claude got no context. The fix routed the summary to STDERR
-#   (transcript-visible) instead of pretending stdout JSON would
-#   reach Claude.
-#
-#   iter-67 (this audit) scales the iter-66 fix into preventive
-#   infrastructure marketplace-wide.
-#
-# Iter-68/69 scope expansion (additionalContext-silently-dropped pentad):
-#
-#   Iter-67 covered only Stop hooks and explicitly deferred SubagentStop
-#   (file comment line 74: "SubagentStop hooks (same schema rules,
-#   separate audit if needed)"). Iter-68 extended to SubagentStop +
-#   SessionEnd. Iter-69 completes the pentad by adding PreCompact +
-#   Notification — the remaining two hook event types where
-#   additionalContext is silently dropped per official Anthropic schema:
-#
-#     1. Stop hooks — reads only {decision:'block', reason} per
-#        iter-66/67. additionalContext silently dropped.
-#     2. SubagentStop hooks — same schema as Stop per
-#        https://code.claude.com/docs/en/hooks ("SubagentStop hooks
-#        use the same decision control format as Stop hooks").
-#        additionalContext silently dropped. Marketplace 0.
-#     3. SessionEnd hooks — per Go type definitions in CorridorSecurity/
-#        hookshot (https://pkg.go.dev/github.com/CorridorSecurity/hookshot/
-#        claude), SessionEndOK returns EMPTY output — SessionEnd cannot
-#        inject any context because the session is terminating. Any
-#        additionalContext (or any other output field) is silently
-#        dropped. Marketplace 0.
-#     4. PreCompact hooks (iter-69) — supports only {decision:'block',
-#        reason} per official Anthropic docs (the 'decision' field is
-#        used by UserPromptSubmit, UserPromptExpansion, PostToolUse,
-#        PostToolUseFailure, PostToolBatch, Stop, SubagentStop,
-#        ConfigChange, and PreCompact — the only value is 'block').
-#        additionalContext is NOT in the PreCompact output schema.
-#        Common use case: pre-compaction transcript backup via
-#        async: true (Jan 2026 feature). Marketplace 0.
-#     5. Notification hooks (iter-69) — purely informational, NO decision
-#        capability per official docs ('Exit Code 2 Behavior: N/A —
-#        shows stderr to user only, no blocking capability'). Subtypes:
-#        permission_prompt, idle_prompt, auth_success. Any output field
-#        including additionalContext is silently dropped — only stderr
-#        on exit 2 reaches the user. Marketplace 0.
-#
-#   All five event types share the same root cause (the field is
-#   absent from the consumer-side schema), the same operator-facing
-#   symptom (silent drop), and the same remediation (route summary
-#   text to stderr instead of stdout JSON, OR for legitimate read-only
-#   aggregation, add an OK marker). Unifying them under one audit
-#   reduces conceptual surface area and per-event-type tracking gives
-#   precise violation diagnostics.
-#
-#   Events EXCLUDED from this audit because they DO support
-#   additionalContext (and emitting it is CORRECT, not a violation):
-#     - PreToolUse / PostToolUse — hookSpecificOutput.additionalContext
-#       (caveat: GitHub #55889 documents v2.1.123 regression where Bash
-#       matcher silently drops all 3 context channels; that's a runtime
-#       bug, not a schema bug — out of scope for this static audit. See
-#       docs/HOOKS.md "Hook Output: What Reaches Claude" for the
-#       operator-facing note on the bug.)
-#     - UserPromptSubmit / SessionStart — hookSpecificOutput.additional-
-#       Context + plain stdout both reach Claude.
-#     - UserPromptExpansion (iter-71 verified) — joined with
-#       UserPromptSubmit and SessionStart as the 3 events where stdout
-#       is added directly to Claude's context. Per official Anthropic
-#       docs (code.claude.com/docs/en/hooks), this is the documented
-#       3-event "stdout-reaches-context" cohort.
-#     - PostToolBatch (iter-71 verified) — additionalContext appears
-#       "next to the tool result" per the official Anthropic docs.
-#       NOT a silent-drop event.
-#     - PostToolUseFailure (iter-71 verified) — documented schema
-#       shape: { "hookSpecificOutput": { "hookEventName":
-#       "PostToolUseFailure", "additionalContext": "..." } }. NOT a
-#       silent-drop event.
-#
-#   2026 event-type landscape note (iter-71 research, May 2026 v2.1.141+):
-#     The full 27-event 2026 set includes many newer event types not
-#     yet covered by this audit: SubagentStart, StopFailure, PostCompact,
-#     Setup, PermissionRequest, PermissionDenied, InstructionsLoaded,
-#     CwdChanged, FileChanged, WorktreeCreate, WorktreeRemove,
-#     ConfigChange, TeammateIdle, TaskCreated, TaskCompleted, Elicitation,
-#     ElicitationResult. Their additionalContext support varies:
-#       • Setup: documented as supporting additionalContext for context
-#         injection (cannot block; observability-only with context).
-#       • PostCompact: likely mirrors PreCompact (decision:"block" only)
-#         — silent-drop candidate but unverified.
-#       • SubagentStart: likely mirrors SubagentStop (decision:"block"
-#         only) — silent-drop candidate but unverified.
-#       • StopFailure: likely mirrors Stop (decision:"block" only) —
-#         silent-drop candidate but unverified.
-#       • ConfigChange: ambiguous — official docs do not enumerate
-#         event-specific output fields. Verification deferred.
-#       • TeammateIdle / TaskCreated / TaskCompleted / InstructionsLoaded
-#         / CwdChanged / FileChanged / WorktreeCreate / WorktreeRemove
-#         / PermissionRequest / PermissionDenied / Elicitation* —
-#         observability-or-lifecycle events; additionalContext support
-#         unverified.
-#     Marketplace currently has 0 hooks of any of these newer event
-#     types. A future iter-72+ extending the pentad → heptad+ would
-#     verify schemas (likely against official Anthropic docs + the
-#     CorridorSecurity/hookshot Go type defs) before adding event
-#     types to the jq filter and case-statement diagnostic branches.
-#
-# Schema-Evolution Watch (iter-72 forensic confirmation + future-proofing):
-#
-#   GitHub #60993 — "Revive #24244 — Stop hook needs additionalContext
-#   (or continueWith) for clean workflow continuation" (filed 2026-05-20,
-#   OPEN, label: enhancement + area:hooks) — provides upstream community
-#   confirmation that the iter-66/67/68/69 audit's premise is correct.
-#   The issue body contains the exact validator-side rejection message
-#   the reporter received when attempting to emit additionalContext from
-#   a Stop hook:
-#
-#       "hookEventName: Stop is not a permitted value for hookSpecificOutput"
-#
-#   This validator error message is a hard upstream signal — stronger
-#   than third-party blog research — that the Claude Code schema CURRENTLY
-#   rejects Stop hook additionalContext at the input-validation layer.
-#   This audit's premise (Stop hooks silently drop additionalContext) is
-#   forensically validated by an independent community-filed bug report.
-#
-#   Schema-evolution contingency: if Anthropic accepts #60993 (or the
-#   related #24244, #50682, #46191, #34600 duplicates predating it) and
-#   ships a schema change adding additionalContext support to Stop hooks
-#   OR introducing a continueWith field that delivers context without
-#   the decision:"block" red-error-banner side effects — this audit
-#   would generate false-positives on legitimate Stop hooks. Mitigation:
-#     1. Track #60993 close-status (re-check before each marketplace
-#        release with significant Stop-hook changes).
-#     2. If schema changes ship: extend the audit's case statement with
-#        a new branch differentiating "additionalContext now supported
-#        in newer Claude Code versions" from "still silent-dropped".
-#     3. Operators on the affected Claude Code version range can use
-#        the STOP-HOOK-ADDITIONAL-CONTEXT-OK marker to opt out per-hook
-#        without waiting for the audit to be updated.
-#
-#   Related upstream issues (forensic citation chain):
-#     - #19115 — original Stop schema documentation
-#     - #19432, #20062 — earlier PreToolUse additionalContext drops (closed)
-#     - #55889 — v2.1.123 PreToolUse/PostToolUse Bash-matcher silent-drop
-#       regression (OPEN, documented in docs/HOOKS.md)
-#     - #24244 — original Stop hook continueWith feature request (closed)
-#     - #50682, #46191, #34600 — duplicate predecessor feature requests
-#     - #60993 — currently-open revival of #24244 (filed 2026-05-20)
+#   Events that DO deliver additionalContext to Claude (PreToolUse,
+#   PostToolUse, PostToolUseFailure, PostToolBatch, UserPromptSubmit,
+#   UserPromptExpansion, SessionStart, …) are out of scope.
 #
 # What this audit checks:
 #
-#   For every plugins/*/hooks/hooks.json that registers a Stop,
-#   SubagentStop, or SessionEnd hook, resolve the source file pointed
-#   to by the hook command and scan for the literal `additionalContext`
-#   token. Strips line comments (// ...) and JSDoc block comments
-#   (/* ... */) before scanning, so documentation references like the
-#   iter-66 forensic JSDoc block don't false-positive.
+#   For every plugins/*/hooks/hooks.json that registers one of the five
+#   event types above, resolve the source file the hook command points to
+#   and scan it for the literal `additionalContext` token after stripping
+#   // line comments and /* */ block comments, so documentation references
+#   do not false-positive.
 #
 # Escape hatch (legitimate uses):
 #
-#   Some hooks READ additionalContext from subhook stdout as part of
-#   an internal aggregation protocol — that's safe (the orchestrator
-#   reads it but doesn't re-emit it). To opt out of the audit for
-#   these cases, add to the source:
+#   A hook that READS additionalContext from subhook stdout as part of an
+#   internal aggregation protocol (and does not re-emit it), or a Stop hook
+#   that deliberately uses it to continue the conversation, adds:
 #
 #     // STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason ≥ 10 chars>
 #     # STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason ≥ 10 chars>
 #
-#   The marker name is historical (introduced in iter-67 for Stop
-#   hooks); per iter-68 expansion it now applies equivalently to
-#   SubagentStop and SessionEnd hooks. The 10-char minimum prevents
-#   low-effort opt-outs like "ok" or "tbd". The reason should explain
-#   WHY the source references additionalContext despite the schema not
-#   supporting it (typical: "reads additionalContext from subhook
-#   stdout, routes aggregated text to stderr per iter-66 fix" for
-#   orchestrators).
+#   The 10-char minimum prevents low-effort opt-outs like "ok" or "tbd".
 #
 # What this audit does NOT check (out of scope):
 #
-#   - Hooks NOT registered as Stop/SubagentStop/SessionEnd hooks in
-#     hooks.json — they're subhooks invoked by orchestrators, can
-#     legitimately emit additionalContext to a parent orchestrator
-#     over their stdout.
-#   - Whether additionalContext appears in JSON.stringify call sites
-#     via data-flow analysis. Static analysis with comment-stripping
-#     catches the common cases; deep data-flow would require AST
-#     analysis. Operator can use the OK marker after manual review.
-#
-# Verbose name encodes WHAT it audits (Stop hooks — file name was
-# fixed in iter-67 before SubagentStop+SessionEnd expansion landed
-# in iter-68; renaming the file would invalidate operator muscle
-# memory and the release:preflight Check 4j invocation. The line-2
-# header description is the authoritative scope declaration; this
-# header comment block contains the per-event-type details). WHICH
-# anti-pattern (additionalContext emission), WHY it matters (Claude
-# Code silently drops per schema), and the authoritative schema fact
-# (only decision + reason for Stop+SubagentStop; nothing read at all
-# for SessionEnd). Future maintainers searching for "stop hook
-# additionalContext", "subagent stop additionalContext",
-# "session end additionalContext", "stop hook silent drop",
-# "GitHub 19115", "iter-66", "iter-67", or "iter-68" surface this
-# audit immediately.
+#   - Hooks not registered for these events in hooks.json — orchestrator
+#     subhooks may legitimately pass additionalContext to their parent.
+#   - Data flow: a field name built dynamically is not seen. Static
+#     scanning with comment-stripping catches the common cases.
 #
 # Re-run cadence:
 #   - Manual: `bash tasks/hook-lint/stop-additional-context.sh`
-#   - Automatic: release:preflight Check 4j (iter-67 wire-up,
-#     iter-68 scope expansion preserved through Check 4j).
+#   - Automatic: `moon run repo:hook-lint` and release preflight Check 4j.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -265,15 +87,13 @@ echo "  (iter-67 audit + iter-68 trinity expansion + iter-69 pentad completion)"
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "→ Scans registered Stop, SubagentStop, SessionEnd, PreCompact, AND"
 echo "  Notification hook source files for additionalContext emission."
-echo "→ Per official Anthropic schema (GitHub #19115 + code.claude.com/docs/en/"
-echo "  hooks), three distinct schema sub-rules but a unified silent-drop"
-echo "  symptom:"
-echo "  • Stop, SubagentStop, PreCompact: read only {decision:'block', reason}"
-echo "  • SessionEnd: reads NOTHING (empty output — session terminating)"
-echo "  • Notification: no decision, purely informational (exit 2 stderr only)"
-echo "  Any additionalContext field on any of these five event types is"
-echo "  silently dropped — operator gets no transcript visibility, Claude gets"
-echo "  no context. The hook author sees JSON being emitted normally."
+echo "→ Per https://code.claude.com/docs/en/hooks:"
+echo "  • Stop, SubagentStop: additionalContext KEEPS THE CONVERSATION GOING"
+echo "    (\"Stop decision control\"), so informational output there forces"
+echo "    another turn; use decision:'block' + reason when continuing is intended"
+echo "  • PreCompact: reads only {decision:'block', reason}; the field is ignored"
+echo "  • SessionEnd: JSON output fields are discarded"
+echo "  • Notification: no decision control, no additionalContext field"
 echo "→ Comment-aware: strips // line and /* */ block comments before scan,"
 echo "  so JSDoc references (like iter-66 forensic docs) don't false-positive."
 echo "→ Escape hatch: 'STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason>' source"
@@ -405,10 +225,19 @@ while IFS= read -r hooks_json; do
     VIOLATION_LINES+="  ✗ ($event_type) $plugin_name/hooks/$hook_basename"$'\n'
     VIOLATION_LINES+="      Issue:   source references 'additionalContext' in non-comment code."$'\n'
     case "$event_type" in
-      Stop|SubagentStop|PreCompact)
-        VIOLATION_LINES+="               Per official Anthropic ${event_type}-hook schema (verbatim in"$'\n'
-        VIOLATION_LINES+="               GitHub #19115; ${event_type} uses the same decision-control format"$'\n'
-        VIOLATION_LINES+="               as Stop per code.claude.com/docs/en/hooks), ${event_type} hooks read"$'\n'
+      Stop|SubagentStop)
+        VIOLATION_LINES+="               Upstream \"Stop decision control\" (code.claude.com/docs/en/hooks"$'\n'
+        VIOLATION_LINES+="               #stop-decision-control): hookSpecificOutput.additionalContext on a"$'\n'
+        VIOLATION_LINES+="               ${event_type} hook is feedback that keeps the conversation going —"$'\n'
+        VIOLATION_LINES+="               \"The conversation continues so Claude can act on it\" — through the"$'\n'
+        VIOLATION_LINES+="               same loop protections as decision:\"block\" (stop_hook_active, the"$'\n'
+        VIOLATION_LINES+="               8-consecutive-continuation cap). Informational output emitted this"$'\n'
+        VIOLATION_LINES+="               way stops Claude from stopping instead of informing anyone."$'\n'
+        ;;
+      PreCompact)
+        VIOLATION_LINES+="               Per official Anthropic ${event_type}-hook schema (decision-control"$'\n'
+        VIOLATION_LINES+="               table at code.claude.com/docs/en/hooks, where only Stop and"$'\n'
+        VIOLATION_LINES+="               SubagentStop also accept additionalContext), ${event_type} hooks read"$'\n'
         VIOLATION_LINES+="               ONLY {decision:'block', reason} from stdout JSON. Any"$'\n'
         VIOLATION_LINES+="               additionalContext field is silently dropped — the hook author sees"$'\n'
         VIOLATION_LINES+="               the field being emitted, but Claude Code never reads it."$'\n'
@@ -431,12 +260,11 @@ while IFS= read -r hooks_json; do
         VIOLATION_LINES+="               reaches the user."$'\n'
         ;;
     esac
-    VIOLATION_LINES+="      Fix:     route the summary text to PROCESS.STDERR instead of stdout JSON."$'\n'
-    VIOLATION_LINES+="               Stderr is transcript-visible via Ctrl-R; operators can still see"$'\n'
-    VIOLATION_LINES+="               summaries during debugging. For Stop/SubagentStop/PreCompact only,"$'\n'
-    VIOLATION_LINES+="               to inject context that Claude actually reads on next turn, use"$'\n'
-    VIOLATION_LINES+="               decision:\"block\" + reason (which keeps Claude running and surfaces"$'\n'
-    VIOLATION_LINES+="               reason as a system reminder). SessionEnd cannot inject context at all"$'\n'
+    VIOLATION_LINES+="      Fix:     route informational summary text to PROCESS.STDERR instead of stdout"$'\n'
+    VIOLATION_LINES+="               JSON. Stderr is transcript-visible via Ctrl-R. For Stop/SubagentStop,"$'\n'
+    VIOLATION_LINES+="               when Claude really should continue, say so explicitly with"$'\n'
+    VIOLATION_LINES+="               decision:\"block\" + reason (or keep additionalContext and add the"$'\n'
+    VIOLATION_LINES+="               marker below with the reason). SessionEnd cannot inject context at all"$'\n'
     VIOLATION_LINES+="               — for end-of-session context use SessionStart on the NEXT session."$'\n'
     VIOLATION_LINES+="               Notification can only surface via stderr on exit 2 — for context"$'\n'
     VIOLATION_LINES+="               injection use a different event type (UserPromptSubmit, SessionStart)."$'\n'
@@ -444,8 +272,8 @@ while IFS= read -r hooks_json; do
     VIOLATION_LINES+="      Refs:    iter-66 (single-hook orchestrator fix), iter-67 (Stop-only audit),"$'\n'
     VIOLATION_LINES+="               iter-68 (audit scope expansion to SubagentStop + SessionEnd),"$'\n'
     VIOLATION_LINES+="               iter-69 (pentad completion: + PreCompact + Notification),"$'\n'
-    VIOLATION_LINES+="               GitHub #19115 (Anthropic schema verbatim example),"$'\n'
-    VIOLATION_LINES+="               https://code.claude.com/docs/en/hooks (official docs)."$'\n'
+    VIOLATION_LINES+="               https://code.claude.com/docs/en/hooks#stop-decision-control"$'\n'
+    VIOLATION_LINES+="               (official docs)."$'\n'
 
   done < <(jq -r '
     (.hooks // {}) | to_entries[]
@@ -488,9 +316,8 @@ if [ "$emission_violation_count" -gt 0 ]; then
 fi
 
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "  ✓ No Stop, SubagentStop, SessionEnd, PreCompact, or Notification hooks"
-echo "    emit additionalContext to stdout JSON. All five event types in the"
-echo "    silently-dropped pentad honor their respective official Anthropic"
-echo "    schemas (Stop+SubagentStop+PreCompact: {decision:'block', reason} only;"
-echo "    SessionEnd: empty output; Notification: no fields, exit-2 stderr only)."
+echo "  ✓ No Stop, SubagentStop, SessionEnd, PreCompact, or Notification hook"
+echo "    uses additionalContext without a justified marker. (Stop/SubagentStop:"
+echo "    it would keep the conversation going; PreCompact/SessionEnd/"
+echo "    Notification: it is not part of their output schema.)"
 echo "═══════════════════════════════════════════════════════════════════════════"

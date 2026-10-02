@@ -3,7 +3,7 @@
 > Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — extracted from the hub's hook table 2026-08-30 (hub was 37.8k chars against a 40k hard limit; the row's narrative was the only home for these facts).
 
 - **Hook**: `posttooluse-invented-fallback-reminder.ts`
-- **Event / matcher**: `PostToolUse` on `Bash|Write|Edit|MultiEdit`
+- **Event / matcher**: `PostToolUse` on `Bash|Write|Edit`
 - **Severity**: non-blocking reminder (context injection), never a deny.
 
 ## What it does

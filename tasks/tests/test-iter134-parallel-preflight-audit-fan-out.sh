@@ -126,11 +126,14 @@ assert_substring_present \
 # Expected count was 17 until 2026-08-05, when Check 4k (the iter-77
 # L3-stripped-path audit) was retired: the L2→L3 cache populator no longer
 # strips anything, so the gate could only ever reject correct code. Its
-# record is left commented in the array with the evidence. If you retire or
+# record is left commented in the array with the evidence. 16 became 15 on
+# 2026-10-01, when Check 4o (the matcher-multiedit audit) was deleted: Claude
+# Code has no MultiEdit tool, so requiring it in every file-edit matcher
+# guarded nothing. If you retire or
 # add a batch audit, update this number IN THE SAME COMMIT — a stale count
 # here fails the whole release preflight, and the failure message points at
 # the array rather than at your change.
-readonly ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT=16
+readonly ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT=15
 iter134_metadata_record_count_actual=$(echo "$preflight_script_source" | grep -cE '^[[:space:]]+"[a-z][a-z0-9-]+\|(hook-lint|commits)/[a-z0-9-]+\|')
 if [[ "$iter134_metadata_record_count_actual" -eq "$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-91 ARC-COMPLETION regression test. Verifies (1) vale-claude-md-guard inlined as 8th and FINAL registry entry — completing the iter-84→iter-91 PreToolUse Write|Edit migration arc; (2) orchestrator now contains exactly 8 subhooks in lightest-first deny-wins order; (3) non-CLAUDE.md write → ALLOW (O(1) endsWith fastpath); (4) CLAUDE.md write with valid content (no vale findings) → ALLOW; (5) standalone vale-claude-md-guard.ts backward-compat preserved; (6) subhook-contract audit task discovers ≥8 conforming subhooks; (7) PreToolUse additionalContext silent-drop NON-USE invariant STILL holds across ALL 8 inlined subhooks; (8) hooks.json now contains exactly ONE Write|Edit orchestrator entry plus the iter-78 layer3-stripped-path Write|Edit|MultiEdit entry (no other standalone Write|Edit entries remaining).
+# Iter-91 ARC-COMPLETION regression test. Verifies (1) vale-claude-md-guard inlined as 8th and FINAL registry entry — completing the iter-84→iter-91 PreToolUse Write|Edit migration arc; (2) orchestrator now contains exactly 8 subhooks in lightest-first deny-wins order; (3) non-CLAUDE.md write → ALLOW (O(1) endsWith fastpath); (4) CLAUDE.md write with valid content (no vale findings) → ALLOW; (5) standalone vale-claude-md-guard.ts backward-compat preserved; (6) subhook-contract audit task discovers ≥8 conforming subhooks; (7) PreToolUse additionalContext silent-drop NON-USE invariant STILL holds across ALL 8 inlined subhooks; (8) hooks.json now contains exactly ONE Write|Edit orchestrator entry plus the iter-78 layer3-stripped-path Write|Edit entry (no other standalone Write|Edit entries remaining).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -121,16 +121,13 @@ fi
 
 # ─── Case 6: hooks.json contains exactly ONE file-edit orchestrator entry ────
 # After arc completion, the only file-edit-matcher entry should be the
-# orchestrator. Iter-101 broadened the orchestrator matcher from "Write|Edit"
-# to "Write|Edit|MultiEdit" per the marketplace-wide matcher-hygiene audit
-# (closing the iter-100 MultiEdit-coverage-gap discovery). The semantic
-# invariant — exactly one orchestrator entry, with no residual standalone
+# orchestrator. The semantic invariant — exactly one orchestrator entry, with no residual standalone
 # subhook entries — is preserved by matching on COMMAND substring (the
 # orchestrator binary's unique filename suffix) rather than the matcher
 # string itself, decoupling this test from future matcher broadenings.
 case6_orchestrator_entry_count=$(jq '[.hooks.PreToolUse[] | select(.hooks[].command | test("pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent"))] | length' "$HOOKS_JSON_PATH")
 if [[ "$case6_orchestrator_entry_count" == "1" ]]; then
-    assert_passes "Case 6a: hooks.json contains exactly 1 PreToolUse orchestrator entry (matcher-string-decoupled check; iter-101 broadened to Write|Edit|MultiEdit per matcher-hygiene audit)"
+    assert_passes "Case 6a: hooks.json contains exactly 1 PreToolUse orchestrator entry (matcher-string-decoupled check)"
 else
     assert_fails "Case 6a: expected 1 orchestrator entry, found ${case6_orchestrator_entry_count} — standalone subhooks may not all be removed"
 fi

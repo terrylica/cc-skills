@@ -93,16 +93,6 @@ const edit = (
   session_id,
 });
 
-const multiEdit = (
-  file_path: string,
-  edits: Array<{ old_string: string; new_string: string }>,
-  session_id: string = freshSessionId(),
-): PostToolUseInput => ({
-  tool_name: "MultiEdit",
-  tool_input: { file_path, edits } as PostToolUseInput["tool_input"],
-  session_id,
-});
-
 const fires = async (input: PostToolUseInput): Promise<boolean> =>
   (await classifyLeakageTaxonomyForPostToolUseOrchestrator(input)).kind === "additional_context";
 
@@ -146,15 +136,6 @@ describe("FIRES: verdict-shaped leakage language", () => {
 
   it("fires on an Edit that introduces the verdict", async () => {
     expect(await fires(edit(DOC, "TODO: assess the H1 join", VERDICT))).toBe(true);
-  });
-
-  it("fires when only a LATER MultiEdit fragment carries the verdict", async () => {
-    const input = multiEdit(DOC, [
-      { old_string: "alpha", new_string: "beta" },
-      { old_string: "gamma", new_string: UNRELATED_CODE },
-      { old_string: "delta", new_string: VERDICT },
-    ]);
-    expect(await fires(input)).toBe(true);
   });
 
   it("fires on the several verdict spellings the doctrine names", async () => {
@@ -438,7 +419,7 @@ describe("tiered proximity windows", () => {
 
 describe("isLeakageTaxonomyReminderEligibleTarget", () => {
   it("accepts text files on every file-edit tool", () => {
-    for (const tool of ["Write", "Edit", "MultiEdit"]) {
+    for (const tool of ["Write", "Edit"]) {
       expect(isLeakageTaxonomyReminderEligibleTarget(tool, DOC)).toBe(true);
       expect(isLeakageTaxonomyReminderEligibleTarget(tool, "/a/notes.txt")).toBe(true);
       expect(isLeakageTaxonomyReminderEligibleTarget(tool, "/a/audit.py")).toBe(true);
@@ -518,11 +499,6 @@ describe("missing fields and malformed input", () => {
     expect(await fires(input)).toBe(false);
   });
 
-  it("returns noop when a MultiEdit has no edits array", async () => {
-    const input = { tool_name: "MultiEdit", tool_input: { file_path: DOC } } as PostToolUseInput;
-    expect(await fires(input)).toBe(false);
-  });
-
   it("returns noop when the content is empty", async () => {
     expect(await fires(write(DOC, ""))).toBe(false);
   });
@@ -575,14 +551,6 @@ describe("LEAK-TAXONOMY-OK escape hatch", () => {
     const spoke = `${process.env.HOME}/.claude/leakage-taxonomy-CLAUDE.md`;
     if (!existsSync(spoke)) return; // machine-dependent; skip rather than fail
     expect(isLeakTaxonomySuppressedByWholeFilePostEditMarker(spoke)).toBe(true);
-  });
-
-  it("does NOT suppress the OTHER fragments of a MultiEdit that lack the token", async () => {
-    const input = multiEdit(DOC, [
-      { old_string: "a", new_string: `harmless <!-- LEAK-TAXONOMY-OK -->` },
-      { old_string: "b", new_string: VERDICT },
-    ]);
-    expect(await fires(input)).toBe(true);
   });
 
   it("is case-sensitive — a lowercase marker does not suppress", async () => {
@@ -686,16 +654,6 @@ describe("detectTemporalLeakageAdjudicationVerdictLanguage", () => {
     expect(match?.characterDistance).toBeLessThanOrEqual(200);
   });
 
-  it("scans MultiEdit fragments SEPARATELY, never concatenated", () => {
-    // "leakage" ends fragment 1 and "invalid" opens fragment 2. Joining the
-    // fragments would manufacture an adjacency that exists nowhere in the file.
-    const input = multiEdit(DOC, [
-      { old_string: "a", new_string: "The paper discusses leakage" },
-      { old_string: "b", new_string: "invalid UTF-8 in the loader" },
-    ]);
-    expect(detectTemporalLeakageAdjudicationVerdictLanguage(input)).toBeNull();
-  });
-
   it("returns the CLOSEST qualifying pair", () => {
     const text = "leakage is discussed here; later the walk-forward fails. Then: leakage — rejected.";
     const match = findNearestNonOverlappingTermPair(text);
@@ -797,7 +755,6 @@ describe("orchestrator contract", () => {
     const inputs: PostToolUseInput[] = [
       write(DOC, VERDICT),
       edit(DOC, "a", "b"),
-      multiEdit(DOC, []),
       { tool_name: "Bash", tool_input: { command: "echo leakage rejected" } } as PostToolUseInput,
       {} as PostToolUseInput,
     ];

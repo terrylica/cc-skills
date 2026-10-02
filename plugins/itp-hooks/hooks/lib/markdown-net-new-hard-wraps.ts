@@ -4,11 +4,11 @@
  *
  * Three surfaces ask it, and until 2026-10-01 only the first one existed:
  *
- *   1. `posttooluse-markdown-hard-wrap-reminder.ts` — Write/Edit/MultiEdit of a `.md`.
+ *   1. `posttooluse-markdown-hard-wrap-reminder.ts` — Write/Edit of a `.md`.
  *   2. `posttooluse-bash-markdown-hard-wrap-reminder.ts` — a Bash command that wrote a `.md`
  *      (heredoc, `python3 - <<EOF`, a generator script, `sed -i`). Measured gap: a session reflowed
  *      and rewrote dozens of Markdown files through Bash and Python and the reminder never fired,
- *      because its matcher is `Write|Edit|MultiEdit` and a Bash command is not a file edit.
+ *      because its matcher is `Write|Edit` and a Bash command is not a file edit.
  *   3. `pretooluse-markdown-commit-hard-wrap-guard.ts` — `git commit`, the boundary every authoring
  *      path converges on, whatever tool wrote the file.
  *
