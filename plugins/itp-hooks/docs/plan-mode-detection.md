@@ -1,8 +1,6 @@
 # Plan Mode Detection
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md) — moved verbatim from the hub 2026-06-11 (CLAUDE.md size-guard refactor: hub was 112k chars, limit 40k).
-
-## Plan Mode Detection
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Implementation: `isPlanMode()` in [`hooks/lib/plan-mode-detector.ts`](../hooks/lib/plan-mode-detector.ts), re-exported by `hooks/pretooluse-helpers.ts`.
 
 Hooks can detect when Claude is in plan mode and skip validation. This prevents blocking during planning phase when Claude writes to plan files or explores the codebase.
 
@@ -31,8 +29,13 @@ if (planContext.inPlanMode) {
 
 ### Hooks with Plan Mode Support
 
-- `pretooluse-version-guard.ts` - Skips version checks in plan mode (iter-85: orchestrator-inlined)
+- `pretooluse-version-guard.ts` - Skips version checks in plan mode
 - `pretooluse-mise-hygiene-guard.ts` - Skips hygiene checks in plan mode
+- `pretooluse-file-size-guard.ts` - Skips line-count checks in plan mode
+- `pretooluse-typescript-version-guard.ts` - Skips TypeScript version checks in plan mode
+- `pretooluse-shell-script-safety-guard.ts` - Skips shell-script checks in plan mode
+- `pretooluse-typescript-legacy-install-command-guard.ts` - Skips legacy-install command checks in plan mode
+
+All six run inside an orchestrator (the first five as Write\|Edit subhooks, the last as a Bash guard), so the skip applies per subhook.
 
 **ADR**: [/docs/adr/2026-02-05-plan-mode-detection-hooks.md](/docs/adr/2026-02-05-plan-mode-detection-hooks.md)
-

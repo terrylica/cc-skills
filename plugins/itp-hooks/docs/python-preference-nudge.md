@@ -1,6 +1,6 @@
 # Python-preference nudge
 
-> Spoke for `hooks/posttooluse-python-preference-nudge.ts` (inlined in the iter-93 PostToolUse orchestrator). Hub: [itp-hooks CLAUDE.md](../CLAUDE.md). ADR: [/docs/adr/2026-06-25-python-preference-nudge-per-file-toml-allowlist.md](/docs/adr/2026-06-25-python-preference-nudge-per-file-toml-allowlist.md).
+> Spoke for `hooks/posttooluse-python-preference-nudge.ts` (subhook `python-preference-nudge` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md)). Hub: [itp-hooks CLAUDE.md](../CLAUDE.md). ADR: [/docs/adr/2026-06-25-python-preference-nudge-per-file-toml-allowlist.md](/docs/adr/2026-06-25-python-preference-nudge-per-file-toml-allowlist.md).
 
 ## What it does
 
@@ -31,7 +31,7 @@ A file is **allowed** iff some ancestor allowlist has an `[[allow]]` entry whose
 
 ## The one implicit exemption
 
-Ephemeral throwaway scratch under a temp dir (`/tmp`, `/private/tmp`, `/var/folders`, `$TMPDIR`, `/dev/shm`) is silent — those files are discarded so nudging is noise. Implemented via the shared iter-124 helper `isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts`. This never applies to project files.
+Ephemeral throwaway scratch under a temp dir (`/tmp`, `/private/tmp`, `/var/folders`, `$TMPDIR`, `/dev/shm`) is silent — those files are discarded so nudging is noise. Implemented via the shared helper `isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts` in [`lib/shared-temp-dir-edit-path-detection-iter124.ts`](../hooks/lib/shared-temp-dir-edit-path-detection-iter124.ts). This never applies to project files.
 
 Also skipped (not first-party source): paths containing `/.venv/`, `/venv/`, `/node_modules/`, `/site-packages/`, `/__pycache__/`, `/.git/`, `/.tox/`, `/.mypy_cache/`.
 
