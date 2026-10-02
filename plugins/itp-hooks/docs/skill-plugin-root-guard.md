@@ -73,7 +73,7 @@ Currently marked: `plugin-dev`'s `path-patterns.md` / `advanced-topics.md` / `ev
 - Classifier: `classifySkillPluginRootGuardForOrchestrator` in [`../hooks/pretooluse-skill-plugin-root-guard.ts`](../hooks/pretooluse-skill-plugin-root-guard.ts)
 - Registered as a subhook in the PreToolUse Write|Edit orchestrator, positioned early: an O(1) path filter (`/skills/` substring + `.md` suffix) then an O(1) content sentinel; the single disk read is deferred until a real candidate violation exists.
 - Tests: [`../hooks/pretooluse-skill-plugin-root-guard.test.ts`](../hooks/pretooluse-skill-plugin-root-guard.test.ts).
-- Marker registered in the canonical marker registry, [`lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts).
+- Marker registered in the canonical marker registry, [`lib/escape-hatch-marker-registry-iter111.ts`](../hooks/lib/escape-hatch-marker-registry-iter111.ts).
 
 ## What it does not police
 

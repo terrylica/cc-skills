@@ -22,7 +22,7 @@
  * with it included. Unresolved references are skipped. `allowWithInput` itself now refuses this tool.
  *
  * WHY THE ANNOTATION IS ONE LINE. The sibling
- * pretooluse-askuserquestion-option-line-terminator-guard DENIES any newline inside an option's
+ * pretooluse-askuserquestion-line-terminator-guard DENIES any newline inside an option's
  * `label` or `description`, because Claude Code renders one as U+FFFD. So the annotation is a
  * single ` — ` separated clause, never a second paragraph.
  */

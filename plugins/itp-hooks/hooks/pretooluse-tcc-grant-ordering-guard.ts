@@ -51,7 +51,7 @@
 import {
   type EscapeHatchMarkerDetectionConfiguration,
   hasFileWideEscapeHatchMarkerInContent,
-} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./lib/escape-hatch-marker-detection-iter107.ts";
 import {
   allow,
   deny,

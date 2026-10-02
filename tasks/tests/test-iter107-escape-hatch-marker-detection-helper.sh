@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-ITER107_SHARED_HELPER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts"
+ITER107_SHARED_HELPER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/escape-hatch-marker-detection-iter107.ts"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0

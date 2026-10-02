@@ -49,7 +49,7 @@ const ALREADY_DETACHED = /(?:^|\s)nohup\s|>\s*\/dev\/null|<\s*\/dev\/null|\btmux
 import {
   hasFileWideEscapeHatchMarkerInContent,
   type EscapeHatchMarkerDetectionConfiguration,
-} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./lib/escape-hatch-marker-detection-iter107.ts";
 const CARGO_TTY_GUARD_OPT_OUT_SKIP_ESCAPE_HATCH_CONFIGURATION: Pick<
   EscapeHatchMarkerDetectionConfiguration,
   "markerNameTokenIncludingSuffix" | "caseSensitivityMode"

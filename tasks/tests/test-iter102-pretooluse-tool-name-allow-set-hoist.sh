@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts"
+PRETOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-iter84.ts"
 
 declare -a EIGHT_INLINED_PRETOOLUSE_CLASSIFIER_ABSOLUTE_PATHS=(
     "$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
@@ -89,7 +89,7 @@ fi
 # ─── Case 5: helper accepts Write/Edit and rejects every other tool name ─────
 set +e
 case5_helper_verdicts=$(cd "$REPO_ROOT" && bun -e '
-import { isFileEditToolNameHonoredByPreToolUseBlockingSubhook as h } from "./plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+import { isFileEditToolNameHonoredByPreToolUseBlockingSubhook as h } from "./plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-iter84.ts";
 console.log(["Write", "Edit", "NotebookEdit", "Bash", ""].map((t) => h(t)).join(","));
 ' 2>/dev/null)
 set -e

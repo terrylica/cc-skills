@@ -8,7 +8,7 @@
  *
  * Detects `typescript@<spec>` tokens (and `@typescript/native-preview@<spec>`)
  * anywhere in the command, including inside quotes. Reuses the shared TypeScript
- * version evaluator (lib/typescript-version-specifier-minimum-major-policy-evaluator.ts)
+ * version evaluator (lib/typescript-version-specifier-policy.ts)
  * to determine if a specifier is legacy, so the guard cannot drift from the
  * package.json editor guard.
  *
@@ -38,8 +38,8 @@ import {
   evaluateTypeScriptVersionSpecifier,
   isBlockingTypeScriptVersionSpecifierVerdict,
   type TypeScriptVersionSpecifierVerdict,
-} from "./lib/typescript-version-specifier-minimum-major-policy-evaluator.ts";
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./lib/typescript-version-specifier-policy.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 
 // ────────────────────────────────────────────────────────────────────────
 // Shell parsing helpers (extract package specifiers from command)

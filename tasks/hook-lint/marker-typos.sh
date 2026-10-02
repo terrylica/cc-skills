@@ -23,8 +23,8 @@
 #
 # Iter-111 introduces:
 #   1. A canonical producer-marker registry at
-#      plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-
-#      marker-canonical-registry-cross-plugin-iter111.ts that declares
+#      plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts
+#      that declares
 #      every legitimate marker token with its consumer hook, case-
 #      sensitivity mode, window-semantics mode, reason policy, and
 #      operator-readable description.
@@ -67,7 +67,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Audit lives at tasks/hook-lint/<this-script>.sh; repo root is two levels up.
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
-ITER111_PRODUCER_MARKER_CANONICAL_REGISTRY_TYPESCRIPT_SOURCE_FILE_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
+ITER111_PRODUCER_MARKER_CANONICAL_REGISTRY_TYPESCRIPT_SOURCE_FILE_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts"
 
 print_banner() {
     echo "════════════════════════════════════════════════════════════════════════════════"

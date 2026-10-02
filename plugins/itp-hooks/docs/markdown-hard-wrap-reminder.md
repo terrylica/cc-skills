@@ -140,7 +140,7 @@ Put the marker in an **HTML comment, in live markdown**:
 <!-- MD-HARD-WRAP-OK: verbatim quoted email, the line breaks are the content -->
 ```
 
-`CASE_SENSITIVE`, `FILE_WIDE` (one invocation exempts the whole file), no reason required though one is polite; registered in the [canonical marker registry](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts). Pre-existing wraps never fire, so the marker is only needed for wrapping you are adding on purpose.
+`CASE_SENSITIVE`, `FILE_WIDE` (one invocation exempts the whole file), no reason required though one is polite; registered in the [canonical marker registry](../hooks/lib/escape-hatch-marker-registry-iter111.ts). Pre-existing wraps never fire, so the marker is only needed for wrapping you are adding on purpose.
 
 ### Why it is not a plain substring match any more (issue #106 finding 1)
 
@@ -188,7 +188,7 @@ The escape-hatch tests build the marker literal at run time (`["MD-HARD-WRAP", "
 
 [`lib/hard-wrap-detector.test.ts`](../hooks/lib/hard-wrap-detector.test.ts) — covers the badge rows, the nested/third-level/ordered sub-bullets, and the two cases that must STAY code (an indented block with no list context, and one after a dedent to column zero).
 
-[`lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.test.ts`](../hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.test.ts) — the marker grammar itself: the four real-world opt-out shapes (one-line, reasoned, marker-on-its-own-line, multi-line with an interior code span), nine mention shapes that must NOT suppress, and the knobs (case sensitivity, minimum-reason gate, CRLF). Every mention case also asserts that a plain whole-file substring match _would_ fire on it, which is why that match is not used for documents.
+[`lib/escape-hatch-marker-detection-iter107.test.ts`](../hooks/lib/escape-hatch-marker-detection-iter107.test.ts) — the marker grammar itself: the four real-world opt-out shapes (one-line, reasoned, marker-on-its-own-line, multi-line with an interior code span), nine mention shapes that must NOT suppress, and the knobs (case sensitivity, minimum-reason gate, CRLF). Every mention case also asserts that a plain whole-file substring match _would_ fire on it, which is why that match is not used for documents.
 
 [`lib/gfm-unwrap.test.ts`](../hooks/lib/gfm-unwrap.test.ts) — the joiner, now including four tests pinning `computeJoinedWithNextLineMask` to the joiner it is derived from: its true-count must equal `joinsPerformed`, and the removed breaks must match the output's line count exactly. The mask cannot drift from the joiner without one of those failing.
 

@@ -54,20 +54,20 @@ import {
   denyDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 import {
   findTypeScriptDependencySpecifiersInPackageJsonText,
   evaluateTypeScriptVersionSpecifier,
   isBlockingTypeScriptVersionSpecifierVerdict,
-} from "./lib/typescript-version-specifier-minimum-major-policy-evaluator.ts";
+} from "./lib/typescript-version-specifier-policy.ts";
 import {
   hasFileWideEscapeHatchMarkerInContent,
   type EscapeHatchMarkerDetectionConfiguration,
-} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+} from "./lib/escape-hatch-marker-detection-iter107.ts";
 import {
   evaluateTypeScriptSevenCompilerOptionShapeConformance,
   extractHardErrorViolationsFromTypeScriptSevenCompilerOptionShapeConformance,
-} from "./lib/typescript-seven-compiler-option-shape-validator-for-tsconfig-files.ts";
+} from "./lib/tsconfig-ts7-option-validator.ts";
 
 // ============================================================================
 // Configuration

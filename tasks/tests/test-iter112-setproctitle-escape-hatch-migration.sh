@@ -7,8 +7,8 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER112_MIGRATED_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-reminder.ts"
-ITER107_SHARED_HELPER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts"
-ITER111_REGISTRY_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
+ITER107_SHARED_HELPER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/escape-hatch-marker-detection-iter107.ts"
+ITER111_REGISTRY_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts"
 ITER110_STRICT_INVENTORY_AUDIT_ABSOLUTE_PATH="$REPO_ROOT/tasks/hook-lint/escape-hatch-cohort.sh"
 
 ASSERTION_PASSED_COUNT=0
@@ -22,7 +22,7 @@ echo "════════════════════════�
 echo ""
 
 # ─── Case 1: posttooluse-reminder.ts imports the iter-107 canonical helper ─
-if grep -q "from \"./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107" "$ITER112_MIGRATED_HOOK_ABSOLUTE_PATH" && \
+if grep -q "from \"./lib/escape-hatch-marker-detection-iter107" "$ITER112_MIGRATED_HOOK_ABSOLUTE_PATH" && \
    grep -q "hasFileWideEscapeHatchMarkerInContent" "$ITER112_MIGRATED_HOOK_ABSOLUTE_PATH"; then
     assert_passes "Case 1: posttooluse-reminder.ts imports the iter-107 canonical helper and invokes hasFileWideEscapeHatchMarkerInContent"
 else

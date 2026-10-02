@@ -93,7 +93,7 @@ The `reason` field includes:
 
 ## Escape Hatch
 
-Marker: `MINI-INNGEST-OK` (registered in `marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`)
+Marker: `MINI-INNGEST-OK` (registered in `escape-hatch-marker-registry-iter111.ts`)
 
 **Modes**: FILE_WIDE (any comment style or bare marker in the file content)
 
@@ -139,12 +139,12 @@ launchctl bootstrap ~/Library/LaunchAgents test-webhook.plist
 **Files modified**:
 
 - `hooks/hooks.json` — registered in PostToolUse matchers `Bash|Write|Edit|MultiEdit`
-- `lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts` — added `MINI-INNGEST-OK` entry
+- `lib/escape-hatch-marker-registry-iter111.ts` — added `MINI-INNGEST-OK` entry
 
 **Dependencies reused**:
 
 - `isRemoteCommand()` from `readonly-command-detector.ts` (external target classification)
-- `hasFileWideEscapeHatchMarkerInContent()` from `shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts` (marker detection)
+- `hasFileWideEscapeHatchMarkerInContent()` from `escape-hatch-marker-detection-iter107.ts` (marker detection)
 - `trackHookError()` from `hook-error-tracker.ts` (error logging)
 
 **Fail-open semantics**: Any error in detection or regex matching exits with code 0 silently; never blocks work.

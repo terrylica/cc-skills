@@ -33,7 +33,7 @@ describe("Stop-hook async spawn with resource guard", () => {
       tryAcquireMachineWideConcurrencySlotForGuardedSubprocess,
       releaseMachineWideConcurrencySlotSwallowingAllFilesystemErrors,
     } = await import(
-      "./subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124"
+      "./subprocess-rss-watchdog-and-slot-guard-iter124"
     );
 
     const acquired1 = tryAcquireMachineWideConcurrencySlotForGuardedSubprocess(toolName, 2);
@@ -58,7 +58,7 @@ describe("Stop-hook async spawn with resource guard", () => {
       tryAcquireMachineWideConcurrencySlotForGuardedSubprocess,
       releaseMachineWideConcurrencySlotSwallowingAllFilesystemErrors,
     } = await import(
-      "./subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124"
+      "./subprocess-rss-watchdog-and-slot-guard-iter124"
     );
 
     const held1 = tryAcquireMachineWideConcurrencySlotForGuardedSubprocess(toolName, 2);
