@@ -107,6 +107,22 @@ probe_direct() {
         "$@"
 }
 
+# Portable file metadata and ISO-8601 parsing (GNU coreutils first, then BSD).
+# Before 2026-10-01 every call site used the BSD-only `stat -f %m` / `date -j`.
+# On Linux, GNU `stat -f` means "file SYSTEM status" and treats `%m` as a path,
+# so each call printed filesystem info instead of an mtime: every disk cache in
+# this script (release, visibility, gateway, floor) computed a garbage age and
+# never hit, and the release age never rendered. GNU is tried FIRST because BSD
+# `stat -c` is a hard error (clean fall-through), whereas GNU `stat -f` succeeds
+# with the wrong output. Each prints one integer; 0 / empty on any failure.
+file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
+file_size()  { stat -c %s "$1" 2>/dev/null || stat -f %z "$1" 2>/dev/null || echo 0; }
+iso_utc_to_epoch() {
+    TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$1" "+%s" 2>/dev/null \
+        || date -u -d "$1" "+%s" 2>/dev/null \
+        || echo ""
+}
+
 # Get path display with ~ substitution
 # Shows: ~/eon/cc-skills or ~/eon/cc-skills/plugins/itp-hooks
 get_repo_path() {
@@ -277,7 +293,7 @@ if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
         cache_age=9999
 
         if [ -f "$cache_file" ]; then
-            cache_age=$(($(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || echo 0)))
+            cache_age=$(($(date +%s) - $(file_mtime "$cache_file")))
         fi
 
         # Only query remote every 30 seconds to avoid network overhead
@@ -362,10 +378,26 @@ reltime() {
 }
 
 # Extract owner/repo early — needed by both version lookup and visibility check
+# The remote is `origin` when it exists; otherwise the first remote whose URL
+# names a GitHub host. Before 2026-10-01 only `origin` was read, so a repo whose
+# GitHub remote has another name (e.g. `github`, common when the clone came from
+# elsewhere) lost its URL, visibility and release segments. "GitHub host" covers
+# github.com, `github.com-<account>` aliases, and bare ssh aliases such as
+# `git@github-<name>:owner/repo.git` (a Host entry in ~/.ssh/config).
 owner_repo=""
 remote_url_raw=$(git remote get-url origin 2>/dev/null)
+if [ -z "$remote_url_raw" ]; then
+    while IFS= read -r _remote_name; do
+        [ -n "$_remote_name" ] || continue
+        _remote_url=$(git remote get-url "$_remote_name" 2>/dev/null)
+        case "$_remote_url" in
+        *@github*:*/* | https://github.com/*/*) remote_url_raw="$_remote_url"; break ;;
+        esac
+    done <<< "$(git remote 2>/dev/null)"
+    unset _remote_name _remote_url
+fi
 if [ -n "$remote_url_raw" ]; then
-    owner_repo=$(echo "$remote_url_raw" | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
+    owner_repo=$(echo "$remote_url_raw" | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|^[^@]*@github[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
 fi
 
 # Credential resolution (ADR 2026-06-21 doctrine): derive the gh account from the
@@ -409,7 +441,7 @@ if [ -n "$owner_repo" ]; then
     release_cache_dir=$(git rev-parse --git-dir 2>/dev/null)
     release_cache_file="${release_cache_dir:-/tmp}/ccstatusline-gh-release-cache"
     release_cache_age=9999
-    [ -f "$release_cache_file" ] && release_cache_age=$(($(date +%s) - $(stat -f %m "$release_cache_file" 2>/dev/null || echo 0)))
+    [ -f "$release_cache_file" ] && release_cache_age=$(($(date +%s) - $(file_mtime "$release_cache_file")))
     if [ "$release_cache_age" -lt 300 ]; then
         release_out=$(cat "$release_cache_file")
         release_exit=0
@@ -424,7 +456,7 @@ if [ -n "$owner_repo" ]; then
         latest_tag="${release_out%%|*}"
         published_at="${release_out##*|}"
         # Convert ISO 8601 publishedAt (UTC) to epoch for reltime
-        tag_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$published_at" "+%s" 2>/dev/null || echo "")
+        tag_epoch=$(iso_utc_to_epoch "$published_at")
         tag_age=""
         if [ -n "$tag_epoch" ]; then
             tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
@@ -436,16 +468,37 @@ if [ -n "$owner_repo" ]; then
         # auth/network errors). When gh died without output (timeout 124,
         # binary missing 127), state the official exit code instead —
         # never an invented marker word.
-        gh_rel_diag=$(printf '%s' "$release_out" | head -1 | sed -E 's/^(fatal|error): //')
-        # Missing-profile failures are actionable — name the absent profile
-        # instead of gh's generic auth diagnostic ("gh exit 4" / login prompt).
-        if [ -n "$gh_profile_missing" ]; then
-            gh_rel_diag="no gh-${gh_profile_missing} profile"
+        # Local fallback (2026-10-01): when GitHub cannot answer (no gh login on
+        # this machine, offline, or a repo that tags without publishing GitHub
+        # releases), show the newest local SEMVER tag — the tag semantic-release
+        # itself creates — marked `tag` so it is never mistaken for a confirmed
+        # release. Strict vN.N.N only, sorted by version, so non-semver milestone
+        # tags (v2.0, v2.1) can never outrank a real release tag. gh's diagnostic
+        # is shown only when there is no such tag.
+        local_tag=""
+        local_tag_epoch=""
+        while IFS='|' read -r _t _e; do
+            if [[ "$_t" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                local_tag="$_t"; local_tag_epoch="$_e"; break
+            fi
+        done <<< "$(git for-each-ref --sort=-v:refname --format='%(refname:short)|%(creatordate:unix)' 'refs/tags/v*' 2>/dev/null)"
+        unset _t _e
+        if [ -n "$local_tag" ]; then
+            tag_age=""
+            [ -n "$local_tag_epoch" ] && tag_age=" ${BRIGHT_BLACK}$(reltime "$local_tag_epoch")${RESET}"
+            git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${local_tag}${RESET} ${BRIGHT_BLACK}tag${RESET}${tag_age}"
+        else
+            gh_rel_diag=$(printf '%s' "$release_out" | head -1 | sed -E 's/^(fatal|error): //')
+            # Missing-profile failures are actionable — name the absent profile
+            # instead of gh's generic auth diagnostic ("gh exit 4" / login prompt).
+            if [ -n "$gh_profile_missing" ]; then
+                gh_rel_diag="no gh-${gh_profile_missing} profile"
+            fi
+            git_changes="${git_changes} ${BRIGHT_BLACK}| ${gh_rel_diag:-gh exit ${release_exit}}${RESET}"
         fi
-        git_changes="${git_changes} ${BRIGHT_BLACK}| ${gh_rel_diag:-gh exit ${release_exit}}${RESET}"
     fi
 fi
-# (No origin remote → the release segment is omitted entirely: absent data
+# (No GitHub remote → the release segment is omitted entirely: absent data
 # renders nothing, per the official-values policy — the invented "| ∅"
 # placeholder was removed 2026-06-11.)
 
@@ -490,7 +543,7 @@ get_github_url() {
     # git@github.com:user/repo.git -> https://github.com/user/repo
     # Also handles wiki: myorg/kb.wiki.git -> https://github.com/myorg/kb/wiki
     local https_url
-    https_url=$(echo "$remote_url" | sed -E 's|git@github\.com[^:]*:|https://github.com/|' | sed 's|\.wiki\.git$||; s|\.wiki$||; s|\.git$||')
+    https_url=$(echo "$remote_url" | sed -E 's|^[^@]*@github[^:]*:|https://github.com/|' | sed 's|\.wiki\.git$||; s|\.wiki$||; s|\.git$||')
 
     if $is_wiki; then
         echo "${https_url}/wiki"
@@ -521,7 +574,7 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
     vis_cache_dir=$(git rev-parse --git-dir 2>/dev/null)
     vis_cache_file="${vis_cache_dir:-/tmp}/ccstatusline-gh-visibility-cache"
     vis_cache_age=9999
-    [ -f "$vis_cache_file" ] && vis_cache_age=$(($(date +%s) - $(stat -f %m "$vis_cache_file" 2>/dev/null || echo 0)))
+    [ -f "$vis_cache_file" ] && vis_cache_age=$(($(date +%s) - $(file_mtime "$vis_cache_file")))
     vis_err=""
     if [ "$vis_cache_age" -lt 3600 ]; then
         vis_out=$(cat "$vis_cache_file")
@@ -877,7 +930,7 @@ GATEWAY_FLOOR_TTL=3600  # 1 hour
 # expiry, probe gateway; on probe failure, fall back to compiled-in default.
 GATEWAY_MIN_WRAPPER_VERSION=""
 if [ -f "$GATEWAY_FLOOR_CACHE" ]; then
-    floor_cache_mtime=$(stat -f %m "$GATEWAY_FLOOR_CACHE" 2>/dev/null || echo 0)
+    floor_cache_mtime=$(file_mtime "$GATEWAY_FLOOR_CACHE")
     floor_cache_age=$(( $(date +%s) - floor_cache_mtime ))
     if [ "$floor_cache_age" -lt "$GATEWAY_FLOOR_TTL" ]; then
         GATEWAY_MIN_WRAPPER_VERSION=$(cat "$GATEWAY_FLOOR_CACHE" 2>/dev/null)
@@ -920,7 +973,7 @@ gateway_raw=""
 gateway_needs_fetch=0
 [ "$GATEWAY_CONFIGURED" -eq 1 ] && gateway_needs_fetch=1
 if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -f "$GATEWAY_CACHE" ]; then
-    gateway_cache_mtime=$(stat -f %m "$GATEWAY_CACHE" 2>/dev/null || echo 0)
+    gateway_cache_mtime=$(file_mtime "$GATEWAY_CACHE")
     gateway_cache_age=$(( $(date +%s) - gateway_cache_mtime ))
     [ "$gateway_cache_age" -lt "$GATEWAY_CACHE_TTL" ] && gateway_needs_fetch=0
 fi
@@ -949,8 +1002,8 @@ WRAPPER_BIN="${STATUSLINE_CLIENT_WRAPPER_BIN:-${HOME}/.local/bin/ccmax-claude}"
 WRAPPER_VERSION_CACHE="/tmp/statusline-client-version"
 wrapper_version=""
 if [ -x "$WRAPPER_BIN" ]; then
-    wrapper_bin_mtime=$(stat -f %m "$WRAPPER_BIN" 2>/dev/null || echo 0)
-    wrapper_cache_mtime=$(stat -f %m "$WRAPPER_VERSION_CACHE" 2>/dev/null || echo 0)
+    wrapper_bin_mtime=$(file_mtime "$WRAPPER_BIN")
+    wrapper_cache_mtime=$(file_mtime "$WRAPPER_VERSION_CACHE")
     if [ -f "$WRAPPER_VERSION_CACHE" ] && [ "$wrapper_cache_mtime" -ge "$wrapper_bin_mtime" ]; then
         wrapper_version=$(cat "$WRAPPER_VERSION_CACHE" 2>/dev/null)
     else
@@ -1344,7 +1397,7 @@ if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -n "${ANTHROPIC_BASE_URL:-}" ] \
     # gateway on 127.0.0.1, so a loopback base URL still means gateway-routed.
     case "$_rt_env_authority" in
         127.0.0.1:*|localhost:*|"$_rt_gw_authority")
-            transcript_mtime=$(stat -f %m "$transcript_file" 2>/dev/null || echo 0)
+            transcript_mtime=$(file_mtime "$transcript_file")
             transcript_age=$(( $(date +%s) - transcript_mtime ))
             [ "$transcript_age" -lt 60 ] && real_traffic_recent=1
             ;;
@@ -2039,7 +2092,7 @@ gateway_state_jsonl_log_record_for_this_render="{\
 if [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
     gateway_state_jsonl_log_max_bytes_before_rotation=10485760
     gateway_state_jsonl_log_current_size_bytes=$(
-        stat -f %z "${gateway_state_jsonl_log_absolute_path}" 2>/dev/null || echo 0
+        file_size "${gateway_state_jsonl_log_absolute_path}"
     )
     if [ "${gateway_state_jsonl_log_current_size_bytes}" -gt "${gateway_state_jsonl_log_max_bytes_before_rotation}" ] 2>/dev/null; then
         rm -f "${gateway_state_jsonl_log_absolute_path}.3" 2>/dev/null
@@ -2213,7 +2266,7 @@ if [ "$cron_count" -gt 0 ]; then
             encoded_dir="${full_path//\//-}"
             jsonl_file="$HOME/.claude/projects/${encoded_dir}/${gc_session}.jsonl"
             if [ -f "$jsonl_file" ]; then
-                jsonl_mtime=$(stat -f %m "$jsonl_file" 2>/dev/null || echo 0)
+                jsonl_mtime=$(file_mtime "$jsonl_file")
                 age=$((now_epoch - jsonl_mtime))
                 if [ "$age" -lt "$session_stale_threshold" ]; then
                     is_stale=0  # session is alive

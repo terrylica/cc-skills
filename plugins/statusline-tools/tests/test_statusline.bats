@@ -450,6 +450,118 @@ FAKE
     [[ "$plain" != *"gh exit 4"* ]]
 }
 
+# Shared by the 2026-10-01 tests: a gh that fails like an unauthenticated CLI.
+_fake_gh_noauth() {
+    fakebin="$BATS_TEST_TMPDIR/fakebin-noauth-$1"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/gh" <<'FAKE'
+#!/usr/bin/env bash
+printf '%s\n' 'To get started with GitHub CLI, please run: gh auth login' >&2
+exit 4
+FAKE
+    chmod +x "$fakebin/gh"
+}
+
+_tagged_repo() {
+    repo="$BATS_TEST_TMPDIR/$1"
+    mkdir -p "$repo"
+    git -C "$repo" init -q
+    git -C "$repo" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+}
+
+@test "a GitHub remote not named origin still yields the repo URL (2026-10-01)" {
+    # Incident 2026-10-01: a clone whose only remote is `github` (ssh host alias
+    # git@github-<name>:owner/repo.git) rendered "No such remote 'origin'" and
+    # lost its URL, visibility and release segments.
+    _tagged_repo altremote_repo
+    git -C "$repo" remote add github "git@github-widgetbox:owner/widgets.git"
+    _fake_gh_noauth altremote
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"https://github.com/owner/widgets"* ]]
+    [[ "$plain" != *"No such remote"* ]]
+}
+
+@test "release segment falls back to the newest local semver tag, marked tag (2026-10-01)" {
+    # gh cannot answer (no login): the newest STRICT vN.N.N tag renders, marked
+    # `tag`. A non-semver milestone tag that sorts higher must not outrank it.
+    _tagged_repo localtag_repo
+    git -C "$repo" remote add origin "git@github.com:owner/widgets.git"
+    git -C "$repo" tag v0.9.0
+    git -C "$repo" tag v0.10.0
+    git -C "$repo" tag v2.1
+    _fake_gh_noauth localtag
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"| v0.10.0 tag "* ]]
+    [[ "$plain" != *"v2.1"* ]]
+    # (The visibility badge may still read "(gh exit 4)"; only the release
+    # segment, which starts "| ", must not carry gh's failure.)
+    [[ "$plain" != *"| gh exit"* ]]
+    [[ "$plain" != *"gh auth login"* ]]
+}
+
+@test "release segment keeps gh's diagnostic when there is no local semver tag (2026-10-01)" {
+    _tagged_repo notag_repo
+    git -C "$repo" remote add origin "git@github.com:owner/widgets.git"
+    _fake_gh_noauth notag
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"gh auth login"* ]]
+    [[ "$plain" != *" tag "* ]]
+}
+
+@test "no BSD-only stat/date call sites outside the portable helpers (2026-10-01)" {
+    # GNU `stat -f %m` succeeds with filesystem info instead of an mtime, so every
+    # disk cache silently missed on Linux. All metadata goes through file_mtime /
+    # file_size / iso_utc_to_epoch, which try GNU first and BSD second.
+    offenders=$(grep -nE 'stat -f %[mz]|date -j' "$STATUSLINE" \
+        | grep -vE '^[0-9]+:[[:space:]]*#' \
+        | grep -vE 'file_mtime\(\)|file_size\(\)|TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "\$1"' || true)
+    [ -z "$offenders" ]
+}
+
+@test "file_mtime / iso_utc_to_epoch return integers on this platform (2026-10-01)" {
+    helpers=$(sed -n '/^file_mtime()/,/^}/p' "$STATUSLINE")
+    f="$BATS_TEST_TMPDIR/mtime_probe"
+    touch -t 202601020304.05 "$f"
+    run bash -c "$helpers"$'\n'"file_mtime '$f'; iso_utc_to_epoch 2026-01-02T03:04:05Z"
+    [ "$status" -eq 0 ]
+    [[ "${lines[0]}" =~ ^[0-9]{10}$ ]]
+    [ "${lines[1]}" = "1767323045" ]
+}
+
+@test "file_mtime / file_size take the BSD fallback without recursing (2026-10-01)" {
+    # Regression: a draft rewrote the BSD branch inside file_mtime into a call to
+    # file_mtime itself; Linux (GNU stat -c succeeds) never noticed, macOS hung
+    # every render. Simulate BSD stat on any platform: -c fails, -f answers.
+    helpers=$(sed -n '/^file_mtime()/,/^}/p' "$STATUSLINE")
+    fakebin="$BATS_TEST_TMPDIR/fakebin-bsdstat"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/stat" <<'FAKE'
+#!/usr/bin/env bash
+case "$1" in
+-c) echo "stat: illegal option -- c" >&2; exit 1 ;;
+-f) [ "$2" = "%m" ] && echo 1234567890; [ "$2" = "%z" ] && echo 4242; exit 0 ;;
+esac
+exit 1
+FAKE
+    chmod +x "$fakebin/stat"
+    run timeout 5 bash -c "PATH='$fakebin:$PATH'"$'\n'"$helpers"$'\n'"file_mtime /x; file_size /x"
+    [ "$status" -eq 0 ]
+    [ "${lines[0]}" = "1234567890" ]
+    [ "${lines[1]}" = "4242" ]
+}
+
 @test "ctx readout honors CLAUDE_CODE_AUTO_COMPACT_WINDOW clamp (2026-06-24)" {
     # Claude Code's real autocompact window = min(modelMax, CLAUDE_CODE_AUTO_COMPACT_WINDOW).
     # With a 1M model but an 800k cap + pct=73, the trigger is (800k-20k)*0.73 = 569,400.
