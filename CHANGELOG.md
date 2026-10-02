@@ -1,3 +1,28 @@
+## [33.1.4](https://github.com/terrylica/cc-skills/compare/v33.1.3...v33.1.4) (2026-10-02)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** the throwaway Playwright server must be headless, isolated and named so ([1577788](https://github.com/terrylica/cc-skills/commit/1577788cf3c4d5ba3cd17fba54533d6ca9edf6e5))
+
+Registered as plain 'playwright' (npx @playwright/mcp@latest), the hermetic server opened a visible, signed-out Chrome window with an 'unsupported command-line flag --disable-blink-features=AutomationControlled' bar in every Claude session that called it, one per session, open until the session ended. Its tools share names with the signed-in extension servers, so sessions that wanted the operator's signed-in profile picked it by mistake.
+
+doctor now warns when a throwaway @playwright/mcp registration lacks --headless or --isolated, or lacks 'throwaway' in its name; the skill and doctrine name the server playwright-throwaway-headless with both flags.
+
+* **hook-lint:** SessionEnd and Notification diagnostics quote upstream ([94824a7](https://github.com/terrylica/cc-skills/commit/94824a774c046a858baa4129fe3cfe4ef00c45e0))
+
+The Stop audit's Notification message quoted 'Exit Code 2 Behavior: N/A - shows stderr to user only', which the hooks reference no longer says; it now says 'Exit code and stderr are ignored'. The SessionEnd message cited a third-party Go package's types; the reference itself says SessionEnd hooks have no decision control and that Claude Code discards their JSON output fields. Both messages now quote the reference, and the test pins the new phrases. What the audit detects is unchanged.
+
+* **statusline-tools:** repo version on Linux and non-origin remotes ([365fb17](https://github.com/terrylica/cc-skills/commit/365fb17d64afd5c27496a21b65a68f801f68e6e0))
+
+On Linux (ALE) the release segment never rendered and every disk cache missed. Every mtime/size/date call used the BSD-only `stat -f %m` / `date -j`; GNU `stat -f` succeeds with filesystem info instead of an mtime, so the release, visibility, gateway and floor caches computed garbage ages, and the release age was always blank. They now go through file_mtime / file_size / iso_utc_to_epoch, which try GNU first and BSD second.
+
+A repo whose GitHub remote is not named origin (e.g. `github`, via an ssh host alias `git@github-<name>:owner/repo.git`) showed "No such remote origin" and lost its URL, visibility and release segments. The first remote naming a GitHub host is now used when origin is absent.
+
+When gh cannot answer (no gh login on the machine, offline, or tags without published releases), the newest local strict-semver tag renders, marked `tag`, instead of gh's login prompt. gh's diagnostic remains when there is no such tag.
+
+The sub2api group segment is unchanged: it already shows the requested group and omits "no preference" by design. CLAUDE.md now documents both segments. Six bats tests, including one that simulates BSD stat on any platform.
+
 ## [33.1.3](https://github.com/terrylica/cc-skills/compare/v33.1.2...v33.1.3) (2026-10-02)
 
 ## [33.1.2](https://github.com/terrylica/cc-skills/compare/v33.1.1...v33.1.2) (2026-10-02)
