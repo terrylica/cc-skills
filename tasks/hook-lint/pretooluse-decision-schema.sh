@@ -145,10 +145,10 @@ fi
 # Iter-79 perf-win: replaces the iter-60 baseline per-file `grep -qE`
 # fork storm (~3 forks × 29 files = ~87 forks, ~842ms) with a SINGLE
 # awk-scanner process invocation. The shared scanner at
-# `scripts/hook-schema-correctness-classifier-single-pass-awk-scanner.awk`
+# `scripts/hook-schema-classifier-scanner.awk`
 # emits TSV classification flags per file; this audit applies the
 # iter-60 tier-order interpretation. Estimated drop: 842ms → ~155ms.
-HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH="$AUDIT_TASK_OWN_REPO_ROOT/scripts/hook-schema-correctness-classifier-single-pass-awk-scanner.awk"
+HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH="$AUDIT_TASK_OWN_REPO_ROOT/scripts/hook-schema-classifier-scanner.awk"
 if [ ! -f "$HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH" ]; then
   echo ""
   echo "  CRITICAL: shared awk scanner not found at:"

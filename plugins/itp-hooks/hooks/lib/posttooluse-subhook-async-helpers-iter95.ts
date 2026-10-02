@@ -87,7 +87,7 @@ import {
   wrapArgvWithKernelEnforcedCpuSecondsCeiling,
   type AcquiredConcurrencySlot,
   type ResidentMemoryWatchdogHandle,
-} from "./subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124";
+} from "./subprocess-rss-watchdog-and-slot-guard-iter124";
 
 export interface AsyncSubprocessExecutionResult {
   exitCode: number | null;

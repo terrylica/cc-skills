@@ -58,7 +58,7 @@ import {
   askDecision,
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
-} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+} from "./lib/pretooluse-subhook-contract-iter84.ts";
 // Iter-106: import the canonical truncation helper from its DEDICATED shared-
 // lib home (relocated from the PostToolUse contract lib where iter-104/105
 // pragmatically hosted it). The helper is pure string truncation against

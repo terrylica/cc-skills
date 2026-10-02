@@ -126,7 +126,7 @@ trap 'rm -f "$case1_payload" "$case2_payload" "$case3_payload"; rm -rf "$FAKE_HA
 
 mkdir -p "$FAKE_HANG_REPO_ROOT/plugins/itp-hooks/hooks/lib"
 # Copy the real contract + helpers
-cp "$REPO_ROOT/plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts" \
+cp "$REPO_ROOT/plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-iter84.ts" \
     "$FAKE_HANG_REPO_ROOT/plugins/itp-hooks/hooks/lib/"
 cp "$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-helpers.ts" "$FAKE_HANG_REPO_ROOT/plugins/itp-hooks/hooks/"
 cp -R "$REPO_ROOT/plugins/itp-hooks/hooks/lib/"* "$FAKE_HANG_REPO_ROOT/plugins/itp-hooks/hooks/lib/" 2>/dev/null || true
@@ -134,7 +134,7 @@ cp -R "$REPO_ROOT/plugins/itp-hooks/hooks/lib/"* "$FAKE_HANG_REPO_ROOT/plugins/i
 # Write a hanging classifier
 cat > "$FAKE_HANG_REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-hang-forever-classifier.ts" <<'HANG'
 import type { PreToolUseInput } from "./pretooluse-helpers.ts";
-import type { PreToolUseSubhookDecision } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+import type { PreToolUseSubhookDecision } from "./lib/pretooluse-subhook-contract-iter84.ts";
 
 export async function classifyHangForeverForOrchestrator(
   _input: PreToolUseInput,

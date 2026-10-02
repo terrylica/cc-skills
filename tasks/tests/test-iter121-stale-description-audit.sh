@@ -175,8 +175,8 @@ fi
 # field per entry.
 ITER121_EXPECTED_REGISTRY_ENTRY_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES=$(
     grep -chE '^\s*markerNameTokenIncludingSuffix: "' \
-        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts" \
-        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts" \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/escape-hatch-marker-registry-iter111.ts" \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/audit-task-marker-registry-iter114.ts" \
         | awk '{ s += $1 } END { print s }'
 )
 set +e

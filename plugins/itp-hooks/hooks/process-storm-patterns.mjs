@@ -126,7 +126,7 @@ export const PATTERNS = {
  * The canonical detection path is now the helper call below; no
  * grandfathered raw-regex API surface remains.
  */
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/escape-hatch-marker-detection-iter107.ts";
 const PROCESS_STORM_GUARD_ESCAPE_HATCH_CONFIGURATION = {
   markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
   caseSensitivityMode: "CASE_INSENSITIVE",

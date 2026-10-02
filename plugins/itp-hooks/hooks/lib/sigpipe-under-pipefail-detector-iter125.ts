@@ -43,7 +43,7 @@
  * Entry point: detectSigpipeUnderPipefailSites(filePath, content)
  */
 
-import { isShellScript } from "./shell-script-safety-detector-status-loss-and-masked-substitution-iter119.ts";
+import { isShellScript } from "./shell-script-status-loss-detector-iter119.ts";
 
 // ============================================================================
 // Types

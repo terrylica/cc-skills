@@ -36,7 +36,7 @@ The registry is `PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orch
 
 ## Contract
 
-The subhook contract is [`lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts`](../hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts). A subhook:
+The subhook contract is [`lib/pretooluse-subhook-contract-iter84.ts`](../hooks/lib/pretooluse-subhook-contract-iter84.ts). A subhook:
 
 - does no stdin/stdout I/O and never calls `process.exit`;
 - catches its own errors and returns `allow`;
