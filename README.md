@@ -1,6 +1,6 @@
 # cc-skills
 
-Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revising autonomous-loop primitives for Claude Code.
+Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hooks for Claude Code.
 
 [![Plugins](https://img.shields.io/badge/plugins-39-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
