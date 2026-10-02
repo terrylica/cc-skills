@@ -20,7 +20,7 @@ import {
 const SH = "/repo/scripts/thing.sh";
 
 describe("tool gating", () => {
-  it("ignores tools that are not Write/Edit/MultiEdit", () => {
+  it("ignores tools that are not Write/Edit", () => {
     expect(
       detectNetNewSigpipeSites({
         tool_name: "Bash",
@@ -139,23 +139,6 @@ describe("Edit — net-new only", () => {
       },
     });
     expect(sites).toHaveLength(1);
-  });
-});
-
-describe("MultiEdit", () => {
-  it("accumulates net-new sites across fragments", () => {
-    const sites = detectNetNewSigpipeSites({
-      tool_name: "MultiEdit",
-      tool_input: {
-        file_path: SH,
-        edits: [
-          { old_string: "echo a\n", new_string: "p1 | head -1\n" },
-          { old_string: "echo b\n", new_string: "p2 | grep -q x\n" },
-          { old_string: "p3 | head -1\n", new_string: "p3 | head -1\n" },
-        ],
-      },
-    });
-    expect(sites).toHaveLength(2);
   });
 });
 

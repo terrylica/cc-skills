@@ -38,14 +38,6 @@ const edit = (file_path: string, old_string: string, new_string: string): PostTo
   tool_input: { file_path, old_string, new_string },
 });
 
-const multiEdit = (
-  file_path: string,
-  edits: Array<{ old_string: string; new_string: string }>,
-): PostToolUseInput => ({
-  tool_name: "MultiEdit",
-  tool_input: { file_path, edits } as PostToolUseInput["tool_input"],
-});
-
 const fires = async (input: PostToolUseInput): Promise<boolean> =>
   (await classifyMarkdownHardWrapReminderForPostToolUseOrchestrator(input)).kind ===
   "additional_context";
@@ -54,7 +46,7 @@ const fires = async (input: PostToolUseInput): Promise<boolean> =>
 
 describe("isMarkdownHardWrapReminderEligibleTarget", () => {
   it("accepts .md and .markdown on every file-edit tool", () => {
-    for (const tool of ["Write", "Edit", "MultiEdit"]) {
+    for (const tool of ["Write", "Edit"]) {
       expect(isMarkdownHardWrapReminderEligibleTarget(tool, MD)).toBe(true);
       expect(isMarkdownHardWrapReminderEligibleTarget(tool, "/a/README.markdown")).toBe(true);
     }
@@ -91,23 +83,6 @@ describe("net-new detection", () => {
 
   it("stays SILENT when an Edit adds unwrapped prose", async () => {
     expect(await fires(edit(MD, "", UNWRAPPED))).toBe(false);
-  });
-
-  it("fires when only a LATER edit of a MultiEdit adds a wrap", async () => {
-    const input = multiEdit(MD, [
-      { old_string: "alpha", new_string: "beta" },
-      { old_string: "", new_string: UNWRAPPED },
-      { old_string: "", new_string: WRAPPED },
-    ]);
-    expect(await fires(input)).toBe(true);
-  });
-
-  it("stays SILENT for a MultiEdit where no edit increases the count", async () => {
-    const input = multiEdit(MD, [
-      { old_string: "alpha", new_string: "beta" },
-      { old_string: WRAPPED, new_string: WRAPPED_REWORDED },
-    ]);
-    expect(await fires(input)).toBe(false);
   });
 
   it("fires on a Write of wrapped content and not on unwrapped", async () => {
@@ -259,15 +234,6 @@ describe("whole-file context", () => {
     const after = fileWithFence(WRAPPED_REWORDED);
     const input = edit(MD, WRAPPED, WRAPPED_REWORDED);
     expect(detectNetNewMarkdownHardWraps(input, after)).toEqual([]);
-  });
-
-  it("undoes MultiEdit replacements in reverse order", () => {
-    const after = ["# Probe", "", "alpha-final", "", WRAPPED, ""].join("\n");
-    const input = multiEdit(MD, [
-      { old_string: "alpha", new_string: "alpha-final" },
-      { old_string: "placeholder", new_string: WRAPPED },
-    ]);
-    expect(detectNetNewMarkdownHardWraps(input, after)).toHaveLength(1);
   });
 
   it("honours MD-HARD-WRAP-OK found anywhere in the file, not just the fragment", () => {

@@ -142,7 +142,6 @@ iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_pa
     "iter82-conventional-commits-conformance|commits/conventional-conformance|"
     "iter86-orchestrator-subhook-contract-static-check|hook-lint/orchestrator-subhook-contract|"
     "iter99-posttooluse-silent-context-drop-audit|hook-lint/posttooluse-raw-stdout|"
-    "iter101-matcher-hygiene-audit|hook-lint/matcher-multiedit|"
     "iter103-notebookedit-applicability-audit|hook-lint/notebookedit-applicability|"
     "iter105-truncation-helper-audit|hook-lint/reason-truncation|"
     "iter106-canonical-home-audit|hook-lint/truncation-helper-home|"
@@ -829,40 +828,9 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4n: PostToolUse silent-context-drop audit (iter-99 gate; informational)" "iter134-audit-batch"
 
-# Check 4o: Iter-101 marketplace-wide matcher-hygiene audit. Scales the
-# iter-100 single-orchestrator MultiEdit-matcher-broadening fix to a
-# marketplace invariant. Per 2026 Anthropic + community best-practice web
-# research surfaced during iter-100 adversarial audit, Claude's MultiEdit
-# tool call (tool_input.edits[] shape) is DISTINCT from Write/Edit. Any
-# PreToolUse/PostToolUse matcher of the form `Write|Edit` (or any subset
-# containing Write or Edit but NOT MultiEdit) silently bypasses MultiEdit
-# tool calls — the hook never fires for that input class. Iter-101
-# discovered 8 such gaps across 3 plugins (itp-hooks: PreToolUse
-# orchestrator + process-storm-guard + 2 PostToolUse multi-hook entries;
-# dotfiles-tools: chezmoi-sync-reminder; rust-tools: rust-sota-reminder)
-# and fixed all of them. The audit now stands guard preventively.
-# Escape hatch: `MATCHER-NO-MULTIEDIT-OK: <reason ≥ 10 chars>` in the
-# hook's description field for explicitly-justified MultiEdit exclusions.
-# Informational by default — future iters may flip to --strict.
-__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter101-matcher-hygiene-audit
-echo "→ Running iter-101 PreToolUse/PostToolUse matcher-hygiene marketplace audit (informational)..."
-if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter101-matcher-hygiene-audit; then
-    echo "  ⚠ Matcher-hygiene audit exited non-zero (informational only — not blocking release)"
-    echo "    (each violation indicates a hook whose matcher silently bypasses Claude's MultiEdit tool calls — see /tmp/iter101-matcher-hygiene-audit.log)"
-fi
-# Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
-MATCHER_HYGIENE_HOOKS_DISCOVERED=$( { grep -oE 'hooks.json files discovered across marketplace:[[:space:]]+[0-9]+' /tmp/iter101-matcher-hygiene-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-MATCHER_HYGIENE_VIOLATIONS=$( { grep -oE 'AUDIT FAILED — [0-9]+ matcher coverage gap' /tmp/iter101-matcher-hygiene-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-if [[ "${MATCHER_HYGIENE_VIOLATIONS:-0}" -gt 0 ]]; then
-    echo "  ⚠ Matcher-hygiene audit: ${MATCHER_HYGIENE_HOOKS_DISCOVERED:-0} hooks.json files scanned, ${MATCHER_HYGIENE_VIOLATIONS:-0} violation(s)"
-else
-    echo "  ✓ Matcher-hygiene audit: ${MATCHER_HYGIENE_HOOKS_DISCOVERED:-0} hooks.json files scanned, 0 violations"
-fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4o: PreToolUse/PostToolUse matcher-hygiene audit (iter-101 gate; informational)" "iter134-audit-batch"
-
 # Check 4p: Iter-103 marketplace-wide NotebookEdit applicability audit.
-# Per 2026 Anthropic canonical recommendation, the file-edit tool quadruple
-# is `Edit|MultiEdit|Write|NotebookEdit`. NotebookEdit has a DIFFERENT
+# Claude Code's file-edit tools are `Edit|Write|NotebookEdit` (tools
+# reference: https://code.claude.com/docs/en/tools-reference). NotebookEdit has a DIFFERENT
 # payload shape (notebook_path + cell_id + new_source + edit_mode)
 # operating on Jupyter .ipynb cells, NOT file content. This audit produces
 # a per-classifier applicability matrix surfacing hooks that SHOULD honor

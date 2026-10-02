@@ -18,7 +18,7 @@ the pipes**, while alignment/blank-lines stay the formatter's job.
 
 | Layer          | File                                        | Role                                                                                                                                                                                                                |
 | -------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Per-edit guard | `hooks/posttooluse-markdown-table-guard.ts` | On `.md`/`.markdown` Write/Edit/MultiEdit, reads the file and emits `{decision:block,reason}` (Claude-visible, non-blocking) when a render-breaking ERROR is found.                                                 |
+| Per-edit guard | `hooks/posttooluse-markdown-table-guard.ts` | On `.md`/`.markdown` Write/Edit, reads the file and emits `{decision:block,reason}` (Claude-visible, non-blocking) when a render-breaking ERROR is found.                                                           |
 | Detection SSoT | `hooks/lib/markdown-table-detector.ts`      | Pure, dependency-free `detectBrokenTables` / `hasTableErrors` / `buildTableReminder`. Shared by the guard and the gate.                                                                                             |
 | Prettier gate  | `hooks/stop-markdown-lint.ts`               | At session exit, partitions changed `.md` into clean vs broken-table; runs prettier + `markdownlint --fix` on **clean files only**, and reports skipped broken files (so prettier can't bake in a corrupted split). |
 

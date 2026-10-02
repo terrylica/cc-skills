@@ -3,7 +3,7 @@
  * PostToolUse hook (Bash): markdown hard-wrap reminder for Markdown written by a SHELL COMMAND.
  *
  * The edit-time reminder (`posttooluse-markdown-hard-wrap-reminder.ts`) is registered on
- * `Write|Edit|MultiEdit`, so Markdown produced any other way was invisible to it: `cat > f.md <<EOF`,
+ * `Write|Edit`, so Markdown produced any other way was invisible to it: `cat > f.md <<EOF`,
  * `python3 - <<EOF` rewriting files, a generator script, `sed -i`. Measured 2026-10-01: a session
  * rewrote dozens of `.md` files that way, all hard-wrapped, and the reminder never fired once. This
  * hook closes that gap as a reminder; `pretooluse-markdown-commit-hard-wrap-guard.ts` enforces the same

@@ -184,8 +184,7 @@ export async function classifyValeTerminologyConformanceOnEditedClaudeMdFileForP
     const toolName = input.tool_name || "";
     const filePath = input.tool_input?.file_path || "";
 
-    // Iter-100: honor Write|Edit|MultiEdit via canonical contract helper
-    // (closes the MultiEdit coverage gap surfaced by web research).
+    // Honor Write|Edit via the canonical contract helper.
     if (!isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(toolName)) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }

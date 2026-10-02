@@ -55,7 +55,6 @@
 #
 # Parallel to:
 #   - iter-99 audit: raw-stdout-emission silent-drop (PostToolUse invariant)
-#   - iter-101 audit: matcher-hygiene (Write|Edit|MultiEdit invariant)
 #   - iter-103 audit: NotebookEdit applicability matrix
 #   - iter-105 audit: unbounded-emission truncation-helper invariant
 #   - iter-106 audit: truncation-helper canonical-home invariant
@@ -230,7 +229,7 @@ echo ""
 # as history:
 #   1. The registry coverage stabilizes (all currently-known markers added)
 #   2. Edge cases are documented (e.g., the audit-marker family
-#      WILDCARD-MATCHER-OK, MATCHER-NO-MULTIEDIT-OK, etc. which are
+#      WILDCARD-MATCHER-OK, ORDERING-OK, etc. which are
 #      consumed by tasks/ audit scripts rather than runtime hooks — likely
 #      a separate registry layer)
 #   3. The exit-code-2-on-violation behavior is documented in HOOKS.md

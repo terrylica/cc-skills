@@ -64,4 +64,4 @@ Recorded in `~/.claude/decisions-security-CLAUDE.md`:
 
 ## Note
 
-This adds a 17th `PreToolUse:Bash` matcher block. Issue #111 tracks collapsing those into one orchestrator using the `iter66` pattern already applied to `Write|Edit|MultiEdit`; this guard makes that consolidation marginally more valuable rather than addressing it.
+This adds a 17th `PreToolUse:Bash` matcher block. Issue #111 tracks collapsing those into one orchestrator using the `iter66` pattern already applied to `Write|Edit`; this guard makes that consolidation marginally more valuable rather than addressing it.

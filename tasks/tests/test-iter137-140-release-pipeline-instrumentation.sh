@@ -155,14 +155,15 @@ __iter141_assert_substring_present \
     "$preflight_script_source" \
     "iter137_max_elapsed_ms_per_parallel_execution_bucket"
 
-# 1.F: all 17 Check 4f-4v call-sites pass "iter134-audit-batch" bucket
+# 1.F: every batch Check call-site passes the "iter134-audit-batch" bucket.
+# 17 became 16 on 2026-10-01 when Check 4o (the matcher-multiedit audit) was deleted.
 iter137_audit_batch_callsite_count=$(grep -cF '"iter134-audit-batch"' "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH")
-if [[ "$iter137_audit_batch_callsite_count" -ge 17 ]]; then
+if [[ "$iter137_audit_batch_callsite_count" -ge 16 ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Iter-137.A6: 'iter134-audit-batch' bucket label passed from $iter137_audit_batch_callsite_count call-sites (≥17 = all Checks 4f-4v use bucket-aware ranking)"
+    echo "  ✓ PASS: Iter-137.A6: 'iter134-audit-batch' bucket label passed from $iter137_audit_batch_callsite_count call-sites (≥16 = every batch Check uses bucket-aware ranking)"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✗ FAIL: Iter-137.A6: 'iter134-audit-batch' bucket call-site count below threshold (expected ≥17, got $iter137_audit_batch_callsite_count)"
+    echo "  ✗ FAIL: Iter-137.A6: 'iter134-audit-batch' bucket call-site count below threshold (expected ≥16, got $iter137_audit_batch_callsite_count)"
 fi
 
 echo ""

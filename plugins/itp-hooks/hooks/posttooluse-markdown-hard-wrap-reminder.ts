@@ -2,7 +2,7 @@
 /**
  * PostToolUse hook: net-new markdown hard-wrap reminder.
  *
- * Fires on Write/Edit/MultiEdit of a `.md`/`.markdown` file when the edit
+ * Fires on Write/Edit of a `.md`/`.markdown` file when the edit
  * INTRODUCES hard-wrapped prose — a paragraph broken mid-sentence at a fixed
  * column instead of authored as one line that the renderer reflows.
  *
@@ -44,7 +44,7 @@
  * time, for debt the current edit did not create — and a guard that cries wolf
  * is a guard that gets disabled.
  *
- * So the Edit/MultiEdit arms compare wrap counts BEFORE and AFTER and fire only
+ * So the Edit arm compares wrap counts BEFORE and AFTER and fires only
  * when the count increases, exactly as `posttooluse-invented-fallback-reminder.ts`
  * does for invented display values. Touching a legacy wrapped paragraph is
  * silent; introducing a new one is not.
@@ -96,18 +96,17 @@ import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulFo
 
 const HOOK_NAME = "markdown-hard-wrap-reminder";
 
-/** `PostToolUseInput.tool_input` with the MultiEdit `edits[]` array named. */
-interface MultiEditCapableToolInput {
+/** `PostToolUseInput.tool_input` with the Write and Edit fields named. */
+interface FileEditToolInput {
   file_path?: string;
   content?: string;
   old_string?: string;
   new_string?: string;
   replace_all?: boolean;
-  edits?: Array<{ old_string?: string; new_string?: string; replace_all?: boolean }>;
 }
 
 /**
- * Pure activation gate (exported for tests): a Write/Edit/MultiEdit of a
+ * Pure activation gate (exported for tests): a Write/Edit of a
  * durable `.md` file, never a throwaway copy in a temp scratch dir.
  */
 export function isMarkdownHardWrapReminderEligibleTarget(
@@ -138,37 +137,30 @@ function countWraps(text: string): number {
 }
 
 /**
- * The `{ oldS, newS }` replacements a tool call performed, in applied order.
+ * The `{ oldS, newS }` replacement an Edit performed.
  *
  * `all` mirrors the tool's `replace_all` flag. Dropping it silently corrupts the
  * before-state: `replace_all` rewrote EVERY occurrence, so undoing only the
  * first leaves the rest of the new text in the reconstruction and the wrap
  * delta comes out short.
  */
-function extractEditPairs(ti: MultiEditCapableToolInput, toolName: string) {
-  return toolName === "MultiEdit"
-    ? (ti.edits || []).map((e) => ({
-        oldS: e.old_string || "",
-        newS: e.new_string || "",
-        all: e.replace_all === true,
-      }))
-    : [
-        {
-          oldS: ti.old_string || "",
-          newS: ti.new_string || "",
-          all: ti.replace_all === true,
-        },
-      ];
+function extractEditPairs(ti: FileEditToolInput) {
+  return [
+    {
+      oldS: ti.old_string || "",
+      newS: ti.new_string || "",
+      all: ti.replace_all === true,
+    },
+  ];
 }
 
 /**
  * Reconstruct the file as it stood BEFORE this tool call, by undoing each
- * replacement in reverse order.
+ * replacement (in reverse order, should there ever be more than one).
  *
  * `String.prototype.replace` with a string pattern rewrites the FIRST match
  * only, which is exactly Edit's own contract (Edit requires `old_string` to be
- * unique unless `replace_all` is set). Reverse order matters for MultiEdit
- * because a later edit may have landed inside text an earlier one produced.
+ * unique unless `replace_all` is set).
  */
 function reconstructContentBeforeEdits(
   contentAfter: string,
@@ -204,7 +196,7 @@ export function detectNetNewMarkdownHardWraps(
   input: PostToolUseInput,
   fileContentAfterEdit: string | null = null,
 ): WrapIssue[] {
-  const ti = (input.tool_input || {}) as MultiEditCapableToolInput;
+  const ti = (input.tool_input || {}) as FileEditToolInput;
   const suppressed = isMarkdownHardWrapCheckSuppressed;
 
   if (input.tool_name === "Write") {
@@ -212,7 +204,7 @@ export function detectNetNewMarkdownHardWraps(
     return suppressed(content) ? [] : detectJoinerRepairableHardWraps(content);
   }
 
-  const pairs = extractEditPairs(ti, input.tool_name);
+  const pairs = extractEditPairs(ti);
 
   if (fileContentAfterEdit !== null) {
     if (suppressed(fileContentAfterEdit)) return [];

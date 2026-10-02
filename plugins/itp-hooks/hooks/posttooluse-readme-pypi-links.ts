@@ -4,7 +4,7 @@
  * Non-blocking (visibility only) - Claude sees the reminder and can fix.
  *
  * Pattern: Follows lifecycle-reference.md TypeScript template.
- * Trigger: After Write/Edit/MultiEdit on root-level README.md.
+ * Trigger: After Write/Edit on root-level README.md.
  * Output: { decision: "block", reason: "..." } for Claude visibility.
  *
  * Context: Root-level README.md should use relative links for maintainability.
@@ -88,11 +88,11 @@ function findAbsoluteGitHubLinks(content: string): string[] {
 
 /**
  * Pure path-activation gate (exported for tests): the hook acts only on a
- * Write/Edit/MultiEdit of a durable root-level README.md, never on a throwaway
+ * Write/Edit of a durable root-level README.md, never on a throwaway
  * copy inside a temp dir (iter-124 shared helper).
  */
 export function isReadmePypiEligibleTarget(toolName: string, filePath: string, cwd: string): boolean {
-  if (toolName !== "Write" && toolName !== "Edit" && toolName !== "MultiEdit") return false;
+  if (toolName !== "Write" && toolName !== "Edit") return false;
   if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
     return false;
   }

@@ -1,6 +1,6 @@
 # broad-process-signal-guard
 
-**Hook:** `hooks/pretooluse-broad-process-signal-guard.ts` · **Detector:** `hooks/lib/broad-process-signal-detector.ts` · **Event:** PreToolUse on `Bash|Write|Edit|MultiEdit` · **Escape:** `BROAD-PROCESS-SIGNAL-OK: <reason of 10+ characters>` · **Fails:** open
+**Hook:** `hooks/pretooluse-broad-process-signal-guard.ts` · **Detector:** `hooks/lib/broad-process-signal-detector.ts` · **Event:** PreToolUse on `Bash|Write|Edit` · **Escape:** `BROAD-PROCESS-SIGNAL-OK: <reason of 10+ characters>` · **Fails:** open
 
 Kill guard v2. Its sibling [pkill-option-after-pattern-guard](./pkill-option-after-pattern-guard.md) blocks the one spelling that caused the 2026-09-27 incident. This guard blocks the rest of that family: signals aimed by name or pattern that reach far more than the process the agent meant.
 
@@ -23,7 +23,7 @@ A managed Claude Code kernel sandbox that confined each command's signals to its
 
 The shared-name list is anchored to the whole name or pattern, so `pkill -f 'bun server.ts --port 5198'` stays specific while `bun` alone does not. The list covers node, bun, deno, the npm/pnpm/yarn/uv launchers, python (any version), ruby, perl, java, php, the shells, ssh/sshd, claude, codex, electron, Chrome/Chromium and their helpers, Code/Cursor, iTerm2, Terminal, tmux, screen, mosh-server, launchd, loginwindow, WindowServer, systemd, sway, pueued and login.
 
-It also inspects shell scripts written with Write, Edit or MultiEdit. A file counts as a shell script by extension (`.sh .bash .zsh .ksh .dash .command`) or by a shell shebang, including the on-disk shebang when an Edit touches an extensionless script. In scripts it applies both this check and the v1 option-order check, which closes v1's documented gap: a script written first and executed second.
+It also inspects shell scripts written with Write or Edit. A file counts as a shell script by extension (`.sh .bash .zsh .ksh .dash .command`) or by a shell shebang, including the on-disk shebang when an Edit touches an extensionless script. In scripts it applies both this check and the v1 option-order check, which closes v1's documented gap: a script written first and executed second.
 
 ## What it deliberately allows
 
@@ -46,4 +46,4 @@ v1's lexer was extracted on 2026-09-27 into `hooks/lib/shell-command-quote-aware
 
 ## Tests
 
-`hooks/pretooluse-broad-process-signal-guard.test.ts` spawns the real hook: 18 deny cases, 17 allow cases (including the SIGHUP, probe and mention forms), and the Write/Edit/MultiEdit paths, among them v1's incident line written into a `.sh` file.
+`hooks/pretooluse-broad-process-signal-guard.test.ts` spawns the real hook: 18 deny cases, 17 allow cases (including the SIGHUP, probe and mention forms), and the Write/Edit paths, among them v1's incident line written into a `.sh` file.

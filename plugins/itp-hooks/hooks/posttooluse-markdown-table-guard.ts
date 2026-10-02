@@ -2,7 +2,7 @@
 /**
  * PostToolUse hook: per-edit Markdown table structural guard.
  *
- * Fires on Write/Edit/MultiEdit of a `.md`/`.markdown` file. Reads the file
+ * Fires on Write/Edit of a `.md`/`.markdown` file. Reads the file
  * from disk (already written by the time PostToolUse runs), runs the shared
  * detector, and — ONLY when there is a render-breaking ERROR (unescaped pipe /
  * column mismatch / indented table / misplaced alignment colon) — emits the
@@ -42,7 +42,7 @@ interface PostToolUseInput {
   };
 }
 
-const FILE_EDIT_TOOL_NAMES: ReadonlySet<string> = new Set(["Write", "Edit", "MultiEdit"]);
+const FILE_EDIT_TOOL_NAMES: ReadonlySet<string> = new Set(["Write", "Edit"]);
 
 /** Match `.md` / `.markdown` (case-insensitive). */
 function isMarkdownFilePath(filePath: string): boolean {
@@ -50,7 +50,7 @@ function isMarkdownFilePath(filePath: string): boolean {
 }
 
 /**
- * Pure activation gate (exported for tests): act only on a Write/Edit/MultiEdit
+ * Pure activation gate (exported for tests): act only on a Write/Edit
  * of a durable `.md` file, never on a throwaway copy in a temp scratch dir.
  */
 export function isMarkdownTableGuardEligibleTarget(toolName: string, filePath: string): boolean {

@@ -2,7 +2,7 @@
 
 **Hook**: [`posttooluse-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.ts) — inlined subhook of the iter-93 PostToolUse orchestrator · **Escape hatch**: `<!-- MD-HARD-WRAP-OK -->` — an HTML comment; merely naming the token no longer suppresses · **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md)
 
-Reminds Claude when a `Write`/`Edit`/`MultiEdit` of a `.md` file **introduces** prose broken mid-sentence at a fixed column, instead of authored as one line the renderer reflows.
+Reminds Claude when a `Write`/`Edit` of a `.md` file **introduces** prose broken mid-sentence at a fixed column, instead of authored as one line the renderer reflows.
 
 ## The surface split — what hard wrapping actually breaks
 
@@ -24,7 +24,7 @@ Sources: [GFM §6.13](https://github.github.com/gfm/#soft-line-breaks), [communi
 
 ## Where this sits among the sibling guards
 
-Three cover the **publish** boundary. The authoring boundary is covered three ways, because Markdown is authored three ways: by the Write/Edit tools (this hook), by a shell command (a heredoc, `python3 - <<EOF`, a generator script), and finally by the commit that every path ends in. Until 2026-10-01 only the first existed, and a session rewrote dozens of `.md` files through Bash and Python, all hard-wrapped, with this reminder enabled and silent throughout: its matcher is `Write|Edit|MultiEdit`, and a Bash command is not a file edit.
+Three cover the **publish** boundary. The authoring boundary is covered three ways, because Markdown is authored three ways: by the Write/Edit tools (this hook), by a shell command (a heredoc, `python3 - <<EOF`, a generator script), and finally by the commit that every path ends in. Until 2026-10-01 only the first existed, and a session rewrote dozens of `.md` files through Bash and Python, all hard-wrapped, with this reminder enabled and silent throughout: its matcher is `Write|Edit`, and a Bash command is not a file edit.
 
 | Boundary                           | Mechanism                                                                                                               | Escape hatch      |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------- |
@@ -49,17 +49,16 @@ Nothing else was watching authoring, and nothing was going to fix it later eithe
 
 Measured over this repo's 1,114 tracked `.md` files at the time the hook was added: **193 files (17%) were already hard-wrapped**, 3,389 wrap points in total. A hook that fired whenever an edited file _contained_ a wrap would nag on every one of those files, every time, for debt the current edit did not create — and a guard that cries wolf gets disabled.
 
-| Tool        | Rule                                                                               | Rationale                                                                         |
-| ----------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `Edit`      | fire iff `detectHardWraps(new_string).length > detectHardWraps(old_string).length` | rewording inside an already-wrapped paragraph leaves the count unchanged → silent |
-| `MultiEdit` | same comparison per `edits[]` pair; fire on the first that increases               | one wrapped addition among clean edits still surfaces                             |
-| `Write`     | fire on **any** wrap in `content`                                                  | the one non-strict arm — see below                                                |
+| Tool    | Rule                                                                               | Rationale                                                                         |
+| ------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `Edit`  | fire iff `detectHardWraps(new_string).length > detectHardWraps(old_string).length` | rewording inside an already-wrapped paragraph leaves the count unchanged → silent |
+| `Write` | fire on **any** wrap in `content`                                                  | the one non-strict arm — see below                                                |
 
 ### The comparison runs on the whole file, not the edit fragment
 
 An `Edit` fragment lifted from **inside a fenced code block carries no ``markers**. Scanning that fragment on its own therefore reads shell commands as wrapped prose — two `bun scripts/reflow-release-notes.ts …` lines in a``bash block were a measured false positive, and updating a command example is one of the most common `.md` edits there is.
 
-So the hook reads the post-edit file from disk (PostToolUse fires after the write, so the file **is** the after-state) and reconstructs the before-state by undoing each replacement — `content.replace(new_string, old_string)`, applied in **reverse** order for `MultiEdit` because a later edit may have landed inside text an earlier one produced. `String.replace` with a string pattern rewrites the first match only, which is exactly `Edit`'s own uniqueness contract.
+So the hook reads the post-edit file from disk (PostToolUse fires after the write, so the file **is** the after-state) and reconstructs the before-state by undoing the replacement — `content.replace(new_string, old_string)`. `String.replace` with a string pattern rewrites the first match only, which is exactly `Edit`'s own uniqueness contract.
 
 Added wraps are then identified by **shape** (`width` + continuation preview), not line number: undoing an edit shifts every subsequent line, so a line-number join would report the whole tail of the file as new. The reminder reports only the wraps the edit actually added, at their real whole-file line numbers.
 

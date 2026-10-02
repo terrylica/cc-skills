@@ -124,14 +124,14 @@ export interface MarketplaceWideAuditTaskEscapeHatchMarkerCanonicalRegistryEntry
  * Canonical registry — single source of truth for every marketplace
  * AUDIT-TASK escape-hatch marker.
  *
- * Iter-114 baseline: 8 entries. Maps 1:1 to the marketplace's release-
+ * 7 entries (the iter-114 baseline of 8, less the retired matcher-multiedit
+ * audit). Maps 1:1 to the marketplace's release-
  * preflight audit task family that was built up across iters 65-110:
  *
  *   - iter-65 audit: wildcard-matcher (Pre/PostToolUse)
  *   - iter-67/68/69 audit: Stop-hook additionalContext silent-drop pentad
  *   - iter-94 audit: no-Bun.spawnSync in PostToolUse orchestrator subhooks
  *   - iter-99 audit: no-raw-stdout-emission in PostToolUse TypeScript hooks
- *   - iter-101 audit: matcher-hygiene (Write|Edit|MultiEdit coverage)
  *   - iter-105 audit: unbounded-emission truncation-helper invariant
  *   - iter-61 audit: pueue-wrap-guard last-entry ordering invariant
  *   - iter-110 audit: marketplace-wide escape-hatch-marker detection invariant
@@ -155,15 +155,6 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
         "Opt out of the iter-105 marketplace-wide unbounded-emission truncation-helper invariant for a specific PreToolUse or PostToolUse hook classifier. The invariant enforces that every classifier wraps its decision-reason output through the iter-106 canonical truncation helper to stay below Claude's 10,000-character hook-output file-spillover threshold. Use this opt-out for classifiers whose reason emission is provably bounded by a smaller invariant (e.g., a 500-char fixed-format message). Requires ≥10-character justification.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "MATCHER-NO-MULTIEDIT-OK",
-      consumerAuditTaskSourceFileRelativePath:
-        "tasks/hook-lint/matcher-multiedit.sh",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
-      releaseInvariantSuppressedDescriptionForOperatorDocumentation:
-        "Opt out of the iter-101 matcher-hygiene invariant for a specific hook entry. The invariant enforces that any hook matcher containing `Write|Edit` also includes `MultiEdit` (because MultiEdit is a distinct tool name in the Claude Code tool schema — pre-iter-100 hooks that matched `Write|Edit` silently skipped MultiEdit invocations). Use this opt-out for the rare hook that deliberately ignores MultiEdit (e.g., a hook that only operates on single-file Write operations and has no semantic for batch edits). Requires ≥10-character justification.",
     },
     {
       markerNameTokenIncludingSuffix: "ORDERING-OK",
@@ -199,7 +190,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
-        "Opt out of the iter-67 / iter-68 / iter-69 Stop/SubagentStop/SessionEnd/PreCompact/Notification additionalContext-emission silent-drop pentad invariant for a specific hook source file. The invariant enforces that the five lifecycle-tail event types emit ONLY {decision, reason} per the official Anthropic schema (additionalContext from these events is silently read by NO consumer and dropped from Claude's context). Use this opt-out for hooks that emit additionalContext INTENTIONALLY to make iter-66-style stderr-route output explicit. Requires ≥10-character justification.",
+        "Opt out of the Stop/SubagentStop/SessionEnd/PreCompact/Notification additionalContext invariant for a specific hook source file. On Stop and SubagentStop, upstream \"Stop decision control\" (https://code.claude.com/docs/en/hooks#stop-decision-control) documents hookSpecificOutput.additionalContext as feedback that keeps the conversation going through the same loop protections as decision:\"block\", so an informational summary emitted that way forces another turn; on PreCompact, SessionEnd and Notification the field is not part of the output schema. Use this opt-out for a hook that reads additionalContext from subhook stdout without re-emitting it, or a Stop hook that deliberately uses it to continue the conversation. Requires ≥10-character justification.",
     },
     {
       markerNameTokenIncludingSuffix: "WILDCARD-MATCHER-OK",

@@ -60,7 +60,7 @@ A guard on commands this common, in a repo where the incident itself gets writte
 
 ## Known gaps
 
-- ~~A script written to a file with Write/Edit and then executed is not inspected.~~ Closed 2026-09-27: [broad-process-signal-guard](./broad-process-signal-guard.md) applies this check to shell scripts written with Write/Edit/MultiEdit. This hook itself still reads only the Bash tool's command string.
+- ~~A script written to a file with Write/Edit and then executed is not inspected.~~ Closed 2026-09-27: [broad-process-signal-guard](./broad-process-signal-guard.md) applies this check to shell scripts written with Write/Edit. This hook itself still reads only the Bash tool's command string.
 - A pattern held in a variable (`pkill -f "$PAT"`) cannot be checked statically. An empty variable matches every process, which is a separate hazard this guard does not claim to cover.
 
 ## Better than any pattern
