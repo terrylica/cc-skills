@@ -41,7 +41,7 @@ The extension (Chrome Web Store id `mmlmfjhmonkocbjadbfplnigmagldckm`, named _Pl
 - **What it shows:** after attaching, Chrome draws a browser-wide bar, _"… started debugging this browser"_. Its only button cancels the session. Treat it as the visible sign that automation is live, not as something to suppress (`--silent-debugger-extension-api` would hide it for every extension).
 - **Another extension's frame in the page detaches it.** Measured: a password manager's inline menu on an email field dropped the session three times running; route A finished the same form. Remedy: turn off that extension's site access for the sites you automate, set field values by script instead of keystrokes, or use route A for that page.
 - **Look-alikes exist** ("Playwright CRX" and others). Only the id above works with `@playwright/mcp --extension`; `doctor` flags the rest.
-- Keep the hermetic `playwright` server and the extension servers registered separately; merging them silently moves hermetic runs onto a logged-in profile.
+- Keep the hermetic `playwright-throwaway-headless` server (`--headless --isolated`) and the extension servers registered separately; merging them silently moves hermetic runs onto a logged-in profile.
 
 ## Chrome versions
 
