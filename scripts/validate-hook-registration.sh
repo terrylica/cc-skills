@@ -30,7 +30,7 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SETTINGS="${SETTINGS:-$HOME/.claude/settings.json}"
 
 # Hook-command parsing SSoT (tasks/lib/hook-command-parsing.sh): strips the
-# load-bearing `env -u AI_AGENT -u CLAUDECODE` prefix, the interpreter and its
+# `env -u AI_AGENT -u CLAUDECODE` wrapper (still found in settings), the interpreter and its
 # flags, and any `bun run`/`uv run` subcommand. The old inline awk assumed the
 # first token was the interpreter, so an env-prefixed command yielded the
 # literal path "env".

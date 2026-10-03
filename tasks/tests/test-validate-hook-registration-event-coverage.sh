@@ -131,7 +131,7 @@ run_case "clean-fixture-under-the-same-four-events-stays-green" "$CLEAN_SETTINGS
     "Hook registration validation PASSED"
 
 # ---------------------------------------------------------------------------
-# Case 4 — the load-bearing `env -u AI_AGENT -u CLAUDECODE ` prefix. The old
+# Case 4 — an `env -u AI_AGENT -u CLAUDECODE ` wrapped command. The old
 # inline awk took token 1 as the interpreter, so an env-prefixed command
 # resolved to the literal path "env" and the real missing script was never
 # tested. Parsing now goes through tasks/lib/hook-command-parsing.sh.

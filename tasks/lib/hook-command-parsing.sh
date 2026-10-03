@@ -5,22 +5,17 @@
 #
 # WHY THIS EXISTS
 # ---------------
-# Every plugins/*/hooks/hooks.json command is prefixed with a literal
-# `env -u AI_AGENT -u CLAUDECODE` before the interpreter:
+# From 2026-08-30 to 2026-10-02 every plugins/*/hooks/hooks.json command was
+# prefixed with `env -u AI_AGENT -u CLAUDECODE` before the interpreter:
 #
 #     env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts
 #
-# That prefix is load-bearing and MUST NOT be removed from hooks.json: a bare
-# `bun`/`node` in a hook subprocess resolves to a proto shim which re-execs the
-# proto CLI; proto sniffs AI_AGENT / CLAUDECODE and writes an NDJSON banner to
-# STDOUT ahead of the hook's own JSON, so Claude Code's single JSON.parse fails
-# and the hook's decision is SILENTLY DISCARDED. Both vars must be unset;
-# -u AI_AGENT alone is insufficient.
-#
-# SCALE — corrected. The first pass reported "1,716 polluted hook events over
-# three days"; a fuller count put it at 2,008 DISCARDED DECISIONS, plus roughly
-# 3,600 further events that carried the proto banner but still succeeded. The
-# 1,716 figure was an undercount and is superseded wherever it was copied.
+# It worked around proto writing to STDOUT under an agent environment
+# (moonrepo/proto#1105, then #1110 on the error path), which made Claude Code
+# discard hook decisions. Both are fixed upstream and the prefix was removed
+# from hooks.json on 2026-10-02, but the shape stays supported: user settings
+# and older installed plugin versions still carry it, and any `env` wrapper
+# must parse to the real script.
 #
 # The prefix broke every audit/task parser that assumed "the first token of a
 # hook command is the interpreter" (or that stripping a leading `bun `/`node `

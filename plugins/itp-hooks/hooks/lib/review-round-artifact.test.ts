@@ -70,9 +70,9 @@ describe("classify — commands that must be GATED", () => {
     ["GH_ORGS='Eon Labs' gh pr create --title t --body-file b.md", "pr-create"],
     ["env GH_ORGS=x sudo gh pr ready 613", "pr-ready"],
     // A WRAPPER'S OWN FLAGS. `env` was an accepted wrapper but `env -u NAME` was not, so `gh` fell
-    // outside every command position and this gate silently ALLOWED it. The spelling is this
-    // plugin's own house style — every hooks.json entry is `env -u AI_AGENT -u CLAUDECODE bun ...`
-    // — so it is the form an agent copying local convention would most likely produce. Each row
+    // outside every command position and this gate silently ALLOWED it. The spelling was this
+    // plugin's own house style until 2026-10-02 (`env -u AI_AGENT -u CLAUDECODE bun ...` on every
+    // hooks.json entry), so it is the form an agent copying local convention would most likely produce. Each row
     // below fails against the pre-fix COMMAND_POSITION; the `-i` row is separate because a
     // value-less flag and a value-taking one cannot share a pattern without one of them swallowing
     // the command that follows.
