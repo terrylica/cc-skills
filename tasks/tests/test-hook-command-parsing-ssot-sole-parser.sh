@@ -3,11 +3,10 @@
 #
 # THE BUG CLASS THIS PINS
 # -----------------------
-# Every plugins/*/hooks/hooks.json command carries the load-bearing prefix
-# `env -u AI_AGENT -u CLAUDECODE ` before the interpreter (proto shim → NDJSON
-# banner on stdout → Claude Code's single JSON.parse throws → the hook's
-# decision is SILENTLY DISCARDED at exit 0; 2,008 discarded decisions measured
-# over three days, plus ~3,600 further banner-carrying events that survived).
+# Hook commands may carry an `env` wrapper such as
+# `env -u AI_AGENT -u CLAUDECODE ` before the interpreter. Every marketplace
+# hooks.json command did from 2026-08-30 to 2026-10-02 (a proto workaround,
+# retired once moonrepo/proto#1110 shipped), and user settings still can.
 #
 # That prefix broke every parser that assumed "the first whitespace token is
 # the interpreter". Two such parsers have already been caught mid-flight — the

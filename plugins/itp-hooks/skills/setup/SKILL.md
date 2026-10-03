@@ -22,6 +22,7 @@ Verify and install dependencies for the itp-hooks plugin:
 
 - **jq** (required) - JSON processing for hook input/output
 - **bun** (required) - Runtime for every TypeScript hook in the plugin
+- **proto ≥ 0.61.3** (required only when `bun` is a proto shim) - hook commands call `bun` bare, and older proto can make Claude Code discard hook decisions; checked by `scripts/proto-floor.sh`
 - **ruff** (optional) - Python silent failure detection
 - **shellcheck** (optional) - Shell script analysis
 - **oxlint** (optional) - JavaScript/TypeScript linting

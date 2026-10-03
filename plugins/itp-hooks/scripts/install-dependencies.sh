@@ -141,6 +141,18 @@ echo ""
 # Required tools
 echo "## Required"
 check_tool "jq" "jq" "--version" "required" || { MISSING=$((MISSING+1)); INSTALL_JQ=$(get_install_cmd jq); }
+
+# Hook commands call `bun` bare; through an old proto shim their decisions can be discarded.
+# shellcheck source=./proto-floor.sh
+source "$(dirname "${BASH_SOURCE[0]}")/proto-floor.sh"
+proto_floor_rc=0
+proto_floor_message="$(proto_floor_check)" || proto_floor_rc=$?
+if (( proto_floor_rc == 0 )); then
+    echo -e "${GREEN}✓${NC} ${proto_floor_message}"
+else
+    echo -e "${RED}✗${NC} ${proto_floor_message} (REQUIRED)"
+    MISSING=$((MISSING+1))
+fi
 echo ""
 
 # Silent failure detection linters (optional - graceful degradation)
