@@ -6,7 +6,10 @@
  * that per-file PostToolUse checks miss.
  *
  * Only runs when:
- * 1. Python files were edited this session (gate files in /tmp/.claude-ty-edits/)
+ * 1. Python files were edited in THIS session: the Stop payload's `session_id` names a
+ *    gate file `<session_id>.edited` that exists (lib/ty-edit-gate.ts). Other sessions'
+ *    gates are never read and never deleted; only this session's file is removed.
+ *    A missing or unsafe session_id skips the check (fail open, delete nothing).
  * 2. ty is installed
  * 3. CWD is a Python project (pyproject.toml or *.py files present)
  *
@@ -41,30 +44,32 @@ import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
 } from "./lib/posttooluse-subhook-async-helpers-iter95";
 import { TY_PROJECT_CHECK_ARGS } from "./lib/stop-ty-project-check-args";
+import { tyEditGateFilePathForSession } from "./lib/ty-edit-gate";
 
 // --- Constants ---
 
-const EDIT_GATE_DIR = "/tmp/.claude-ty-edits";
 const MAX_DIAGNOSTIC_LINES = 20;
 const TY_SUBPROCESS_TIMEOUT_MILLISECONDS = 15000; // 15s budget for project-wide check
 
 // --- Main ---
 
-async function main(): Promise<void> {
-  // Check gate: were any Python files edited this session?
-  let hasEdits = false;
+/** `session_id` from the Stop payload (a common input field), or undefined if unparseable. */
+function readSessionIdFromStopPayload(payloadText: string): unknown {
   try {
-    if (existsSync(EDIT_GATE_DIR)) {
-      const files = readdirSync(EDIT_GATE_DIR);
-      hasEdits = files.some((f) => f.endsWith(".edited"));
-    }
+    const parsed = JSON.parse(payloadText);
+    return typeof parsed === "object" && parsed !== null ? parsed.session_id : undefined;
   } catch {
-    // Gate dir read failed -- skip
-    console.log(JSON.stringify({}));
-    return;
+    return undefined;
   }
+}
 
-  if (!hasEdits) {
+async function main(): Promise<void> {
+  // Check gate: were Python files edited in THIS session? Without a session id there is
+  // no way to tell our gate from another session's, so skip rather than guess.
+  const gateFilePath = tyEditGateFilePathForSession(
+    readSessionIdFromStopPayload(await Bun.stdin.text()),
+  );
+  if (gateFilePath === null || !existsSync(gateFilePath)) {
     console.log(JSON.stringify({}));
     return;
   }
@@ -86,7 +91,7 @@ async function main(): Promise<void> {
   }
 
   if (!isPythonProject) {
-    cleanup();
+    cleanup(gateFilePath);
     console.log(JSON.stringify({}));
     return;
   }
@@ -99,7 +104,7 @@ async function main(): Promise<void> {
 
   if (tyCheck.exitCode !== 0) {
     // ty not installed -- skip silently (no install reminder from Stop hooks)
-    cleanup();
+    cleanup(gateFilePath);
     console.log(JSON.stringify({}));
     return;
   }
@@ -121,8 +126,8 @@ async function main(): Promise<void> {
       },
     );
 
-  // Always cleanup gate files after running
-  cleanup();
+  // Always remove this session's gate after running
+  cleanup(gateFilePath);
 
   // Handle resource-guard outcomes
   if (tyExecutionResult.skippedBecauseConcurrencySlotsBusy) {
@@ -200,9 +205,10 @@ async function main(): Promise<void> {
   console.log(JSON.stringify({ additionalContext: summary }));
 }
 
-function cleanup(): void {
+/** Remove ONLY this session's gate file; other sessions' gates must survive. */
+function cleanup(gateFilePath: string): void {
   try {
-    rmSync(EDIT_GATE_DIR, { recursive: true, force: true });
+    rmSync(gateFilePath, { force: true });
   } catch {
     // Cleanup failure is non-critical
   }
