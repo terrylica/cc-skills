@@ -32,10 +32,10 @@ One toolchain manager, one task orchestrator, one TS runtime — wired together 
 
 | Tool                | Responsibility                                                                                     |
 | ------------------- | -------------------------------------------------------------------------------------------------- |
-| **proto**           | Toolchain versions (bun, node, python, rust, go, …) pinned in repo-local `.prototools`             |
+| **proto**           | Toolchain versions (bun, node, rust, go, uv, …) pinned in repo-local `.prototools` — not Python    |
 | **moon**            | Project graph + task orchestration + caching + affected detection (`moon ci`, `--affected`)        |
 | **Bun**             | TS runtime for every script, glue tool, CLI, and test (`bun test`); root `package.json` workspaces |
-| **uv**              | Python: per-run interpreters (`uv run -p <version>`), workspace deps, lockfile                     |
+| **uv**              | Python: owns the interpreter (`.python-version`, managed builds only), workspace deps, lockfile    |
 | **cargo / maturin** | Rust crates; PyO3 extension wheels where Python needs the hot path                                 |
 | **biome + oxlint**  | TS/JS lint+format (fast, zero-config baseline)                                                     |
 | **ruff + ty**       | Python lint+format + type-check                                                                    |
@@ -192,11 +192,27 @@ One-paragraph identity: what this repo is, in domain terms.
 # proto — canonical tool/version manager. One pin per toolchain actually used.
 # SSoT-OK: placeholders; pin concrete versions at bootstrap time.
 bun = "<version>"
-python = "<version>"
 rust = "<version>"
 node = "<version>"     # only if a tool genuinely needs node (semantic-release does)
-uv = "<version>"
+uv = "latest"          # proto pins uv; uv owns Python (no `python` line here)
 ```
+
+### Python: uv owns the interpreter
+
+Exactly one tool may own the Python interpreter. Use uv: it ships new CPython patch releases (python-build-standalone) as soon as they exist, while proto's Python registry can lag — and two owners is how a repo ends up running several different Pythons. proto still pins uv.
+
+```text
+# .python-version  — read by uv; a minor version tracks the latest patch
+3.14
+```
+
+```toml
+# uv.toml — or the same key under [tool.uv] in pyproject.toml. If pyproject.toml already
+# has a [tool.uv] table, put it THERE: a uv.toml beside it makes uv ignore [tool.uv].
+python-preference = "only-managed"
+```
+
+Tasks call plain `uv run` and never hardcode `--python`/`-p`; take patch upgrades with `uv python upgrade <minor>`. A version-bumping job must not pin `python` in `.prototools`: proto reads `.python-version`, reports Python as outdated, and `proto pin` would add a second owner back.
 
 ### .moon/workspace.yml
 
@@ -292,13 +308,13 @@ tags: ["lang:python", "layer:library"]
 
 tasks:
   sync:
-    script: "uv sync --python <version> --extra dev" # SSoT-OK
+    script: "uv sync --extra dev"
     options: { cache: false }
   lint:
-    script: "uv run -p <version> ruff check src/ tests/" # SSoT-OK
+    script: "uv run ruff check src/ tests/"
   test:
     # GOTCHA: `uv run` prunes dev extras — pytest MUST be `uv run --extra dev`.
-    script: "uv run --extra dev -p <version> pytest tests/" # SSoT-OK
+    script: "uv run --extra dev pytest tests/"
     options: { cache: false }
   check:
     deps: ["~:lint", "~:test"]
@@ -357,7 +373,7 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff (auto-fix aborts commit — re-stage and retry)
-        entry: uv run -p <version> ruff check --fix # SSoT-OK
+        entry: uv run ruff check --fix
         language: system
         types: [python]
       - id: biome-check
@@ -398,10 +414,11 @@ bun add -d @types/bun
 
 ```bash
 uv init --lib --python <version>      # SSoT-OK
+uv python pin <minor>                 # writes .python-version; tasks then omit -p
 uv add <runtime-deps>
 # Dev deps hoisted to ROOT pyproject [dependency-groups]/[project.optional-dependencies];
 # members keep runtime deps only. Run tests from REPO ROOT:
-#   uv run --extra dev -p <version> pytest <path-from-root>
+#   uv run --extra dev pytest <path-from-root>
 ```
 
 ### Rust (+ optional Python binding)
@@ -727,7 +744,7 @@ release:
 | Language       | Runner          | Invocation (from repo root)                                                                               |
 | -------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
 | TS/Bun         | `bun:test`      | `moon run <proj>:test` → `bun test`                                                                       |
-| Python         | pytest          | `uv run --extra dev -p <version> pytest <path>` (NEVER bare `uv run pytest` — dev extras get pruned)      |
+| Python         | pytest          | `uv run --extra dev pytest <path>` (NEVER bare `uv run pytest` — dev extras get pruned)                   |
 | Rust           | cargo           | `cargo test` (pure-Rust cores; pyfunction wrappers excluded from link)                                    |
 | Bindings       | parity          | dedicated parity suites vs the language-neutral SSoT (bit-equal floats: both-NaN or `==`)                 |
 | Browser assets | playwright-core | headless guards as moon tasks (containment, parity, contract); golden-pixel only if single-machine-pinned |

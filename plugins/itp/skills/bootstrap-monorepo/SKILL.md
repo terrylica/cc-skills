@@ -71,7 +71,7 @@ When work must cross languages, climb from cheapest to most coupled — **stop a
 
 Pattern B gate amendment: after the 8-float-op test selects Pattern B, ask "does the kernel need threads?" → if yes, native core (cdylib/PyO3), not WASM.
 
-**TypeScript ↔ Python** (the most common pair) verified picks, June 2026: rung 1 = `Bun.spawn`/`child_process` running Python via `uv run --python 3.14` (NOT `bun:ffi` — C-ABI only); rung 2 = FastAPI + `@hey-api/openapi-ts` (HTTP) or `buf`-generated `protobuf-es` + `protocolbuffers/python` stubs (RPC); schema SSoT = Pydantic v2 → JSON Schema 2020-12 → TS, with a CI drift gate. Full table in the reference.
+**TypeScript ↔ Python** (the most common pair) verified picks, June 2026: rung 1 = `Bun.spawn`/`child_process` running Python via `uv run`, with the version from `.python-version` (NOT `bun:ffi` — C-ABI only); rung 2 = FastAPI + `@hey-api/openapi-ts` (HTTP) or `buf`-generated `protobuf-es` + `protocolbuffers/python` stubs (RPC); schema SSoT = Pydantic v2 → JSON Schema 2020-12 → TS, with a CI drift gate. Full table in the reference.
 
 ## Quick Commands
 
@@ -111,7 +111,7 @@ Two cases (full recipes in [references/bootstrap-monorepo.md](references/bootstr
 | ---------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | `proto::detect::failed` for moon                     | tool installed but no version pinned                   | `proto pin --to global moon <version>` (or add to `.prototools`)          |
 | `moon` not found over ssh                            | shims not on non-interactive PATH                      | export `PROTO_HOME` + shims PATH in `~/.zshenv` (NOT only `.zshrc`)       |
-| Python tests "No module named pytest"                | `uv run` prunes dev extras                             | `uv run --extra dev -p <version> pytest <path>` from repo root            |
+| Python tests "No module named pytest"                | `uv run` prunes dev extras                             | `uv run --extra dev pytest <path>` from repo root                         |
 | PyO3 crate `cargo test` link errors (`_PyBool_Type`) | tests reference `#[pyfunction]` under extension-module | keep logic in pure-Rust core fns; tests call the core, wrapper stays thin |
 | Task runs in wrong cwd                               | script assumes repo root                               | `options: { runFromWorkspaceRoot: true }` in the task                     |
 | Guard task wrongly cached                            | moon caches by default                                 | `options: { cache: false }` on guards/parity/network tasks                |
