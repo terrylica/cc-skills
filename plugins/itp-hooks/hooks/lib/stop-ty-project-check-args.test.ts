@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TY_PROJECT_CHECK_ARGS } from "./stop-ty-project-check-args";
+import { TY_PROJECT_CHECK_ARGS, tyPerFileCheckArgs } from "./stop-ty-project-check-args";
 
 const tyAvailable = Bun.spawnSync(["which", "ty"]).exitCode === 0;
 
@@ -45,5 +45,17 @@ describe("Stop-hook ty arguments (#157)", () => {
   test.skipIf(!tyAvailable)("defaults to 3.14 when nothing is pinned", () => {
     const out = checkWithPin("README", "no pin\n");
     expect(out).toContain("All checks passed");
+  });
+});
+
+describe("PostToolUse per-file ty arguments (#157)", () => {
+  test("never forces --python-version, and the hook builds its argv from this helper", () => {
+    const argv = tyPerFileCheckArgs("/repo/pkg/mod.py");
+    expect(argv).toEqual(["ty", "check", "/repo/pkg/mod.py", "--output-format", "concise"]);
+    expect(argv).not.toContain("--python-version");
+    expect(argv).not.toContain("--target-version");
+    const hookSource = readFileSync(join(import.meta.dir, "..", "posttooluse-ty-type-check.ts"), "utf8");
+    expect(hookSource).toContain("tyPerFileCheckArgs(filePath)");
+    expect(hookSource).not.toContain('"--python-version"');
   });
 });

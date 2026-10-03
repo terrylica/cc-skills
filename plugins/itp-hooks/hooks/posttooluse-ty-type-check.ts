@@ -6,11 +6,13 @@
  * Runs `ty check <file>` after every Write/Edit of a .py/.pyi file.
  * ty is ~60x faster than mypy (4.7ms incremental) so it's hook-viable.
  *
- * CRITICAL: Always runs with --python-version 3.14. Uses --output-format
- * concise for one-line diagnostics. If ty is not installed, surfaces a
- * once-per-session install reminder via the iter-95 shared helper.
- * Tracks .py edits via gate file for the Stop hook
- * (stop-ty-project-check.ts).
+ * Python version: no --python-version is passed, so the repository's own pin
+ * wins exactly as in the Stop check (ty.toml -> requires-python -> active env ->
+ * ty's 3.14 default; argv SSoT in lib/stop-ty-project-check-args.ts, #157).
+ * Uses --output-format concise for one-line diagnostics. If ty is not
+ * installed, surfaces a once-per-session install reminder via the iter-95
+ * shared helper. Tracks .py edits via a per-session gate file
+ * (lib/ty-edit-gate.ts) for the Stop hook (stop-ty-project-check.ts).
  *
  * Fail-open everywhere — every catch returns a `noop` (orchestrator path)
  * or exits 0 (standalone path).
@@ -28,7 +30,7 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, basename } from "node:path";
+import { basename, dirname } from "node:path";
 import type {
   PostToolUseInput,
   PostToolUseSubhookDecision,
@@ -47,23 +49,24 @@ import {
 } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 // Iter-124: skip linting/type-checking throwaway scripts edited in temp dirs.
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
+import { tyPerFileCheckArgs } from "./lib/stop-ty-project-check-args.ts";
+import { tyEditGateFilePathForSession } from "./lib/ty-edit-gate.ts";
 
 // --- Constants ---
 
-const PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF = "/tmp/.claude-ty-edits";
 const MAX_TYPE_CHECK_DIAGNOSTIC_LINES_BEFORE_TRUNCATION = 30;
 const TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS = 4000;
 
 function touchPythonEditGateFileForStopHookHandoffSwallowingAllFilesystemErrors(
-  sessionId: string,
+  payloadSessionId: unknown,
 ): void {
+  // No usable session id => no gate. A shared "unknown.edited" would be consumed by
+  // whichever session's Stop hook ran next, which is the cross-session bug this replaces.
+  const gateFilePath = tyEditGateFilePathForSession(payloadSessionId);
+  if (gateFilePath === null) return;
   try {
-    mkdirSync(PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF, { recursive: true });
-    writeFileSync(
-      join(PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF, `${sessionId}.edited`),
-      "",
-      { flag: "w" },
-    );
+    mkdirSync(dirname(gateFilePath), { recursive: true });
+    writeFileSync(gateFilePath, "", { flag: "w" });
   } catch {
     // Gate file failure is non-critical — continue
   }
@@ -95,12 +98,11 @@ export async function classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchest
     }
     if (!existsSync(filePath)) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
-    const sessionId = input.session_id || process.env.CLAUDE_SESSION_ID || "unknown";
-    touchPythonEditGateFileForStopHookHandoffSwallowingAllFilesystemErrors(sessionId);
+    touchPythonEditGateFileForStopHookHandoffSwallowingAllFilesystemErrors(input.session_id);
 
     const tyExecutionResult =
       await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
-        ["ty", "check", filePath, "--python-version", "3.14", "--output-format", "concise"],
+        tyPerFileCheckArgs(filePath),
         {
           timeoutMs: TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS,
           // Incident 2026-07-30: four concurrent `ty` reached 73 GB and froze the
