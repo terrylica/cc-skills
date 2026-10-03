@@ -1,3 +1,17 @@
+# [33.3.0](https://github.com/terrylica/cc-skills/compare/v33.2.0...v33.3.0) (2026-10-03)
+
+
+### Features
+
+* **itp:** bootstrap-monorepo hands Python to uv; proto pins uv ([dd51407](https://github.com/terrylica/cc-skills/commit/dd514072ba0bd9ad072a539788328fade06d2e86))
+
+New repositories previously pinned `python` in .prototools while uv also chose interpreters per run, so two tools owned Python and the declared and executing versions could differ. proto's Python registry can also lag new CPython patch releases that uv already serves.
+
+- .prototools template: no python line; `uv = "latest"`.
+- New section "Python: uv owns the interpreter" with .python-version and uv.toml (python-preference = "only-managed"), including the trap that a uv.toml beside a pyproject [tool.uv] table makes uv ignore that table.
+- Task, hook and test examples drop hardcoded `-p <version>` / `--python`; `uv python pin` after `uv init`.
+- Warns that a version-bumping job must not pin python in .prototools, since proto reads .python-version and would add a second owner back.
+
 # [33.2.0](https://github.com/terrylica/cc-skills/compare/v33.1.5...v33.2.0) (2026-10-03)
 
 
