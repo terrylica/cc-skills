@@ -71,8 +71,8 @@ import { splitShellWords } from "./shell-arg-extractor.ts";
 //
 // A WRAPPER'S OWN FLAGS ARE PART OF THE WRAPPER. `env` was accepted but `env -u GH_TOKEN` was not,
 // so `env -u GH_TOKEN gh pr review --request-changes` put `gh` outside every command position and
-// matched nothing at all. That spelling is not exotic here -- it is this plugin's OWN house style:
-// every entry in hooks.json is registered as `env -u AI_AGENT -u CLAUDECODE bun ...`. Found by a
+// matched nothing at all. That spelling is not exotic here -- every entry in this plugin's hooks.json
+// was registered as `env -u AI_AGENT -u CLAUDECODE bun ...` until 2026-10-02. Found by a
 // test in pr-review-invitation.test.ts, and it applies to every guard sharing this constant.
 // `-u/-C/-S` take a value, `-i/-v` do not, so they cannot share one pattern without the value-less
 // form swallowing the command it is supposed to leave behind.
