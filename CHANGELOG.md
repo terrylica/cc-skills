@@ -1,3 +1,26 @@
+## [33.1.5](https://github.com/terrylica/cc-skills/compare/v33.1.4...v33.1.5) (2026-10-03)
+
+
+### Bug Fixes
+
+* **gmail-commander:** escape prose in Markdown-to-Telegram HTML ([91699a3](https://github.com/terrylica/cc-skills/commit/91699a38b97783c66ff977cbd28ca536ce067173))
+
+markdownToTelegramHtml inserted tags into unescaped text, so an email subject carrying &lt; or & made Telegram reject the whole parse_mode HTML message, and its underscore-italic rule mangled snake_case names, emails and URLs.
+
+- Lift code spans and links out first, HTML-escape all remaining prose, then format
+- Headings (# ...) become bold lines; Telegram HTML has no heading element
+- -, * and + bullets become a bullet character, indentation kept
+- Underscore and single-asterisk italic only at word boundaries
+- Every produced tag closes on its own line, so line-based chunking stays balanced
+- formatForTelegram removed: the converter now escapes plain text itself
+- 11 tests in telegram-format.test.ts
+
+The scheduled Gmail digest now imports this converter, so there is one Markdown-to-Telegram path for the digest and the bot's agent router.
+
+* **tests:** proto-shim case 3 no longer inherits PROTO_BUN_VERSION ([3450eed](https://github.com/terrylica/cc-skills/commit/3450eed02def3e031cae97a55817f76aaf53f693)), closes [proto#1105](https://github.com/proto/issues/1105)
+
+The pre-push gate starts moon through 'bun gate-slot.ts', and the bun shim exports PROTO_BUN_VERSION to every child. That outranks the test's .prototools, so the 'missing tool' shim ran the installed bun, printed 1.4.2
+
 ## [33.1.4](https://github.com/terrylica/cc-skills/compare/v33.1.3...v33.1.4) (2026-10-02)
 
 
