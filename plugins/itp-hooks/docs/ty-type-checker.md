@@ -4,14 +4,14 @@
 
 ## Two levels
 
-ty runs **per-file** on every `.py`/`.pyi` edit (PostToolUse) and **project-wide** on session exit (Stop hook). They resolve the Python version differently:
+ty runs **per-file** on every `.py`/`.pyi` edit (PostToolUse) and **project-wide** on session exit (Stop hook). Both argument vectors live in [`lib/stop-ty-project-check-args.ts`](../hooks/lib/stop-ty-project-check-args.ts), and neither passes `--python-version`:
 
-| Level               | Command                                                         | Python version                                                                                                                                                      |
-| ------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Per-file (edit)     | `ty check <file> --python-version 3.14 --output-format concise` | Always 3.14; the flag overrides any repo pin                                                                                                                        |
-| Project-wide (Stop) | `ty check . --output-format concise --exit-zero`                | No flag (args in [`lib/stop-ty-project-check-args.ts`](../hooks/lib/stop-ty-project-check-args.ts)): `ty.toml` → `requires-python` → active env → ty's 3.14 default |
+| Level               | Command                                          |
+| ------------------- | ------------------------------------------------ |
+| Per-file (edit)     | `ty check <file> --output-format concise`        |
+| Project-wide (Stop) | `ty check . --output-format concise --exit-zero` |
 
-The Stop hook leaves the version to ty so a repository's own pin wins (issue #157).
+Both run in the session's working directory, so ty resolves the same Python version for each: `ty.toml` → `requires-python` → active env → ty's 3.14 default. Leaving the version to ty is what makes a repository's own pin win (issue #157); a command-line flag would override it. The per-file check used to force `--python-version 3.14`, which disagreed with the Stop check on any repository pinned below 3.14.
 
 ## Recommended ty.toml
 
@@ -38,7 +38,13 @@ Both levels spawn ty through the shared async helper with `residentMemoryGuarded
 
 ## Gate File Mechanism
 
-The PostToolUse hook touches `/tmp/.claude-ty-edits/<session-id>.edited` after each eligible `.py`/`.pyi` edit. The Stop hook runs only if that directory holds any `.edited` file, `ty` is on `PATH` (no install reminder at exit), and the working directory has a `pyproject.toml` or a top-level `.py` file. It then deletes the whole `/tmp/.claude-ty-edits/` directory, including other sessions' gate files.
+The gate is per session ([`lib/ty-edit-gate.ts`](../hooks/lib/ty-edit-gate.ts)). The PostToolUse hook touches `/tmp/.claude-ty-edits/<session_id>.edited` after each eligible `.py`/`.pyi` edit. The Stop hook reads `session_id` from its own Stop payload, a common input field on every hook event ([hooks reference, "Common input fields"](https://code.claude.com/docs/en/hooks#common-input-fields)), which `stop-orchestrator.ts` forwards to the subhook's stdin unchanged. It runs only if **its own** `<session_id>.edited` exists, `ty` is on `PATH` (no install reminder at exit), and the working directory has a `pyproject.toml` or a top-level `.py` file. It then deletes only that one file; other sessions' gates are never read or removed.
+
+A session id that is missing, or not a plain file-name token, means there is no gate: the PostToolUse hook writes none, and the Stop hook skips the check and deletes nothing. A shared fallback name such as `unknown.edited` would be consumed by whichever session stopped next, which is the cross-session behaviour this design removes. Skipping costs one advisory check; the per-file check still ran on every edit.
+
+Before this change, the Stop hook ran when the directory held any session's gate and then deleted the whole directory, so one session's exit both ran a check for edits it never made and discarded every other session's pending check.
+
+`CLAUDE_TY_EDIT_GATE_DIR` overrides the directory; tests use it so they never touch the live one.
 
 The Stop hook output is informational `additionalContext` (first 20 diagnostic lines plus error, warning and file counts) and it fails open: any error prints `{}` and never blocks session exit.
 
