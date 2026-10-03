@@ -1,3 +1,12 @@
+# [33.2.0](https://github.com/terrylica/cc-skills/compare/v33.1.5...v33.2.0) (2026-10-03)
+
+
+### Features
+
+* **itp-hooks:** proto floor check replaces the env -u hook prefix ([3854478](https://github.com/terrylica/cc-skills/commit/3854478c4641978f4bdc6b7944236083e1685513)), closes [proto#1105](https://github.com/proto/issues/1105)
+
+Hook commands now call bun bare, so a machine whose bun is a proto shim
+
 ## [33.1.5](https://github.com/terrylica/cc-skills/compare/v33.1.4...v33.1.5) (2026-10-03)
 
 
