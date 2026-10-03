@@ -1,3 +1,17 @@
+## [33.3.1](https://github.com/terrylica/cc-skills/compare/v33.3.0...v33.3.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **productivity-tools:** album downloads are temporary by default ([b976c3e](https://github.com/terrylica/cc-skills/commit/b976c3e4aaeb9b261cd2c57b57fb1bb95638621c))
+
+When an Amazon Photos album is the system of record, keeping downloaded originals on disk or committing them to a repository duplicates storage that already exists and creates a copy that can drift. The skill's quick start previously wrote originals into ~/Pictures and left them there.
+
+- Quick start downloads into a mktemp directory and ends by deleting it.
+- New gotcha, "Keep the pointer, not the copy": record the share URL, share id, album node id and each photo's name and node id from manifest.json, and transcribe the values read from a photo, instead of keeping the image files.
+- The heic-to-jpeg bundle example reads from the same temporary directory.
+- Prose reflowed to one line per paragraph (gfm-unwrap, content unchanged).
+
 # [33.3.0](https://github.com/terrylica/cc-skills/compare/v33.2.0...v33.3.0) (2026-10-03)
 
 
