@@ -79,6 +79,12 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | `posttooluse-bash-markdown-hard-wrap-reminder.ts` | Bash              | Same, for `.md` written by a shell command    | [→](./docs/markdown-hard-wrap-reminder.md)         |
 | `posttooluse-claude-md-size-budget-reminder.ts`   | PostToolUse orch. | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |
 
+### SessionStart
+
+| Hook                                | Purpose                                          | Spoke                                  |
+| ----------------------------------- | ------------------------------------------------ | -------------------------------------- |
+| `sessionstart-proto-floor-check.sh` | Warns when proto is too old for bare `bun` hooks | [→](./scripts/proto-floor.sh) (header) |
+
 ### Stop
 
 | Hook                         | Purpose                                            | Spoke                          |
