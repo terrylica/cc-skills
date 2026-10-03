@@ -22,8 +22,7 @@
  *   7. Referenced skills exist in target plugins
  *   8. Hook JSON structure from manage-hooks.sh (prevents "Invalid discriminator value")
  *   9. All skills/{name}/SKILL.md must have name + description frontmatter
- *  10. No hook command invokes a proto-shimmed tool bare (proto's NDJSON banner
- *      lands on stdout ahead of the hook's JSON, silently voiding its decision)
+ *  10. Every hook command names a script that exists on disk
  *
  * Integration:
  *   - Pre-commit hook: Add to .husky/pre-commit or .git/hooks/pre-commit
@@ -809,53 +808,14 @@ async function validateHookOutputFormat() {
  * Returns { errors: [...], warnings: [...] }
  */
 /**
- * Every tool `proto` installs a PATH shim for. Invoking one of these BARE from a
- * hook command re-execs the proto CLI, which sniffs AI_AGENT/CLAUDECODE, decides
- * it is talking to an agent, and writes an NDJSON banner to STDOUT before
- * delegating — so the hook's own JSON lands on line 2 and Claude Code's single
- * JSON.parse throws "Hook output looks like a JSON object but is not valid JSON".
- * The hook is then treated as failed and its decision is DISCARDED, silently
- * disarming the guard while exit code stays 0.
- *
- * Measured 2026-08-30 over three days across 241 tool calls and 8 projects:
- * 2,008 DISCARDED hook decisions, plus ~3,600 further events that carried the
- * proto banner but still succeeded. (The first pass reported 1,716 polluted
- * events; that was an undercount, corrected upward.) See /docs/LESSONS.md
- * (2026-08-30 entry).
- */
-const PROTO_SHIMMED_TOOLS = new Set(["bun", "bunx", "node", "go", "gofmt", "moon", "moonx", "zig"]);
-const AGENT_ENV_STRIP_PREFIX = "env -u AI_AGENT -u CLAUDECODE ";
-
-/**
  * Interpreters a hook command may name before its script. Mirrors the list in
  * tasks/lib/hook-command-parsing.sh — that bash file is the parsing SSoT; this
  * is its JS port (a .mjs validator cannot source bash). Keep the two in step.
  */
 const HOOK_COMMAND_INTERPRETERS = new Set([
-  // MUST remain a SUPERSET of PROTO_SHIMMED_TOOLS. parseHookCommand() returns
-  // interpreter:null for a head it does not recognise, and the proto-shim check
-  // keys off that interpreter — so any tool present in PROTO_SHIMMED_TOOLS but
-  // absent here can never be flagged, silently. `go`/`gofmt`/`moon`/`moonx`/
-  // `zig` were in exactly that state: a bare `moon …` hook command that the
-  // previous implementation caught produced zero errors after the port, and the
-  // same omission raised a false positive in the other direction (a correctly
-  // prefixed `env -u … moon run :x` was reported as a missing script). The
-  // spread below makes the containment structural rather than a thing two
-  // hand-maintained lists have to agree about. Caught in review 2026-09-01.
-  ...PROTO_SHIMMED_TOOLS,
+  "bun", "bunx", "node", "go", "gofmt", "moon", "moonx", "zig",
   "deno", "npx", "bash", "sh", "zsh", "python", "python3", "uv", "uvx",
 ]);
-
-// Fail loudly at load time if the invariant above is ever broken by an edit
-// that adds to PROTO_SHIMMED_TOOLS without touching this set.
-for (const shimmedTool of PROTO_SHIMMED_TOOLS) {
-  if (!HOOK_COMMAND_INTERPRETERS.has(shimmedTool)) {
-    throw new Error(
-      `validate-plugins.mjs invariant broken: "${shimmedTool}" is in PROTO_SHIMMED_TOOLS but not ` +
-        `HOOK_COMMAND_INTERPRETERS, so the proto-shim check can never fire for it.`,
-    );
-  }
-}
 
 /** `env` options that consume a SEPARATE following argument. */
 const ENV_OPTIONS_TAKING_A_SEPARATE_ARGUMENT = new Set(["-u", "--unset", "-C", "--chdir", "-S", "--split-string"]);
@@ -950,43 +910,19 @@ function resolveHookScriptPath(scriptToken, pluginDir, rootDir) {
 }
 
 /**
- * The interpreter named in a script's shebang, or null when it has none.
+ * Validation 10: hook COMMAND hygiene. A command that names a script which IS
+ * NOT ON DISK cannot be executed by Claude Code at all, so the guard it
+ * registers is permanently disarmed.
  *
- * Callers MUST establish existence separately (resolveHookScriptPath +
- * existsSync). Until 2026-09-02 this function folded "the file is not there"
- * into the same `null` it returns for "not a shimmed tool", so a hook command
- * naming a nonexistent script read as CLEAN — and nothing else in this
- * validator noticed the missing file either. A registered hook Claude Code
- * cannot execute is a permanently disarmed guard, which is the exact failure
- * mode this whole check exists to prevent.
- */
-function shebangInterpreter(scriptPath) {
-  if (!scriptPath || !existsSync(scriptPath)) return null;
-  const firstLine = readFileSync(scriptPath, "utf8").split("\n", 1)[0].trim();
-  if (!firstLine.startsWith("#!")) return null;
-
-  const tokens = firstLine.slice(2).trim().split(/\s+/).filter(Boolean);
-  let i = 0;
-  if (tokens[i] && tokens[i].split("/").pop() === "env") {
-    i += 1;
-    while (i < tokens.length && (tokens[i].startsWith("-") || tokens[i].includes("="))) i += 1;
-  }
-  return tokens[i] ? tokens[i].split("/").pop() : null;
-}
-
-/**
- * Validation 10: hook COMMAND hygiene. Two failure modes, both of which leave a
- * guard registered but not guarding:
- *
- *   (a) the command invokes a proto-shimmed tool without stripping the env vars
- *       proto sniffs — proto prepends an NDJSON banner to stdout and Claude Code
- *       silently discards the hook's decision at exit 0;
- *   (b) the command names a script that IS NOT ON DISK — Claude Code cannot
- *       execute it at all, so the guard is permanently disarmed.
- *
- * (b) was undetectable until 2026-09-02: shebangInterpreter() returned the same
- * `null` for "file absent" as for "not shimmed", the caller read that as clean,
- * and no other validation in this file looked at hook script existence either.
+ * Retired 2026-10-02: the rule that every command invoking a proto-shimmed tool
+ * carry `env -u AI_AGENT -u CLAUDECODE `. Its last reason was moonrepo/proto#1110
+ * (a failing shim wrote its diagnostic to STDOUT and left STDERR empty). That
+ * issue closed in v0.61.3; on the pinned 0.62.3 a bare hook command with a
+ * missing pinned bun, under the agent env vars, exits 1 with the cause on STDERR
+ * (321 B NDJSON naming proto::commands::run::missing_tool). The success-path
+ * banner (#1105) and the error path are both asserted directly by
+ * tasks/tests/test-proto-shim-no-ndjson-banner-on-stdout.sh, so a regression
+ * still fails the suite. History: docs/LESSONS.md 2026-08-30 and 2026-10-02.
  *
  * Matching is done on a NORMALISED command (quotes stripped, env prefix and
  * interpreter removed, ${CLAUDE_PLUGIN_ROOT}/$HOME/~ expanded) rather than on a
@@ -1061,7 +997,7 @@ export async function validateHookCommandHygiene(rootDir = process.cwd()) {
           const command = hook.command ?? "";
           if (!command) continue;
 
-          const { interpreter, scriptToken } = parseHookCommand(command);
+          const { scriptToken } = parseHookCommand(command);
           const resolved = resolveHookScriptPath(scriptToken, pluginDir, rootDir);
 
           // ---- (b) the script must actually be on disk ----
@@ -1089,75 +1025,6 @@ export async function validateHookCommandHygiene(rootDir = process.cwd()) {
             if (resolved.deterministic) errors.push(detail);
             else warnings.push(detail);
           }
-
-          // ---- (a) proto-shim hygiene: RETIRED 2026-09-01, RESTORED 2026-09-03 ----
-          //
-          // History matters here, because this check has been argued in both
-          // directions and the second argument is not the first one reversed.
-          //
-          // ORIGINALLY (2026-08-30) it required every command invoking a
-          // proto-shimmed tool to carry `env -u AI_AGENT -u CLAUDECODE `,
-          // because proto < 0.61.2 wrote an NDJSON banner to the shim's STDOUT
-          // and Claude Code silently voided the hook's decision at exit 0.
-          //
-          // RETIRED once proto fixed that upstream (moonrepo/proto#1105, "Fixed
-          // in v0.61.2"), verified at 0/100 polluted on the same 100-way
-          // concurrency that gave 27-45/100 on 0.61.1. The reasoning was sound
-          // as far as it went: a lint enforcing a workaround for a fixed bug
-          // reads as a live hazard and invites cargo-culting.
-          //
-          // RESTORED because #1105 fixed only the SUCCESS path. proto still
-          // routes ERRORS through its NDJSON reporter when it sniffs an agent
-          // environment, so a failing shim writes its diagnostic to STDOUT and
-          // leaves STDERR EMPTY (moonrepo/proto#1110, open). Claude Code reports
-          // such a hook as, in full:
-          //
-          //     Failed with non-blocking status code: No stderr output
-          //
-          // On 2026-09-02 a pinned bun install directory was renamed while
-          // ~/.proto/.prototools still demanded it. Every bun-backed hook began
-          // failing; 2,105 failures landed in a 23-minute window across four
-          // sessions. Of those, the 1,211 that NAMED their cause did so only
-          // because the installed plugins still carried this prefix — proto
-          // writes to stderr when the agent vars are absent. The 894 without it
-          // said nothing at all. That 58/42 split is the entire value of this
-          // lint, measured rather than argued.
-          //
-          // So the prefix is NOT a workaround for a fixed bug; it is the only
-          // thing that keeps a failing hook diagnosable while #1110 is open.
-          // The TEST that replaced this lint
-          // (tasks/tests/test-proto-shim-no-ndjson-banner-on-stdout.sh)
-          // stays — it asserts the #1105 property directly, which a lint cannot.
-          // The two are complementary: the test proves the banner is gone, this
-          // lint keeps the error path readable.
-          //
-          // Covers the SHEBANG case, which the pre-retirement version missed:
-          // four hook commands name a bare `.mjs` path whose interpreter is
-          // decided by `#!/usr/bin/env bun|node`. Those are just as shimmed as
-          // an explicit `bun …` and were silently unprotected.
-          //
-          // Retire this for real when #1110 ships and .prototools pins a proto
-          // that carries the fix.
-          const effectiveInterpreter =
-            interpreter ?? (existingScriptPath ? shebangInterpreter(existingScriptPath) : null);
-
-          if (
-            PROTO_SHIMMED_TOOLS.has(effectiveInterpreter) &&
-            !command.startsWith(AGENT_ENV_STRIP_PREFIX)
-          ) {
-            errors.push(
-              `${relPath}: hook command invokes proto-shimmed "${effectiveInterpreter}" without the ` +
-                `\`${AGENT_ENV_STRIP_PREFIX}\` prefix` +
-                (interpreter === null ? ` (via its ${basename(existingScriptPath)} shebang)` : "") +
-                `. When the shim fails, proto writes the reason to STDOUT and leaves STDERR empty ` +
-                `(moonrepo/proto#1110), so Claude Code reports only "Failed with non-blocking status ` +
-                `code: No stderr output" and the cause is invisible. Command: ${command.slice(0, 160)}`,
-            );
-          }
-
-          // The EXISTENCE check above is unrelated and still runs
-          // unconditionally — a registered hook whose script is missing is a
-          // permanently disarmed guard regardless of proto's version.
 
           // ---- (c) no updatedInput on a hook that can see AskUserQuestion ----
           //
@@ -1986,8 +1853,7 @@ const { errors: hookErrors, warnings: hookWarnings } = await validateHookOutputF
 // ADR: Lesson from user "Chen" - "Invalid discriminator value" from malformed hook structure
 const { errors: hookStructErrors, warnings: hookStructWarnings } = await validateHooksJsonStructure();
 
-// Hook command hygiene — no hook may invoke a proto-shimmed tool bare, or proto's
-// NDJSON banner lands on stdout ahead of the hook's JSON and the decision is dropped.
+// Hook command hygiene — every registered hook command must name a script that exists.
 const { errors: hookHygieneErrors, warnings: hookHygieneWarnings } = await validateHookCommandHygiene();
 
 // Skills frontmatter validation (v11.54.0 — all skills/*/SKILL.md must have name + description)

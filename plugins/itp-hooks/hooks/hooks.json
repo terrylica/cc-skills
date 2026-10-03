@@ -7,13 +7,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-subprocess-stdin-inlet-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-subprocess-stdin-inlet-guard.ts",
             "timeout": 5,
             "description": "Rewrites each Bash command to read stdin from /dev/null, so subprocesses it spawns cannot contend for the terminal and suspend the session."
           },
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-bash-guard-orchestrator.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-bash-guard-orchestrator.ts",
             "timeout": 60,
             "description": "Runs the 24 itp-hooks Bash guards listed in BASH_GUARD_REGISTRY in one bun process; the first deny wins and each guard fails open. Escape tokens are in each guard's registry entry."
           }
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-process-storm-guard.mjs",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-process-storm-guard.mjs",
             "timeout": 5
           }
         ]
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-write-edit-orchestrator.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-write-edit-orchestrator.ts",
             "timeout": 15,
             "description": "Runs 11 Write/Edit guards in one process, first deny or ask wins: version, shell-script-safety, skill-plugin-root, typescript-version, hoisted-deps, mise-hygiene, pyi-stub, native-binary, gpu-optimization, file-size, vale-claude-md."
           }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-secret-exposure-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-secret-exposure-guard.ts",
             "timeout": 5,
             "description": "Blocks a Write/Edit that would put a live credential on disk (Telegram bot token, Pushover key, literal in a secret-manager command). Escape: SECRET-SCAN-OK: <10+ char reason>."
           }
@@ -56,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-large-file-read-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-large-file-read-guard.ts",
             "timeout": 5,
             "description": "Warns, without blocking, when Read targets a file over 2000 lines without offset or limit."
           }
@@ -67,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-webfetch-fallback-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-webfetch-fallback-guard.ts",
             "timeout": 5,
             "description": "Denies every built-in WebFetch call and points to the curl, agent-reach, WebSearch fallback chain. No escape token."
           }
@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
             "timeout": 15,
             "description": "Denies an AskUserQuestion option that names a PR without its author and whether your review was requested, and supplies the exact annotation to append. Fails open."
           }
@@ -89,7 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-askuserquestion-line-terminator-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-askuserquestion-line-terminator-guard.ts",
             "timeout": 5,
             "description": "Denies an AskUserQuestion whose option label or description contains a line break, which Claude Code renders as U+FFFD (anthropics/claude-code#88836). Escape: ASK-OPTION-NEWLINE-OK."
           }
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-broad-process-signal-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-broad-process-signal-guard.ts",
             "timeout": 5,
             "statusMessage": "Checking for broad kill/pkill/killall...",
             "description": "Denies writing a shell script that contains a broad kill/pkill/killall or a pkill option placed after its pattern. Escapes: BROAD-PROCESS-SIGNAL-OK or PKILL-OPTION-ORDER-OK with a reason."
@@ -112,7 +112,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5,
             "description": "Wraps known long-running Bash commands in pueue and injects OP_SERVICE_ACCOUNT_TOKEN for 1Password; must stay the last PreToolUse entry (anthropics/claude-code#15897). Opt out: # PUEUE-SKIP."
           }
@@ -125,7 +125,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-reminder.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-reminder.ts",
             "timeout": 10
           },
           {
@@ -140,7 +140,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pushover-budget-reminder.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pushover-budget-reminder.ts",
             "timeout": 5,
             "description": "Reminds, without blocking, to use the full Pushover budget (message 1024, title 250, url 512 chars, one image) when code sends a Pushover message. Escape: PUSHOVER-BUDGET-OK."
           }
@@ -151,12 +151,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-glossary-sync.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-glossary-sync.ts",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-terminology-sync.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-terminology-sync.ts",
             "timeout": 8
           }
         ]
@@ -166,7 +166,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-readme-pypi-links.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-readme-pypi-links.ts",
             "timeout": 5
           }
         ]
@@ -176,7 +176,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pii-exposure-reminder.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pii-exposure-reminder.ts",
             "timeout": 5,
             "description": "Reminds, without blocking, when an edited docs or config file contains a third-party email address or phone number; values are redacted. Escape: PII-SCAN-OK in the file."
           }
@@ -187,7 +187,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-markdown-table-guard.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-markdown-table-guard.ts",
             "timeout": 5,
             "description": "Reminds when an edited Markdown file has a table that will not render (unescaped |, column-count mismatch, 4-space indent, stray alignment row). Escape: MD-TABLE-OK."
           }
@@ -198,7 +198,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-write-edit-orchestrator.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-write-edit-orchestrator.ts",
             "timeout": 15,
             "description": "Runs 12 post-edit checks in parallel and merges their context: leakage-taxonomy, ty, tsc, oxlint, biome, vale-claude-md, memory-efficiency, ssot-principles, claude-md-size-budget, python-preference, typescript-upgrade, markdown-hard-wrap."
           }
@@ -209,7 +209,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
             "timeout": 5,
             "description": "Reminds when an edit adds an invented display fallback such as \"Unknown\" or \"N/A\" (${x:-Unknown}, ?? \"N/A\", .get(k, \"Unknown\")). Escape: INVENTED-FALLBACK-OK."
           }
@@ -220,7 +220,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-sigpipe-pipefail-reminder.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-sigpipe-pipefail-reminder.ts",
             "timeout": 5,
             "description": "Reminds when a pipefail shell-script edit adds a pipe into an early-exiting reader (head, grep -q, sed q, awk exit) that can fail with 141. Escapes: SIGPIPE-OK, SHELL-SAFETY-OK."
           }
@@ -231,7 +231,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-bash-markdown-hard-wrap-reminder.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-bash-markdown-hard-wrap-reminder.ts",
             "timeout": 10,
             "description": "Reminds when a Bash command wrote net-new hard-wrapped prose into a Markdown file; repair with gfm-unwrap.ts. Escape: MD-HARD-WRAP-OK as an HTML comment in the file."
           }
@@ -243,7 +243,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts",
             "timeout": 65,
             "description": "Runs the four Stop hooks in sequence (subprocess-cleanup, error-summary, ty-check, markdown-lint), each time-boxed and crash-isolated."
           }
@@ -255,9 +255,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-review-round-status.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-review-round-status.ts",
             "timeout": 5,
             "description": "Prints a one-line review-round gate status each turn, because Bash PreToolUse output never reaches the model. Never blocks."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/sessionstart-proto-floor-check.sh",
+            "timeout": 5,
+            "description": "Warns into session context when bun is a proto shim and proto is older than 0.61.3, below which bare `bun` hook commands can have their decisions discarded. Plain bash so it does not run through that shim. Silent otherwise; never blocks."
           }
         ]
       }
