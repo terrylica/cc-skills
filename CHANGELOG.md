@@ -1,3 +1,16 @@
+# [33.4.0](https://github.com/terrylica/cc-skills/compare/v33.3.2...v33.4.0) (2026-10-03)
+
+
+### Features
+
+* **floating-clock:** broadcast explicit audio-bar choices ([9c52daf](https://github.com/terrylica/cc-skills/commit/9c52daf0d39490c3233c7e36c53483d7e5796dc1))
+
+Every explicit audio-bar choice (menu pick, left-click cycle, Bluetooth connect) now posts the distributed notification com.terryli.floating-clock.explicit-audio-selection with userInfo.scope = input|output, from noteExplicitDeviceSelectionForInput:, the same choke point that bumps the hijack-guard generation. Fire-and-forget; no listener required.
+
+Why: a default-input policy that restores the mic after macOS auto-routes it to newly connected AirPods cannot otherwise tell that auto-route apart from the user deliberately picking AirPods as input here. Verified 2026-10-03: picking AirPods from the IN menu disarmed such a daemon's restore, and an AirPods reconnect without a pick was restored within about 1 s.
+
+Docs: overlay-indicators.md gains the broadcast contract and a measured correction to the Typeless caveat. Typeless 2.8.1 Auto-detect can ignore the default input entirely: with the lid open, a hidden dynamicMicrophoneDegradationEnabled setting, and a click on Auto-detect in its picker, write the built-in mic into preferredBuiltInMicId.
+
 ## [33.3.2](https://github.com/terrylica/cc-skills/compare/v33.3.1...v33.3.2) (2026-10-03)
 
 
