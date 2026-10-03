@@ -50,4 +50,4 @@ echo '{"tool_input": {"file_path": "src/example.ts"}, "session_id": "test"}' | \
 
 - [Orchestrator](./posttooluse-write-edit-orchestrator.md) (how subhooks are combined)
 - [ty-type-check](./ty-type-checker.md) (Python type checking parallel)
-- [oxlint-check](./oxlint-check.md) (complementary JS/TS linting)
+- [js-ts-lint](./js-ts-lint.md) (complementary JS/TS linting: oxlint + biome)

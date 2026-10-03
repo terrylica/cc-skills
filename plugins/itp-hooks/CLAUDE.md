@@ -8,7 +8,7 @@
 
 1. **Keep this file a slim hub.** The size guard warns at 36k and Claude Code stops fully loading a `CLAUDE.md` over **40,000 characters** (counted in UTF-16 code units, not bytes — see `hooks/posttooluse-claude-md-size-budget-reminder.ts`). Prettier repads every cell in a table to its widest row, so one long cell inflates the whole table; **keep every Purpose cell to a short clause** and put the narrative in the hook's own spoke. Measure after formatting, never before.
 2. **`hooks.json` is the SSoT for registration**, not this file. A hook listed here but unregistered there does not run.
-3. **`pretooluse-pueue-wrap-guard.ts` MUST stay the LAST PreToolUse entry** in `hooks.json` (audited by `tasks/hook-lint/pueue-wrap-last.sh`) — it auto-wraps long-running commands, so any guard after it never sees the unwrapped command.
+3. **`pretooluse-pueue-wrap-guard.ts` MUST stay the LAST PreToolUse entry** in `hooks.json` (audited by `tasks/hook-lint/pueue-wrap-last.sh`) — it auto-wraps long-running commands, so any guard after it never sees the unwrapped command. Details: [pueue-wrap-guard](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard).
 4. **A new Bash guard goes into `BASH_GUARD_REGISTRY`** in `hooks/pretooluse-bash-guard-orchestrator.ts`, not into `hooks.json` (#111). Export its `main()` and gate the top-level call on `import.meta.main`. The exception is a guard that rewrites the command through `updatedInput`, which stays a separate entry.
 5. **No full-table snapshot docs.** A spoke owns one subject; a doc that mirrors these tables drifts out of sync with the spokes. [docs/spoke-index.md](./docs/spoke-index.md) is an index of subjects, not a snapshot of hook rows.
 6. **TypeScript/Bun is preferred for new hooks** (per `lifecycle-reference.md`); bash is acceptable only for simple pattern matching.
@@ -21,63 +21,63 @@ Registration lives in `hooks/hooks.json`. Each row is one clause; the spoke is t
 
 Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "Write\|Edit orch." in the Matcher column means the hook runs as a subhook of that orchestrator rather than as its own process. "Bash orch." means the hook runs inside [`pretooluse-bash-guard-orchestrator.ts`](./docs/pretooluse-bash-guard-orchestrator.md) rather than as its own process.
 
-| Hook                                                  | Matcher                  | Purpose                                       | Spoke                                                       |
-| ----------------------------------------------------- | ------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
-| `pretooluse-version-guard.ts`                         | Write\|Edit orch.        | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                |
-| `pretooluse-process-storm-guard.mjs`                  | Bash orch. + Write\|Edit | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                          |
-| `pretooluse-cwd-deletion-guard.ts`                    | Bash orch.               | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                           |
-| `pretooluse-git-worktree-guard.ts`                    | Bash orch.               | Enforces worktree-per-branch                  | [→](./docs/git-worktree-guard.md)                           |
-| `pretooluse-vale-claude-md-guard.ts`                  | Write\|Edit orch.        | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                 |
-| `pretooluse-hoisted-deps-guard.ts`                    | Write\|Edit orch.        | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                           |
-| `pretooluse-gpu-optimization-guard.ts`                | Write\|Edit orch.        | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                       |
-| `pretooluse-mise-hygiene-guard.ts`                    | Write\|Edit orch.        | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                           |
-| `pretooluse-file-size-guard.ts`                       | Write\|Edit orch.        | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                              |
-| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 11 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)           |
-| `pretooluse-native-binary-guard.ts`                   | Write\|Edit orch.        | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                          |
-| `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                               |
-| `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                         |
-| `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                            |
-| `pretooluse-cargo-tty-guard.ts`                       | Bash orch.               | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                              |
-| `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                      |
-| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 24 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)           |
-| `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pueue-wrap-guard.md)                             |
-| `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                     |
-| `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)            |
-| `pretooluse-gmail-body-guard.ts`                      | Bash orch.               | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                             |
-| `pretooluse-markdown-commit-hard-wrap-guard.ts`       | Bash orch.               | Blocks a `git commit` adding `.md` hard wraps | [→](./docs/markdown-hard-wrap-reminder.md)                  |
-| `pretooluse-secret-exposure-guard.ts`                 | Write\|Edit              | Hard-blocks live credentials in new content   | [→](./docs/secret-and-pii-exposure-guard.md)                |
-| `pretooluse-headless-claude-p-guard.ts`               | Bash orch.               | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                            |
-| `pretooluse-askuserquestion-line-terminator-guard.ts` | AskUserQuestion          | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md) |
-| `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.               | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)             |
-| `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                   |
+| Hook                                                  | Matcher                  | Purpose                                       | Spoke                                                              |
+| ----------------------------------------------------- | ------------------------ | --------------------------------------------- | ------------------------------------------------------------------ |
+| `pretooluse-version-guard.ts`                         | Write\|Edit orch.        | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                       |
+| `pretooluse-process-storm-guard.mjs`                  | Bash orch. + Write\|Edit | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                                 |
+| `pretooluse-cwd-deletion-guard.ts`                    | Bash orch.               | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                                  |
+| `pretooluse-git-worktree-guard.ts`                    | Bash orch.               | Enforces worktree-per-branch                  | [→](./docs/git-worktree-guard.md)                                  |
+| `pretooluse-vale-claude-md-guard.ts`                  | Write\|Edit orch.        | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                        |
+| `pretooluse-hoisted-deps-guard.ts`                    | Write\|Edit orch.        | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                                  |
+| `pretooluse-gpu-optimization-guard.ts`                | Write\|Edit orch.        | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                              |
+| `pretooluse-mise-hygiene-guard.ts`                    | Write\|Edit orch.        | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                                  |
+| `pretooluse-file-size-guard.ts`                       | Write\|Edit orch.        | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                                     |
+| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 11 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
+| `pretooluse-native-binary-guard.ts`                   | Write\|Edit orch.        | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                                 |
+| `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                                      |
+| `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                                |
+| `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                                   |
+| `pretooluse-cargo-tty-guard.ts`                       | Bash orch.               | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                                     |
+| `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
+| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 24 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
+| `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
+| `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                            |
+| `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |
+| `pretooluse-gmail-body-guard.ts`                      | Bash orch.               | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                                    |
+| `pretooluse-markdown-commit-hard-wrap-guard.ts`       | Bash orch.               | Blocks a `git commit` adding `.md` hard wraps | [→](./docs/markdown-hard-wrap-reminder.md)                         |
+| `pretooluse-secret-exposure-guard.ts`                 | Write\|Edit              | Hard-blocks live credentials in new content   | [→](./docs/secret-and-pii-exposure-guard.md)                       |
+| `pretooluse-headless-claude-p-guard.ts`               | Bash orch.               | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                                   |
+| `pretooluse-askuserquestion-line-terminator-guard.ts` | AskUserQuestion          | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md)        |
+| `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.               | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)                    |
+| `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                          |
 
 ### PostToolUse
 
 Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md). "PostToolUse orch." in the Matcher column means the hook runs inside that orchestrator.
 
-| Hook                                              | Matcher           | Purpose                                       | Spoke                                              |
-| ------------------------------------------------- | ----------------- | --------------------------------------------- | -------------------------------------------------- |
-| `posttooluse-reminder.ts`                         | Bash\|Write\|Edit | Context-aware reminders (UV, Pueue, ADR, …)   | [→](./docs/posttooluse-reminder.md)                |
-| `code-correctness-guard.sh`                       | Bash\|Write\|Edit | Silent-failure detection ONLY                 | [→](./docs/code-correctness-philosophy.md)         |
-| `posttooluse-pushover-budget-reminder.ts`         | Bash\|Write\|Edit | Pushover message-budget nudge + limits SSoT   | [→](./docs/pushover-budget-reminder.md)            |
-| `posttooluse-invented-fallback-reminder.ts`       | Bash\|Write\|Edit | Official-values nudge on invented fallbacks   | [→](./docs/invented-fallback-reminder.md)          |
-| `posttooluse-vale-claude-md.ts`                   | PostToolUse orch. | Informational vale check on CLAUDE.md edits   | [→](./docs/vale-terminology-enforcement.md)        |
-| `posttooluse-glossary-sync.ts`                    | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary      | [→](./docs/vale-terminology-enforcement.md)        |
-| `posttooluse-terminology-sync.ts`                 | Write\|Edit       | CLAUDE.md → GLOSSARY.md sync + dupe detection | [→](./docs/vale-terminology-enforcement.md)        |
-| `posttooluse-readme-pypi-links.ts`                | Write\|Edit       | PyPI badge/link consistency in READMEs        | [→](./docs/readme-pypi-links.md)                   |
-| `posttooluse-markdown-table-guard.ts`             | Write\|Edit       | Per-edit GFM table structural guard           | [→](./docs/markdown-table-guard.md)                |
-| `posttooluse-ssot-principles.ts`                  | PostToolUse orch. | SSoT/DI reminder with ast-grep detection      | [→](./docs/ssot-principles.md)                     |
-| `posttooluse-memory-efficiency-reminder.ts`       | PostToolUse orch. | Once-per-session memory-efficiency reminder   | [→](./docs/memory-efficiency-reminder.md)          |
-| `posttooluse-ty-type-check.ts`                    | PostToolUse orch. | ty type check on .py/.pyi edits               | [→](./docs/ty-type-checker.md)                     |
-| `posttooluse-write-edit-orchestrator.ts`          | Write\|Edit       | PostToolUse multi-aggregation orchestrator    | [→](./docs/posttooluse-write-edit-orchestrator.md) |
-| `posttooluse-tsc-type-check.ts`                   | PostToolUse orch. | tsc project-scoped check on .ts/.tsx edits    | [→](./docs/tsc-type-check.md)                      |
-| `posttooluse-oxlint-check.ts`                     | PostToolUse orch. | oxlint correctness+suspicious on JS/TS        | [→](./docs/oxlint-check.md)                        |
-| `posttooluse-biome-lint.ts`                       | PostToolUse orch. | biome complementary-to-oxlint JS/TS lint      | [→](./docs/biome-lint.md)                          |
-| `posttooluse-python-preference-nudge.ts`          | PostToolUse orch. | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)             |
-| `posttooluse-pii-exposure-reminder.ts`            | Write\|Edit       | Reminder on third-party email/phone on disk   | [→](./docs/secret-and-pii-exposure-guard.md)       |
-| `posttooluse-markdown-hard-wrap-reminder.ts`      | PostToolUse orch. | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)         |
-| `posttooluse-bash-markdown-hard-wrap-reminder.ts` | Bash              | Same, for `.md` written by a shell command    | [→](./docs/markdown-hard-wrap-reminder.md)         |
-| `posttooluse-claude-md-size-budget-reminder.ts`   | PostToolUse orch. | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |
+| Hook                                              | Matcher           | Purpose                                       | Spoke                                                                         |
+| ------------------------------------------------- | ----------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
+| `posttooluse-reminder.ts`                         | Bash\|Write\|Edit | Context-aware reminders (UV, Pueue, ADR, …)   | [→](./docs/posttooluse-reminder.md)                                           |
+| `code-correctness-guard.sh`                       | Bash\|Write\|Edit | Silent-failure detection ONLY                 | [→](./docs/code-correctness-philosophy.md)                                    |
+| `posttooluse-pushover-budget-reminder.ts`         | Bash\|Write\|Edit | Pushover message-budget nudge + limits SSoT   | [→](./docs/pushover-budget-reminder.md)                                       |
+| `posttooluse-invented-fallback-reminder.ts`       | Bash\|Write\|Edit | Official-values nudge on invented fallbacks   | [→](./docs/invented-fallback-reminder.md)                                     |
+| `posttooluse-vale-claude-md.ts`                   | PostToolUse orch. | Informational vale check on CLAUDE.md edits   | [→](./docs/vale-terminology-enforcement.md)                                   |
+| `posttooluse-glossary-sync.ts`                    | Write\|Edit       | Auto-sync GLOSSARY.md to Vale vocabulary      | [→](./docs/vale-terminology-enforcement.md)                                   |
+| `posttooluse-terminology-sync.ts`                 | Write\|Edit       | CLAUDE.md → GLOSSARY.md sync + dupe detection | [→](./docs/vale-terminology-enforcement.md)                                   |
+| `posttooluse-readme-pypi-links.ts`                | Write\|Edit       | PyPI badge/link consistency in READMEs        | [→](./docs/readme-pypi-links.md)                                              |
+| `posttooluse-markdown-table-guard.ts`             | Write\|Edit       | Per-edit GFM table structural guard           | [→](./docs/markdown-table-guard.md)                                           |
+| `posttooluse-ssot-principles.ts`                  | PostToolUse orch. | SSoT/DI reminder with ast-grep detection      | [→](./docs/ssot-principles.md)                                                |
+| `posttooluse-memory-efficiency-reminder.ts`       | PostToolUse orch. | Once-per-session memory-efficiency reminder   | [→](./docs/posttooluse-write-edit-orchestrator.md#memory-efficiency-reminder) |
+| `posttooluse-ty-type-check.ts`                    | PostToolUse orch. | ty type check on .py/.pyi edits               | [→](./docs/ty-type-checker.md)                                                |
+| `posttooluse-write-edit-orchestrator.ts`          | Write\|Edit       | PostToolUse multi-aggregation orchestrator    | [→](./docs/posttooluse-write-edit-orchestrator.md)                            |
+| `posttooluse-tsc-type-check.ts`                   | PostToolUse orch. | tsc project-scoped check on .ts/.tsx edits    | [→](./docs/tsc-type-check.md)                                                 |
+| `posttooluse-oxlint-check.ts`                     | PostToolUse orch. | oxlint correctness+suspicious on JS/TS        | [→](./docs/js-ts-lint.md)                                                     |
+| `posttooluse-biome-lint.ts`                       | PostToolUse orch. | biome complementary-to-oxlint JS/TS lint      | [→](./docs/js-ts-lint.md)                                                     |
+| `posttooluse-python-preference-nudge.ts`          | PostToolUse orch. | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)                                        |
+| `posttooluse-pii-exposure-reminder.ts`            | Write\|Edit       | Reminder on third-party email/phone on disk   | [→](./docs/secret-and-pii-exposure-guard.md)                                  |
+| `posttooluse-markdown-hard-wrap-reminder.ts`      | PostToolUse orch. | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)                                    |
+| `posttooluse-bash-markdown-hard-wrap-reminder.ts` | Bash              | Same, for `.md` written by a shell command    | [→](./docs/markdown-hard-wrap-reminder.md)                                    |
+| `posttooluse-claude-md-size-budget-reminder.ts`   | PostToolUse orch. | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md)                            |
 
 ### SessionStart
 
@@ -94,22 +94,52 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 
 ## Escape hatches
 
-Add the token to the file or command to suppress a guard. Every token requires a real reason; several demand one inline.
+Add the token to the file or command to suppress a guard. Every token needs a real reason; those marked with a length demand one inline. Where a token is shown with a leading `#`, the hook requires it.
 
-| Token                      | Suppresses                                   |
-| -------------------------- | -------------------------------------------- |
-| `SECRET-SCAN-OK: <reason>` | Secret-exposure guard (reason ≥10 chars)     |
-| `PII-SCAN-OK`              | PII-exposure reminder                        |
-| `SKILL-PLUGIN-ROOT-OK`     | Skill plugin-root guard                      |
-| `RELEASE-NOTES-OK`         | Release-notes extensiveness guard            |
-| `GMAIL-BODY-OK`            | Gmail draft body guard                       |
-| `ASK-OPTION-NEWLINE-OK`    | AskUserQuestion option line-terminator guard |
-| `HEADLESS-P-OK`            | Headless `claude -p` guard                   |
-| `MD-TABLE-OK`              | Markdown table guard                         |
-| `MD-HARD-WRAP` + `-OK`     | Markdown hard-wrap reminders + commit guard  |
-| `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                   |
-| `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder               |
-| `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker)   |
+| Token                                  | Suppresses                                         |
+| -------------------------------------- | -------------------------------------------------- |
+| `SECRET-SCAN-OK: <reason>`             | Secret-exposure guard (reason ≥10 chars)           |
+| `PII-SCAN-OK`                          | PII-exposure reminder                              |
+| `PII-GATE-OK: <reason>`                | PII push gate (reason ≥10 chars)                   |
+| `SKILL-PLUGIN-ROOT-OK: <reason>`       | Skill plugin-root guard (reason ≥10 chars)         |
+| `RELEASE-NOTES-OK: <reason>`           | Release-notes guard (reason ≥10 chars)             |
+| `GMAIL-BODY-OK`                        | Gmail draft body guard                             |
+| `GH-HARD-WRAP` + `-OK`                 | GitHub publishing hard-wrap guard                  |
+| `PR-CITATION-OK`                       | PR citation-evidence guard                         |
+| `PR_BLOCKING_REVIEW_OK=1`              | PR review-invitation guard (leading assignment)    |
+| `ASK-OPTION-NEWLINE-OK`                | AskUserQuestion option line-terminator guard       |
+| `HEADLESS-P-OK`                        | Headless `claude -p` guard                         |
+| `CHROME-DEBUG-PORT-OK: <reason>`       | Chrome debug-port guard (reason ≥10 chars)         |
+| `BROAD-PROCESS-SIGNAL-OK: <reason>`    | Broad process-signal guard (reason ≥10 chars)      |
+| `PKILL-OPTION-ORDER-OK: <reason>`      | pkill/pgrep option-order checks (reason ≥10 chars) |
+| `PROCESS-STORM-OK`                     | Process-storm guard                                |
+| `CWD-DELETE-OK`                        | CWD-deletion guard                                 |
+| `TCC-ORDERING-OK: <reason>`            | TCC grant-ordering guard (reason ≥10 chars)        |
+| `# UV-OK`                              | UV enforcement guard                               |
+| `# PTH-OK`                             | `.pth` contamination guard                         |
+| `# PUEUE-LOCAL-OK`                     | Pueue local-daemon guard                           |
+| `# PUEUE-SKIP` / `# PUEUE-WRAP`        | Pueue auto-wrap: prevent / force                   |
+| `CARGO-TTY-SKIP` / `CARGO-TTY-WRAP`    | Cargo TTY guard: pass through / force PUEUE        |
+| `# DUCKDB-SKIP`                        | Parquet → DuckDB nudge                             |
+| `ALLOW-LEGACY-TS`, `ALLOW_LEGACY_TS=1` | TypeScript version guards (marker or env prefix)   |
+| `ALLOW_UMBRELLA_REPO=1`                | Umbrella no-repo guard                             |
+| `ALLOW_BARE_BRANCH=1`                  | Git worktree guard (env var, not a marker)         |
+| `SSoT-OK`                              | Version guard (mixed case, exact)                  |
+| `FILE-SIZE-OK`                         | File-size guard + reminder (per-project override)  |
+| `# INIT-MONOLITH-OK`                   | `__init__.py`/`.pyi` stub guard (exact case)       |
+| `# gpu-optimization-bypass: <reason>`  | GPU optimization guard (exact lowercase)           |
+| `BASH-LAUNCHD-OK`                      | Native-binary guard for launchd files              |
+| `SHELL-SAFETY-OK: <reason>`            | Shell-script safety guard (reason ≥8 chars)        |
+| `SIGPIPE-OK`                           | SIGPIPE-under-pipefail reminder (on the pipeline)  |
+| `INLINE-IGNORE-OK`                     | Inline lint-suppression check (same line)          |
+| `SETPROCTITLE-OK`                      | setproctitle reminder                              |
+| `FAIL-FAST-OK`                         | Fail-fast loop reminder                            |
+| `PUSHOVER-BUDGET-OK`                   | Pushover budget reminder                           |
+| `LEAK-TAXONOMY-OK`                     | Leakage-taxonomy reminder                          |
+| `MD-TABLE-OK`                          | Markdown table guard                               |
+| `MD-HARD-WRAP` + `-OK`                 | Markdown hard-wrap reminders + commit guard        |
+| `INVENTED-FALLBACK-OK`                 | Invented-fallback reminder                         |
+| `CLAUDE-MD-SIZE-OK`                    | CLAUDE.md size-budget reminder                     |
 
 `pretooluse-webfetch-fallback-guard.ts` has **no** escape hatch, by design.
 

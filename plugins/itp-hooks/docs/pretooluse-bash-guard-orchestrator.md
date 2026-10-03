@@ -32,6 +32,17 @@ Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orch
 - **`pretooluse-subprocess-stdin-inlet-guard.ts`** and **`pretooluse-pueue-wrap-guard.ts`** rewrite the command through `updatedInput`. Claude Code keeps only the last hook's `updatedInput` ([anthropics/claude-code#15897](https://github.com/anthropics/claude-code/issues/15897)), so they stay separate entries, and pueue-wrap stays last (invariant 3 in the hub).
 - **`pretooluse-process-storm-guard.mjs`** and **`pretooluse-broad-process-signal-guard.ts`** also inspect files written with Write and Edit. Their Bash path runs inside the orchestrator, and they keep a `Write|Edit` entry of their own.
 
+### pueue-wrap-guard
+
+[`pretooluse-pueue-wrap-guard.ts`](../hooks/pretooluse-pueue-wrap-guard.ts) does two things, combined in one hook because only one hook's `updatedInput` survives:
+
+1. **Token injection**: prepends `OP_SERVICE_ACCOUNT_TOKEN` (read from `~/.claude/.secrets/op-service-account-token`) to commands that target the "Claude Automation" 1Password vault, avoiding biometric prompts. Skipped when the command already sets the variable.
+2. **Pueue wrapping**: wraps known long-running Bash commands (an allowlist, `LONG_RUNNING_PATTERNS`) as `pueue add` → `pueue wait` → `pueue log`, so the output still flows back to Claude, and records the task ID for session-scoped cleanup. If queueing fails it runs the command directly. A `# PUEUE-WRAP` comment forces wrapping; `# PUEUE-SKIP` prevents it. Pueue commands, pueue scripts, already-backgrounded commands, fast local tools (`git`, linters, `cargo` subcommands) and SSH commands are never auto-wrapped.
+
+It **must be the last PreToolUse entry** in `hooks.json`: Claude Code applies `updatedInput` last-writer-wins, so a later hook's `updatedInput`, even an undefined one, would replace the rewritten command. [`tasks/hook-lint/pueue-wrap-last.sh`](../../../tasks/hook-lint/pueue-wrap-last.sh) enforces this; it runs in `moon run repo:hook-lint` and as Check 4g of `tasks/release/preflight`.
+
+Related: [pueue-local-guard.md](./pueue-local-guard.md), [pueue-reminder.md](./pueue-reminder.md), and `devops-tools`' [claude-code-integration.md](/plugins/devops-tools/skills/pueue-job-orchestration/references/claude-code-integration.md).
+
 ## Why not the `if` field
 
 The [`if` field](https://code.claude.com/docs/en/hooks#common-fields) skips a hook unless a subcommand matches a permission rule, and it costs nothing to add. It was measured first, on 2026-10-01. Fifteen command forms were run through a hook gated by `"if": "Bash(gh *)"` and through an ungated control, which fired 15 of 15. The gated hook did not run for nine of them:
