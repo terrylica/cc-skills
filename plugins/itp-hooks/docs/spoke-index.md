@@ -6,15 +6,15 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 
 ## Orchestrators and lifecycle
 
-| Spoke                                                                              | Topic                                                                         |
-| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process      |
-| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 24 guards in one process                   |
-| [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks           |
-| [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                      |
-| [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook output: where each event's output goes and how summaries are routed |
-| [plan-mode-detection.md](./plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                          |
-| [read-only-command-detection.md](./read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                   |
+| Spoke                                                                              | Topic                                                                                               |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process                            |
+| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 24 guards in one process; pueue-wrap-guard and why it stays last |
+| [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks; memory-efficiency reminder     |
+| [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                                            |
+| [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook output: where each event's output goes and how summaries are routed                       |
+| [plan-mode-detection.md](./plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                                                |
+| [read-only-command-detection.md](./read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                                         |
 
 ## Guards — safety and destructive-action prevention
 
@@ -47,13 +47,11 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 
 ## Job orchestration and process discipline
 
-| Spoke                                                            | Topic                                                                                                                              |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [pueue-reminder.md](./pueue-reminder.md)                         | Pueue reminder detection patterns + exceptions                                                                                     |
-| [pueue-local-guard.md](./pueue-local-guard.md)                   | Pueue commands must target the local daemon                                                                                        |
-| [pueue-wrap-guard.md](./pueue-wrap-guard.md)                     | Auto-wrapping long-running commands with pueue; why it MUST stay the last PreToolUse entry                                         |
-| [cargo-tty-guard.md](./cargo-tty-guard.md)                       | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md)) |
-| [memory-efficiency-reminder.md](./memory-efficiency-reminder.md) | Once-per-session memory-efficiency reminder                                                                                        |
+| Spoke                                          | Topic                                                                                                                              |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [pueue-reminder.md](./pueue-reminder.md)       | Pueue reminder detection patterns + exceptions                                                                                     |
+| [pueue-local-guard.md](./pueue-local-guard.md) | Pueue commands must target the local daemon                                                                                        |
+| [cargo-tty-guard.md](./cargo-tty-guard.md)     | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md)) |
 
 ## Linters, type checkers and correctness
 
@@ -62,8 +60,7 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | [code-correctness-philosophy.md](./code-correctness-philosophy.md) | What is/isn't checked and why                                                              |
 | [ty-type-checker.md](./ty-type-checker.md)                         | ty per-file and project-wide checks, Python-version resolution, gate files, resource guard |
 | [tsc-type-check.md](./tsc-type-check.md)                           | tsc project-scoped type check (native TypeScript 7+ compiler)                              |
-| [oxlint-check.md](./oxlint-check.md)                               | oxlint correctness + suspicious lint on JS/TS edits                                        |
-| [biome-lint.md](./biome-lint.md)                                   | biome complementary-to-oxlint lint on JS/TS edits                                          |
+| [js-ts-lint.md](./js-ts-lint.md)                                   | oxlint (correctness + suspicious) and biome (complementary rules) on JS/TS edits           |
 | [lsp-configuration.md](./lsp-configuration.md)                     | LSP disabled-state config (process-storm history)                                          |
 | [ssot-principles.md](./ssot-principles.md)                         | SSoT/DI reminder hook + ast-grep rules                                                     |
 
