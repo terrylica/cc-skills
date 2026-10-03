@@ -200,6 +200,12 @@ when the default input changes — apps must listen for
 default input, prints per-500ms RMS; AirPods stem-scratch is the
 discriminator).
 
+**Typeless 2.8.1 does not always follow the default input at all (measured 2026-10-03).** With the lid open and "Auto-detect" selected, a hidden setting `dynamicMicrophoneDegradationEnabled` (default on, no UI) writes the built-in mic into `preferredBuiltInMicId`, and the recorder forces `getUserMedia` onto it. Clicking "Auto-detect" in Typeless's mic picker writes the same override even with that setting off, and the picker label shows "Auto-detect (MacBook Pro Microphone)" by the same lid-open rule. So a correct IN zone here can coexist with Typeless recording from the MacBook mic. Ground truth per dictation is `history_v2.mic_device_info` in Typeless's `typeless.db`.
+
+## Explicit-selection broadcast (2026-10-03)
+
+Every explicit IN/OUT choice (menu pick, left-click cycle, Bluetooth connect) posts the distributed notification `com.terryli.floating-clock.explicit-audio-selection` with `userInfo.scope` = `input` or `output`, from `noteExplicitDeviceSelectionForInput:` (the same choke point that bumps the hijack-guard generation). It is fire-and-forget and needs no listener. It exists so an external default-device policy can tell a deliberate choice from macOS's Bluetooth auto-route and stand down, for example a daemon that restores the input after AirPods connect. Listen with `DistributedNotificationCenter`; the payload is the scope only, read the HAL for the device.
+
 ## Generic external-state status indicator (`VPNStatusIndicator`, 2026-06-07)
 
 A second banner alongside the mic-mute bar: `Sources/core/VPNStatusIndicator.{h,m}`.
