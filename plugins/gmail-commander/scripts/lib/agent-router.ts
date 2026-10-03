@@ -14,7 +14,7 @@ import { z } from "zod";
 import type { Context } from "grammy";
 import type { BotState } from "./state.js";
 import { listInboxEmails, searchEmails, readEmail, createDraft } from "./gmail-client.js";
-import { escapeHtml, formatForTelegram } from "./telegram-format.js";
+import { escapeHtml, markdownToTelegramHtml } from "./telegram-format.js";
 import { chunkTelegramHtml } from "./telegram-chunk.js";
 import { isCircuitOpen, recordFailure, resetCircuit, type CircuitBreakerOptions } from "./circuit-breaker.js";
 import { isSkillContaminated } from "./triage.js";
@@ -206,7 +206,7 @@ export async function handleAgentQuery(
                   await ctx.api.editMessageText(
                     ctx.chat!.id,
                     thinking.message_id,
-                    formatForTelegram(responseText.slice(0, 4000)) || "<i>Processing...</i>",
+                    markdownToTelegramHtml(responseText.slice(0, 4000)) || "<i>Processing...</i>",
                     { parse_mode: "HTML" }
                   );
                   lastEditTime = now;
@@ -233,7 +233,7 @@ export async function handleAgentQuery(
     }
 
     // Final response
-    const formatted = formatForTelegram(responseText);
+    const formatted = markdownToTelegramHtml(responseText);
     const chunks = chunkTelegramHtml(formatted, 4096);
 
     try {

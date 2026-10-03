@@ -3,7 +3,8 @@
  * Telegram HTML Formatting
  *
  * HTML formatting, markdown conversion, and digest rendering for Telegram.
- * Merged from amonic/src/lib/telegram.ts + claude-telegram-sync/src/telegram/format.ts.
+ * Also imported by the scheduled digest in the private Restate deployment, so
+ * `markdownToTelegramHtml` is the one Markdown→Telegram converter for both.
  */
 
 import type { Category, Urgency, TriageItem } from "./triage.js";
@@ -38,46 +39,46 @@ export function escapeHtmlAttr(text: string): string {
 
 // --- Markdown to HTML ---
 
+/**
+ * Convert the GitHub-flavoured Markdown an LLM writes into Telegram's `parse_mode: "HTML"` subset.
+ *
+ * Telegram renders Markdown it receives without a parse mode as literal `**` and `#`, and rejects a
+ * whole message (400 "can't parse entities") on one stray `<` or `&` when a parse mode IS set. So
+ * every piece of prose is HTML-escaped BEFORE any tag is inserted; code spans are lifted out first so
+ * their contents are escaped once and never re-formatted.
+ *
+ * Telegram HTML has no headings or list elements: `# Heading` becomes a bold line and `- `/`* `/`+ `
+ * bullets become `• `. Every tag produced here opens and closes on one line (except `<pre>`), so a
+ * caller may split the result on newlines without leaving a tag unbalanced.
+ */
 export function markdownToTelegramHtml(markdown: string): string {
   if (!markdown) return "";
 
-  let html = markdown;
+  const lifted: string[] = [];
+  const lift = (html: string) => `\uE000${lifted.push(html) - 1}\uE001`;
 
-  // Code blocks — must come before inline code
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-    const escapedCode = escapeHtml(code.trim());
-    if (lang) {
-      return `<pre><code class="language-${escapeHtmlAttr(lang)}">${escapedCode}</code></pre>`;
-    }
-    return `<pre><code>${escapedCode}</code></pre>`;
-  });
+  let html = markdown
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang: string, code: string) =>
+      lift(
+        lang
+          ? `<pre><code class="language-${escapeHtmlAttr(lang)}">${escapeHtml(code.trim())}</code></pre>`
+          : `<pre><code>${escapeHtml(code.trim())}</code></pre>`,
+      ),
+    )
+    .replace(/`([^`\n]+)`/g, (_, code: string) => lift(`<code>${escapeHtml(code)}</code>`));
 
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, (_, code) => {
-    return `<code>${escapeHtml(code)}</code>`;
-  });
+  html = escapeHtml(html)
+    .replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (_, text: string, url: string) =>
+      lift(`<a href="${url.replace(/"/g, "&quot;")}">${text}</a>`),
+    )
+    .replace(/^[ \t]*#{1,6}[ \t]+(.+?)[ \t#]*$/gm, "<b>$1</b>")
+    .replace(/^([ \t]*)[-*+][ \t]+/gm, "$1• ")
+    .replace(/\*\*([^\n]+?)\*\*/g, "<b>$1</b>")
+    .replace(/(^|[^\w])__([^\n]+?)__(?=[^\w]|$)/gm, "$1<b>$2</b>")
+    .replace(/(^|[^\w*])\*(?![\s*])([^\n*]+?)\*(?![\w*])/gm, "$1<i>$2</i>")
+    .replace(/(^|[^\w])_(?![\s_])([^\n_]+?)_(?=[^\w]|$)/gm, "$1<i>$2</i>");
 
-  // Bold
-  html = html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
-  html = html.replace(/__(.+?)__/g, "<b>$1</b>");
-
-  // Italic
-  html = html.replace(/\*(.+?)\*/g, "<i>$1</i>");
-  html = html.replace(/_(.+?)_/g, "<i>$1</i>");
-
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
-    return `<a href="${escapeHtmlAttr(url)}">${escapeHtml(text)}</a>`;
-  });
-
-  return html;
-}
-
-export function formatForTelegram(text: string): string {
-  if (!text) return "";
-  const hasMarkdown = /[*_`\[]/.test(text);
-  if (hasMarkdown) return markdownToTelegramHtml(text);
-  return escapeHtml(text);
+  return html.replace(/\uE000(\d+)\uE001/g, (_, i: string) => lifted[Number(i)]!);
 }
 
 // --- Digest Formatting ---
@@ -185,10 +186,7 @@ export function formatEmailReadView(raw: string): string {
 
     if (inQuote) {
       quotedLines.push(line);
-    } else if (hitSignature) {
-      // Skip signature content
-      continue;
-    } else {
+    } else if (!hitSignature) {
       mainLines.push(line);
     }
   }
