@@ -94,22 +94,52 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 
 ## Escape hatches
 
-Add the token to the file or command to suppress a guard. Every token requires a real reason; several demand one inline.
+Add the token to the file or command to suppress a guard. Every token needs a real reason; those marked with a length demand one inline. Where a token is shown with a leading `#`, the hook requires it.
 
-| Token                      | Suppresses                                   |
-| -------------------------- | -------------------------------------------- |
-| `SECRET-SCAN-OK: <reason>` | Secret-exposure guard (reason ≥10 chars)     |
-| `PII-SCAN-OK`              | PII-exposure reminder                        |
-| `SKILL-PLUGIN-ROOT-OK`     | Skill plugin-root guard                      |
-| `RELEASE-NOTES-OK`         | Release-notes extensiveness guard            |
-| `GMAIL-BODY-OK`            | Gmail draft body guard                       |
-| `ASK-OPTION-NEWLINE-OK`    | AskUserQuestion option line-terminator guard |
-| `HEADLESS-P-OK`            | Headless `claude -p` guard                   |
-| `MD-TABLE-OK`              | Markdown table guard                         |
-| `MD-HARD-WRAP` + `-OK`     | Markdown hard-wrap reminders + commit guard  |
-| `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                   |
-| `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder               |
-| `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker)   |
+| Token                                  | Suppresses                                         |
+| -------------------------------------- | -------------------------------------------------- |
+| `SECRET-SCAN-OK: <reason>`             | Secret-exposure guard (reason ≥10 chars)           |
+| `PII-SCAN-OK`                          | PII-exposure reminder                              |
+| `PII-GATE-OK: <reason>`                | PII push gate (reason ≥10 chars)                   |
+| `SKILL-PLUGIN-ROOT-OK: <reason>`       | Skill plugin-root guard (reason ≥10 chars)         |
+| `RELEASE-NOTES-OK: <reason>`           | Release-notes guard (reason ≥10 chars)             |
+| `GMAIL-BODY-OK`                        | Gmail draft body guard                             |
+| `GH-HARD-WRAP` + `-OK`                 | GitHub publishing hard-wrap guard                  |
+| `PR-CITATION-OK`                       | PR citation-evidence guard                         |
+| `PR_BLOCKING_REVIEW_OK=1`              | PR review-invitation guard (leading assignment)    |
+| `ASK-OPTION-NEWLINE-OK`                | AskUserQuestion option line-terminator guard       |
+| `HEADLESS-P-OK`                        | Headless `claude -p` guard                         |
+| `CHROME-DEBUG-PORT-OK: <reason>`       | Chrome debug-port guard (reason ≥10 chars)         |
+| `BROAD-PROCESS-SIGNAL-OK: <reason>`    | Broad process-signal guard (reason ≥10 chars)      |
+| `PKILL-OPTION-ORDER-OK: <reason>`      | pkill/pgrep option-order checks (reason ≥10 chars) |
+| `PROCESS-STORM-OK`                     | Process-storm guard                                |
+| `CWD-DELETE-OK`                        | CWD-deletion guard                                 |
+| `TCC-ORDERING-OK: <reason>`            | TCC grant-ordering guard (reason ≥10 chars)        |
+| `# UV-OK`                              | UV enforcement guard                               |
+| `# PTH-OK`                             | `.pth` contamination guard                         |
+| `# PUEUE-LOCAL-OK`                     | Pueue local-daemon guard                           |
+| `# PUEUE-SKIP` / `# PUEUE-WRAP`        | Pueue auto-wrap: prevent / force                   |
+| `CARGO-TTY-SKIP` / `CARGO-TTY-WRAP`    | Cargo TTY guard: pass through / force PUEUE        |
+| `# DUCKDB-SKIP`                        | Parquet → DuckDB nudge                             |
+| `ALLOW-LEGACY-TS`, `ALLOW_LEGACY_TS=1` | TypeScript version guards (marker or env prefix)   |
+| `ALLOW_UMBRELLA_REPO=1`                | Umbrella no-repo guard                             |
+| `ALLOW_BARE_BRANCH=1`                  | Git worktree guard (env var, not a marker)         |
+| `SSoT-OK`                              | Version guard (mixed case, exact)                  |
+| `FILE-SIZE-OK`                         | File-size guard + reminder (per-project override)  |
+| `# INIT-MONOLITH-OK`                   | `__init__.py`/`.pyi` stub guard (exact case)       |
+| `# gpu-optimization-bypass: <reason>`  | GPU optimization guard (exact lowercase)           |
+| `BASH-LAUNCHD-OK`                      | Native-binary guard for launchd files              |
+| `SHELL-SAFETY-OK: <reason>`            | Shell-script safety guard (reason ≥8 chars)        |
+| `SIGPIPE-OK`                           | SIGPIPE-under-pipefail reminder (on the pipeline)  |
+| `INLINE-IGNORE-OK`                     | Inline lint-suppression check (same line)          |
+| `SETPROCTITLE-OK`                      | setproctitle reminder                              |
+| `FAIL-FAST-OK`                         | Fail-fast loop reminder                            |
+| `PUSHOVER-BUDGET-OK`                   | Pushover budget reminder                           |
+| `LEAK-TAXONOMY-OK`                     | Leakage-taxonomy reminder                          |
+| `MD-TABLE-OK`                          | Markdown table guard                               |
+| `MD-HARD-WRAP` + `-OK`                 | Markdown hard-wrap reminders + commit guard        |
+| `INVENTED-FALLBACK-OK`                 | Invented-fallback reminder                         |
+| `CLAUDE-MD-SIZE-OK`                    | CLAUDE.md size-budget reminder                     |
 
 `pretooluse-webfetch-fallback-guard.ts` has **no** escape hatch, by design.
 
