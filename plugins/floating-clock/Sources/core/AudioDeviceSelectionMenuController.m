@@ -122,6 +122,14 @@ static NSMenuItem *FCHeaderItem(NSString *title) {
 
 - (void)noteExplicitDeviceSelectionForInput:(BOOL)isInput {
     _selGen[FCScopeIdx(isInput)]++;
+    // Announce the explicit choice machine-wide so an external default-device policy (e.g. a
+    // daemon that restores the input after a Bluetooth auto-route) can stand down instead of
+    // undoing what the user just picked here. Fire-and-forget; no listener is required.
+    [[NSDistributedNotificationCenter defaultCenter]
+        postNotificationName:@"com.terryli.floating-clock.explicit-audio-selection"
+                      object:nil
+                    userInfo:@{ @"scope": isInput ? @"input" : @"output" }
+          deliverImmediately:YES];
 }
 
 - (void)selectLiveDevice:(NSMenuItem *)item {
