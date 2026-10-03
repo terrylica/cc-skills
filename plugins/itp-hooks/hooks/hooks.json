@@ -261,6 +261,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/sessionstart-proto-floor-check.sh",
+            "timeout": 5,
+            "description": "Warns into session context when bun is a proto shim and proto is older than 0.61.3, below which bare `bun` hook commands can have their decisions discarded. Plain bash so it does not run through that shim. Silent otherwise; never blocks."
+          }
+        ]
+      }
     ]
   }
 }
