@@ -127,7 +127,7 @@ fi
 # NDJSON reporter when it sniffs an agent environment, which puts the message on
 # STDOUT and leaves STDERR empty. moonrepo/proto#1105 fixed the banner on the
 # success path only; the error path is filed separately as moonrepo/proto#1110
-# and is open at the time of writing.
+# and was closed 2026-09-10, fixed in v0.61.3.
 #
 # What this case asserts is the property that actually keeps this repo safe, and
 # it is TRUE today: a failing shim must exit NON-ZERO. That is the difference
@@ -137,10 +137,10 @@ fi
 # the guards fail safe. If proto ever started reporting a missing tool at exit
 # 0, THAT would be #1105 all over again — and this case is what catches it.
 #
-# It deliberately does NOT assert that the diagnostic lands on stderr. That is
-# the behaviour we want, but asserting it would paint the suite red until
-# upstream ships, and a test that goes red on good news gets muted. The stream
-# is reported instead, so a human reading the output learns the current state.
+# It now ALSO asserts the diagnostic lands on STDERR. moonrepo/proto#1110 was
+# closed 2026-09-10 ("Ok try v0.61.3"), the .prototools floor is above that, and
+# 0 B stdout / 381 B stderr was measured on 0.62.3 on 2026-10-02. Until then
+# this was only reported, so the suite would not go red before upstream shipped.
 PROTO_ERROR_PATH_DIRECTORY="$SHIM_STDOUT_CAPTURE_DIRECTORY/error-path"
 mkdir -p "$PROTO_ERROR_PATH_DIRECTORY"
 
@@ -150,10 +150,14 @@ mkdir -p "$PROTO_ERROR_PATH_DIRECTORY"
 printf 'bun = "1.0.999"\n[settings]\nauto-install = false\n' \
     >"$PROTO_ERROR_PATH_DIRECTORY/.prototools"
 
+# PROTO_BUN_VERSION is unset because it outranks .prototools. Any process started through the bun
+# shim exports it to its children, and the pre-push gate starts moon via `bun gate-slot.ts`, so under
+# that gate the shim used to resolve the INSTALLED bun, print "1.4.2" and exit 0: a false #1105 alarm
+# that only reproduced inside `git push` (found 2026-10-02).
 ERROR_PATH_EXIT_CODE=0
 (
     cd "$PROTO_ERROR_PATH_DIRECTORY" \
-        && AI_AGENT=claude-code CLAUDECODE=1 CLAUDE_CODE_ENTRYPOINT=cli \
+        && env -u PROTO_BUN_VERSION AI_AGENT=claude-code CLAUDECODE=1 CLAUDE_CODE_ENTRYPOINT=cli \
             "$PROTO_SHIM_FOR_BUN" --version
 ) >"$PROTO_ERROR_PATH_DIRECTORY/stdout.txt" 2>"$PROTO_ERROR_PATH_DIRECTORY/stderr.txt" \
     || ERROR_PATH_EXIT_CODE=$?
@@ -173,15 +177,10 @@ else
     assert_passes "Case 3: the failing shim produced a diagnostic ($ERROR_PATH_STDOUT_BYTES B stdout, $ERROR_PATH_STDERR_BYTES B stderr)"
 fi
 
-if [[ "$ERROR_PATH_STDERR_BYTES" -eq 0 && "$ERROR_PATH_STDOUT_BYTES" -gt 0 ]]; then
-    echo "    NOTE: the diagnostic went to STDOUT with STDERR empty — moonrepo/proto#1110,"
-    echo "          still open. A harness that reports a failed hook by echoing its stderr"
-    echo "          shows the operator nothing. This is why hook failures read as"
-    echo "          'No stderr output'. Nothing to fix here; the note tracks upstream."
-elif [[ "$ERROR_PATH_STDERR_BYTES" -gt 0 ]]; then
-    echo "    NOTE: the diagnostic reached STDERR. moonrepo/proto#1110 appears to be FIXED"
-    echo "          on this proto. Consider raising the .prototools proto floor to that"
-    echo "          version and deleting this note."
+if [[ "$ERROR_PATH_STDERR_BYTES" -gt 0 ]]; then
+    assert_passes "Case 3: the diagnostic reached STDERR ($ERROR_PATH_STDERR_BYTES B), so a failed hook is not reported as 'No stderr output'"
+else
+    assert_fails "Case 3: the diagnostic went to STDOUT with STDERR empty — the moonrepo/proto#1110 regression (fixed upstream in 0.61.3) is back"
 fi
 
 echo ""
