@@ -1,3 +1,18 @@
+## [33.3.2](https://github.com/terrylica/cc-skills/compare/v33.3.1...v33.3.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* **itp-hooks:** scope ty Stop gate to its session; drop forced 3.14 ([7399217](https://github.com/terrylica/cc-skills/commit/7399217ef9ae9a5580a4cad6edbc00c00a132fba)), closes [#157](https://github.com/terrylica/cc-skills/issues/157)
+
+Two behaviour bugs in the ty hooks.
+
+1. Cross-session gate deletion. stop-ty-project-check.ts ran whenever /tmp/.claude-ty-edits held ANY session's .edited file, then rm -rf'd the whole directory. One session's exit therefore ran a check for edits it never made and discarded every other session's pending check.
+
+The Stop hook now reads session_id from its Stop payload (a common input field on every event, https://code.claude.com/docs/en/hooks#common-input-fields: "| `session_id` | Current session identifier |"), runs only if its own &lt;session_id>.edited exists, and removes only that file. stop-orchestrator.ts already writes the raw payload to each subhook's stdin unchanged (verified with a mock subhook), so no orchestrator change was needed. A missing or unsafe session_id means no gate: the PostToolUse hook no longer writes a shared "unknown.edited", and the Stop hook skips and deletes nothing (fail open; the check is advisory). The gate path logic lives in one place, lib/ty-edit-gate.ts, with a CLAUDE_TY_EDIT_GATE_DIR override so tests never touch the live directory.
+
+2. Forced Python version. The per-file check ran `ty check <file> --python-version 3.14`, overriding the repository's pin and disagreeing with the Stop check, which deliberately passes none
+
 ## [33.3.1](https://github.com/terrylica/cc-skills/compare/v33.3.0...v33.3.1) (2026-10-03)
 
 
