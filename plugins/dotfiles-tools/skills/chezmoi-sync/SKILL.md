@@ -74,7 +74,7 @@ Report: "Skipped chezmoi sync. Run `/dotfiles-tools:chezmoi-sync` when ready."
 ## Notes
 
 - Always use `chezmoi forget --force` (not bare `forget`) to avoid TTY prompt issues
-- The chezmoi source dir is `~/own/dotfiles` (configured in `~/.config/chezmoi/chezmoi.toml`)
+- The chezmoi source dir is `~/gh/vjspc/dotfiles` (configured in `~/.config/chezmoi/chezmoi.toml`)
 
 
 ## Post-Execution Reflection

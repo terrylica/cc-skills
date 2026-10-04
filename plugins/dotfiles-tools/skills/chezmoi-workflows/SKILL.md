@@ -273,7 +273,7 @@ chezmoi doctor                         # Full diagnostic — checks all componen
 | Check        | Expected                                       | Meaning if failing                 |
 | ------------ | ---------------------------------------------- | ---------------------------------- |
 | config-file  | `found ~/.config/chezmoi/chezmoi.toml`         | Config missing or wrong path       |
-| source-dir   | `~/own/dotfiles is a git working tree (clean)` | Source dirty or not a git repo     |
+| source-dir   | `~/gh/vjspc/dotfiles is a git working tree (clean)` | Source dirty or not a git repo     |
 | git-command  | `found /opt/homebrew/bin/git`                  | Git not installed                  |
 | edit-command | `found /opt/homebrew/bin/hx`                   | Editor not configured              |
 | 1password    | `found /opt/homebrew/bin/op`                   | 1Password CLI needed for templates |
