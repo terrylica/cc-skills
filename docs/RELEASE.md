@@ -24,7 +24,7 @@ Two different counts appear in this repo and **both are correct, because they co
 | Preflight  | `moon run repo:release-preflight` (Phase 1)  | Validate clean working dir, GH_TOKEN, plugin manifests, releasable conventional commits          |
 | Pre-sync   | orchestrator-only, no standalone task        | Mirror current main HEAD to ~/.claude marketplace clone so the live env reflects pending changes |
 | Version    | `moon run repo:release-version` (Phase 2)    | Run semantic-release (bump + CHANGELOG + git tag + GitHub release)                               |
-| Sync       | `moon run repo:release-sync` (Phase 3)       | Update marketplace repo, sync hooks/commands to settings.json, populate plugin cache             |
+| Sync       | `moon run repo:release-sync` (Phase 3)       | Update the marketplace clone and plugin cache, sync commands, remove pre-v20.2.3 hook copies     |
 | Verify     | `moon run repo:release-verify` (Phase 4)     | Confirm git tag, GitHub release, marketplace, hook files, runtime artifact consistency           |
 | Chronicle  | orchestrator-only, no standalone task        | Session-chronicle bundle (private repos only)                                                    |
 | Postflight | `moon run repo:release-postflight` (Phase 5) | Reset lockfile drift, confirm clean working dir, confirm all commits pushed                      |
@@ -36,7 +36,7 @@ moon query tasks                   # List all tasks
 moon run repo:release-status       # Current version info
 moon run repo:release-preflight    # Validate before release (Phase 1)
 moon run repo:release-version      # semantic-release only (Phase 2)
-moon run repo:release-sync         # Sync hooks + cache (Phase 3)
+moon run repo:release-sync         # Marketplace + cache sync (Phase 3)
 moon run repo:release-verify       # Verify release artifacts (Phase 4)
 moon run repo:release-postflight   # Git state validation (Phase 5)
 moon run repo:release-full         # Complete seven-phase workflow
@@ -108,7 +108,7 @@ blocked correct notes. Fixed in `release-notes-extensiveness-patterns.ts`.
 
 ## Commit Conventions
 
-All commit types trigger patch releases (marketplace constraint):
+Every commit type releases (marketplace constraint). `feat` bumps the minor version, a breaking change the major, everything else the patch:
 
 | Type        | Release | Release Notes |
 | ----------- | ------- | ------------- |
@@ -118,25 +118,25 @@ All commit types trigger patch releases (marketplace constraint):
 | `chore:`    | patch   | Not shown     |
 | `refactor:` | patch   | Not shown     |
 
-**Tip**: Use `fix(docs):` for documentation changes that should appear in release notes.
+**Tip**: Use `fix(docs):` for documentation changes that should appear in release notes. Subjects: 50 characters as the target, 72 as the hard cap; the body carries the detail.
 
 ## Post-Release Automation
 
-The release workflow automatically:
+The Sync and Verify phases:
 
-1. **Updates marketplace repo** - `~/.claude/plugins/marketplaces/cc-skills`
-2. **Syncs hooks** - Merges all `hooks.json` files to `~/.claude/settings.json`
-3. **Triggers plugin update** - Refreshes plugin cache
-4. **Verifies artifacts** - Confirms tag, release, cache presence
+1. **Update the marketplace clone** at `~/.claude/plugins/marketplaces/cc-skills` to the new tag.
+2. **Refresh the plugin cache** so the next session loads the new version.
+3. **Run `scripts/sync-hooks-to-settings.sh`**, which removes cc-skills hook entries that installs older than v20.2.3 copied into `~/.claude/settings.json`. It never adds any: plugin hooks load from each plugin's `hooks/hooks.json`. On a clean machine it touches nothing.
+4. **Run `scripts/sync-commands-to-settings.sh`** and keep the newest `CC_SKILLS_BACKUP_RETENTION` (default 5) snapshots of `~/.claude/commands/`.
+5. **Verify** the tag, the GitHub release, the cache and the hook files.
 
 ## Manual Release (npm)
 
-```bash
-# Dry run
-npm run release:dry
+Runs semantic-release only: no presync, sync, verify or postflight. Prefer `moon run repo:release-full`.
 
-# Production release
-npm run release
+```bash
+npm run release:dry   # Dry run
+npm run release       # Production release
 ```
 
 ## Troubleshooting
@@ -144,758 +144,117 @@ npm run release
 ### Release blocked by preflight
 
 ```bash
-# Check specific issue
-moon run repo:release-preflight
-
-# Common fixes:
-git stash                    # Dirty working directory
-gh auth login                # GitHub auth expired
-bun scripts/validate-plugins.mjs  # Plugin validation
+moon run repo:release-preflight            # See which check failed
+GH_TOKEN="$(gh auth token)" moon run repo:release-preflight   # GH_TOKEN not set (release-full derives it itself)
+bun scripts/validate-plugins.mjs           # Plugin validation
 ```
 
-### Hooks not synced after release
+**Dirty working directory:** commit the work, or move it to its own worktree. Do not reach for a bare `git stash`: the stash stack is shared by every worktree and session on this clone, so a bare stash or pop can take someone else's changes. If you must, use `git stash push -u -m "<unique-tag>"` and restore by SHA with `git stash apply <sha>`.
 
-```bash
-# Manual sync
-./scripts/sync-hooks-to-settings.sh
+### Hooks not firing after release
 
-# Restart Claude Code for hooks to take effect
-```
+Restart Claude Code, then type `/hooks`: it lists every configured hook with its source, and cc-skills hooks show as coming from a plugin. A cc-skills hook listed under user settings is a pre-v20.2.3 leftover; `./scripts/sync-hooks-to-settings.sh` removes it.
 
 ### Cache not updated
 
 ```bash
-# Clean old versions
-moon run repo:release-clean
-
-# Force re-sync
-moon run repo:release-sync
+moon run repo:release-clean   # Clean old cache versions
+moon run repo:release-sync    # Re-run the sync phase
 ```
 
-<!-- SSoT-OK: the following Phase-2-bottleneck section references HISTORICAL
-     release-tag names + forensic-finding tag IDs as immutable identifiers,
-     not the current cc-skills version (which lives in package.json /
-     plugin.json as the SSoT). Version-guard escape hatch per the iter-107
-     marker convention. The 5 tag IDs documented below are the load-bearing
-     forensic signature of iter-145's notes-backfill fix. -->
+## Diagnostics and Knobs
 
-## Phase 2 (semantic-release) Internal Bottleneck Breakdown — iter-144/145/146
+Environment variables read by the release and test scripts. All are optional, and the defaults keep output unchanged. The `ITER*` prefixes record when a knob was added, not what it does.
 
-The release pipeline's **Phase 2 (`moon run repo:release-version`, which runs semantic-release)** consumes ~30s of the typical ~45s release wall-clock (67%). Iter-144 instrumentation (`scripts/iter144-release-step-timing-parser.py`) parses semantic-release's `DEBUG=semantic-release:*` stderr output to attribute cumulative milliseconds to each `semantic-release:<namespace>` subsystem, surfacing where the time actually goes.
+### Timing
 
-### How to measure
+| Variable                                                           | Effect                                                                                                                         | Default            |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| `PREFLIGHT_TIMING_PROFILE=1`                                       | Per-check elapsed time in `repo:release-preflight`, a total, and a slowest-checks ranking                                      | off                |
+| `ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY`                          | Length of that preflight ranking                                                                                               | 5                  |
+| `RELEASE_TIMING_PROFILE=1`                                         | Per-phase elapsed time for `repo:release-full`, a total, and a slowest-phases ranking                                          | off                |
+| `ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY`                  | Length of the release-phase ranking                                                                                            | 5                  |
+| `ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY`                | Length of the post-release `successCmd` step ranking (with `RELEASE_TIMING_PROFILE=1`)                                         | 5                  |
+| `MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY` | Adds a slowest-tests ranking to `repo:test-hooks`                                                                              | unset (no ranking) |
+| `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY`          | Ranking length for `scripts/iter144-release-step-timing-parser.py`, which attributes semantic-release time per debug namespace | 10                 |
+| `ITER147_VARIANCE_PROFILE_RUN_COUNT`                               | Captures for `scripts/iter147-release-timing-variance-harness.py` (p50/p95/stddev per namespace; at least 2)                   | 5                  |
+| `ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1`             | Re-analyse the harness's existing `/tmp` logs instead of capturing                                                             | off                |
+
+Compare timings across several runs, not one: the release is dominated by network round trips whose run-to-run spread can exceed the effect being measured. The variance harness flags namespaces whose stddev/p50 exceeds 0.20.
+
+### Parallelism
+
+| Variable                                                              | Effect                                                                                                 | Default                  |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------ |
+| `MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES`                          | Worker count for `repo:test-hooks`                                                                     | `clamp(ncpu − 4, 4, 12)` |
+| `ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES`                              | Worker count for preflight's audit fan-out                                                             | `clamp(ncpu − 4, 4, 12)` |
+| `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1`                   | Run those audits one at a time (diagnosis only)                                                        | off                      |
+| `MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD` | Set by the suite runner itself so tests that call the runner skip their nested tier. Not for operators | —                        |
+
+### Test tiers and fixtures
+
+| Variable                                     | Effect                                                                                         | Default              |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------- |
+| `ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1`   | Adds the slow preflight-integration tier to `test-iter130-131-bottleneck-ranking-summaries.sh` | off                  |
+| `ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1` | Adds the serial-mode tier to `test-iter134-parallel-preflight-audit-fan-out.sh`                | off                  |
+| `AUDIT_REPO_ROOT_OVERRIDE`                   | Repository root an audit scans, for running it against a synthetic fixture                     | the audit's own repo |
+| `ITER165_REPO_ROOT_OVERRIDE`                 | Repository root for `tasks/commits/pending-release`                                            | the current repo     |
+
+### Release speed (semantic-release)
+
+semantic-release verifies push access with a real `git push --dry-run` on every run (the `semantic-release:get-git-auth-url` debug namespace), and the release config cannot skip it. Two opt-ins reuse one SSH connection for it instead:
+
+- `RELEASE_SSH_MULTIPLEXING_ENABLED=1 moon run repo:release-full` sets `GIT_SSH_COMMAND` with `ControlMaster` for that run only; `~/.ssh/config` is not touched.
+- `scripts/iter146-github-ssh-controlmaster-setup.sh` adds a persistent `ControlMaster` block for `github.com` to `~/.ssh/config`, and refuses if a `Host github.com` block already exists.
+
+`scripts/iter148-ssh-multiplexing-speedup-check.sh` measures both conditions with the variance harness.
+
+On a fresh clone, run `scripts/iter145-fix-empty-release-notes-refs.sh` once. It backfills the semantic-release notes refs that a few old tags lack; without them semantic-release logs a swallowed `JSON.parse` error per tag on every run. The refs are local and are not pushed.
+
+## Conventional-Commits Toolkit
+
+`bash tasks/commits/_default` prints the in-terminal cheatsheet. Every argument-taking task is declared `command:` with `shell: false` in `moon.yml`, so `moon run repo:<task> -- ARGS` and `bash tasks/<path> ARGS` are equivalent. `tasks/commits/advise` takes its subject after a `--`, and `tasks/release/history` its git-log range, so through moon there are two separators: `moon run repo:commits-advise -- --json -- "feat: foo"`.
+
+| Tool                                                                 | What it does                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moon run repo:release-history`                                      | `git log` with long subjects soft-wrapped (`ITER150_COMMIT_COUNT_TO_DISPLAY`, default 10; `ITER150_SOFT_WRAP_COLUMN_WIDTH`, default 80)                                                                                                                                                                                         |
+| `moon run repo:commits-health` (`--json`)                            | Five panels for the last N commits against the N before: readable view, subject-length histogram, longest subjects, type counts, trend verdict (IMPROVING / REGRESSING / STABLE / MIXED)                                                                                                                                        |
+| `bash tasks/commits/advise -- "<subject>"`                           | Classifies a subject before you commit. `--json` for machine output, `--strict` exits non-zero on a compound prefix or a missing type, `--message-file <path>` reads a full message including a `BREAKING CHANGE` footer; with no argument on a TTY it reads `.git/COMMIT_EDITMSG`. Also previews the bump and the next version |
+| `moon run repo:commits-pending-release` (`--json`)                   | The next release version and the commit that decides it, across every commit since the last tag                                                                                                                                                                                                                                 |
+| `moon run repo:commits-status` (`--json`)                            | Self-check of the toolkit's scripts, libraries and end-to-end chain                                                                                                                                                                                                                                                             |
+| `moon run repo:commits-install-hook` / `repo:commits-uninstall-hook` | Installs or removes a `commit-msg` hook running the advisor in `--strict` mode. Fails open if the advisor is missing; `ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND=closed` makes it fail closed                                                                                                                      |
+| `.pre-commit-hooks.yaml`                                             | Hook id `cc-skills-commits-advise-commit-msg` for repositories using the [pre-commit](https://pre-commit.com) framework (`pre-commit install --hook-type commit-msg`)                                                                                                                                                           |
+| `bash tasks/commits/conventional-conformance.sh`                     | The preflight's conventional-commits check on its own; subjects over 72 characters are reported but never block a release                                                                                                                                                                                                       |
+| `moon run repo:commits-perf-baseline`                                | Wall-clock baseline for the toolkit's own scripts                                                                                                                                                                                                                                                                               |
+
+`repo:commits-health` tunables: `ITER152_COMMIT_COUNT_TO_ANALYZE` (10), `ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS` (72), `ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS` (50), `ITER152_HISTOGRAM_BAR_WIDTH` (20), `ITER152_WORST_OFFENDER_CALLOUT_COUNT` (3). JSON output from these tools escapes strings through one shared library, `scripts/lib/iter155-json-string-escape.sh`.
+
+## Preflight Maintenance: Reading Audit Counts
+
+`tasks/release/preflight` reads each audit's count from the audit's summary line. Two rules keep that from breaking the gate:
+
+**Rename both sides together.** When an audit's summary wording changes, update `tasks/release/preflight` and the audit's `tasks/tests/test-audit-*.sh` in the same commit. A wording the preflight no longer matches yields an empty count.
+
+**Extract with a reader that drains its input.** The preflight runs under `set -euo pipefail`. Use:
 
 ```bash
-DEBUG=semantic-release:* npx semantic-release --dry-run --no-ci 2> /tmp/semrel-debug.log
-python3 scripts/iter144-release-step-timing-parser.py /tmp/semrel-debug.log
-```
-
-Operator-tunable Top-N count: set `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY=N` (default 10). The parser emits TWO ranking dimensions:
-
-1. **`per debug-namespace`** (ACCURATE): every executed code path has its own namespace, no marker-based misattribution. This is the actionable target for further optimization.
-2. **`per plugin/lifecycle-step`** (LOADING-PHASE-ONLY): based on `options-for` markers in the debug log. Misattributes post-loading execution to the last loaded step (typically `@semantic-release/exec/fail`). Use dimension 1 for execution-phase attribution.
-
-### Known bottlenecks (iter-144 empirical findings — cc-skills @ 882 git tags, M-series mac)
-
-| Rank | Subsystem                           | ms    | What it does                                                          | Iter     |
-| ---- | ----------------------------------- | ----- | --------------------------------------------------------------------- | -------- |
-| 1    | `semantic-release:get-git-auth-url` | ~1700 | One `git push --dry-run --no-verify` round-trip to verify push access | iter-146 |
-| 2    | `semantic-release:get-tags`         | ~2300 | Walk all 882 tags + read all 877 sibling notes refs                   | iter-145 |
-| 3    | `semantic-release:config`           | ~140  | Load `release.config.cjs` + plugin config resolution                  | —        |
-| 4    | `semantic-release:plugins`          | ~16   | Plugin loading + verifyConditions invocation                          | —        |
-| 5    | `semantic-release:git`              | ~15   | Internal git utility calls                                            | —        |
-| 6    | `semantic-release:get-commits`      | ~11   | List commits since last tag                                           | —        |
-
-### Iter-145 forensic finding (FIXED)
-
-Iter-144 surfaced **5 silent `JSON.parse` SyntaxError stack traces per release**, swallowed by the `catch (error) { debug(error); }` block at `semantic-release/lib/git.js:346`. Root cause: 5 historical tags (the v4.x + v5.1.x cohort cataloged in `scripts/iter145-fix-empty-release-notes-refs.sh`) lacked attached notes in `refs/notes/semantic-release-*`. The `%N` format placeholder returned empty string for those tags; `line.trim().split("\t")` produced a single-element array; destructuring yielded `notePart = undefined`; `JSON.parse(undefined)` coerced to `JSON.parse("undefined")` which threw `"undefined" is not valid JSON`.
-
-Iter-145 fixed by backfilling canonical `{"channels":[null]}` notes attached to each tag's COMMIT (not tag object — annotated-tag-aware `tag^{commit}` dereferencing required). Verification: post-fix forensic count is 0.
-
-Re-run `scripts/iter145-fix-empty-release-notes-refs.sh` on any new cc-skills clone to re-apply the local-only fix (notes refs are not pushed to remote in current config).
-
-### Iter-146 finding: `get-git-auth-url`'s `verifyAuth` algorithm
-
-`node_modules/semantic-release/lib/get-git-auth-url.js` line 91-93 ALWAYS runs `verifyAuth(repositoryUrl, branch, {cwd, env})` first, regardless of any token env vars. `verifyAuth` executes:
-
-```bash
-git push --dry-run --no-verify <repositoryUrl> HEAD:<branch>
-```
-
-This is a real network round-trip to GitHub doing SSH key exchange or HTTPS+TLS+token-handshake. ~1.7s per call on a warm-DNS connection from a residential US-west link. There is no documented `--skip-auth-verify` flag (semantic-release#2053 has been open since 2021 requesting this). The only operator-side leverage is to make the round-trip faster.
-
-### Iter-146 optional optimization: SSH ControlMaster connection multiplexing
-
-OpenSSH ControlMaster persists an authenticated SSH session for a configurable TTL. Once primed, subsequent SSH operations to the same host reuse the persistent connection, skipping key exchange (~1.5s saved per call).
-
-Operator opt-in setup: run `scripts/iter146-github-ssh-controlmaster-setup.sh` (idempotent, backs up `~/.ssh/config`, scoped to `Host github.com` only). After applying, the next release's `verifyAuth` cost should drop from ~1.7s to ~100-200ms per call.
-
-**This is a per-developer-machine optimization** — not pushed to the repo, not enforced for collaborators. The setup script is provided as documentation + automation but operators must consciously opt in (modifies `~/.ssh/config`).
-
-### Iter-147 complementary optimization: env-var-scoped SSH multiplexing (no `~/.ssh/config` modification required)
-
-Iter-146's setup script refuses to modify `~/.ssh/config` when a pre-existing `Host github.com` block is detected from another source (e.g., operators with `IdentityFile` pins for anti-key-leak defense). Iter-147 ships a complementary, non-invasive lever for those operators:
-
-```bash
-# Enable env-var-scoped SSH ControlMaster for THIS release run only:
-RELEASE_SSH_MULTIPLEXING_ENABLED=1 moon run repo:release-full
-```
-
-The release orchestrator exports `GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=~/.ssh/controlmasters/%r@%h:%p -o ControlPersist=10m"` for the duration of the pipeline only, idempotently creates `~/.ssh/controlmasters/` with mode `0700`, and lets the process tree inherit the env var. Differences from iter-146:
-
-| Property                                       | Iter-146 (`~/.ssh/config` modification) | Iter-147 (`GIT_SSH_COMMAND` env var)         |
-| ---------------------------------------------- | --------------------------------------- | -------------------------------------------- |
-| Persistence                                    | Permanent across all SSH operations     | Scoped to one `repo:release-full` invocation |
-| Operator config touched                        | Yes (`~/.ssh/config` appended)          | No (only `~/.ssh/controlmasters/` dir)       |
-| Conflict with existing `Host github.com` block | Setup script refuses to modify          | Bypasses entirely — config untouched         |
-| Speedup target                                 | Same (`verifyAuth` 1.7s → ~100-200ms)   | Same                                         |
-| Reversibility                                  | Remove block from `~/.ssh/config`       | Unset env var (no state to undo)             |
-
-Both paths target the same `semantic-release:get-git-auth-url` bottleneck. Use iter-147's env-var path when your existing `~/.ssh/config` has `Host github.com` directives you don't want auto-modified.
-
-### Iter-147 variance-characterization harness (prevents single-sample-variance traps)
-
-The per-release wall-clock distribution is dominated by SSH-handshake and GitHub-API round-trip noise with standard deviation that can exceed the perf-delta of any single optimization. Single-sample BEFORE/AFTER comparisons (one measurement of the old version vs. one measurement of the new) routinely return misleading conclusions — both spurious "regressions" and spurious "speedups". To prevent future iter-NNN proposals from chasing these phantoms, iter-147 ships a back-to-back N-run capture-and-percentile harness:
-
-```bash
-# Default 5 back-to-back dry-run captures, per-namespace p50/p95/mean/stddev/min/max/range:
-uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
-
-# Custom run count via ITER147_VARIANCE_PROFILE_RUN_COUNT (must be at least 2 — variance undefined for n=1):
-ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
-
-# Replay existing /tmp/iter147-variance-profile-run-{i}.log without re-capturing (fast re-analysis):
-ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
-```
-
-Output format includes a "variance-flag" column marking namespaces whose stddev/p50 ratio exceeds **0.20** — these are the namespaces where single-sample comparisons are unreliable, and any optimization targeting them must demonstrate distribution-level improvement (p50 or p95 shift across N samples), not point-sample improvement.
-
-**Gotcha — working directory cleanliness affects namespace coverage**: `npx semantic-release --dry-run` runs `scripts/release-preflight.sh` in `verifyConditions`, which aborts on dirty `git status --porcelain`. When preflight aborts, downstream namespaces like `semantic-release:get-tags` never execute and won't appear in the distribution table. Capture against a clean working directory for full namespace cohort.
-
-### Iter-148 empirical validation of the SSH multiplexing claim — measured 3.30x speedup (not conjectural 10-15x)
-
-The iter-146 setup script docstring originally claimed "~1.7s → ~100-200ms (10-15x speedup)" sourced from OpenSSH community docs on warm-handshake reuse. **That claim was conjectural** — never measured on this machine, against this release pipeline, with this `semantic-release` version. Iter-148 ships a wrapper that runs the iter-147 variance harness in BOTH conditions (baseline + multiplexed) back-to-back and emits a side-by-side distribution delta table:
-
-```bash
-scripts/iter148-ssh-multiplexing-speedup-check.sh
-
-# With custom run count (same env var as iter-147 harness):
-ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-ssh-multiplexing-speedup-check.sh
-```
-
-#### Empirical results (cc-skills production machine, n=3 captures per condition)
-
-| Namespace                           | BEFORE p50 | BEFORE p95 | BEFORE σ | AFTER p50 | AFTER p95 | AFTER σ | Δp50 (ms) |   Speedup |
-| ----------------------------------- | ---------: | ---------: | -------: | --------: | --------: | ------: | --------: | --------: |
-| `semantic-release:get-git-auth-url` |       6051 |       6067 |     32.7 |  **1835** |      1861 |    30.6 | **−4216** | **3.30x** |
-| `semantic-release:config`           |         71 |         77 |      3.8 |        72 |        72 |     1.2 |        +1 |     0.99x |
-| `semantic-release:plugins`          |         16 |         17 |      0.6 |        17 |        18 |     1.5 |        +1 |     0.94x |
-
-**Verdict**: iter-146/147 SSH multiplexing claim is **VALIDATED** at distribution level. The actual measured speedup is **3.30x (~4.2 seconds saved per release)**, not the originally-claimed 10-15x. The gap between claim and reality is because `verifyAuth` includes more than the raw SSH key exchange the OpenSSH docs measure — there's per-call `git push --dry-run` setup, TCP teardown overhead, and protocol negotiation that doesn't accelerate from connection reuse.
-
-**Distribution-level confidence**: Both conditions have σ ≈ 30ms (very stable — neither distribution flagged HIGH variance by the iter-147 σ/p50 > 0.20 trap detector). The 3.30x ratio is signal, not single-sample noise. Operator can confidently enable `RELEASE_SSH_MULTIPLEXING_ENABLED=1` or the iter-146 setup script knowing the speedup is empirically real.
-
-## Conventional-Commits Operator Toolkit Index (iter-150 → iter-167 arc)
-
-The cc-skills conventional-commits arc ships **11 operator-facing tools** across the full commit lifecycle (subject grammar, length conformance, semver-bump preview, breaking-change detection, concrete next-version resolution, multi-commit release-window aggregation, self-diagnosis doctor), plus a **polyglot pre-commit framework manifest** for cross-repo distribution. Run `bash tasks/commits/_default` for the in-terminal cheatsheet — the dispatcher is a script, not a moon task. The index below is the canonical reference.
-
-**Both invocation forms take arguments — `moon run repo:<task> -- ARGS` and `bash tasks/<path> ARGS` are equivalent**: every argument-taking task in `moon.yml` (`release-augment`, `release-history`, `commits-advise`, `commits-health`, `commits-status`, `commits-pending-release`, `commits-perf-baseline`, `triage-suite-log`, and `lint`, whose direct form is `bun scripts/validate-plugins.mjs --strict` and which reads `--deps` and `--fix`) is declared `command:` with `options.shell: false`. Until 2026-09-26 most of them were declared `script:`, and moon silently drops passthrough arguments for a `script:` task — `moon run repo:commits-health -- --json` exited 0 and printed the _human_ dashboard rather than JSON, and `moon run repo:release-history -- -- HEAD~2..HEAD` returned byte-identical output to the bare invocation with the range dropped, and `moon run repo:lint -- --deps` printed no dependency graph while still telling the reader to "Run with --deps". All three were measured, not inferred, which is why this table used to route every argument-taking row around moon. `shell: false` matters as well: under moon's default shell for the system toolchain, a `$HOME` inside a quoted commit subject given to `commits-advise` arrived expanded to a path; without the shell the arguments reach the script verbatim. The rows below keep the direct `bash tasks/…` form because it needs no orchestrator, consistent with `tasks/release/full`'s own statement that "the orchestrator is swappable; these scripts are the truth". Note that `tasks/commits/advise` requires its subject after a `--` separator, and `tasks/release/history` its git-log range, so through moon there are two separators — `moon run repo:commits-advise -- --json -- "feat: foo"` returns JSON, while omitting the inner `--` exits 2 with "Unknown argument".
-
-| Lifecycle stage                 |     Iter | Tool                                              | Purpose                                                                                                                     |
-| ------------------------------- | -------: | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **VIEW**                        | iter-150 | `moon run repo:release-history`                   | Awk soft-wrap renderer for verbose subjects                                                                                 |
-| **DETECT**                      | iter-151 | Preflight Check 4l (auto)                         | Long-subject overlay classifier, informational                                                                              |
-| **HEALTH SUMMARY**              | iter-152 | `moon run repo:commits-health`                    | 5-panel operator dashboard                                                                                                  |
-| **HEALTH SUMMARY (AI)**         | iter-155 | `bash tasks/commits/health --json`                | Machine-readable dashboard, stable iter155_schema_version=1                                                                 |
-| **PRE-COMMIT ADVISE**           | iter-153 | `bash tasks/commits/advise -- "<subj>"`           | Dry-run classifier before committing                                                                                        |
-| **PRE-COMMIT ADVISE (AI)**      | iter-153 | `bash tasks/commits/advise --json -- "<subj>"`    | Machine-readable advisor, stable iter153_schema_version=1                                                                   |
-| **PRE-COMMIT ADVISE (gate)**    | iter-153 | `bash tasks/commits/advise --strict -- "<subj>"`  | Exit non-zero on silent-fail-class violations                                                                               |
-| **PRE-COMMIT AUTO-DETECT**      | iter-154 | `bash tasks/commits/advise` (no args, TTY)        | Reads `.git/COMMIT_EDITMSG` during editor-launched commit                                                                   |
-| **PRE-COMMIT (body-aware)**     | iter-162 | `bash tasks/commits/advise --message-file <path>` | Full multi-line message — OR's iter-162 §13 BREAKING CHANGE footer detection with subject `!` marker                        |
-| **SEMVER-BUMP PREVIEW**         | iter-161 | (overlay on every `commits-advise` invocation)    | Maps {type, breaking marker} → MAJOR/MINOR/PATCH/NONE per cc-skills release.config.cjs                                      |
-| **NEXT-VERSION PREVIEW**        | iter-164 | (overlay on every `commits-advise` invocation)    | Resolves iter-161 bump label to concrete next version (e.g. `vCUR → vNEXT`) via semver.org §2 increment rules               |
-| **PENDING-RELEASE PREVIEW**     | iter-165 | `moon run repo:commits-pending-release`           | Aggregates iter-161 bump labels across ALL commits since most-recent tag → reports next release version + triggering commit |
-| **PENDING-RELEASE (AI)**        | iter-165 | `bash tasks/commits/pending-release --json`       | Machine-readable aggregate preview, stable iter165_schema_version=1                                                         |
-| **TOOLKIT SELF-DIAGNOSIS**      | iter-160 | `moon run repo:commits-status`                    | 15-check brew-doctor-style health report (structural validity + functional correctness + end-to-end chain probes)           |
-| **TOOLKIT SELF-DIAGNOSIS (AI)** | iter-160 | `bash tasks/commits/status --json`                | Machine-readable doctor output, stable iter160_schema_version=1                                                             |
-| **COMMIT-MSG HOOK (auto)**      | iter-157 | `moon run repo:commits-install-hook`              | Install `.git/hooks/commit-msg` running --strict on every commit. Uninstall: `moon run repo:commits-uninstall-hook`         |
-| **PRE-COMMIT FRAMEWORK**        | iter-158 | `.pre-commit-hooks.yaml` at repo root             | Polyglot consumers add cc-skills as a hook source in their `.pre-commit-config.yaml`. See snippet below.                    |
-
-**Going-forward convention** (iter-150 industry-standard adoption): subject ≤50 chars hard target, ≤72 chars hard cap; body wrapped at 72 chars per line; blank line separates subject from body. Canonical spec: [conventionalcommits.org](https://www.conventionalcommits.org/) + [cbea.ms/git-commit](https://cbea.ms/git-commit/).
-
-**Shared library**: All AI-agent JSON outputs share a single pure-bash RFC 8259 escape function at `scripts/lib/iter155-json-string-escape.sh` (iter-155 SSoT). No python3 dependency.
-
-**Iter-157 industry-standard automation**: The commit-msg hook installer is the cc-skills counterpart to commitlint's husky integration and `compilerla/conventional-pre-commit`. It uses the natural git workflow (`commit-msg` for validation, per 2026 best practices) and is fail-OPEN by default if the cc-skills repo isn't reachable (won't block commits in a broken environment). Set `ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND=closed` for hard-dependency semantics. Bypass for emergencies: `git commit --no-verify` (per the cc-skills policy: only when explicitly necessary).
-
-**Iter-158 polyglot consumption via the pre-commit framework**: Repos using [pre-commit](https://pre-commit.com) (Python, JS, polyglot stacks) can consume the iter-153 advisor without cloning cc-skills locally. Add to their `.pre-commit-config.yaml`:
-
-```yaml
-default_install_hook_types:
-  - pre-commit
-  - commit-msg
-repos:
-  - repo: https://github.com/terrylica/cc-skills
-    rev: <latest-cc-skills-tag> # pin a specific tag from cc-skills releases
-    hooks:
-      - id: cc-skills-commits-advise-commit-msg
-```
-
-Then run `pre-commit install --hook-type commit-msg` once. The pre-commit framework clones cc-skills into its hidden cache and invokes the iter-158 entry-point, which locates iter-153 via `BASH_SOURCE`-relative resolution. Industry-standard 2026 pattern per [compilerla/conventional-pre-commit](https://github.com/compilerla/conventional-pre-commit) + [commitizen pre-commit integration](https://commitizen-tools.github.io/commitizen/tutorials/auto_check/).
-
-**Empirical adoption signal**: First iter-152 dashboard run against actual cc-skills HEAD post-iter-155 shows median subject length dropped from **177.5 → 37.5 chars (-79%)** and conformance rose from **50% → 70% (+20pp)** between previous-10 and current-10 windows. Verdict: **IMPROVING**.
-
-**Quality + performance improvements (iter-163, iter-166, iter-167)** — non-operator-visible iterations that strengthen the toolkit's safety net and runtime characteristics:
-
-- **iter-163** doctor coverage extension #1 — adds 3 CRITICAL checks (iter-161 lib + iter-162 lib + iter-153→iter-161→iter-162 footer-form end-to-end probe). Closes the silent-regression gap where missing/broken libs would not surface (advisor soft-fails to "UNAVAILABLE" preview).
-- **iter-166** doctor coverage extension #2 — adds 3 more CRITICAL checks (iter-164 lib + iter-165 aggregator script + iter-153→iter-161→iter-164→iter-165 chain probe using a `mktemp -d` synthetic git repo via `ITER165_REPO_ROOT_OVERRIDE`). Brings the doctor's `critical_passed` counter to 13.
-- **iter-167** single-batched-git-log-fan-in perf optimization — replaces iter-165's 2N+1-fork pattern (1 SHA list + 2 git logs per commit) with one `git log --format='%H%x00%s%x00%b%x00'` invocation parsed via NUL-delimited bash `read`. Empirically measured ≈**5.17× speedup at N=50** (1184ms baseline median → 228ms optimized median; 956ms absolute time saved). ASCII NUL is safe because git tree objects cannot contain NUL bytes (per `git-pretty-formats(1)` `%x00` specifier). Reproducible benchmark: `bash tasks/tests/test-iter167-*.sh`.
-
-For deep dives into each tool's design contract, see the iter-150 through iter-167 subsections below.
-
-## Operator-Facing Release-History Readable View (iter-150)
-
-Run `moon run repo:release-history` to render `git log` with awk-based soft-wrap of the verbose iter-N commit subjects to terminal-width with proper indentation and color. Addresses the operator-readability problem caused by the kebab-cased verbose conventional-commit subjects in the iter-144-through-iter-149 cohort (754–1078 chars per subject on one line — unreadable in `git log --oneline`, GitHub UI lists, and code-review tools).
-
-```bash
-# Default: last 10 commits, 80-col wrap
-moon run repo:release-history
-
-# Custom run count + wrap width
-ITER150_COMMIT_COUNT_TO_DISPLAY=20 ITER150_SOFT_WRAP_COLUMN_WIDTH=120 moon run repo:release-history
-
-# Pass extra git-log args after `--`
-bash tasks/release/history -- main~30..HEAD
-```
-
-### Going-forward commit-subject convention (iter-150 acknowledgement)
-
-The /loop verbose-self-explanatory directive explicitly enumerates **identifiers** (file/function/class/variable/constant/test/benchmark names) — it does NOT mandate verbose git commit SUBJECTS. The industry-standard [conventional-commits specification](https://www.conventionalcommits.org/) 50/72 rule applies:
-
-- Subject ≤ 50 chars hard cap (≤ 72 chars soft cap) — for `git log --oneline` scanability
-- Body wrapped at 72 chars per line — for full detail
-- Blank line separates subject from body
-
-Going-forward iters should use **short subject + verbose body**, e.g.:
-
-```
-perf(release): iter-N <short hyphenated descriptive headline>
-
-<verbose multi-paragraph body with full forensic detail,
-wrapped at 72 chars per line — searchable via `git log --grep`
-which matches body text too, preserving the searchability
-the verbose-naming directive optimizes for>
-```
-
-Existing iter-144-through-iter-149 history is preserved as-is; the iter-150 renderer provides a band-aid readable view rather than rewriting history. Future iters from iter-151 onward should adopt the convention.
-
-### Preflight self-enforcement of the 72-char hard cap (iter-151)
-
-The iter-82 conventional-commits validator (run as preflight `Check 4l`) was extended in iter-151 to add a sixth classification bucket: `LONG-SUBJECT-EXCEEDS-ITER150-72-CHAR-HARD-CAP`. Conformant commits whose subject exceeds 72 chars are counted as an **informational overlay** — they do not block strict-mode release (semantic-release parses any subject length identically and the existing iter-144-149 history would all fail), but they surface as a labelled diagnostic block during every preflight run with a per-commit measured-char-count, an explanatory paragraph, and a cross-reference to the iter-150 release-history renderer (`moon run repo:release-history`) for viewing the existing long-subject history readably.
-
-The overlay-not-replacement design means a single commit can simultaneously belong to the standard-conformant bucket (which it does for semantic-release purposes) AND the long-subject overlay bucket (which surfaces the readability defect). The strict-mode blocking total formula is unchanged:
-
-```
-total_violations_blocking_strict_mode = compound_prefix + missing_type
-```
-
-Long-subject overlay violations do NOT contribute to strict-mode blocking. This is the only practical enforcement point per the cc-skills Local-First CI/CD Policy (no GitHub Actions for linting); commitlint's `header-max-length=72` rule would normally enforce this in CI but cannot be wired here.
-
-To see the overlay output:
-
-```bash
-bash tasks/commits/conventional-conformance.sh
-# or via the preflight wrapper:
-moon run repo:release-preflight    # Check 4l informational output
-```
-
-Regression pin: `tasks/tests/test-iter151-...sh` (19 assertions across 6 groups covering structural validity, scaffolding declarations, length-measurement wiring, summary/diagnostic output, informational-only design invariant, and functional smoke test against the actual cc-skills repo).
-
-### Operator-Facing Commits Health Dashboard (iter-152)
-
-The iter-150 (VIEW) → iter-151 (DETECT) usability arc closes with iter-152's consolidated operator-facing dashboard `moon run repo:commits-health`, which fuses both prior layers plus new aggregations into a single short-named entry point. Five panels:
-
-1. **Panel 1 — Readable view**: delegates to the iter-150 awk-based soft-wrap renderer (single source of truth for readable rendering; no logic duplication).
-2. **Panel 2 — Subject-length distribution histogram**: ASCII bar chart with bins anchored on the conventional-commits 50/72 industry rule — ≤50 (hard target), 51-72 (hard cap), 73-100 (mild over-cap), 101-200 (verbose-naming-era), 201-500 (heavy), 501-1000 (extreme), 1000+ (iter-144-149 outlier territory).
-3. **Panel 3 — Worst offenders**: top-N (default 3) commits by char count with sha + measured length + truncated subject preview, so operators can target attention precisely.
-4. **Panel 4 — Conventional-commits type distribution**: per-type count + ASCII bar across the 11 canonical sem-rel types (feat/fix/perf/chore/docs/refactor/test/build/ci/style/revert), giving visibility into release-cadence drivers.
-5. **Panel 5 — Trend signal**: compares the current N-commit window against the previous N-commit window on two axes — median (p50) subject length and ≤72-cap conformance rate — and emits one of four verdicts: **IMPROVING** / **REGRESSING** / **STABLE** / **MIXED**.
-
-**Why p50 not mean**: the iter-144-iter-149 cohort produced 754-1078 char outliers that would dominate any mean-based signal. The median is robust against these extremes — operators see the _typical_ commit shape, not the worst.
-
-**Empirical proof iter-150 is working**: First smoke test against actual cc-skills `HEAD~10..HEAD` vs `HEAD~20..HEAD~10` showed:
-
-- Median subject length: previous=177 chars → current=40 chars (Δ -77.5%)
-- ≤72-cap conformance rate: previous=50% → current=60% (Δ +10pp)
-- **Verdict: IMPROVING** (shorter subjects, higher conformance)
-
-The convention adoption is empirically working — the dashboard surfaces it.
-
-**Operator usage**:
-
-```bash
-# Default: last 10 commits vs previous 10
-moon run repo:commits-health
-
-# Custom window size
-ITER152_COMMIT_COUNT_TO_ANALYZE=20 moon run repo:commits-health
-
-# Stricter project: cap at 50 chars instead of 72
-ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 moon run repo:commits-health
-```
-
-**Tunables** (all with `ITER152_` prefix for namespace clarity): `COMMIT_COUNT_TO_ANALYZE` (default 10), `SUBJECT_HARD_CAP_THRESHOLD_CHARS` (default 72), `SUBJECT_HARD_TARGET_THRESHOLD_CHARS` (default 50), `HISTOGRAM_BAR_WIDTH` (default 20 cols), `WORST_OFFENDER_CALLOUT_COUNT` (default 3).
-
-Regression pin: `tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, task wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
-
-### Pre-Commit Dry-Run Advisor (iter-153)
-
-The iter-150 → iter-151 → iter-152 arc closed post-commit visibility, but operators still only learned about violations AFTER committing (at release-time preflight). Iter-153 closes that gap with `bash tasks/commits/advise` — a pre-commit dry-run advisor that classifies a proposed subject through the iter-82/iter-151 grammar BEFORE the commit lands.
-
-**Web research finding (2026-05)**: Web search confirmed this also fills a gap in the broader conventional-commits ecosystem. All industry tools — [commitlint](https://www.nouvelayes.com/blog/enforce-commit-standards-commitlint-husky-commit-msg), [conventional-pre-commit](https://github.com/compilerla/conventional-pre-commit), [conventional-precommit-linter](https://github.com/espressif/conventional-precommit-linter), [commitizen](https://commitizen-tools.github.io/commitizen/tutorials/auto_check/) — run **blocking** at the commit-msg stage with no advisor/dry-run mode, and none emit machine-readable JSON for AI-agent automation.
-
-**Three operational modes**:
-
-```bash
-# Default: human-readable verdict
-bash tasks/commits/advise -- "feat(release): iter-153 short subject"
-
-# --json: machine-readable for AI agents and jq pipelines (parallel to iter-119 --json on iter-116 CLI)
-bash tasks/commits/advise --json -- "feat: foo" | jq .verdict
-
-# --strict: exit non-zero on silent-fail-class only (iter-151 informational-only invariant preserved)
-bash tasks/commits/advise --strict -- "feat(scope)+docs: bad compound"
-```
-
-**Four verdict classifications**:
-
-| Verdict                                 | Trigger                   |   Exit code (default / `--strict`) |
-| --------------------------------------- | ------------------------- | ---------------------------------: |
-| `COMMIT_READY`                          | No violations             |                              0 / 0 |
-| `COMMIT_READY_WITH_READABILITY_WARNING` | Conformant but >72 chars  | 0 / 0 (informational per iter-151) |
-| `SILENT_FAIL_RISK` (COMPOUND-PREFIX)    | `feat(scope)+docs:` etc.  |                              0 / 1 |
-| `SILENT_FAIL_RISK` (MISSING-TYPE)       | No recognized type prefix |                              0 / 1 |
-
-**Single source of truth invariant**: the advisor reuses the iter-82/iter-151 classification grammar — same recognized types array (the 11 sem-rel canonical), same compound-prefix regex, same iter-150 50/72-char thresholds. Changes to the upstream validator automatically flow to the advisor through shared invariants in script.
-
-**Stable JSON schema** (`iter153_schema_version: 1`) for AI agents:
-
-```json
-{
-  "iter153_schema_version": 1,
-  "subject": "feat(release)!: breaking change subject",
-  "measured_length_chars": 39,
-  "classification": "STANDARD-CONFORMANT",
-  "type": "feat",
-  "type_recognized": true,
-  "scope": "release",
-  "breaking": true,
-  "iter150_5072_rule_conformance": {
-    "under_50_char_hard_target": true,
-    "under_72_char_hard_cap": true
-  },
-  "silent_fail_class_violation_present": false,
-  "verdict": "COMMIT_READY",
-  "thresholds": { "hard_target_chars": 50, "hard_cap_chars": 72 }
-}
-```
-
-**Remediation hints** surface for each silent-fail-class subtype:
-
-- COMPOUND-PREFIX → "use a single type per commit, mention secondary scopes in the BODY"
-- MISSING-TYPE → "prefix the subject with one of the recognized types: feat fix perf revert docs chore style refactor test build ci"
-
-Regression pin: `tasks/tests/test-iter153-...sh` (24 assertions across 6 groups covering structural validity, SSoT grammar reuse, 4-way verdict classification, --json stable schema, --strict gating semantics with iter-151 informational-only invariant preservation, and scope/breaking/remediation extraction).
-
-The **iter-150 → iter-151 → iter-152 → iter-153 arc** now spans the full conventional-commits lifecycle: **VIEW** (iter-150) → **DETECT** (iter-151) → **HEALTH SUMMARY** (iter-152) → **PRE-COMMIT ADVISE** (iter-153).
-
-### Advisor Hardening — Pure-Bash JSON Escape + COMMIT_EDITMSG Auto-Detect (iter-154)
-
-Iter-154 fixes a **correctness bug** in iter-153 and adds a workflow-loop closer:
-
-**Correctness fix**: iter-153's `--json` mode used a `python3`-dependent escape with a silent-degrade fallback (`printf '%s' "\"$SUBJECT\""`) that produced **broken JSON** for any subject containing the 7 RFC 8259 § 7 special characters (`"`, `\`, `\b`, `\f`, `\n`, `\r`, `\t`) when python3 was absent. Iter-154 replaces this with a pure-bash escape function `iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency` that handles all 7 named escapes plus generic `\uXXXX` for other control chars (U+0000-U+001F). No external dependencies; output round-trips correctly through any RFC 8259-compliant JSON parser.
-
-**Workflow closer**: When `repo:commits-advise` is invoked with no subject argument AND stdin is a TTY (no piped input), iter-154 auto-detects `.git/COMMIT_EDITMSG` — the file git uses for editor-launched commit flow. This closes the natural workflow:
-
-```
-operator runs `git commit`
-    ↓
-editor opens with COMMIT_EDITMSG
-    ↓
-operator types subject + body
-    ↓
-saves (but does not exit editor)
-    ↓
-in another terminal: `bash tasks/commits/advise`
-    ↓
-verdict emitted on the in-progress subject (no args needed)
-```
-
-The auto-detect reads the first non-comment non-empty line per the git commit message convention, and emits a stderr breadcrumb (`⧗ iter-154 auto-detect: read subject from .git/COMMIT_EDITMSG`) so operators see provenance. Guards on `[[ -t 0 ]]` (TTY) to avoid surprising piped-input operators who expected stdin.
-
-**Regression pin**: 16 assertions across 4 groups in `test-iter154-...sh`:
-
-- **Group A** (4): structural pin of pure-bash escape function + RFC 8259 citation + python3-dependency elimination + `\uXXXX` control-char handler
-- **Group B** (7): all 7 RFC 8259 special chars round-trip via independent python3 `json.loads` for parser-correctness verification
-- **Group C** (4): COMMIT_EDITMSG auto-detect structural pins (file reference, repo-root construction, TTY guard, non-comment line read)
-- **Group D** (1): trivial-input JSON output baseline regression check
-
-Two-line subject convention demonstrated: this commit's headline is 41 chars (well under 50-char target).
-
-### Shared JSON-Escape Library + Iter-152 Dashboard `--json` Mode (iter-155)
-
-Iter-155 is an architectural refactor extending the conventional-commits arc with cross-script SSoT and AI-agent dashboard parity:
-
-**Architectural debt eliminated**: iter-154's pure-bash RFC 8259 JSON escape function was a genuinely reusable utility locked inside the iter-153 advisor script. Iter-155 extracts it to a shared library at `scripts/lib/iter155-json-string-escape.sh` and refactors iter-153 to source it with zero behavior change (iter-153 + iter-154 regression tests both still pass).
-
-**File-size pressure relief**: iter-153 advisor shrank from 554 lines to 499 lines (back under the 500-line warn threshold), removing the FILE-SIZE-OK suppression marker.
-
-**AI-agent dashboard surface**: iter-152 dashboard gains a `--json` mode sourcing the same shared library — closes the symmetrical gap that iter-153 filled for the advisor:
-
-```bash
-# Default: human-readable 5-panel dashboard
-moon run repo:commits-health
-
-# NEW (iter-155): machine-readable JSON for AI agents and jq pipelines
-bash tasks/commits/health --json | jq .panel_5_recent_vs_previous_window_trend_signal.verdict
-```
-
-**Stable JSON schema** (`iter155_schema_version: 1`) covers 4 of the 5 panels (Panel 1 readable view is delegated to iter-150 renderer + omitted from JSON by design):
-
-```json
-{
-  "iter155_schema_version": 1,
-  "iter152_commits_health_dashboard_machine_readable_output": true,
-  "window_size_commits": 10,
-  "thresholds": { "hard_target_chars": 50, "hard_cap_chars": 72 },
-  "panel_2_subject_length_distribution_histogram": {
-    "total_commits_in_window": 10,
-    "le_50_hard_target": 6,
-    "51_to_72_hard_cap": 0,
-    "73_to_100_mild_over_cap": 1,
-    "101_to_200_verbose_naming_era": 0,
-    "201_to_500_heavy_verbose": 0,
-    "501_to_1000_extreme": 1,
-    "over_1000_iter144_149_outlier_territory": 2
-  },
-  "panel_3_worst_offenders_top_n_by_char_count": [
-    { "sha": "...", "length_chars": 1078, "subject": "..." }
-  ],
-  "panel_4_conventional_commits_type_distribution": {
-    "feat": 3,
-    "perf": 2,
-    "chore": 5
-  },
-  "panel_5_recent_vs_previous_window_trend_signal": {
-    "sufficient_history_for_trend_signal": true,
-    "current_window_p50_median_chars": 37.5,
-    "previous_window_p50_median_chars": 177.5,
-    "current_window_conformance_rate_pct": 70,
-    "previous_window_conformance_rate_pct": 50,
-    "verdict": "IMPROVING"
-  }
-}
-```
-
-**Empirical confirmation** (first smoke test against actual cc-skills HEAD): the iter-150 convention adoption continues improving — median subject length dropped from 177.5 → 37.5 chars (-79%), conformance rate rose from 50% → 70%. Verdict: **IMPROVING**.
-
-**Regression pin**: 17 assertions across 6 groups in `test-iter155-...sh`:
-
-- Group A (3): shared lib structurally valid
-- Group B (3): canonical function name + LIBRARY_LOADED_SENTINEL + RFC 8259 § 7 citation
-- Group C (2): iter-153 advisor sources lib (SSoT integration)
-- Group D (4): iter-152 dashboard sources lib + parses `--json` + declares JSON-renderer + invokes escape
-- Group E (3): functional JSON parse + all 5 panel keys present + stable schema version
-- Group F (2): **zero-behavior-change invariant** — iter-153 (24/24) and iter-154 (16/16) regression tests both still pass
-
-Subject: `refactor(release): iter-155 shared JSON-escape lib` (49 chars, under iter-150 50-char target).
-
-## Preflight Gate Maintenance
-
-### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
-
-`tasks/release/preflight` ships with env-var-gated per-phase timing instrumentation. Default behavior is unchanged — no output, no measurable overhead. Set `PREFLIGHT_TIMING_PROFILE=1` in the environment to surface a `⧗ phase elapsed: Nms (label)` line after each visible `→` phase header, plus a whole-script total at the end. Useful when preflight feels slow and you want to know which phase dominates without spelunking through subprocess calls.
-
-```bash
-PREFLIGHT_TIMING_PROFILE=1 moon run repo:release-preflight 2>&1 | grep '⧗'
-```
-
-#### Iter-73 baseline (machine: macOS arm64, M-series, mise bash 5.3.9)
-
-| Rank | Phase                                                 | ms   | % of preflight |
-| ---- | ----------------------------------------------------- | ---- | -------------- |
-| 1    | Check 4e: marketplace-wide hook regression suite      | 3819 | 38.7%          |
-| 2    | Check 4b: self-evolution sandwich (217 SKILL.md scan) | 2032 | 20.6%          |
-| 3    | Check 4h: INVERSE PreToolUse schema audit             | 863  | 8.7%           |
-| 4    | Check 4d: chronicle slicing (37 assertions)           | 650  | 6.6%           |
-| 5    | Check 4f: PreToolUse schema audit                     | 613  | 6.2%           |
-| 6    | Check 4j: additionalContext-pentad audit              | 491  | 5.0%           |
-| 7    | Check 4i: wildcard-matcher audit                      | 468  | 4.7%           |
-| 8    | Check 4g: pueue-wrap-guard ordering audit             | 435  | 4.4%           |
-| 9    | Check 4: plugin manifest validation (bun)             | 327  | 3.3%           |
-| 10   | Check 4c: hook registration sanity                    | 102  | 1.0%           |
-| 11   | Check 5: releasable commits since last tag            | 16   | 0.2%           |
-| —    | Whole-script total                                    | 9871 | 100%           |
-
-Top 2 phases accounted for **59% of preflight wall time** at iter-73 baseline.
-
-#### Iter-74 measurement (after single-pass-awk-scanner replacement of Check 4b)
-
-| Rank | Phase                                            | ms       | % of preflight | Δ from iter-73                      |
-| ---- | ------------------------------------------------ | -------- | -------------- | ----------------------------------- |
-| 1    | Check 4e: marketplace-wide hook regression suite | 3870     | 48.8%          | +51ms (test added)                  |
-| 2    | Check 4h: INVERSE PreToolUse schema audit        | 847      | 10.7%          | -16ms                               |
-| 3    | Check 4f: PreToolUse schema audit                | 652      | 8.2%           | +39ms                               |
-| 4    | Check 4d: chronicle slicing (37 assertions)      | 648      | 8.2%           | -2ms                                |
-| 5    | Check 4j: additionalContext-pentad audit         | 488      | 6.2%           | -3ms                                |
-| 6    | Check 4g: pueue-wrap-guard ordering audit        | 441      | 5.6%           | +6ms                                |
-| 7    | Check 4i: wildcard-matcher audit                 | 425      | 5.4%           | -43ms                               |
-| 8    | Check 4: plugin manifest validation (bun)        | 308      | 3.9%           | -19ms                               |
-| 9    | Check 4c: hook registration sanity               | 111      | 1.4%           | +9ms                                |
-| 10   | **Check 4b: self-evolution sandwich**            | **73**   | **0.9%**       | **−1959ms (−96.4%, 27.8× speedup)** |
-| 11   | Check 1: working directory clean                 | 18       | 0.2%           | new (instrumented)                  |
-| 12   | Check 5: releasable commits since last tag       | 16       | 0.2%           | unchanged                           |
-| 13   | Check 2-3: GH_TOKEN + GH_ACCOUNT env             | 2        | 0.0%           | new (instrumented)                  |
-| —    | **Whole-script total**                           | **7924** | **100%**       | **−1947ms (−19.7%)**                |
-
-Iter-74 win: replaced 217-file × 8-fork-exec storm (~1736 forks) with a single awk process invocation emitting TSV records to a fork-free bash post-processor. The actual speedup (27.8×) exceeded the conservative ~4× forecast because fork overhead on macOS aarch64 is amortized down to ~0.34ms per file when batched into one process versus ~9.4ms per file when forking serially.
-
-#### Iter-75 measurement (after xargs-P parallelization of Check 4e)
-
-| Rank | Phase                                                           | ms       | % of preflight | Δ from iter-74                      |
-| ---- | --------------------------------------------------------------- | -------- | -------------- | ----------------------------------- |
-| 1    | **Check 4e: marketplace-wide hook regression suite (parallel)** | **1381** | **23.1%**      | **−2489ms (−64.3%, 2.80× speedup)** |
-| 2    | Check 4h: INVERSE PreToolUse schema audit                       | 964      | 16.1%          | +117ms                              |
-| 3    | Check 4f: PreToolUse schema audit                               | 786      | 13.1%          | +134ms                              |
-| 4    | Check 4d: chronicle slicing (37 assertions)                     | 742      | 12.4%          | +94ms                               |
-| 5    | Check 4j: additionalContext-pentad audit                        | 524      | 8.8%           | +36ms                               |
-| 6    | Check 4i: wildcard-matcher audit                                | 488      | 8.2%           | +63ms                               |
-| 7    | Check 4g: pueue-wrap-guard ordering audit                       | 482      | 8.1%           | +41ms                               |
-| 8    | Check 4: plugin manifest validation (bun)                       | 323      | 5.4%           | +15ms                               |
-| 9    | Check 4c: hook registration sanity                              | 139      | 2.3%           | +28ms                               |
-| 10   | Check 4b: self-evolution sandwich                               | 76       | 1.3%           | +3ms                                |
-| 11   | Check 1: working directory clean                                | 25       | 0.4%           | +7ms                                |
-| 12   | Check 5: releasable commits since last tag                      | 16       | 0.3%           | unchanged                           |
-| 13   | Check 2-3: GH_TOKEN + GH_ACCOUNT env                            | 3        | 0.1%           | +1ms                                |
-| —    | **Whole-script total**                                          | **5979** | **100%**       | **−1945ms (−24.5%)**                |
-
-Iter-75 win: replaced sequential `for` loop with `xargs -P` (operator-tunable via `MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES`, default 8) running per-test bash worker that captures stdout+exit-code to per-test files in a shared mktemp results directory. Aggregation runs sequentially in stable sort order AFTER all parallel jobs complete, preserving the iter-54 UX (compact summary on PASS, full output on FAIL) bit-for-bit. Distribution flattened — Check 4e is no longer dominant.
-
-#### Cumulative iter-73 → iter-75 progression
-
-| Iter          | Phase Optimized                   | Change                  | Whole-script preflight                        |
-| ------------- | --------------------------------- | ----------------------- | --------------------------------------------- |
-| 73 (baseline) | — (instrumentation only)          | —                       | 9871ms                                        |
-| 74            | Check 4b: single-pass awk scanner | 2032 → 73ms (−1959ms)   | 7924ms (−19.7%)                               |
-| 75            | Check 4e: xargs-P parallelization | 3870 → 1381ms (−2489ms) | 5979ms (−24.5% additional, −39.4% cumulative) |
-
-#### Iter-76+ optimization candidates (forensic notes for future iterations)
-
-After iter-75 flattened the distribution, the top-4 phases are within 1.9× of each other (1381 / 964 / 786 / 742 ms). No single dominant lever remains. Highest-leverage incremental wins:
-
-- **Check 4e bin-packing tail (1381ms)**: bound by the longest single test (`userpromptsubmit-1password-context-injection-prejq-fastpath` at 635ms) + second-longest (`posttooluse-1password-pattern-reminder` at 429ms) = 1064ms theoretical floor. Further parallel-lane scaling cannot improve this. Path forward: optimize the slowest tests themselves (reduce probe count, batch jq, share fixture loading).
-- **Checks 4f + 4h combined (1750ms, 29.3% combined)**: PreToolUse and INVERSE PreToolUse schema audits scan hooks.json twice. Candidate: combine into a single audit task that scans hooks.json once and dispatches per-source-file regex in one pass. Estimated saving ~300-500ms.
-- **Check 4d (742ms)**: chronicle slicing test (37 assertions, bun-based). Bun startup dominates; out-of-scope for marketplace-side fixes unless we batch all assertions into a single bun invocation.
-
-The PREFLIGHT_TIMING_PROFILE=1 instrumentation has now validated two predicted perf wins end-to-end. Keep the knob shipped default-off; it will validate iter-76+ wins the same way.
-
-### Operator-Tunable Perf Knobs (iter-73 → iter-132 cumulative reference)
-
-Six operator-facing env-var knobs accumulated during the iter-73 → iter-132 perf+usability campaign. All default-off / sensible-default; opt in to surface diagnostic output or override built-in heuristics. Listed in order of common-use frequency.
-
-#### `PREFLIGHT_TIMING_PROFILE=1` (iter-73, enhanced iter-130)
-
-Surface per-phase wall-clock timing instrumentation during `moon run repo:release-preflight`. Default off — preflight output is unchanged. When set:
-
-- Emits `⧗ phase elapsed: Nms (Check X: label)` line after each check
-- Emits whole-script total at end-of-script
-- **Iter-130 enhancement**: emits a `Top N slowest preflight checks` bottleneck-ranking summary at end-of-script (default N=5), so operators iterating on perf see the dominant cost without manually scanning all `⧗` lines
-
-```bash
-# Bare timing
-PREFLIGHT_TIMING_PROFILE=1 moon run repo:release-preflight 2>&1 | grep '⧗'
-
-# Top 3 instead of default top 5
-PREFLIGHT_TIMING_PROFILE=1 \
-  ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=3 \
-  moon run repo:release-preflight 2>&1 | tail -15
-```
-
-#### `ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY=N` (iter-140)
-
-Override count for the iter-140 post-release `successCmd` per-step bottleneck ranking emitted when `RELEASE_TIMING_PROFILE=1`. Default 5. Mirrors `ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY` + `ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY` at the deepest instrumentation level — `successCmd` step internals INSIDE Phase 2 (semantic-release).
-
-Iter-140 also eliminated a hardcoded `sleep 2` between the `claude --print` plugin-update trigger and the cache-verify step. Net save: ~2000ms per release. The cache-verify step already handles the "cache not yet populated" graceful-degrade branch with a "may need session restart" warning, so the unconditional 2s wait had no functional benefit.
-
-```bash
-# Surface top 7 (= all) successCmd steps with their elapsed-ms
-RELEASE_TIMING_PROFILE=1 \
-  ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY=7 \
-  moon run repo:release-full 2>&1 | grep -E '(⧗|successCmd)'
-```
-
-The seven instrumented steps (in execution order):
-
-1. marketplace-clone git-fetch-tags + git-reset-hard-to-vN + plugin.json version-confirmation
-2. **claude --print /plugin update cc-skills subprocess-bootstrap** (suspected dominant cost — full Claude Code instance bootstrap for one slash command; iter-141+ optimization candidate)
-3. (Step 3 ELIMINATED by iter-140 — was `sleep 2`)
-4. plugin-cache version-verification
-5. sync-hooks-to-settings.sh invocation
-6. hook-files-in-cache validation (jq-empty across all plugin cache directories)
-7. jsDelivr-CDN-purge + tagged-URL-smoke-test loop over plugins/html-showcase/assets/\*
-
-#### `RELEASE_TIMING_PROFILE=1` (iter-139)
-
-Surface per-phase wall-clock timing for the **entire 7-phase release pipeline** (preflight → presync → version → sync → verify → chronicle → postflight). Mirrors the iter-73/130 preflight-internal pattern at the pipeline level. Default off — release output unchanged. When set:
-
-- Emits `⧗ release-phase elapsed: Nms (Phase X: label)` after each phase completes
-- Emits a `Top N slowest release phases` end-of-pipeline bottleneck-ranking summary (default N=5)
-- Emits the whole-pipeline total for sum-of-phases vs wall-clock sanity check
-- Compatible with `PREFLIGHT_TIMING_PROFILE=1` — set both for full per-check + per-phase visibility
-
-```bash
-# Profile a release end-to-end with both pipeline-level + preflight-internal timing
-RELEASE_TIMING_PROFILE=1 \
-  PREFLIGHT_TIMING_PROFILE=1 \
-  moon run repo:release-full 2>&1 | grep -E '(⧗|✓ Release)'
-
-# Top 7 slowest phases (i.e., the full pipeline)
-RELEASE_TIMING_PROFILE=1 \
-  ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY=7 \
-  moon run repo:release-full
-```
-
-Use when iterating on the ~45-55s post-preflight portion of release wall-clock. Iter-138 cut preflight from ~10.74s to ~4.5s; iter-139 unblocks the same data-driven approach for the OTHER ~90% of release time.
-
-#### `MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=N` (iter-131)
-
-Surface per-test wall-clock ranking in the marketplace hook regression suite output. Default unset (no ranking section emitted; output bit-for-bit identical to pre-iter-131 for CI consumers). When set to a positive integer N:
-
-- Each test's wall-clock captured via `$EPOCHREALTIME` start/end + awk math in the xargs -P worker
-- Per-test elapsed-ms written to a sidecar `.elapsed_ms` file (sub-millisecond cost — no fork)
-- End-of-aggregation emits `Top N slowest tests` ranked-descending summary
-
-```bash
-# Surface top 5 slowest tests with their elapsed-ms
-MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=5 \
-  moon run repo:test-hooks 2>&1 | tail -15
-```
-
-Useful when iterating on test perf — surfaces the bun-spawn-heavy orchestrator tests dominating wall-clock.
-
-#### `MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES=N` (iter-75, adaptive default iter-128)
-
-Override the parallel-lane count for the marketplace hook regression suite. **Default is adaptive**: `clamp(sysctl_hw_ncpu - 4, 4, 12)` — leaves 4-core headroom for OS+IDE, floors at 4 for low-end laptops, ceilings at 12 to avoid the bun-cold-start contention plateau measured at lanes=12 during iter-128 (lanes=10 is empirically the sweet spot on 14-core M-series; lanes=12 regressed 4-5%).
-
-- 4-core machines: 4 lanes (floor)
-- 8-core machines: 4 lanes
-- 14-core M-series: 10 lanes (sweet spot)
-- 16-core machines: 12 lanes (ceiling)
-
-```bash
-# Override to a specific count (e.g., for benchmarking or CI runners)
-MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES=8 \
-  moon run repo:test-hooks
-```
-
-#### `ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES=N` (iter-134)
-
-Override the parallel-lane count for the **preflight audit fan-out** (Checks 4f-4v). **Default is adaptive**: same `clamp(sysctl_hw_ncpu - 4, 4, 12)` heuristic as iter-128's marketplace-suite (see above). Iter-134 introduces the parallel pre-warm that compresses ~2603ms of sequential audit work into ~510ms wall-clock (longest single audit caps the Phase-A blocking wait) — a **~30% reduction in total preflight wall-clock** (~7000ms → ~4900ms on a 14-core M-series host).
-
-The 17 parallelized audits are independent kebab-case scans of the marketplace and share no mutable state, so the same iter-128 sweet-spot calibration applies. Override when benchmarking or running on a CI host with different CPU topology.
-
-```bash
-# Override audit-pre-warm lane count (different from MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES above)
-ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES=8 moon run repo:release-preflight
-```
-
-#### `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1` (iter-134)
-
-Opt-out escape hatch for the iter-134 audit pre-warm. **Default off** — audits run in parallel via xargs -P. When set to `1`, the pre-warm forces `-P 1` (serial execution through xargs), preserving the sidecar contract while reverting to pre-iter-134 sequential timing. Use when diagnosing audit-suite issues where parallel-stdout ordering could confuse the per-check post-processing.
-
-```bash
-# Force serial audit execution (diagnostic only — costs ~2s wall-clock)
-ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 \
-  PREFLIGHT_TIMING_PROFILE=1 \
-  moon run repo:release-preflight 2>&1 | grep '⧗'
-```
-
-#### `ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1` (iter-132)
-
-Opt-in flag for the iter-132 regression test's preflight-integration tier. Default off — the test's standalone mode runs Tier 1 (source-fingerprint, ~50ms) + Tier 2.B (iter-131 suite integration, ~3s) but skips Tier 2.A (iter-130 preflight integration, ~7s) to keep the regression test fast in the common case. Enable when you're specifically iterating on the iter-130 preflight-summary feature.
-
-#### `ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1` (iter-135)
-
-Opt-in flag for the iter-135 regression test's serial-mode-opt-out integration tier. Default off — the test's standalone mode runs Tier 1 (source-fingerprint, ~50ms) + Tier 2.A-D (parallel-mode integration, ~5s) but skips Tier 2.E (serial-mode opt-out integration, ~6s) to keep the regression test fast in the common case. Enable when specifically validating the `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1` escape hatch.
-
-```bash
-ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1 \
-  bash tasks/tests/test-iter134-parallel-preflight-audit-fan-out.sh
-```
-
-```bash
-ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1 \
-  bash tasks/tests/test-iter130-131-bottleneck-ranking-summaries.sh
-```
-
-#### `AUDIT_REPO_ROOT_OVERRIDE=/path/to/synthetic/fixture/repo` (iter-62)
-
-Override the repo root scanned by audit tasks. Default unset — audits resolve their repo root from `$BASH_SOURCE` (their own location in the marketplace). Override when running an audit against a synthetic fixture fleet to verify it correctly detects (or doesn't detect) violations.
-
-```bash
-# Run iter-62 inverse-schema audit against a synthetic fixture
-AUDIT_REPO_ROOT_OVERRIDE=/tmp/fixture-fleet \
-  bash tasks/hook-lint/non-pretooluse-permission-decision.sh
-```
-
-#### `MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1` (iter-75)
-
-**Not an operator knob** — set automatically by the marketplace regression suite runner when it invokes per-test bash workers. Tests that need to invoke the runner themselves (e.g., iter-75 parity test, iter-132 bottleneck-ranking test) check this guard and self-skip their inner-runner integration tier to prevent infinite recursion. Documented here for completeness.
-
-### Brittle-Banner-Grep Anti-Pattern (iter-69/70 lesson)
-
-`tasks/release/preflight` parses audit task output by grep-extracting summary banners. **Hardcoded banner phrasing creates brittle coupling**: when an audit evolves its scope and renames its summary banner (e.g. iter-67 "Total registered Stop hooks scanned:" → iter-69 "Total registered pentad-member hooks scanned:" during the Stop → Stop+SubagentStop+SessionEnd+PreCompact+Notification pentad expansion), the preflight grep returns no match, `set -o pipefail` propagates the failure, and the gate silently aborts with no actionable diagnostic.
-
-#### Forensic case
-
-iter-69 first ship attempt: extended pentad audit shipped with renamed banner. Preflight Check 4j called the audit, audit exited 0 (no violations), but downstream banner-grep returned empty → pipefail → preflight aborted at "Running additionalContext-silently-dropped pentad audit..." with `[release:preflight] ERROR task failed` and no further diagnostic. Fixed in commit c75e6915.
-
-#### Defensive pattern (iter-70 uniformity)
-
-All preflight grep extractions use this pattern:
-
-```bash
-VAR=$( { grep -oE 'PATTERN' file || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+VAR=$( { grep -oE 'PATTERN' file || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 echo "  ✓ Result: ${VAR:-0}"
 ```
 
-Three layers of defense:
-
-1. **`{ grep ... || true; }`** — first grep always exits 0; swallows pipefail when banner phrasing changes.
-2. **`|| echo 0`** — full-pipeline fallback; defends against any downstream pipeline failure (e.g. malformed log file).
-3. **`${VAR:-0}`** — interpolation default; reports `0` rather than empty string if everything upstream produces no output.
-
-#### Why this matters
-
-Without defenses, a future audit rename ANYWHERE in the marketplace can crash preflight with zero diagnostic, blocking releases until an operator manually bisects the bash. With defenses, the gate gracefully degrades to `0` reporting and the human-readable summary line still emits — operators see "Pueue-wrap-guard ordering: 0 ok (0 violations)" instead of "ERROR task failed".
-
-#### Maintenance rule for future audit changes
-
-When extending an audit's scope and renaming its summary banner, you MUST update **both** sites coherently in the same commit:
-
-- `tasks/tests/test-audit-*.sh` grep (regression test)
-- `tasks/release/preflight` grep (release gate)
-
-The defensive pattern above reduces the blast radius if you forget — but the only way to ensure the gate keeps reporting accurate counts is coherent dual-site updates.
+`{ … || true; }` keeps a missing summary line from failing the pipeline, and `${VAR:-0}` reports 0 rather than an empty string. Never end such a pipeline with `head -1`: if `head` closes the pipe while the producer is still writing, the producer exits 141, `pipefail` fails the pipeline, `|| echo 0` runs as well, and `VAR` holds the real count followed by a second line, `0`. `awk 'NR==1'` reads everything, so the producer always finishes.
 
 ## Key Files
 
-| File                                | Purpose                                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `release.config.cjs`                | semantic-release configuration (body-preserving notes writerOpts; converted from `.releaserc.yml` 2026-07-21) |
-| `tasks/release/*`                   | Release phase scripts, wrapped by the `repo:release-*` moon tasks                                             |
-| `scripts/release-preflight.sh`      | Preflight validation                                                                                          |
-| `scripts/sync-hooks-to-settings.sh` | Hook synchronization                                                                                          |
-| `scripts/sync-versions.mjs`         | Version alignment across files                                                                                |
+| File                                   | Purpose                                                               |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `release.config.cjs`                   | semantic-release configuration (release rules, body-preserving notes) |
+| `tasks/release/*`                      | Release phase scripts, wrapped by the `repo:release-*` moon tasks     |
+| `scripts/release-preflight.sh`         | Preflight run by semantic-release's `verifyConditions`                |
+| `scripts/sync-hooks-to-settings.sh`    | Removes pre-v20.2.3 cc-skills hook copies from `settings.json`        |
+| `scripts/sync-commands-to-settings.sh` | Syncs plugin skills to `~/.claude/commands/`                          |
+| `scripts/lib/backup-retention.sh`      | `CC_SKILLS_BACKUP_RETENTION` for both sync scripts                    |
+| `scripts/sync-versions.mjs`            | Version alignment across files                                        |
 
 ## Related Documentation
 

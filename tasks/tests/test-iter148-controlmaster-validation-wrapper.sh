@@ -150,27 +150,16 @@ iter148_assert_substring_present_in_file \
     "$ITER148_WRAPPER_SCRIPT_ABSOLUTE_PATH" \
     "Capture logs preserved for inspection"
 
-# ─── Group E: docs/RELEASE.md surfaces iter-148 empirical-measurement section
+# ─── Group E: docs/RELEASE.md names the wrapper ───────────────────────────────
+# The measured results (3.30x, 4216 ms saved, n=3) were a one-day measurement and live in git
+# history and the CHANGELOG, not in the present-tense guide (cc-skills #222).
 echo ""
-echo "GROUP E (3 assertions): docs/RELEASE.md surfaces iter-148 empirical findings"
-
-ITER148_TOTAL_ASSERTIONS_EVALUATED=$((ITER148_TOTAL_ASSERTIONS_EVALUATED + 1))
-if grep -qiF -- "iter-148" "$ITER148_RELEASE_MD_DOC_RELATIVE_PATH" 2>/dev/null; then
-    echo "  ✓ E1: docs/RELEASE.md mentions iter-148 by name (case-insensitive)"
-else
-    echo "  ✗ E1: docs/RELEASE.md missing iter-148 mention"
-    ITER148_TOTAL_ASSERTIONS_FAILED=$((ITER148_TOTAL_ASSERTIONS_FAILED + 1))
-fi
+echo "GROUP E (1 assertion): docs/RELEASE.md names the wrapper"
 
 iter148_assert_substring_present_in_file \
-    "E2: docs/RELEASE.md documents the empirically-measured speedup ratio (not conjectural)" \
+    "E1: docs/RELEASE.md names scripts/iter148-ssh-multiplexing-speedup-check.sh" \
     "$ITER148_RELEASE_MD_DOC_RELATIVE_PATH" \
-    "3.30x"
-
-iter148_assert_substring_present_in_file \
-    "E3: docs/RELEASE.md documents the 4.2-second-saved-per-release outcome" \
-    "$ITER148_RELEASE_MD_DOC_RELATIVE_PATH" \
-    "4216"
+    "scripts/iter148-ssh-multiplexing-speedup-check.sh"
 
 # ─── Final report ─────────────────────────────────────────────────────────────
 echo ""
