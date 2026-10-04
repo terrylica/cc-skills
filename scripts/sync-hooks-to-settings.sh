@@ -21,6 +21,10 @@ set -euo pipefail
 SETTINGS="$HOME/.claude/settings.json"
 BACKUP_DIR="$HOME/.claude/backups"
 
+# Snapshot retention (CC_SKILLS_BACKUP_RETENTION, default 5) lives in one shared helper.
+# shellcheck source=SCRIPTDIR/lib/backup-retention.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/backup-retention.sh"
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
@@ -33,6 +37,9 @@ backup_settings() {
     local ts
     ts=$(date +%Y%m%d_%H%M%S)
     cp "$SETTINGS" "$BACKUP_DIR/settings.json.backup.$ts"
+    local removed
+    removed=$(prune_backup_snapshots "$BACKUP_DIR" "settings.json.backup.")
+    (( removed == 0 )) || info "Pruned $removed old settings.json backup(s), kept $CC_SKILLS_BACKUP_RETENTION"
 }
 
 # A settings.json is user-authored, so every level may be absent or null:
@@ -79,12 +86,19 @@ main() {
         return 0
     fi
 
-    backup_settings
-
     # Count cc-skills entries before pruning so we can report what changed.
     local before_count
     before_count=$(jq --arg fragment "$MARKETPLACE_PATH_FRAGMENT" \
         "$JQ_COUNT_MARKETPLACE_PATH_ENTRIES" "$SETTINGS")
+
+    # Nothing to prune is the normal case since v20.2.3. Then touch nothing: no backup copy and
+    # no rewrite of a file Claude Code itself also writes (issue #218: 772 identical copies).
+    if [[ $before_count -eq 0 ]]; then
+        info "No cc-skills marketplace-path entries found (already clean)"
+        return 0
+    fi
+
+    backup_settings
 
     # Per-hook filter: drop hooks whose command references the cc-skills
     # marketplace path; if a matcher entry's .hooks array becomes empty
