@@ -1,3 +1,30 @@
+# [33.5.0](https://github.com/terrylica/cc-skills/compare/v33.4.0...v33.5.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* **calcom-commander,gmail-commander:** plugin state in ~/.local/state ([a34aa68](https://github.com/terrylica/cc-skills/commit/a34aa680589bb5166f3aa5b4448e6521fa6b039a))
+
+Both plugins defaulted their state files and audit logs into ~/own/amonic, the operator's personal repo, which moved to ~/gh/vjspc/amonic on 2026-10-03. A plugin's state should not depend on any repository's folder. Neither default was in use on this Mac (no state files existed), and the mca Restate tenant sets AUDIT_DIR and BOT_STATE_FILE explicitly, so no state moves.
+
+- calcom-commander: bot state, sync state and audit logs default to ~/.local/state/calcom-commander/
+- gmail-commander: bot state and audit logs default to ~/.local/state/gmail-commander/; bot.ts no longer repeats the defaults (lib/state.ts and lib/audit.ts own them, env first)
+- calcom-commander docs: the state and audit defaults follow; the daemon env file and launcher paths name ~/gh/vjspc/amonic
+- gmail-commander tests 78/78 pass; its 15 pre-existing type errors are unchanged
+
+
+
+### Features
+
+* **gh-tools:** guard enforces [reserved] names and read-only paths ([96e13ae](https://github.com/terrylica/cc-skills/commit/96e13ae95c3f101213a4b16f0c828c83a9c6d3a1)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+The path-owner registry already declared two rules the guard did not read. Its [reserved] table lists repository names that must never be created under a renamed account's old login: GitHub keeps redirecting a moved repository's old URL only while no repository of the same name exists there. Its mode = "read-only" rows mark third-party reference clones that are never pushed or re-pointed. Both were documentation until now.
+
+- lib/path-owner-registry.mjs: parseReserved() and reservedNames() read [reserved] names_under_&lt;owner>; resolveExpectedOwner() also returns mode
+- pretooluse-path-owner-guard.mjs: gh repo create of a reserved owner/name is refused from ANY folder, mapped or not; git push and git remote add/set-url are refused in a read-only path; ALLOW_OWNER_MISMATCH=1 still overrides both
+- the gh repo create owner/name parse is one function (repoCreateTarget) instead of two copies
+- tests: 6 new cases (reserved via owner/name and via --owner, same name under another owner allowed, read-only push and re-point, escape hatch); 17/17 pass; probed against the live registry
+
 # [33.4.0](https://github.com/terrylica/cc-skills/compare/v33.3.2...v33.4.0) (2026-10-03)
 
 
