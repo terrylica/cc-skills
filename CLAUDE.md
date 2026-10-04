@@ -131,7 +131,7 @@ bun update -g                # Upgrade all
 bun pm ls -g                 # List
 ```
 
-**Toolchain pins auto-bump to latest, unattended.** `com.terryli.proto-toolchain-autoupdate` runs at 07:23, 13:23 and 19:23 local and rewrites `.prototools` here — and in every repo under `~/eon`, `~/own`, `~/vj` — to the latest published version of each pinned tool, committing each change. Nothing gates it: **no test suite runs against the new versions before the commit lands**, so a red gate the morning after a green night is a toolchain bump until proven otherwise. Check `git log -- .prototools` first; `git revert` the bump to confirm, then hold the pin deliberately if the newer version is genuinely broken. Log: `~/.local/state/proto-autoupdate/autoupdate.log`. It pushes a notification only when something changed or failed.
+**Toolchain pins auto-bump to latest, unattended.** `com.terryli.proto-toolchain-autoupdate` runs at 07:23, 13:23 and 19:23 local and rewrites `.prototools` here — and in every repo under `~/eon` and `~/gh/<org>` (the roots are listed in `~/.claude/tools/launchd-runners/proto-toolchain-autoupdate.sh`) — to the latest published version of each pinned tool, committing each change. Nothing gates it: **no test suite runs against the new versions before the commit lands**, so a red gate the morning after a green night is a toolchain bump until proven otherwise. Check `git log -- .prototools` first; `git revert` the bump to confirm, then hold the pin deliberately if the newer version is genuinely broken. Log: `~/.local/state/proto-autoupdate/autoupdate.log`. It pushes a notification only when something changed or failed.
 
 ## Lessons Learned
 
