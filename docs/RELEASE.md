@@ -164,21 +164,21 @@ moon run repo:release-sync    # Re-run the sync phase
 
 ## Diagnostics and Knobs
 
-Environment variables read by the release and test scripts. All are optional, and the defaults keep output unchanged. The `ITER*` prefixes record when a knob was added, not what it does.
+Environment variables read by the release and test scripts. All are optional, and the defaults keep output unchanged. Names before #224 began with an iteration number (`ITER134_…`); those still work and are listed under [Deprecated names](#deprecated-names).
 
 ### Timing
 
 | Variable                                                           | Effect                                                                                                                         | Default            |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
 | `PREFLIGHT_TIMING_PROFILE=1`                                       | Per-check elapsed time in `repo:release-preflight`, a total, and a slowest-checks ranking                                      | off                |
-| `ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY`                          | Length of that preflight ranking                                                                                               | 5                  |
+| `PREFLIGHT_TIMING_TOP_N`                          | Length of that preflight ranking                                                                                               | 5                  |
 | `RELEASE_TIMING_PROFILE=1`                                         | Per-phase elapsed time for `repo:release-full`, a total, and a slowest-phases ranking                                          | off                |
-| `ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY`                  | Length of the release-phase ranking                                                                                            | 5                  |
-| `ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY`                | Length of the post-release `successCmd` step ranking (with `RELEASE_TIMING_PROFILE=1`)                                         | 5                  |
+| `RELEASE_TIMING_TOP_N`                  | Length of the release-phase ranking                                                                                            | 5                  |
+| `RELEASE_SUCCESSCMD_TOP_N`                | Length of the post-release `successCmd` step ranking (with `RELEASE_TIMING_PROFILE=1`)                                         | 5                  |
 | `MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY` | Adds a slowest-tests ranking to `repo:test-hooks`                                                                              | unset (no ranking) |
-| `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY`          | Ranking length for `scripts/iter144-release-step-timing-parser.py`, which attributes semantic-release time per debug namespace | 10                 |
-| `ITER147_VARIANCE_PROFILE_RUN_COUNT`                               | Captures for `scripts/iter147-release-timing-variance-harness.py` (p50/p95/stddev per namespace; at least 2)                   | 5                  |
-| `ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1`             | Re-analyse the harness's existing `/tmp` logs instead of capturing                                                             | off                |
+| `SEMREL_TIMING_PARSER_TOP_N`          | Ranking length for `scripts/iter144-release-step-timing-parser.py`, which attributes semantic-release time per debug namespace | 10                 |
+| `RELEASE_VARIANCE_RUNS`                               | Captures for `scripts/iter147-release-timing-variance-harness.py` (p50/p95/stddev per namespace; at least 2)                   | 5                  |
+| `RELEASE_VARIANCE_REPLAY=1`             | Re-analyse the harness's existing `/tmp` logs instead of capturing                                                             | off                |
 
 Compare timings across several runs, not one: the release is dominated by network round trips whose run-to-run spread can exceed the effect being measured. The variance harness flags namespaces whose stddev/p50 exceeds 0.20.
 
@@ -187,18 +187,48 @@ Compare timings across several runs, not one: the release is dominated by networ
 | Variable                                                              | Effect                                                                                                 | Default                  |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------ |
 | `MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES`                          | Worker count for `repo:test-hooks`                                                                     | `clamp(ncpu − 4, 4, 12)` |
-| `ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES`                              | Worker count for preflight's audit fan-out                                                             | `clamp(ncpu − 4, 4, 12)` |
-| `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1`                   | Run those audits one at a time (diagnosis only)                                                        | off                      |
+| `PREFLIGHT_AUDIT_PARALLEL_LANES`                              | Worker count for preflight's audit fan-out                                                             | `clamp(ncpu − 4, 4, 12)` |
+| `PREFLIGHT_AUDIT_SERIAL=1`                   | Run those audits one at a time (diagnosis only)                                                        | off                      |
 | `MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD` | Set by the suite runner itself so tests that call the runner skip their nested tier. Not for operators | —                        |
 
 ### Test tiers and fixtures
 
 | Variable                                     | Effect                                                                                         | Default              |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------- |
-| `ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1`   | Adds the slow preflight-integration tier to `test-iter130-131-bottleneck-ranking-summaries.sh` | off                  |
-| `ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1` | Adds the serial-mode tier to `test-iter134-parallel-preflight-audit-fan-out.sh`                | off                  |
+| `TEST_PREFLIGHT_INTEGRATION=1`   | Adds the slow preflight-integration tier to `test-iter130-131-bottleneck-ranking-summaries.sh` | off                  |
+| `TEST_SERIAL_MODE_INTEGRATION=1` | Adds the serial-mode tier to `test-iter134-parallel-preflight-audit-fan-out.sh`                | off                  |
 | `AUDIT_REPO_ROOT_OVERRIDE`                   | Repository root an audit scans, for running it against a synthetic fixture                     | the audit's own repo |
-| `ITER165_REPO_ROOT_OVERRIDE`                 | Repository root for `tasks/commits/pending-release`                                            | the current repo     |
+| `COMMITS_REPO_ROOT`                 | Repository root for `tasks/commits/pending-release`                                            | the current repo     |
+
+### Deprecated names
+
+Each knob's old name is still read when the new one is unset, and using it prints one line on stderr naming the replacement. The shell scripts resolve both through `cc_knob` in `scripts/lib/env-knob.sh`; the `commit-msg` hook (copied into other repositories) and the two Python scripts carry the same rule inline. The aliases go when #224's follow-up retires them.
+
+| Name | Deprecated alias |
+| --- | --- |
+| `PREFLIGHT_TIMING_TOP_N` | `ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY` |
+| `RELEASE_TIMING_TOP_N` | `ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY` |
+| `RELEASE_SUCCESSCMD_TOP_N` | `ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY` |
+| `SEMREL_TIMING_PARSER_TOP_N` | `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY` |
+| `RELEASE_VARIANCE_RUNS` | `ITER147_VARIANCE_PROFILE_RUN_COUNT` |
+| `RELEASE_VARIANCE_REPLAY` | `ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS` |
+| `PREFLIGHT_AUDIT_PARALLEL_LANES` | `ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES` |
+| `PREFLIGHT_AUDIT_SERIAL` | `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION` |
+| `TEST_PREFLIGHT_INTEGRATION` | `ITER132_RUN_PREFLIGHT_INTEGRATION_TIER` |
+| `TEST_SERIAL_MODE_INTEGRATION` | `ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER` |
+| `COMMITS_REPO_ROOT` | `ITER165_REPO_ROOT_OVERRIDE` |
+| `RELEASE_HISTORY_COUNT` | `ITER150_COMMIT_COUNT_TO_DISPLAY` |
+| `RELEASE_HISTORY_WRAP` | `ITER150_SOFT_WRAP_COLUMN_WIDTH` |
+| `RELEASE_HISTORY_INDENT` | `ITER150_CONTINUATION_INDENT` |
+| `COMMITS_HEALTH_WINDOW` | `ITER152_COMMIT_COUNT_TO_ANALYZE` |
+| `COMMITS_SUBJECT_HARD_CAP` | `ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS` |
+| `COMMITS_SUBJECT_TARGET` | `ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS` |
+| `COMMITS_HEALTH_BAR_WIDTH` | `ITER152_HISTOGRAM_BAR_WIDTH` |
+| `COMMITS_HEALTH_LONGEST_COUNT` | `ITER152_WORST_OFFENDER_CALLOUT_COUNT` |
+| `COMMITS_HOOK_FAIL_MODE` | `ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND` |
+| `COMMITS_HOOK_CC_SKILLS_PATH` | `ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE` |
+| `PRECOMMIT_MANIFEST_E2E_TRIALS` | `ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT` |
+| `COMMITS_DOCTOR_CC_SKILLS_ROOT` | `ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE` |
 
 ### Release speed (semantic-release)
 
@@ -217,17 +247,17 @@ On a fresh clone, run `scripts/iter145-fix-empty-release-notes-refs.sh` once. It
 
 | Tool                                                                 | What it does                                                                                                                                                                                                                                                                                                                    |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `moon run repo:release-history`                                      | `git log` with long subjects soft-wrapped (`ITER150_COMMIT_COUNT_TO_DISPLAY`, default 10; `ITER150_SOFT_WRAP_COLUMN_WIDTH`, default 80)                                                                                                                                                                                         |
+| `moon run repo:release-history`                                      | `git log` with long subjects soft-wrapped (`RELEASE_HISTORY_COUNT`, default 10; `RELEASE_HISTORY_WRAP`, default 80; `RELEASE_HISTORY_INDENT`, continuation indent, default 8)                                                                                                                                                                                         |
 | `moon run repo:commits-health` (`--json`)                            | Five panels for the last N commits against the N before: readable view, subject-length histogram, longest subjects, type counts, trend verdict (IMPROVING / REGRESSING / STABLE / MIXED)                                                                                                                                        |
 | `bash tasks/commits/advise -- "<subject>"`                           | Classifies a subject before you commit. `--json` for machine output, `--strict` exits non-zero on a compound prefix or a missing type, `--message-file <path>` reads a full message including a `BREAKING CHANGE` footer; with no argument on a TTY it reads `.git/COMMIT_EDITMSG`. Also previews the bump and the next version |
 | `moon run repo:commits-pending-release` (`--json`)                   | The next release version and the commit that decides it, across every commit since the last tag                                                                                                                                                                                                                                 |
-| `moon run repo:commits-status` (`--json`)                            | Self-check of the toolkit's scripts, libraries and end-to-end chain                                                                                                                                                                                                                                                             |
-| `moon run repo:commits-install-hook` / `repo:commits-uninstall-hook` | Installs or removes a `commit-msg` hook running the advisor in `--strict` mode. Fails open if the advisor is missing; `ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND=closed` makes it fail closed                                                                                                                      |
-| `.pre-commit-hooks.yaml`                                             | Hook id `cc-skills-commits-advise-commit-msg` for repositories using the [pre-commit](https://pre-commit.com) framework (`pre-commit install --hook-type commit-msg`)                                                                                                                                                           |
+| `moon run repo:commits-status` (`--json`)                            | Self-check of the toolkit's scripts, libraries and end-to-end chain; `COMMITS_DOCTOR_CC_SKILLS_ROOT` points it at another cc-skills checkout                                                                                                                                                                                                                                                             |
+| `moon run repo:commits-install-hook` / `repo:commits-uninstall-hook` | Installs or removes a `commit-msg` hook running the advisor in `--strict` mode. Fails open if the advisor is missing; `COMMITS_HOOK_FAIL_MODE=closed` makes it fail closed. The hook finds cc-skills through `COMMITS_HOOK_CC_SKILLS_PATH`, then `git config cc-skills.repo-path`, then `~/eon/cc-skills`                                                                                                                      |
+| `.pre-commit-hooks.yaml`                                             | Hook id `cc-skills-commits-advise-commit-msg` for repositories using the [pre-commit](https://pre-commit.com) framework (`pre-commit install --hook-type commit-msg`); `scripts/iter159-pre-commit-manifest-e2e-check.sh` exercises it end to end, `PRECOMMIT_MANIFEST_E2E_TRIALS` trials per subject (default 1)                                                                                                                                                           |
 | `bash tasks/commits/conventional-conformance.sh`                     | The preflight's conventional-commits check on its own; subjects over 72 characters are reported but never block a release                                                                                                                                                                                                       |
 | `moon run repo:commits-perf-baseline`                                | Wall-clock baseline for the toolkit's own scripts                                                                                                                                                                                                                                                                               |
 
-`repo:commits-health` tunables: `ITER152_COMMIT_COUNT_TO_ANALYZE` (10), `ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS` (72), `ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS` (50), `ITER152_HISTOGRAM_BAR_WIDTH` (20), `ITER152_WORST_OFFENDER_CALLOUT_COUNT` (3). JSON output from these tools escapes strings through one shared library, `scripts/lib/iter155-json-string-escape.sh`.
+`repo:commits-health` tunables: `COMMITS_HEALTH_WINDOW` (10), `COMMITS_SUBJECT_HARD_CAP` (72), `COMMITS_SUBJECT_TARGET` (50), `COMMITS_HEALTH_BAR_WIDTH` (20), `COMMITS_HEALTH_LONGEST_COUNT` (3). JSON output from these tools escapes strings through one shared library, `scripts/lib/iter155-json-string-escape.sh`.
 
 ## Preflight Maintenance: Reading Audit Counts
 

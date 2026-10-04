@@ -15,7 +15,7 @@
 # `.git/hooks/commit-msg` by the iter-157 installer. It locates the cc-skills
 # repo containing the iter-153 advisor via the following precedence chain:
 #
-#   1. ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE env var (highest)
+#   1. COMMITS_HOOK_CC_SKILLS_PATH env var (highest)
 #   2. `git config --get cc-skills.repo-path` (repo-local config, persisted)
 #   3. `$HOME/eon/cc-skills` (canonical default location)
 #
@@ -23,7 +23,7 @@
 # with a one-line warning rather than blocking the operator's commit — the
 # hook is opt-in quality gate, not a hard dependency. Operators who want
 # fail-CLOSED semantics can set
-# ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND=closed.
+# COMMITS_HOOK_FAIL_MODE=closed.
 #
 # Industry-standard bypass: `git commit --no-verify` skips ALL git hooks
 # including this one. Use sparingly per the cc-skills CLAUDE.md "never skip
@@ -38,8 +38,11 @@ set -euo pipefail
 # ─── Step 1: locate the iter-153 advisor script via the precedence chain ────
 
 iter157_locate_cc_skills_repo_path_via_env_override_or_git_config_or_canonical_default_location() {
-    if [[ -n "${ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE:-}" ]]; then
-        printf '%s\n' "$ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE"
+    # This hook is copied into other repositories and runs before cc-skills is located, so it
+    # cannot source scripts/lib/env-knob.sh; the old ITER157_ names are honoured inline (#224).
+    local path_override="${COMMITS_HOOK_CC_SKILLS_PATH:-${ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE:-}}"
+    if [[ -n "$path_override" ]]; then
+        printf '%s\n' "$path_override"
         return 0
     fi
     local git_config_repo_path
@@ -56,7 +59,7 @@ ITER157_ITER153_ADVISOR_RELATIVE_PATH="scripts/iter153-commit-subject-advisor.sh
 ITER157_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER157_CC_SKILLS_REPO_PATH/$ITER157_ITER153_ADVISOR_RELATIVE_PATH"
 
 if [[ ! -x "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then
-    if [[ "${ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND:-open}" == "closed" ]]; then
+    if [[ "${COMMITS_HOOK_FAIL_MODE:-${ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND:-open}}" == "closed" ]]; then
         printf '[iter-157 commit-msg hook] ERROR: iter-153 advisor not found at %s — fail-CLOSED mode rejects commit.\n' \
             "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" >&2
         exit 1

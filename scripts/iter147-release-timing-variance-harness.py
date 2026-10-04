@@ -27,7 +27,7 @@
 #
 # WHAT THIS DOES:
 #
-#   1. Runs N (default 5; tunable via ITER147_VARIANCE_PROFILE_RUN_COUNT)
+#   1. Runs N (default 5; tunable via RELEASE_VARIANCE_RUNS)
 #      back-to-back `npx semantic-release --dry-run --no-ci` invocations,
 #      capturing stderr to /tmp/iter147-variance-profile-run-{i}.log.
 #
@@ -62,10 +62,10 @@
 #   uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 #
 #   # Custom run count:
-#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
+#   RELEASE_VARIANCE_RUNS=10 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 #
 #   # Replay existing logs without re-running (e.g., after a long capture):
-#   ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
+#   RELEASE_VARIANCE_REPLAY=1 uv run --python 3.14 scripts/iter147-release-timing-variance-harness.py
 #
 # WORKING-DIRECTORY-CLEANLINESS GOTCHA:
 #
@@ -95,6 +95,19 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+
+def cc_knob(new: str, old: str, default: str) -> str:
+    """Env knob with a deprecated alias: NEW if set, else OLD (with a stderr notice), else DEFAULT.
+
+    Same rule as scripts/lib/env-knob.sh, which a Python script cannot source (cc-skills #224).
+    """
+    if os.environ.get(new):
+        return os.environ[new]
+    if os.environ.get(old):
+        print(f"{old} is deprecated; use {new} (cc-skills #224)", file=sys.stderr)
+        return os.environ[old]
+    return default
 
 ITER147_DEFAULT_NUMBER_OF_BACK_TO_BACK_DRY_RUN_CAPTURES_FOR_VARIANCE_CHARACTERIZATION = 5
 ITER147_STDERR_LOG_TMPDIR_BASENAME_PREFIX_FOR_PER_RUN_CAPTURE_FILES = "/tmp/iter147-variance-profile-run-"
@@ -278,20 +291,20 @@ def iter147_render_per_namespace_timing_distribution_summary_table_sorted_descen
         )
 
     print("")
-    print("  ⧗ tune via ITER147_VARIANCE_PROFILE_RUN_COUNT=N (default 5)")
-    print("  ⧗ replay without re-running via ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1")
+    print("  ⧗ tune via RELEASE_VARIANCE_RUNS=N (default 5)")
+    print("  ⧗ replay without re-running via RELEASE_VARIANCE_REPLAY=1")
 
 
 def iter147_main_entry_point_orchestrates_n_back_to_back_captures_then_aggregates_and_renders_distribution() -> int:
     repo_root_absolute_path = Path(__file__).resolve().parent.parent
     iter144_parser_absolute_path = iter147_locate_iter144_parser_absolute_path_from_sibling_scripts_directory_relative_to_this_iter147_harness()
 
-    n_back_to_back_captures = int(os.environ.get("ITER147_VARIANCE_PROFILE_RUN_COUNT", str(ITER147_DEFAULT_NUMBER_OF_BACK_TO_BACK_DRY_RUN_CAPTURES_FOR_VARIANCE_CHARACTERIZATION)))
+    n_back_to_back_captures = int(cc_knob("RELEASE_VARIANCE_RUNS", "ITER147_VARIANCE_PROFILE_RUN_COUNT", str(ITER147_DEFAULT_NUMBER_OF_BACK_TO_BACK_DRY_RUN_CAPTURES_FOR_VARIANCE_CHARACTERIZATION)))
     if n_back_to_back_captures < 2:
-        print(f"  ✗ ITER147_VARIANCE_PROFILE_RUN_COUNT must be ≥ 2 (got {n_back_to_back_captures}) — variance is undefined for a single sample", file=sys.stderr)
+        print(f"  ✗ RELEASE_VARIANCE_RUNS must be ≥ 2 (got {n_back_to_back_captures}) — variance is undefined for a single sample", file=sys.stderr)
         return 2
 
-    replay_existing_logs_without_re_running = os.environ.get("ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS", "0") == "1"
+    replay_existing_logs_without_re_running = cc_knob("RELEASE_VARIANCE_REPLAY", "ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS", "0") == "1"
 
     print(f"  ⧗ ITER-147 VARIANCE CHARACTERIZATION HARNESS (n={n_back_to_back_captures} back-to-back dry-run captures)")
     if replay_existing_logs_without_re_running:

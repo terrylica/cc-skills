@@ -29,7 +29,7 @@
 #
 #   2. Captures BASELINE distribution (N back-to-back dry-runs with NO
 #      multiplexing). Default N=5 (tunable via the same
-#      ITER147_VARIANCE_PROFILE_RUN_COUNT env var the harness already honors).
+#      RELEASE_VARIANCE_RUNS env var the harness already honors).
 #
 #   3. Sets up SSH ControlMaster: idempotently creates ~/.ssh/controlmasters/
 #      with mode 0700, then PRE-WARMS the cached session by running a
@@ -52,7 +52,7 @@
 #   scripts/iter148-ssh-multiplexing-speedup-check.sh
 #
 #   # With custom run count (same env var as iter-147):
-#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-ssh-multiplexing-speedup-check.sh
+#   RELEASE_VARIANCE_RUNS=10 scripts/iter148-ssh-multiplexing-speedup-check.sh
 #
 # DURATION: ~N × 26s × 2 conditions. For N=3 default, ~52s. For N=5, ~85s.
 # For N=10, ~3 minutes. Set N high enough that p50 stabilizes but not so high

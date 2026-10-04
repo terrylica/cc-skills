@@ -36,9 +36,12 @@
 #   - Step 8: final summary banner
 #   - Per-step iter-140 EPOCHREALTIME timing wrappers (gated on
 #     RELEASE_TIMING_PROFILE=1) + end-of-block top-N slowest ranking
-#     (ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY, default 5)
+#     (RELEASE_SUCCESSCMD_TOP_N, default 5)
 
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
 
 # VERSION arrives as $1 from .releaserc.yml `successCmd: "./scripts/iter142-post-release-verification.sh ${nextRelease.version}"`
 # (single well-formed lodash expression — no syntax conflict).
@@ -328,12 +331,13 @@ echo "════════════════════════�
 # optimization of whichever step dominates. (The original suspect, Step 2's headless
 # claude --print bootstrap, was removed 2026-09-24 as a no-op.)
 if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]] && [[ "${#__iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -gt 0 ]]; then
-    __iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display="${ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY:-5}"
+    __iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display=""
+    cc_knob __iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display RELEASE_SUCCESSCMD_TOP_N ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY "5"
     echo ""
     echo "  ⧗ ─── Top ${__iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display} slowest successCmd steps (iter-140 post-release-block bottleneck ranking) ───"
     printf '%s\n' "${__iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
         | sort -rn -k1 \
         | head -n "${__iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display}" \
         | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
-    echo "  ⧗ (override count via ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY=N)"
+    echo "  ⧗ (override count via RELEASE_SUCCESSCMD_TOP_N=N)"
 fi

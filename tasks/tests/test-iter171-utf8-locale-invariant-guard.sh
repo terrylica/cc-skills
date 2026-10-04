@@ -119,7 +119,7 @@ ITER171_TOTAL_ASSERTIONS_EVALUATED=$((ITER171_TOTAL_ASSERTIONS_EVALUATED + 1))
 # Just verify it produces output without crashing under LC_ALL=C — the awk length() byte-counting limitation
 # is documented as known and a candidate for iter-172+ refactor, so we don't assert on it here.
 # Capture full output first then check (avoiding SIGPIPE-induced pipefail interaction with `head | grep`).
-ITER171_ITER150_RENDERER_OUTPUT_UNDER_HOSTILE_C_LOCALE=$(LC_ALL=C ITER150_COMMIT_COUNT_TO_DISPLAY=1 bash "$ITER171_ITER150_RENDERER_ABSOLUTE_PATH" 2>/dev/null || true)
+ITER171_ITER150_RENDERER_OUTPUT_UNDER_HOSTILE_C_LOCALE=$(LC_ALL=C RELEASE_HISTORY_COUNT=1 bash "$ITER171_ITER150_RENDERER_ABSOLUTE_PATH" 2>/dev/null || true)
 if [[ -n "$ITER171_ITER150_RENDERER_OUTPUT_UNDER_HOSTILE_C_LOCALE" ]]; then
     echo "  ✓ D1: iter-150 renderer produces output under hostile LC_ALL=C (guard prevents script-level crash; $(echo "$ITER171_ITER150_RENDERER_OUTPUT_UNDER_HOSTILE_C_LOCALE" | wc -l | tr -d ' ') lines emitted)"
 else
