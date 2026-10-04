@@ -1,3 +1,12 @@
+## [33.5.2](https://github.com/terrylica/cc-skills/compare/v33.5.1...v33.5.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* **bin:** drift guard stops searching the retired ~/vj folder ([1df6bb6](https://github.com/terrylica/cc-skills/commit/1df6bb657281d890192ea2a70eb85d67d0c31356))
+
+The TypeScript drift guard's default search roots were ~/eon, ~/gh and ~/vj. ~/vj was retired on 2026-10-04 after its last repositories moved to ~/gh/ZmBrandon, so the third root no longer exists. A missing root was already skipped without error, so this changes no results; it removes a dead default from the code, the --roots help text and the header comment. The guard's own nine regression tests pass.
+
 ## [33.5.1](https://github.com/terrylica/cc-skills/compare/v33.5.0...v33.5.1) (2026-10-04)
 
 
