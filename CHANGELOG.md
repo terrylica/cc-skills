@@ -1,3 +1,14 @@
+## [33.5.4](https://github.com/terrylica/cc-skills/compare/v33.5.3...v33.5.4) (2026-10-04)
+
+
+### Bug Fixes
+
+* **doc-tools:** build-pdf.sh passes --citeproc and --bibliography as separate arguments ([4ffec22](https://github.com/terrylica/cc-skills/commit/4ffec2286d1a315a28f76130cf70de3ea02ee7be))
+
+When a references.bib sat next to the document, the script stored "--citeproc --bibliography=references.bib" in one string and appended it to the pandoc option array as a single element, so pandoc received one unknown option and exited 6 ("Unknown option --citeproc --bibliography"). Every bibliography-backed PDF failed. The value is now an array whose elements are appended individually, the same way build-pdf-example.sh already did it.
+
+Found while moving vjspc/netstrata's pdf task off the retired mise; verified by building a netstrata document with its references.bib (35 KB PDF) and by shellcheck.
+
 ## [33.5.3](https://github.com/terrylica/cc-skills/compare/v33.5.2...v33.5.3) (2026-10-04)
 
 ## [33.5.2](https://github.com/terrylica/cc-skills/compare/v33.5.1...v33.5.2) (2026-10-04)
