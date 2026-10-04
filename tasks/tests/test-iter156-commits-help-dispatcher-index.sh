@@ -136,9 +136,9 @@ iter156_assert_dispatcher_output_contains_substring \
     "docs/RELEASE.md"
 
 iter156_assert_substring_present_in_file \
-    "D2: docs/RELEASE.md contains the Conventional-Commits Operator Toolkit Index section" \
+    "D2: docs/RELEASE.md contains the Conventional-Commits Toolkit section" \
     "$ITER156_DOCS_RELEASE_MD_ABSOLUTE_PATH" \
-    "Conventional-Commits Operator Toolkit Index"
+    "## Conventional-Commits Toolkit"
 
 # ─── Group E: Arc lifecycle stages enumerated ───────────────────────────────
 echo ""

@@ -118,9 +118,9 @@ echo ""
 echo "GROUP D (4 assertions): Iter-146 documentation present in docs/RELEASE.md"
 
 iter146_assert_substring_present_in_file \
-    "D1: docs/RELEASE.md has a Phase 2 bottleneck breakdown section" \
+    "D1: docs/RELEASE.md names the setup script" \
     "$ITER146_RELEASE_MD_DOC_RELATIVE_PATH" \
-    "Phase 2 (semantic-release) Internal Bottleneck Breakdown"
+    "scripts/iter146-github-ssh-controlmaster-setup.sh"
 
 iter146_assert_substring_present_in_file \
     "D2: docs/RELEASE.md documents the get-git-auth-url verifyAuth bottleneck" \
@@ -128,9 +128,9 @@ iter146_assert_substring_present_in_file \
     "semantic-release:get-git-auth-url"
 
 iter146_assert_substring_present_in_file \
-    "D3: docs/RELEASE.md documents the iter-145 forensic finding for tag-notes backfill" \
+    "D3: docs/RELEASE.md documents the iter-145 tag-notes backfill script" \
     "$ITER146_RELEASE_MD_DOC_RELATIVE_PATH" \
-    "silent"
+    "scripts/iter145-fix-empty-release-notes-refs.sh"
 
 iter146_assert_substring_present_in_file \
     "D4: docs/RELEASE.md documents the iter-146 SSH ControlMaster optimization opt-in" \
