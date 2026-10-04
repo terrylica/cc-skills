@@ -67,6 +67,24 @@ if (!isPublicSafe && !isPushRequired) {
 
 // ─── Extract target repo ────────────────────────────────────────────────────
 
+function storedOrigin() {
+  try {
+    return execSync("git config --get remote.origin.url 2>/dev/null", { encoding: "utf-8", timeout: 3000 }).trim();
+  } catch {
+    return "";
+  }
+}
+
+// `git config gh.account` is set by ~/.config/git/accounts/<account>.gitconfig for repos under
+// ~/gh/<org>/ — the folder, not the URL, chooses the account there (path-owner-registry.toml).
+function configAccount() {
+  try {
+    return execSync("git config --get gh.account 2>/dev/null", { encoding: "utf-8", timeout: 3000 }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 function extractRepo(cmd) {
   // --repo owner/repo or -R owner/repo
   const repoFlag = cmd.match(/(?:--repo|-R)\s+([^\s]+)/);
@@ -76,18 +94,13 @@ function extractRepo(cmd) {
   const apiPath = cmd.match(/\bgh\s+api\s+repos\/([^/]+\/[^/]+)/);
   if (apiPath) return apiPath[1];
 
-  // Fallback: git remote
-  try {
-    const remote = execSync("git remote get-url origin 2>/dev/null", {
-      encoding: "utf-8",
-      timeout: 3000,
-    }).trim();
-    // Parse git@github.com:owner/repo.git or https://github.com/owner/repo.git
-    const sshMatch = remote.match(/github\.com[:/]([^/]+\/[^/.]+)/);
-    if (sshMatch) return sshMatch[1];
-  } catch {
-    // No git remote available
-  }
+  // Fallback: the origin remote. Read the STORED url (`git config`), not `git remote get-url`:
+  // under ~/gh/<org>/ a url.<alias>.insteadOf rewrite turns git@github.com:org/repo into
+  // git@github.com-<account>:org/repo, which the old `github.com[:/]` pattern never matched — so the
+  // guard found no target and allowed every write there (GitHub migration 2026-10-04). Alias hosts
+  // are accepted too, for repos whose stored url still names one.
+  const sshMatch = storedOrigin().match(/github\.com(?:-[A-Za-z0-9_-]+)?[:/]([^/]+\/[^/\s]+?)(?:\.git)?$/);
+  if (sshMatch) return sshMatch[1];
 
   return null;
 }
@@ -119,7 +132,17 @@ function aliasAccount() {
   }
 }
 
-const localAccount = aliasAccount();
+const localAccount = configAccount() ?? aliasAccount();
+
+// Fast-path (~/gh/<org>/ layout): the folder chose the account (gh.account is set) and the target is
+// this repo's own organization, read from its stored canonical remote. The account is that org's
+// mapped admin, so this is the "writing to your own repo" case. Zero API calls. Not taken when a
+// GH_TOKEN is exported: gh then uses THAT token instead of gh.configdir, which is exactly the
+// wrong-account incident this hook exists for, so the token's own push access is checked below.
+{
+  const own = storedOrigin().match(/github\.com(?:-[A-Za-z0-9_-]+)?[:/]([^/]+)\//);
+  if (!process.env.GH_TOKEN && configAccount() && own && own[1] === repoOwner) process.exit(0);
+}
 
 // Fast-path: the host-alias account owns the target repo → allow.
 // Zero API calls, zero `gh`, and crucially no ambient token required — this
