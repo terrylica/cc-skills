@@ -98,7 +98,7 @@ static_audit_output=$(bash "$STATIC_AUDIT_TASK_ABSOLUTE_PATH" 2>&1)
 static_audit_exit_code=$?
 set -e
 if [[ "$static_audit_exit_code" == "0" ]] && [[ "$static_audit_output" == *'AUDIT PASSED'* ]]; then
-    static_audit_scanned_count=$(echo "$static_audit_output" | grep -oE 'Classifier source files imported by orchestrator:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+    static_audit_scanned_count=$(echo "$static_audit_output" | grep -oE 'Classifier source files imported by orchestrator:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
     if [[ "${static_audit_scanned_count:-0}" -ge 6 ]]; then
         assert_passes "Case 5: iter-94 static audit STILL passes (scanned ${static_audit_scanned_count} classifiers cleanly — no spawnSync regression in 6/15 state)"
     else

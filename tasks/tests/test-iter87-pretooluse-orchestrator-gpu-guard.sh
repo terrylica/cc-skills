@@ -203,7 +203,7 @@ set +e
 case6_stdout=$(bash "$SUBHOOK_CONTRACT_AUDIT_TASK_PATH" 2>&1)
 set -e
 
-case6_subhook_count_extracted=$(echo "$case6_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+case6_subhook_count_extracted=$(echo "$case6_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 if [[ "${case6_subhook_count_extracted:-0}" -ge 4 ]]; then
     assert_passes "Case 6a: audit task discovers ≥4 inlined subhooks (gpu-optimization-guard inlined; found ${case6_subhook_count_extracted})"
 else
