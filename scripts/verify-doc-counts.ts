@@ -106,6 +106,9 @@ const truth = {
   pluginsWithClaudeMd: plugins.filter((name) =>
     existsSync(p("plugins", name, "CLAUDE.md")),
   ).length,
+  pluginsWithManifest: plugins.filter((name) =>
+    existsSync(p("plugins", name, ".claude-plugin", "plugin.json")),
+  ).length,
   adrs: adrs.length,
   designSpecs: adrsWithDesignSpec(adrs).length,
   clis: cliCount(),
@@ -236,6 +239,11 @@ const RULES: Rule[] = [
     pattern: /^## All Plugins \((\d+)\)/gm,
     expect: [N(truth.plugins, "plugin directories")],
   },
+  {
+    label: "plugin manifest count (plugins/CLAUDE.md structure tree)",
+    pattern: /(\d+) plugins ship one\b/g,
+    expect: [N(truth.pluginsWithManifest, "plugins with .claude-plugin/plugin.json")],
+  },
 ];
 
 // ── Check ─────────────────────────────────────────────────────────────────────────────────────
@@ -305,6 +313,16 @@ for (const rule of RULES) {
  */
 const CLAIM_FAMILIES: { label: string; broad: RegExp }[] = [
   { label: "ADR / design-spec coverage", broad: /\d+[^.,()\n]{0,24}\bADRs\b/g },
+  // Plugin counts (issue #220). README's "enumerates all 36" and notes-commander's "all 27 cc-skills
+  // plugins" drifted unchecked because no rule knew their wording. A gap as loose as the ADR
+  // family's was measured over the swept corpus at 18 hits, most of them not counts ("all 3",
+  // "link-checker-plugin", "ls -1 plugins/"), so this one is narrow: a number, optional bold
+  // markers, at most one qualifier word, then "plugins" not followed by "/". The lookbehind keeps a
+  // command flag ("-1") or part of a word from counting.
+  {
+    label: "plugin count",
+    broad: /(?<![-\w])\d+\*{0,2} (?:[a-z-]+ )?plugins\b(?!\/)/g,
+  },
 ];
 
 for (const family of CLAIM_FAMILIES) {
