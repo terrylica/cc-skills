@@ -16,7 +16,7 @@
 // ALLOW_OWNER_MISMATCH=1 <command>. Blocks via stdout permissionDecision:"deny".
 
 import { execSync } from "child_process";
-import { ownerFromGitUrl, resolveExpectedOwner } from "./lib/path-owner-registry.mjs";
+import { ownerFromGitUrl, reservedNames, resolveExpectedOwner } from "./lib/path-owner-registry.mjs";
 
 const input = await Bun.stdin.text();
 if (!input.trim()) process.exit(0);
@@ -44,9 +44,45 @@ const isRemoteSet = /\bgit\s+remote\s+(?:add|set-url)\b/.test(command);
 const isPush = /\bgit\s+push\b/.test(command);
 if (!isRepoCreate && !isRemoteSet && !isPush) process.exit(0);
 
+/** The owner/name a `gh repo create` targets, from --owner or the first positional `owner/name`. */
+function repoCreateTarget() {
+  const after = command.split(/\bgh\s+repo\s+create\b/)[1] ?? "";
+  let owner = null;
+  let name = null;
+  for (const token of after.trim().split(/\s+/)) {
+    if (!token || token.startsWith("-")) continue;
+    if (token.includes("/")) [owner, name] = token.split("/");
+    else name = token;
+    break; // first positional decides
+  }
+  const ownerFlag = command.match(/--owner[=\s]+([A-Za-z0-9_.-]+)/);
+  if (ownerFlag) owner = ownerFlag[1];
+  return { owner, name, explicit: Boolean(owner) };
+}
+
+// Reserved names apply wherever the command runs: a repo named like one that moved away from a
+// renamed account would break GitHub's redirect for the moved repo (registry [reserved]).
+if (isRepoCreate) {
+  const { owner, name } = repoCreateTarget();
+  if (owner && name && reservedNames()[owner]?.has(name)) {
+    deny(`[path-owner-guard] BLOCKED: "${owner}/${name}" is a reserved name. A repository with that name
+used to live under the account now called "${owner}" and moved away; GitHub redirects the old URL only
+while no repository of the same name exists there. Creating one would break that redirect.
+Pick another name or owner. SSoT: ~/.claude/path-owner-registry.toml [reserved].
+Deliberate override: prefix the command with ALLOW_OWNER_MISMATCH=1`);
+  }
+}
+
 const cwd = data.cwd || process.cwd();
 const expected = resolveExpectedOwner(cwd);
 if (!expected) process.exit(0); // unmapped path — fail-open
+
+// A read-only path (a third-party clone kept for reference) is never pushed or re-pointed.
+if (expected.mode === "read-only" && (isPush || isRemoteSet)) {
+  deny(`[path-owner-guard] BLOCKED: ${cwd} is registered read-only (${expected.matchedPrefix}, owner
+"${expected.owner}"): it is a reference clone, never pushed or re-pointed.
+SSoT: ~/.claude/path-owner-registry.toml. Deliberate override: prefix the command with ALLOW_OWNER_MISMATCH=1`);
+}
 
 function ownerOk(actual) {
   if (!actual) return false;
@@ -74,23 +110,7 @@ Deliberate override: prefix the command with ALLOW_OWNER_MISMATCH=1`;
 
 // ─── gh repo create ─────────────────────────────────────────────────────────
 if (isRepoCreate) {
-  let actualOwner = null;
-  let explicit = false;
-  const ownerFlag = command.match(/--owner[=\s]+([A-Za-z0-9_.-]+)/);
-  if (ownerFlag) {
-    actualOwner = ownerFlag[1];
-    explicit = true;
-  } else {
-    const after = command.split(/\bgh\s+repo\s+create\b/)[1] ?? "";
-    for (const token of after.trim().split(/\s+/)) {
-      if (!token || token.startsWith("-")) continue;
-      if (token.includes("/")) {
-        actualOwner = token.split("/")[0];
-        explicit = true;
-      }
-      break; // first positional decides
-    }
-  }
+  const { owner: actualOwner, explicit } = repoCreateTarget();
 
   if (!explicit) {
     deny(`[path-owner-guard] BLOCKED: \`gh repo create\` in ${cwd} has no explicit owner, so it would
