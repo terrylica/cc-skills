@@ -2,7 +2,7 @@
 /**
  * TypeScript Version Drift Guard
  *
- * Discovers every package.json across the estate (~/eon, ~/gh, ~/vj) declaring
+ * Discovers every package.json across the estate (~/eon, ~/gh) declaring
  * a `typescript` dependency, and compares the declared specifier against the
  * actually-installed compiler version (from node_modules/.bin/tsc --version).
  *
@@ -107,7 +107,7 @@ FLAGS
   --json              Output JSON instead of human-readable format
   --version           Show version and exit
   --skip-if-offline   Skip checks if the system is offline (for release preflight)
-  --roots PATHS       Search paths (repeatable or comma-separated); default: ~/eon,~/gh,~/vj
+  --roots PATHS       Search paths (repeatable or comma-separated); default: ~/eon,~/gh
   --include-worktrees Include *-ts7 migration worktrees (default: excluded as duplicates)
 
 OUTPUT FORMATS
@@ -169,7 +169,7 @@ const HELP_JSON = {
     },
     {
       name: "--roots",
-      description: "Search paths (repeatable); default: ~/eon,~/gh,~/vj",
+      description: "Search paths (repeatable); default: ~/eon,~/gh",
       type: "string",
       repeatable: true,
     },
@@ -565,7 +565,7 @@ async function main() {
   const roots =
     opts.roots.length > 0
       ? opts.roots.flatMap((r) => r.split(",").map((p) => p.trim()))
-      : [resolve(homedir(), "eon"), resolve(homedir(), "gh"), resolve(homedir(), "vj")];
+      : [resolve(homedir(), "eon"), resolve(homedir(), "gh")];
 
   // Find all package.json files
   const packageJsonPaths: string[] = [];
