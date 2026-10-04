@@ -109,7 +109,7 @@ claude plugin install productivity-tools@cc-skills
 claude plugin install statusline-tools@cc-skills
 ```
 
-The full alphabetical list is in `.claude-plugin/marketplace.json` — `jq -r '.plugins[].name' .claude-plugin/marketplace.json` enumerates all 36.
+The full alphabetical list is in `.claude-plugin/marketplace.json` — `jq -r '.plugins[].name' .claude-plugin/marketplace.json` enumerates them all.
 
 #### Step 3: Hooks (nothing to sync)
 
