@@ -18,7 +18,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hoo
 | [chrome-profiles](./plugins/chrome-profiles/)           | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser                                                                 | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
 | [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
-| [devops-tools](./plugins/devops-tools/)                 | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, LLM session debriefs                                                                                                                 | devops        |
+| [devops-tools](./plugins/devops-tools/)                 | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, LLM session debriefs                                                                                                                       | devops        |
 | [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation tooling: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF, glossary management, plotext financial charts                                                                                                                      | documentation |
 | [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                                                                                                                                                                                            | utilities     |
 | [floating-clock](./plugins/floating-clock/)             | macOS floating clock overlay with profile-based aesthetics, controlled via SwiftBar control center                                                                                                                                                                   | utilities     |
@@ -65,11 +65,7 @@ for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-
   claude plugin install "$p@cc-skills"
 done
 
-# 3. Sync hooks to settings.json (requires cloning the repo)
-git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
-/tmp/cc-skills/scripts/sync-hooks-to-settings.sh
-
-# 4. Restart Claude Code to activate hooks
+# 3. Restart Claude Code; plugin hooks load from each plugin's hooks/hooks.json
 claude
 ```
 
@@ -115,17 +111,15 @@ claude plugin install statusline-tools@cc-skills
 
 The full alphabetical list is in `.claude-plugin/marketplace.json` — `jq -r '.plugins[].name' .claude-plugin/marketplace.json` enumerates all 36.
 
-#### Step 3: Sync Hooks
+#### Step 3: Hooks (nothing to sync)
 
-Hooks provide pre/post tool use enforcement and session events. They must be explicitly synced to `~/.claude/settings.json`:
+Hooks provide pre/post tool use enforcement and session events. Claude Code loads each installed plugin's `hooks/hooks.json` on its own, so nothing is copied into `~/.claude/settings.json`.
+
+Installs older than v20.2.3 copied the hooks into `settings.json` as well, which made every hook fire twice. If you upgraded from one of those, remove the copies once:
 
 ```bash
-# Clone the repository (if not already cloned)
-git clone https://github.com/terrylica/cc-skills.git ~/cc-skills-temp
-
-# Run the hook sync script
-~/cc-skills-temp/scripts/sync-hooks-to-settings.sh
-# Output: ✓ Hooks synced: PreToolUse=7, PostToolUse=3, Stop=5
+~/.claude/plugins/marketplaces/cc-skills/scripts/sync-hooks-to-settings.sh
+# Output: ✓ Pruned N marketplace-path entries   (or "already clean")
 ```
 
 #### Step 4: Restart Claude Code
@@ -159,8 +153,7 @@ git pull
 # Reinstall updated plugins (or specific ones)
 claude plugin install itp@cc-skills
 
-# Re-sync hooks
-./scripts/sync-hooks-to-settings.sh  # From the repo directory
+# Restart Claude Code to load the updated hooks
 ```
 
 ## Troubleshooting
@@ -215,24 +208,11 @@ claude plugin install plugin-name@cc-skills
 
 ### Hooks Not Working
 
-**Cause**: Hooks not synced to settings.json.
+**Cause**: The plugin is not installed or enabled, or Claude Code has not been restarted since it was.
 
-**Fix**:
+**Fix**: `claude plugin install <plugin>@cc-skills`, then restart Claude Code.
 
-```bash
-# Sync hooks
-cd /path/to/cc-skills
-./scripts/sync-hooks-to-settings.sh
-
-# Restart Claude Code
-```
-
-**Verify hooks are registered:**
-
-```bash
-cat ~/.claude/settings.json | jq '.hooks | keys'
-# Should show: ["PreToolUse", "PostToolUse", "Stop"]
-```
+**Verify hooks are registered:** type `/hooks` in Claude Code. It lists every configured hook with its source; cc-skills hooks show as coming from a plugin, never from user settings. A cc-skills hook listed under user settings is a leftover from before v20.2.3: run `~/.claude/plugins/marketplaces/cc-skills/scripts/sync-hooks-to-settings.sh` once to remove it.
 
 ### "Plugin not found" After Adding Marketplace
 
@@ -493,7 +473,7 @@ cc-skills/
 │   ├── macro-keyboard/           # Karabiner remap for 3-key macro pads
 │   ├── …                         # 20 more — see Plugins table for the full set
 ├── scripts/
-│   ├── sync-hooks-to-settings.sh    # Hook synchronization (called by release:sync)
+│   ├── sync-hooks-to-settings.sh    # Prunes pre-v20.2.3 hook copies from settings.json (called by release:sync)
 │   ├── sync-commands-to-settings.sh # Command synchronization
 │   ├── validate-plugins.mjs         # Plugin validation
 │   └── marketplace.schema.json      # JSON Schema for marketplace.json
