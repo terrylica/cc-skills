@@ -221,10 +221,10 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 | Action                   | Safe to Post?                                 | Example                                                     |
 | ------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
-| Repo under a mapped path | Yes — as that path's registered owner         | `~/eon`→`terrylica`, `~/vj`→`vanjobbers`, `~/own`→`tainora` |
+| Repo under a mapped path | Yes — as that path's registered owner         | `~/eon`→`terrylica`, `~/gh/<org>`→`<org>`                   |
 | Your fork                | Always                                        | `terrylica/claude-code` (fork of `anthropics/claude-code`)  |
 | Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `moonrepo/proto`                  |
-| Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab`, `~/vj/collab` external-collaborator owners  |
+| Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab` external-collaborator owners                 |
 
 ### Best Practices
 
