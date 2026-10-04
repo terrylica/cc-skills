@@ -171,9 +171,9 @@ fi
 log_info "Generating PDF with table of contents..."
 
 # Check for local or global bibliography
-BIBLIOGRAPHY=""
+BIBLIOGRAPHY=()
 if [[ -f "references.bib" ]]; then
-    BIBLIOGRAPHY="--citeproc --bibliography=references.bib"
+    BIBLIOGRAPHY=(--citeproc --bibliography=references.bib)
     log_info "Using bibliography: references.bib"
 fi
 
@@ -205,7 +205,7 @@ fi
 # Build command - use array for optional arguments to avoid SC2086
 PANDOC_OPTS=()
 [[ -n "$LUA_FILTER" ]] && PANDOC_OPTS+=("$LUA_FILTER")
-[[ -n "$BIBLIOGRAPHY" ]] && PANDOC_OPTS+=("$BIBLIOGRAPHY")
+(( ${#BIBLIOGRAPHY[@]} )) && PANDOC_OPTS+=("${BIBLIOGRAPHY[@]}")
 [[ -n "$CSL" ]] && PANDOC_OPTS+=("$CSL")
 
 pandoc "$INPUT_FILE" \
