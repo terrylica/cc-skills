@@ -21,7 +21,7 @@ import { sendPushover, stripHtmlForPushover } from "./lib/pushover";
 
 const PID_FILE = "/tmp/calcom-sync.pid";
 const CIRCUIT_FILE = "/tmp/calcom-sync-circuit.json";
-const STATE_FILE = `${process.env.HOME}/own/amonic/state/calcom-sync-state.json`;
+const STATE_FILE = `${process.env.HOME}/.local/state/calcom-commander/calcom-sync-state.json`;
 
 interface SyncState {
   lastSyncAt: string;

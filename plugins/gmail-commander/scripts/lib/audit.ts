@@ -14,7 +14,7 @@ let auditDir: string;
 
 /**
  * Set the audit log directory. Must be called before logging.
- * Default: ~/own/amonic/logs/audit (set by launcher scripts via AUDIT_DIR env).
+ * Default: ~/.local/state/gmail-commander/audit (AUDIT_DIR overrides).
  */
 export function setAuditDir(dir: string): void {
   auditDir = dir;
@@ -27,7 +27,7 @@ function getDir(): string {
     auditDir = envDir;
     return auditDir;
   }
-  auditDir = join(process.env.HOME || "~", "own", "amonic", "logs", "audit");
+  auditDir = join(process.env.HOME || "~", ".local", "state", "gmail-commander", "audit");
   return auditDir;
 }
 

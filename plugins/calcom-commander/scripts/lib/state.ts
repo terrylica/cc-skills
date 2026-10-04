@@ -6,7 +6,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
 
-const STATE_FILE = process.env.BOT_STATE_FILE || `${process.env.HOME}/own/amonic/state/calcom-bot-state.json`;
+const STATE_FILE = process.env.BOT_STATE_FILE || `${process.env.HOME}/.local/state/calcom-commander/calcom-bot-state.json`;
 
 export interface BotState {
   startedAt: string;

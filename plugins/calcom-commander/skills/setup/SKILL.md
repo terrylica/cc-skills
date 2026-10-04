@@ -44,11 +44,11 @@ Use AskUserQuestion with discovered items or guide new API key creation.
 
 ### Step 4: Write the daemon env file
 
-`~/own/amonic/.env.launchd` (gitignored, hand-maintained) is the daemon env SSoT; the launcher scripts source it. For interactive use, `export CALCOM_OP_UUID=<selected-uuid>` in the current shell instead.
+`~/gh/vjspc/amonic/.env.launchd` (gitignored, hand-maintained) is the daemon env SSoT; the launcher scripts source it. For interactive use, `export CALCOM_OP_UUID=<selected-uuid>` in the current shell instead.
 
 ```bash
-# Add to ~/own/amonic/.env.launchd (replace any existing CALCOM_OP_UUID line)
-echo "export CALCOM_OP_UUID='<selected-uuid>'" >> ~/own/amonic/.env.launchd
+# Add to ~/gh/vjspc/amonic/.env.launchd (replace any existing CALCOM_OP_UUID line)
+echo "export CALCOM_OP_UUID='<selected-uuid>'" >> ~/gh/vjspc/amonic/.env.launchd
 ```
 
 ### Step 5: Build Cal.com CLI
@@ -82,8 +82,8 @@ If NOT_SET, guide user through BotFather setup:
 ### Step 2: Add to the daemon env file
 
 ```bash
-# Append bot config to ~/own/amonic/.env.launchd
-cat >> ~/own/amonic/.env.launchd << 'EOF'
+# Append bot config to ~/gh/vjspc/amonic/.env.launchd
+cat >> ~/gh/vjspc/amonic/.env.launchd << 'EOF'
 export TELEGRAM_BOT_TOKEN='<bot-token>'
 export TELEGRAM_CHAT_ID='<chat-id>'
 EOF
@@ -105,7 +105,7 @@ If NOT_SET, guide user through:
 2. Enable APIs: Cloud Run, Artifact Registry, Cloud Build
 3. Link billing account
 4. Supabase project creation via CLI or dashboard
-5. Store all references as `export` lines in `~/own/amonic/.env.launchd` (see [env-setup.md](../calcom-access/references/env-setup.md))
+5. Store all references as `export` lines in `~/gh/vjspc/amonic/.env.launchd` (see [env-setup.md](../calcom-access/references/env-setup.md))
 
 ### Step 2: Generate Cal.com secrets (if needed)
 
@@ -127,29 +127,29 @@ Store in 1Password Claude Automation vault.
 ### Step 1: Create launcher scripts
 
 ```bash
-mkdir -p ~/own/amonic/bin ~/own/amonic/logs
+mkdir -p ~/gh/vjspc/amonic/bin ~/gh/vjspc/amonic/logs
 
 # Bot launcher
-cat > ~/own/amonic/bin/calcom-commander-bot << 'SCRIPT'
+cat > ~/gh/vjspc/amonic/bin/calcom-commander-bot << 'SCRIPT'
 #!/bin/zsh
 set -euo pipefail
 # .env.launchd is hand-maintained and is the SSoT for daemon env.
-source "$HOME/own/amonic/.env.launchd"
-cd "$HOME/own/amonic"
+source "$HOME/gh/vjspc/amonic/.env.launchd"
+cd "$HOME/gh/vjspc/amonic"
 exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/bot.ts"
 SCRIPT
-chmod +x ~/own/amonic/bin/calcom-commander-bot
+chmod +x ~/gh/vjspc/amonic/bin/calcom-commander-bot
 
 # Sync launcher
-cat > ~/own/amonic/bin/calcom-commander-sync << 'SCRIPT'
+cat > ~/gh/vjspc/amonic/bin/calcom-commander-sync << 'SCRIPT'
 #!/bin/zsh
 set -euo pipefail
 # .env.launchd is hand-maintained and is the SSoT for daemon env.
-source "$HOME/own/amonic/.env.launchd"
-cd "$HOME/own/amonic"
+source "$HOME/gh/vjspc/amonic/.env.launchd"
+cd "$HOME/gh/vjspc/amonic"
 exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
 SCRIPT
-chmod +x ~/own/amonic/bin/calcom-commander-sync
+chmod +x ~/gh/vjspc/amonic/bin/calcom-commander-sync
 ```
 
 ### Step 2: Install launchd plists

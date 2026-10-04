@@ -87,7 +87,7 @@ The webhook relay is a lightweight Cloud Run service that bridges Cal.com webhoo
 ## Running Manually
 
 ```bash
-cd ~/own/amonic && bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
+cd ~/gh/vjspc/amonic && bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
 ```
 
 ## Sync Behavior
@@ -102,7 +102,7 @@ cd ~/own/amonic && bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins
 
 ## Environment Configuration (Agnostic Wiring)
 
-The scripts read plain environment variables. For the launchd daemons put them in `~/own/amonic/.env.launchd` (sourced by the launcher scripts); for interactive use export them in your shell:
+The scripts read plain environment variables. For the launchd daemons put them in `~/gh/vjspc/amonic/.env.launchd` (sourced by the launcher scripts); for interactive use export them in your shell:
 
 ```bash
 # Required (Telegram)

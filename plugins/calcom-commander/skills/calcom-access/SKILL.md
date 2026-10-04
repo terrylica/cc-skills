@@ -93,7 +93,7 @@ op item create --category "API Credential" --title "Cal.com API Key" \
 
 ### Setup Step 4: Supply the UUID
 
-After user selects an item (with UUID), use AskUserQuestion to confirm where it goes: this shell only (`export CALCOM_OP_UUID=<selected-uuid>`), or the launchd daemons (add `export CALCOM_OP_UUID='<selected-uuid>'` to `~/own/amonic/.env.launchd`, which the launcher scripts source).
+After user selects an item (with UUID), use AskUserQuestion to confirm where it goes: this shell only (`export CALCOM_OP_UUID=<selected-uuid>`), or the launchd daemons (add `export CALCOM_OP_UUID='<selected-uuid>'` to `~/gh/vjspc/amonic/.env.launchd`, which the launcher scripts source).
 
 ### Setup Step 5: Verify
 

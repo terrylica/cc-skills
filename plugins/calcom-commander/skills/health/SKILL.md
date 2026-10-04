@@ -83,7 +83,7 @@ done
 
 echo ""
 echo "=== 10. Recent Audit Logs ==="
-AUDIT_DIR="${AUDIT_DIR:-$HOME/own/amonic/logs/audit}"
+AUDIT_DIR="${AUDIT_DIR:-$HOME/.local/state/calcom-commander/audit}"
 if [ -d "$AUDIT_DIR" ]; then
   LATEST=$(ls -t "$AUDIT_DIR"/*.ndjson 2>/dev/null | head -1)
   if [ -n "$LATEST" ]; then

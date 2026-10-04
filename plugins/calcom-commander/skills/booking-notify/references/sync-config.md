@@ -10,7 +10,7 @@ Default: Every 6 hours (21600 seconds) via launchd `StartInterval`.
 
 The sync process maintains a state file to track previously seen bookings:
 
-- **Location**: `~/own/amonic/state/calcom-sync-state.json`
+- **Location**: `~/.local/state/calcom-commander/calcom-sync-state.json`
 - **Format**: JSON object with `lastSyncAt` timestamp and `knownBookingIds` array
 - **Rotation**: State file is overwritten each cycle
 

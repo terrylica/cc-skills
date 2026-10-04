@@ -33,7 +33,7 @@ Note the UUID from the output — this becomes your `CALCOM_OP_UUID`.
 
 ## Supply the Variables
 
-Export them in your shell for interactive use, or add the same lines to `~/own/amonic/.env.launchd` for the launchd daemons (see [env-setup.md](./env-setup.md)):
+Export them in your shell for interactive use, or add the same lines to `~/gh/vjspc/amonic/.env.launchd` for the launchd daemons (see [env-setup.md](./env-setup.md)):
 
 ```bash
 export CALCOM_OP_UUID='<uuid-from-1password>'

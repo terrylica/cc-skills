@@ -112,7 +112,7 @@ gcloud run deploy calcom-pushover-webhook \
 
 ## Environment Configuration
 
-Store the relay URL where the consumers read their env — `~/own/amonic/.env.launchd` for the daemons, or your shell for interactive use:
+Store the relay URL where the consumers read their env — `~/gh/vjspc/amonic/.env.launchd` for the daemons, or your shell for interactive use:
 
 ```bash
 export WEBHOOK_RELAY_URL='https://calcom-pushover-webhook-XXXXX.us-central1.run.app/'
