@@ -198,7 +198,7 @@ gcloud run deploy calcom-pushover-webhook \
   --quiet
 ```
 
-Note the **Service URL** from the output. Store it as `WEBHOOK_RELAY_URL` in `~/own/<automation-repo>/.env.launchd` (daemons) and your shell.
+Note the **Service URL** from the output. Store it as `WEBHOOK_RELAY_URL` in `~/gh/vjspc/<automation-repo>/.env.launchd` (daemons) and your shell.
 
 ### Step 3: Verify Health
 

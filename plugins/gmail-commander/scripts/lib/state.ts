@@ -41,7 +41,7 @@ function getStateFile(): string {
     stateFilePath = envPath;
     return envPath;
   }
-  stateFilePath = join(homedir(), "own/<automation-repo>/logs/bot-state.json");
+  stateFilePath = join(homedir(), ".local/state/gmail-commander/bot-state.json");
   return stateFilePath;
 }
 
