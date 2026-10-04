@@ -36,7 +36,7 @@ live_audit_output=$(bash "$AUDIT_TASK_ABSOLUTE_PATH" 2>&1)
 live_audit_exit_code=$?
 set -e
 if [[ "$live_audit_exit_code" == "0" ]] && [[ "$live_audit_output" == *'AUDIT PASSED'* ]]; then
-    discovered_count=$(echo "$live_audit_output" | grep -oE 'PostToolUse TypeScript hooks discovered across marketplace:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+    discovered_count=$(echo "$live_audit_output" | grep -oE 'PostToolUse TypeScript hooks discovered across marketplace:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
     if [[ "${discovered_count:-0}" -ge 8 ]]; then
         assert_passes "Case 2: live marketplace passes clean ($discovered_count PostToolUse TS hooks scanned, 0 violations)"
     else

@@ -47,7 +47,7 @@ audit_output=$(bash "$AUDIT_TASK_ABSOLUTE_PATH" 2>&1)
 audit_exit_code=$?
 set -e
 if [[ "$audit_exit_code" == "0" ]] && [[ "$audit_output" == *'AUDIT PASSED'* ]]; then
-    case2_passing_count=$(echo "$audit_output" | grep -oE 'all [0-9]+ cohort hooks' | grep -oE '[0-9]+' | head -1 || echo 0)
+    case2_passing_count=$(echo "$audit_output" | grep -oE 'all [0-9]+ cohort hooks' | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
     if [[ "$case2_passing_count" == "8" ]]; then
         assert_passes "Case 2: live marketplace passes — all 8 cohort hooks wrap via canonical truncation helper"
     else
@@ -125,7 +125,7 @@ assert_passes "Case 6: positive-path detection verified via Case 2 + Case 3 (liv
 # shared-lib file; the PostToolUse contract lib re-exports it for backward
 # compat. We verify the constant at its iter-106 canonical home.
 SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-iter106.ts"
-case7_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | head -1 || echo "?")
+case7_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | awk 'NR==1' || echo "?")
 if [[ "$case7_threshold_value" == "9000" ]]; then
     assert_passes "Case 7: iter-104 helper threshold + signature preserved across iter-105/iter-106 relocations (MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000 in iter-106 shared-lib canonical home)"
 else
@@ -133,7 +133,7 @@ else
 fi
 
 # ─── Case 8: cohort count matches iter-105 scope (8 hooks) ──────────────────
-case8_cohort_count_in_audit=$(echo "$audit_output" | grep -oE 'Cohort discovered: [0-9]+' | grep -oE '[0-9]+' | head -1 || echo "?")
+case8_cohort_count_in_audit=$(echo "$audit_output" | grep -oE 'Cohort discovered: [0-9]+' | grep -oE '[0-9]+' | awk 'NR==1' || echo "?")
 if [[ "$case8_cohort_count_in_audit" == "8" ]]; then
     assert_passes "Case 8: audit cohort count = 8 (matches iter-105 documented scope: 6 lint/type-check classifiers + 1 PreToolUse vale + 1 orchestrator)"
 else

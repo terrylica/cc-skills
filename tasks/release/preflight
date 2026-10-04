@@ -267,7 +267,7 @@ __iter130_emit_top_n_slowest_preflight_checks_ranked_by_elapsed_milliseconds_des
     # when non-empty so operators see the parallelization context.
     printf '%s\n' "${iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
         | sort -rn -k1 \
-        | head -n "${top_n_threshold_for_slowest_check_ranking_display}" \
+        | awk -v n="${top_n_threshold_for_slowest_check_ranking_display}" 'NR<=n' \
         | awk -F'\t' '{
             if ($3 != "") {
                 printf "      %2d. %6d ms  %s  [parallel: %s]\n", NR, $1, $2, $3
@@ -362,7 +362,7 @@ fi
 # `sort -V` is a genuine version sort on both this macOS and GNU coreutils
 # (verified: 0.9.0 sorts before 0.61.2, not after). If the lowest of the two is
 # the floor, the running version is >= the floor.
-PROTO_LOWEST_OF_RUNNING_AND_FLOOR="$(printf '%s\n%s\n' "$PROTO_RUNNING_VERSION" "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" | sort -V | head -1)"
+PROTO_LOWEST_OF_RUNNING_AND_FLOOR="$(printf '%s\n%s\n' "$PROTO_RUNNING_VERSION" "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" | sort -V | awk 'NR==1')"
 if [[ "$PROTO_LOWEST_OF_RUNNING_AND_FLOOR" != "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" ]] &&
     [[ "$PROTO_RUNNING_VERSION" != "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" ]]; then
     echo "  ✗ proto $PROTO_RUNNING_VERSION is below the $PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER floor"
@@ -543,8 +543,8 @@ if ! CC_SKILLS_SKIP_PERF_TIMING=1 bash tasks/test-marketplace-hook-regression-su
     exit 1
 fi
 # Loose-coupled defensive grep — see iter-70 hardening note above.
-HOOK_TESTS_PASSED=$( { grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | head -1 | awk '{print $NF}' || echo 0)
-HOOK_TESTS_FAILED=$( { grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | head -1 | awk '{print $NF}' || echo 0)
+HOOK_TESTS_PASSED=$( { grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | awk 'NR==1' | awk '{print $NF}' || echo 0)
+HOOK_TESTS_FAILED=$( { grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | awk 'NR==1' | awk '{print $NF}' || echo 0)
 echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_TESTS_FAILED:-0} failed)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide hook regression suite"
 
@@ -566,8 +566,8 @@ if ! bash tasks/test-marketplace-bun-unit-suite.sh >/tmp/bun-unit-suite.log 2>&1
     exit 1
 fi
 # Loose-coupled defensive grep (same iter-70 discipline as Check 4e).
-BUN_UNIT_PASSED=$( { grep -oE '^[[:space:]]*[0-9]+ pass' /tmp/bun-unit-suite.log || true; } | head -1 | awk '{print $1}' || echo 0)
-BUN_UNIT_FAILED=$( { grep -oE '^[[:space:]]*[0-9]+ fail' /tmp/bun-unit-suite.log || true; } | head -1 | awk '{print $1}' || echo 0)
+BUN_UNIT_PASSED=$( { grep -oE '^[[:space:]]*[0-9]+ pass' /tmp/bun-unit-suite.log || true; } | awk 'NR==1' | awk '{print $1}' || echo 0)
+BUN_UNIT_FAILED=$( { grep -oE '^[[:space:]]*[0-9]+ fail' /tmp/bun-unit-suite.log || true; } | awk 'NR==1' | awk '{print $1}' || echo 0)
 echo "  ✓ Bun unit suite: ${BUN_UNIT_PASSED:-0} tests passed (${BUN_UNIT_FAILED:-0} failed)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4e2: marketplace-wide bun unit suite (tracked *.test.ts/mjs)"
 
@@ -596,9 +596,9 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     exit 1
 fi
 # Loose-coupled defensive grep — see iter-70 hardening note above.
-SCHEMA_MODERN=$( { grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SCHEMA_HELPER=$( { grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SCHEMA_DEPRECATED=$( { grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SCHEMA_MODERN=$( { grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SCHEMA_HELPER=$( { grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SCHEMA_DEPRECATED=$( { grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 echo "  ✓ PreToolUse schema: ${SCHEMA_MODERN:-0} modern + ${SCHEMA_HELPER:-0} helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4f: PreToolUse schema-correctness audit (iter-60 gate)" "iter134-audit-batch"
 
@@ -622,8 +622,8 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     exit 1
 fi
 # Loose-coupled defensive grep — see iter-70 hardening note above.
-ORDERING_OK=$( { grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-ORDERING_VIOLATION=$( { grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+ORDERING_OK=$( { grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+ORDERING_VIOLATION=$( { grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATION:-0} violations)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4g: pueue-wrap-guard last-entry ordering audit (iter-61 gate)" "iter134-audit-batch"
 
@@ -649,9 +649,9 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     exit 1
 fi
 # Loose-coupled defensive grep — see iter-70 hardening note above.
-INV_CORRECT=$( { grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-INV_NO_BLOCK=$( { grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-INV_WRONG=$( { grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+INV_CORRECT=$( { grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+INV_NO_BLOCK=$( { grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+INV_WRONG=$( { grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-block (${INV_WRONG:-0} wrong-field silent-fails)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4h: INVERSE PreToolUse schema audit (iter-62 gate)" "iter134-audit-batch"
 
@@ -677,9 +677,9 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     exit 1
 fi
 # Loose-coupled defensive grep — see iter-70 hardening note above.
-WM_SCOPED=$( { grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-WM_WITH_OK=$( { grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-WM_VIOL=$( { grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+WM_SCOPED=$( { grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+WM_WITH_OK=$( { grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+WM_VIOL=$( { grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4i: wildcard-matcher audit (iter-65 gate)" "iter134-audit-batch"
 
@@ -738,10 +738,10 @@ fi
 # test in iter-69. The `|| true` and `|| echo 0` defenses ensure pipefail
 # can't abort preflight on empty grep results (e.g. when a future audit
 # rename breaks the regex — gate should report 0/?/? not crash).
-SHAC_SCANNED=$( { grep -oE 'Total registered [a-zA-Z -]+ scanned:[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SHAC_CLEAN=$( { grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SHAC_OK=$( { grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SHAC_SCANNED=$( { grep -oE 'Total registered [a-zA-Z -]+ scanned:[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SHAC_CLEAN=$( { grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SHAC_OK=$( { grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 echo "  ✓ Pentad-member additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContext-silently-dropped pentad audit (iter-67/68/69 gate)" "iter134-audit-batch"
 
@@ -759,10 +759,10 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "  ⚠ Validator exited non-zero (informational only — not blocking release)"
 fi
 # Loose-coupled defensive grep (per iter-70 brittle-banner hardening).
-CCC_SCANNED=$( { grep -oE 'Total commits scanned:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-CCC_CONFORMANT=$( { grep -oE 'Standard-conformant:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-CCC_COMPOUND=$( { grep -oE 'Compound-prefix violations \(silent-fail\):[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-CCC_MISSING_TYPE=$( { grep -oE 'Missing-type / unrecognized-type violations:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+CCC_SCANNED=$( { grep -oE 'Total commits scanned:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+CCC_CONFORMANT=$( { grep -oE 'Standard-conformant:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+CCC_COMPOUND=$( { grep -oE 'Compound-prefix violations \(silent-fail\):[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+CCC_MISSING_TYPE=$( { grep -oE 'Missing-type / unrecognized-type violations:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 if [[ "${CCC_COMPOUND:-0}" -gt 0 ]] || [[ "${CCC_MISSING_TYPE:-0}" -gt 0 ]]; then
     echo "  ⚠ Conventional-commits: ${CCC_SCANNED:-0} scanned, ${CCC_CONFORMANT:-0} conformant, ${CCC_COMPOUND:-0} compound-prefix violation(s), ${CCC_MISSING_TYPE:-0} missing-type violation(s)"
     echo "    (each compound-prefix commit is silently skipped by semantic-release — use clean type(scope): prefixes going forward)"
@@ -787,9 +787,9 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "  ⚠ Subhook-contract static checker exited non-zero (informational only — not blocking release)"
 fi
 # Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
-SUBHOOK_CONTRACT_FILES_SCANNED=$( { grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS=$( { grep -oE 'Files missing import\.meta\.main guard:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS=$( { grep -oE 'Files with forbidden I/O in classifier body:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SUBHOOK_CONTRACT_FILES_SCANNED=$( { grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS=$( { grep -oE 'Files missing import\.meta\.main guard:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS=$( { grep -oE 'Files with forbidden I/O in classifier body:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 if [[ "${SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS:-0}" -gt 0 ]] || [[ "${SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS:-0}" -gt 0 ]]; then
     echo "  ⚠ Subhook contract: ${SUBHOOK_CONTRACT_FILES_SCANNED:-0} scanned, ${SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS:-0} missing-guard violation(s), ${SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS:-0} forbidden-I/O violation(s)"
     echo "    (each violation can silently break the orchestrator dual-mode contract — see /tmp/iter86-orchestrator-subhook-contract-static-check.log)"
@@ -819,8 +819,8 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "    (each violation indicates a PostToolUse hook whose reminder Claude never sees — see /tmp/iter99-posttooluse-silent-context-drop-audit.log)"
 fi
 # Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
-POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED=$( { grep -oE 'PostToolUse TypeScript hooks discovered across marketplace:[[:space:]]+[0-9]+' /tmp/iter99-posttooluse-silent-context-drop-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-POSTTOOLUSE_SILENT_DROP_VIOLATIONS=$( { grep -oE 'AUDIT FAILED — [0-9]+ silent-context-drop' /tmp/iter99-posttooluse-silent-context-drop-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED=$( { grep -oE 'PostToolUse TypeScript hooks discovered across marketplace:[[:space:]]+[0-9]+' /tmp/iter99-posttooluse-silent-context-drop-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
+POSTTOOLUSE_SILENT_DROP_VIOLATIONS=$( { grep -oE 'AUDIT FAILED — [0-9]+ silent-context-drop' /tmp/iter99-posttooluse-silent-context-drop-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 if [[ "${POSTTOOLUSE_SILENT_DROP_VIOLATIONS:-0}" -gt 0 ]]; then
     echo "  ⚠ Silent-context-drop audit: ${POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED:-0} hooks scanned, ${POSTTOOLUSE_SILENT_DROP_VIOLATIONS:-0} violation(s)"
 else
@@ -848,9 +848,9 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "  ⚠ NotebookEdit applicability audit exited non-zero (informational only — never blocks release)"
 fi
 # Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
-NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'APPLICABLE \(high-value coverage gap\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'POTENTIALLY-APPLICABLE \(conditional value\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-NOTEBOOKEDIT_HONORING_MATCHER_COUNT=$( { grep -oE '[0-9]+ matchers currently include NotebookEdit' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '^[0-9]+' | head -1 || echo 0)
+NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'APPLICABLE \(high-value coverage gap\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
+NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'POTENTIALLY-APPLICABLE \(conditional value\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
+NOTEBOOKEDIT_HONORING_MATCHER_COUNT=$( { grep -oE '[0-9]+ matchers currently include NotebookEdit' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '^[0-9]+' | awk 'NR==1' || echo 0)
 echo "  ✓ NotebookEdit applicability audit: ${NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT:-0} APPLICABLE + ${NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT:-0} POTENTIALLY-APPLICABLE classifiers surfaced (current marketplace coverage: ${NOTEBOOKEDIT_HONORING_MATCHER_COUNT:-0} matchers honor NotebookEdit)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4p: NotebookEdit applicability audit (iter-103 gate; informational)" "iter134-audit-batch"
 
@@ -868,12 +868,12 @@ echo "→ Running iter-105 truncation-helper marketplace invariant audit (inform
 if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter105-truncation-helper-audit; then
     echo "  ⚠ Truncation-helper audit exited non-zero (informational only — not blocking release)"
 fi
-TRUNCATION_HELPER_COHORT_COUNT=$( { grep -oE 'Cohort discovered:[[:space:]]+[0-9]+' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-TRUNCATION_HELPER_PASSING_COUNT=$( { grep -oE 'AUDIT PASSED — all [0-9]+ cohort hooks' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+TRUNCATION_HELPER_COHORT_COUNT=$( { grep -oE 'Cohort discovered:[[:space:]]+[0-9]+' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
+TRUNCATION_HELPER_PASSING_COUNT=$( { grep -oE 'AUDIT PASSED — all [0-9]+ cohort hooks' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 if [[ "${TRUNCATION_HELPER_PASSING_COUNT:-0}" == "${TRUNCATION_HELPER_COHORT_COUNT:-0}" ]] && [[ "${TRUNCATION_HELPER_COHORT_COUNT:-0}" -gt 0 ]]; then
     echo "  ✓ Truncation-helper audit: ${TRUNCATION_HELPER_PASSING_COUNT}/${TRUNCATION_HELPER_COHORT_COUNT} cohort hooks wrap via canonical helper"
 else
-    TRUNCATION_HELPER_MISSING_COUNT=$( { grep -oE 'AUDIT FAILED — [0-9]+ of [0-9]+ cohort hooks missing' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+    TRUNCATION_HELPER_MISSING_COUNT=$( { grep -oE 'AUDIT FAILED — [0-9]+ of [0-9]+ cohort hooks missing' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
     echo "  ⚠ Truncation-helper audit: ${TRUNCATION_HELPER_MISSING_COUNT}/${TRUNCATION_HELPER_COHORT_COUNT} cohort hooks missing canonical wrap (see /tmp/iter105-truncation-helper-audit.log)"
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4q: truncation-helper invariant audit (iter-105 gate; informational)" "iter134-audit-batch"
@@ -917,8 +917,8 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "  ✗ ESCAPE-HATCH AUDIT FAILED (iter-110 STRICT-BLOCK) — see /tmp/iter110-escape-hatch-strict-audit.log"
     exit 1
 fi
-ITER110_MIGRATED_COUNT=$( { grep -oE 'Migrated to shared helper:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-ITER110_COHORT_SIZE=$( { grep -oE 'Canonical cohort size:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+ITER110_MIGRATED_COUNT=$( { grep -oE 'Migrated to shared helper:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
+ITER110_COHORT_SIZE=$( { grep -oE 'Canonical cohort size:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 echo "  ✓ Escape-hatch invariant: ${ITER110_MIGRATED_COUNT:-0} hooks migrated / ${ITER110_COHORT_SIZE:-0} canonical cohort (iter-110 STRICT)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-marker detection invariant audit (iter-110 STRICT-BLOCK)" "iter134-audit-batch"
 
@@ -955,8 +955,8 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "         bash tasks/hook-lint/marker-reference-doc.sh"
     exit 1
 fi
-ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-ITER111_REGISTERED_COUNT=$( { grep -oE 'parsed [0-9]+ registered markers' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
+ITER111_REGISTERED_COUNT=$( { grep -oE 'parsed [0-9]+ registered markers' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 if [[ "${ITER111_UNREGISTERED_COUNT:-0}" -gt 0 ]]; then
     # Defensive: the audit task itself exits 0 even when unregistered tokens
     # are found (it reports informationally regardless), so re-check the
@@ -1022,8 +1022,8 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     # Infrastructure failure (bun crash, missing registry, etc.) is non-blocking
     # in iter-121's informational mode. Iter-122+ will tighten this.
 fi
-ITER121_TOTAL_ENTRIES_AUDITED=$( { awk '/audited [0-9]+ entries/ { for (i=1; i<=NF; i++) if ($i == "audited") { print $(i+1); exit } }' /tmp/iter121-stale-description-audit.log || true; } | head -1)
-ITER121_STALE_HITS=$( { grep -oE 'ITER-121 INFORMATIONAL FINDING: [0-9]+' /tmp/iter121-stale-description-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+ITER121_TOTAL_ENTRIES_AUDITED=$( { awk '/audited [0-9]+ entries/ { for (i=1; i<=NF; i++) if ($i == "audited") { print $(i+1); exit } }' /tmp/iter121-stale-description-audit.log || true; } | awk 'NR==1')
+ITER121_STALE_HITS=$( { grep -oE 'ITER-121 INFORMATIONAL FINDING: [0-9]+' /tmp/iter121-stale-description-audit.log || true; } | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 if [[ "${ITER121_STALE_HITS:-0}" -gt 0 ]]; then
     echo "  ⚠ Iter-121 stale-description audit: ${ITER121_STALE_HITS} entry/entries with unmoored descriptions across ${ITER121_TOTAL_ENTRIES_AUDITED:-?} audited (informational; never blocks release)"
 else

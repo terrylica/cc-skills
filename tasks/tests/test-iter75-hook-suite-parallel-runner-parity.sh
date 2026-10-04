@@ -201,7 +201,7 @@ fi
 # first ship of this test ("expected=[0], actual=[0\n0]").
 LIVE_TIER_PASS_COUNT=$(grep -c 'FILE-PASS' "$LIVE_TIER_RUNNER_OUTPUT_LOG" || true)
 LIVE_TIER_FAIL_COUNT=$(grep -c 'FILE-FAIL' "$LIVE_TIER_RUNNER_OUTPUT_LOG" || true)
-LIVE_TIER_DISCOVERED_COUNT=$( { grep -oE 'Discovered [0-9]+ test file' "$LIVE_TIER_RUNNER_OUTPUT_LOG" || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+LIVE_TIER_DISCOVERED_COUNT=$( { grep -oE 'Discovered [0-9]+ test file' "$LIVE_TIER_RUNNER_OUTPUT_LOG" || true; } | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 
 assert_equal_with_diagnostic "Live: runner exit code is 0 (green path)" \
     "0" "$LIVE_TIER_RUNNER_EXIT_CODE"

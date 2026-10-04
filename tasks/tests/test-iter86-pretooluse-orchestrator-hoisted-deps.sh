@@ -121,7 +121,7 @@ set -e
 # Iter-87 hardening: accept ANY subhook count ≥3 (registry monotonically grows
 # as iter-N+ migrations land; hardcoding the count broke when iter-87 added
 # the 4th subhook). Extract the live count and assert lower-bound + clean state.
-case4_subhook_count_extracted=$(echo "$case4_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+case4_subhook_count_extracted=$(echo "$case4_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 if [[ "${case4_subhook_count_extracted:-0}" -ge 3 ]]; then
     assert_passes "Case 4a: audit task discovers ≥3 inlined subhooks (found ${case4_subhook_count_extracted})"
 else
