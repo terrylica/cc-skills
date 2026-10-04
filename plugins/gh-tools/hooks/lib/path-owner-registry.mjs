@@ -91,6 +91,24 @@ export function resolveExpectedOwner(targetPath) {
  * never be created under <owner>. A same-named repo under a renamed account's old login breaks
  * GitHub's rename redirect for the repo that moved away. Returns { <owner>: Set(names) }.
  */
+/**
+ * The GitHub account that acts for repositories owned by `owner`: the mapping's `account`, else the
+ * owner itself (a personal account owns its own repos). null when the owner has no mapping or the
+ * registry is unreadable. Used by gh-repo-identity-guard to fail CLOSED on a known owner.
+ */
+export function accountForOwner(owner) {
+  const path = registryPath();
+  if (!owner || !existsSync(path)) return null;
+  let mappings;
+  try {
+    mappings = parseRegistry(readFileSync(path, "utf-8"));
+  } catch {
+    return null;
+  }
+  const hit = mappings.find((m) => m.owner.toLowerCase() === owner.toLowerCase());
+  return hit ? hit.account || hit.owner : null;
+}
+
 export function parseReserved(text) {
   const reserved = {};
   let inReserved = false;

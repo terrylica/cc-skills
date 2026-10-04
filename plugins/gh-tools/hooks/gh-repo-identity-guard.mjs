@@ -17,6 +17,9 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { execSync } from "child_process";
+import { homedir } from "os";
+import { join } from "path";
+import { accountForOwner } from "./lib/path-owner-registry.mjs";
 
 // ─── Read stdin ─────────────────────────────────────────────────────────────
 const input = await Bun.stdin.text();
@@ -112,6 +115,38 @@ if (!targetRepo) {
 }
 
 const [repoOwner] = targetRepo.split("/");
+
+// ─── Fail-CLOSED for owners the registry knows (2026-10-04) ──────────────────
+// A call on an organization repo ran as the operator's personal account because the account was chosen from
+// the caller's folder. Account routing now lives in ONE place, the `gh` shim on PATH
+// (~/.local/bin/gh), which maps the TARGET repo's owner to its account through the same registry. So
+// for a registry-known owner the write is safe exactly when it will go through that shim and the
+// account's profile exists. Anything else is denied, deterministically, with no network and no `gh`:
+//   · the shim is missing, or the command execs a real gh binary by absolute path (bypasses it);
+//   · ~/.config/gh-<account> does not exist (the shim would fall back to the folder's account).
+{
+  const required = accountForOwner(repoOwner);
+  if (required) {
+    const profile = join(homedir(), ".config", `gh-${required.toLowerCase().replace(/-/g, "")}`);
+    const shim = join(homedir(), ".local", "bin", "gh");
+    const absoluteBinary = /(^|[\s;&|(])\/(?:opt\/homebrew|usr\/local|usr)\/bin\/gh\b/.test(command);
+    const problems = [];
+    if (!existsSync(shim)) problems.push(`the account-routing shim ${shim} is missing`);
+    if (absoluteBinary) problems.push("the command runs a gh binary by absolute path, which bypasses the routing shim");
+    if (!existsSync(profile)) problems.push(`the profile ${profile} for account "${required}" does not exist`);
+    if (problems.length === 0) process.exit(0); // routed to the right account by construction
+    if (process.env.ALLOW_OWNER_MISMATCH !== "1") {
+      console.log(JSON.stringify({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: `[gh-repo-identity-guard] ${targetRepo} must be written as "${required}" (SSoT ~/.claude/path-owner-registry.toml), but ${problems.join("; ")}. Run plain \`gh\` (the shim on PATH picks the account from the target repo), or create the profile with: GH_CONFIG_DIR=${profile} gh auth login. Deliberate override: prefix ALLOW_OWNER_MISMATCH=1.`,
+        },
+      }));
+      process.exit(0);
+    }
+  }
+}
 
 // ─── Resolve the local account from the origin host-alias (SSoT) ─────────────
 // ADR 2026-06-21 host-alias doctrine: a repo's origin remote
