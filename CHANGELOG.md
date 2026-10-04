@@ -1,3 +1,23 @@
+## [33.5.1](https://github.com/terrylica/cc-skills/compare/v33.5.0...v33.5.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **drift-guard:** search ~/gh instead of the removed ~/own ([ade46df](https://github.com/terrylica/cc-skills/commit/ade46dfe2793bbc8488bbd284f89e0f4ba99ef73))
+
+typescript-version-drift-guard defaulted its roots to ~/eon, ~/vj and ~/own. With ~/own gone it silently skipped every repository under ~/gh; the default is now ~/eon, ~/gh and ~/vj (discovery depth 10 covers the extra org level). The macro-keyboard spoke points at the amonic source under ~/gh/vjspc.
+
+* **gh-tools:** identity guard sees repos under ~/gh/<org>/ ([ed1b150](https://github.com/terrylica/cc-skills/commit/ed1b1503f5d2d2e9e13a49b898d2286cb1091aea)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+Under ~/gh/&lt;org>/ a url.&lt;alias>.insteadOf rewrite makes `git remote get-url` return git@github.com-&lt;account>:org/repo. The guard's fallback pattern (github.com[:/]) never matched that, so it found no target repo and allowed every gh write there; and its own-repo fast path compared the alias ACCOUNT with the repo OWNER, which under organizations never match. Plan Phase 1.3 of the 2026-10-03 GitHub migration required this update and it was missed.
+
+- The fallback reads the stored canonical url (git config remote.origin.url) and accepts alias hosts.
+- The account comes from git config gh.account (set per org by ~/.config/git/accounts/&lt;account>.gitconfig) before the alias.
+- New fast path: a write to the repo's own organization is allowed when the folder chose the account and no GH_TOKEN is exported.
+- With a GH_TOKEN exported, that token's push access is still checked (the wrong-account incident this hook exists for).
+
+Measured with bun against the old and new hook: own-org writes are now recognised (previously allowed only because no target was found); a cptbc token closing an issue on public vjspc/jobber-python-client is denied; the old alias layout under ~/vj/collab still allows. Private repos the token cannot read still fail open, unchanged.
+
 # [33.5.0](https://github.com/terrylica/cc-skills/compare/v33.4.0...v33.5.0) (2026-10-04)
 
 
