@@ -83,7 +83,7 @@ set +e
 case4_stdout=$(bash "$SUBHOOK_CONTRACT_AUDIT_TASK_PATH" 2>&1)
 set -e
 
-case4_subhook_count=$(echo "$case4_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+case4_subhook_count=$(echo "$case4_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | awk 'NR==1' || echo 0)
 if [[ "${case4_subhook_count:-0}" -ge 8 ]]; then
     assert_passes "Case 4a: audit task discovers ≥8 inlined subhooks (FINAL arc state; found ${case4_subhook_count})"
 else

@@ -45,7 +45,7 @@ fi
 # 4 classifiers should be APPLICABLE: version-guard (hardcoded version regex),
 # gpu-optimization-guard (PyTorch in notebooks), ssot-principles (ast-grep on
 # cell source), memory-efficiency-reminder (any code edit).
-case3_applicable_count=$(echo "$audit_output" | grep -oE 'APPLICABLE \(high-value coverage gap\):[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1 || echo 0)
+case3_applicable_count=$(echo "$audit_output" | grep -oE 'APPLICABLE \(high-value coverage gap\):[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 if [[ "$case3_applicable_count" == "4" ]]; then
     assert_passes "Case 3: APPLICABLE classifier count = 4 (version-guard + gpu-optimization-guard + ssot-principles + memory-efficiency-reminder)"
 else
@@ -56,7 +56,7 @@ fi
 # At least 15 file-path-suffix-specific classifiers should be NOT-APPLICABLE
 # (CLAUDE.md, pyproject.toml, mise.toml, __init__.py, launchd plists,
 # GLOSSARY.md, README.md, .rs, .js/.ts checkers, etc).
-case4_not_applicable_count=$(echo "$audit_output" | grep -oE 'NOT-APPLICABLE \(file-type mismatch\):[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1 || echo 0)
+case4_not_applicable_count=$(echo "$audit_output" | grep -oE 'NOT-APPLICABLE \(file-type mismatch\):[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | awk 'NR==1' || echo 0)
 if [[ "$case4_not_applicable_count" -ge "12" ]]; then
     assert_passes "Case 4: NOT-APPLICABLE classifier count = $case4_not_applicable_count (≥12 file-path-suffix-specific hooks correctly excluded)"
 else
@@ -117,7 +117,7 @@ fi
 # ─── Case 8: live marketplace currently honors 0 NotebookEdit matchers ──────
 # Pre-iter-104 baseline — no marketplace matcher includes NotebookEdit.
 # Iter-104 will start the gradual broadening for the 4 APPLICABLE classifiers.
-case8_notebookedit_count=$(echo "$audit_output" | grep -oE '[0-9]+ matchers currently include NotebookEdit' | grep -oE '^[0-9]+' | head -1 || echo "?")
+case8_notebookedit_count=$(echo "$audit_output" | grep -oE '[0-9]+ matchers currently include NotebookEdit' | grep -oE '^[0-9]+' | awk 'NR==1' || echo "?")
 if [[ "$case8_notebookedit_count" == "0" ]]; then
     assert_passes "Case 8: live marketplace baseline — 0 matchers currently honor NotebookEdit (iter-104 baseline state)"
 else
