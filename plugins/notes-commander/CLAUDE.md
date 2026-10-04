@@ -14,7 +14,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 - **`scripts/notes.ts`** — organizer CLI: `inventory` / `export` / `mkdir` / `move-note` / `rename-folder` / `merge-folder` / `doctor`. FS/RS-delimited (U+0001/U+0002) record streams from AppleScript, parsed by `parseRecords` (AppleScript has no JSON).
 - **`scripts/draft-park.ts`** — the draft-park engine, now importing the shared core; `new` verifies a real note id + read-back (entity leaks, content presence) by default.
 - **Skills resolve their entrypoint with `cc-plugin-root`** — `SH="$(cc-plugin-root notes-commander)/skills/<skill>/<script>"`. That helper (`scripts/cc-plugin-root`, symlinked to `~/.local/bin/`) reads `~/.claude/plugins/installed_plugins.json`, so it returns the version Claude Code actually loaded. Do NOT glob `~/.claude/plugins/cache/cc-skills/notes-commander/*` — 10 of the 11 cached versions there are marked `.orphaned_at`, and the highest semver is routinely one of them.
-  `scripts/` is present in the latest cached version of **all 27** cc-skills plugins that ship one, this plugin included, so the shim's relative resolution (`$here/../../scripts/draft-park.ts`) resolves from the L3 cache; its L2 marketplace-mirror fallback is belt-and-suspenders, not the primary path.
+  `scripts/` is present in the latest cached version of every cc-skills plugin that ships one, this plugin included, so the shim's relative resolution (`$here/../../scripts/draft-park.ts`) resolves from the L3 cache; its L2 marketplace-mirror fallback is belt-and-suspenders, not the primary path.
 
 ## Critical invariants
 
