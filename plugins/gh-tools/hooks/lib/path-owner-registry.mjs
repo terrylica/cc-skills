@@ -82,7 +82,41 @@ export function resolveExpectedOwner(targetPath) {
     owner: best.mapping.owner,
     matchedPrefix: best.mapping.path_prefix,
     allowOrgs: best.mapping.allow_orgs || [],
+    mode: best.mapping.mode || "read-write",
   };
+}
+
+/**
+ * Parse the `[reserved]` table: each `names_under_<owner> = [...]` lists repository names that must
+ * never be created under <owner>. A same-named repo under a renamed account's old login breaks
+ * GitHub's rename redirect for the repo that moved away. Returns { <owner>: Set(names) }.
+ */
+export function parseReserved(text) {
+  const reserved = {};
+  let inReserved = false;
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.replace(/#.*$/, "").trim();
+    if (!line) continue;
+    if (line.startsWith("[")) {
+      inReserved = line === "[reserved]";
+      continue;
+    }
+    if (!inReserved) continue;
+    const kv = line.match(/^names_under_([A-Za-z0-9_.-]+)\s*=\s*(\[.*\])$/);
+    if (kv) reserved[kv[1]] = new Set([...kv[2].matchAll(/"([^"]*)"/g)].map((m) => m[1]));
+  }
+  return reserved;
+}
+
+/** Reserved repository names per owner from the registry; {} when the registry is absent. */
+export function reservedNames() {
+  const path = registryPath();
+  if (!existsSync(path)) return {};
+  try {
+    return parseReserved(readFileSync(path, "utf-8"));
+  } catch {
+    return {};
+  }
 }
 
 /** Extract the owner segment from a git remote URL (host-alias aware). */
