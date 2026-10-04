@@ -43,6 +43,16 @@ allow_orgs  = ["Eon-Labs"]
 path_prefix = "~/eon"
 owner       = "terrylica"
 allow_orgs  = ["Eon-Labs", "EonLabs-Spartan"]
+[[mapping]]
+path_prefix = "~/gh/vjspc"
+owner       = "vjspc"
+account     = "vjown"
+[[mapping]]
+path_prefix = "~/gh/kudoai"
+owner       = "kudoai"
+mode        = "read-only"
+[reserved]
+names_under_vanjobbers = ["sys-internal", "cpc-inbox"]
 TOML
 
 # run <cwd> <command-json-string> [EXTRA_ENV=val ...] ; echoes "<exit>\t<stdout>"
@@ -107,6 +117,33 @@ if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "unmapped path fails open"; else er
 echo "[10] non-matching command (ls) → IGNORED"
 IFS=$'\t' read -r rc out < <(run "$VJ" '"ls -la"')
 if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "non-target command ignored"; else err "expected silent ignore, got rc=$rc out=$out"; fi
+
+GHV="$HOME/gh/vjspc/some-repo"
+KUDO="$HOME/gh/kudoai/chatgpt.js"
+
+echo "[11] gh repo create vanjobbers/cpc-inbox (reserved) from an UNMAPPED path → DENY"
+IFS=$'\t' read -r rc out < <(run "/tmp" '"gh repo create vanjobbers/cpc-inbox --private"')
+if is_deny "$out" && grep -q 'reserved name' <<<"$out"; then pass "reserved name blocked anywhere"; else err "expected reserved deny, got rc=$rc out=$out"; fi
+
+echo "[12] gh repo create sys-internal --owner vanjobbers (reserved, flag form) → DENY"
+IFS=$'\t' read -r rc out < <(run "/tmp" '"gh repo create sys-internal --owner vanjobbers"')
+if is_deny "$out" && grep -q 'reserved name' <<<"$out"; then pass "reserved name via --owner blocked"; else err "expected reserved deny, got rc=$rc out=$out"; fi
+
+echo "[13] gh repo create vjspc/cpc-inbox (reserved only under vanjobbers) in ~/gh/vjspc → ALLOW"
+IFS=$'\t' read -r rc out < <(run "$GHV" '"gh repo create vjspc/cpc-inbox --private"')
+if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "same name under another owner allowed"; else err "expected allow, got rc=$rc out=$out"; fi
+
+echo "[14] git push in a read-only path (~/gh/kudoai) → DENY"
+IFS=$'\t' read -r rc out < <(run "$KUDO" '"git push origin main"')
+if is_deny "$out" && grep -q 'read-only' <<<"$out"; then pass "read-only push blocked"; else err "expected read-only deny, got rc=$rc out=$out"; fi
+
+echo "[15] git remote set-url in a read-only path → DENY"
+IFS=$'\t' read -r rc out < <(run "$KUDO" '"git remote set-url origin https://github.com/kudoai/chatgpt.js.git"')
+if is_deny "$out"; then pass "read-only re-point blocked"; else err "expected deny, got rc=$rc out=$out"; fi
+
+echo "[16] reserved name with the in-command escape → ALLOW"
+IFS=$'\t' read -r rc out < <(run "/tmp" '"ALLOW_OWNER_MISMATCH=1 gh repo create vanjobbers/cpc-inbox"')
+if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "escape hatch allows reserved"; else err "expected allow, got rc=$rc out=$out"; fi
 
 rm -f "$REG"
 echo
