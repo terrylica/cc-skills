@@ -1,3 +1,24 @@
+# [33.6.0](https://github.com/terrylica/cc-skills/compare/v33.5.4...v33.6.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* **release:** sync-hooks copies settings.json only when it prunes, and keeps the newest 5 copies ([ea5da24](https://github.com/terrylica/cc-skills/commit/ea5da2426c284807788815382b79b07a56ac7b2b)), closes [#218](https://github.com/terrylica/cc-skills/issues/218)
+
+sync-hooks-to-settings.sh copied ~/.claude/settings.json on every release and never removed the copies: 772 of them (22 MB) on one machine, every run a no-op since v20.2.3. It now returns before copying or rewriting when there is nothing to prune, and when it does copy it keeps the newest CC_SKILLS_BACKUP_RETENTION (default 5).
+
+The retention logic moves out of sync-commands-to-settings.sh into scripts/lib/backup-retention.sh, so both scripts share one implementation, one knob and the same narrow timestamp-only name pattern that never matches files a human parked in backups/.
+
+Regression test: tasks/tests/test-sync-backup-retention.sh (no-op makes no copy and leaves the file byte-identical; a pruning run keeps one pre-prune copy; 8 old + 1 new -> newest 5, human files untouched; the helper honours the knob for commands.* directories).
+
+
+
+### Features
+
+* **gh-tools:** identity guard fails closed for registry-known owners ([25573c9](https://github.com/terrylica/cc-skills/commit/25573c9a7a1bba60243d6f48944fbc797c568048))
+
+For a target owner the path-owner registry maps to an account, a gh write is allowed only when it goes through the routing shim (~/.local/bin/gh) and ~/.config/gh-&lt;account> exists; a missing shim, a missing profile, or an absolute-path gh binary is denied. Deterministic: no network, no gh. Escape: ALLOW_OWNER_MISMATCH=1. Adds accountForOwner() to the registry library and a regression test with a synthetic HOME and registry (6 cases).
+
 ## [33.5.4](https://github.com/terrylica/cc-skills/compare/v33.5.3...v33.5.4) (2026-10-04)
 
 
