@@ -51,10 +51,10 @@
 #   scripts/iter150-readable-git-log.sh
 #
 #   # Show last N commits
-#   ITER150_COMMIT_COUNT_TO_DISPLAY=5 scripts/iter150-readable-git-log.sh
+#   RELEASE_HISTORY_COUNT=5 scripts/iter150-readable-git-log.sh
 #
 #   # Custom wrap width
-#   ITER150_SOFT_WRAP_COLUMN_WIDTH=100 scripts/iter150-readable-git-log.sh
+#   RELEASE_HISTORY_WRAP=100 scripts/iter150-readable-git-log.sh
 #
 #   # Pass arbitrary git-log refs/options after `--`
 #   scripts/iter150-readable-git-log.sh -- main~20..HEAD
@@ -65,12 +65,15 @@
 #   moon run repo:release-history
 #
 #   # Wider view for screens > 120 cols
-#   ITER150_SOFT_WRAP_COLUMN_WIDTH=140 moon run repo:release-history
+#   RELEASE_HISTORY_WRAP=140 moon run repo:release-history
 #
 #   # Investigate a specific commit's full subject
 #   scripts/iter150-readable-git-log.sh -- -1 <sha>
 
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
 
 # ─── ITER-171 UTF-8 LOCALE INVARIANT GUARD FOR CHARACTER-COUNTING CORRECTNESS ─
 # Empirically verified iter-171 audit probe finding: bash ${#var} returns
@@ -107,9 +110,9 @@ esac
 ITER150_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER150_REPO_ROOT"
 
-ITER150_DEFAULT_NUMBER_OF_RECENT_COMMITS_TO_DISPLAY_IN_HISTORY_VIEW="${ITER150_COMMIT_COUNT_TO_DISPLAY:-10}"
-ITER150_DEFAULT_SOFT_WRAP_COLUMN_WIDTH_FOR_TERMINAL_READABILITY="${ITER150_SOFT_WRAP_COLUMN_WIDTH:-80}"
-ITER150_DEFAULT_CONTINUATION_LINE_HANGING_INDENT_CHARACTERS_FOR_VISUAL_WRAP_AFFORDANCE="${ITER150_CONTINUATION_INDENT:-8}"
+cc_knob ITER150_DEFAULT_NUMBER_OF_RECENT_COMMITS_TO_DISPLAY_IN_HISTORY_VIEW RELEASE_HISTORY_COUNT ITER150_COMMIT_COUNT_TO_DISPLAY "10"
+cc_knob ITER150_DEFAULT_SOFT_WRAP_COLUMN_WIDTH_FOR_TERMINAL_READABILITY RELEASE_HISTORY_WRAP ITER150_SOFT_WRAP_COLUMN_WIDTH "80"
+cc_knob ITER150_DEFAULT_CONTINUATION_LINE_HANGING_INDENT_CHARACTERS_FOR_VISUAL_WRAP_AFFORDANCE RELEASE_HISTORY_INDENT ITER150_CONTINUATION_INDENT "8"
 
 # ANSI color codes — gracefully degrade to plain text when stdout is not a TTY.
 if [[ -t 1 ]]; then
@@ -158,9 +161,9 @@ iter150_emit_render_header_banner_with_wrap_width_and_commit_count_metadata() {
 
 iter150_emit_render_footer_with_operator_tunable_knob_hints() {
     echo ""
-    echo "  ⧗ tune via ITER150_COMMIT_COUNT_TO_DISPLAY=N (default ${ITER150_DEFAULT_NUMBER_OF_RECENT_COMMITS_TO_DISPLAY_IN_HISTORY_VIEW})"
-    echo "  ⧗ tune via ITER150_SOFT_WRAP_COLUMN_WIDTH=N (default ${ITER150_DEFAULT_SOFT_WRAP_COLUMN_WIDTH_FOR_TERMINAL_READABILITY})"
-    echo "  ⧗ tune via ITER150_CONTINUATION_INDENT=N (default ${ITER150_DEFAULT_CONTINUATION_LINE_HANGING_INDENT_CHARACTERS_FOR_VISUAL_WRAP_AFFORDANCE})"
+    echo "  ⧗ tune via RELEASE_HISTORY_COUNT=N (default ${ITER150_DEFAULT_NUMBER_OF_RECENT_COMMITS_TO_DISPLAY_IN_HISTORY_VIEW})"
+    echo "  ⧗ tune via RELEASE_HISTORY_WRAP=N (default ${ITER150_DEFAULT_SOFT_WRAP_COLUMN_WIDTH_FOR_TERMINAL_READABILITY})"
+    echo "  ⧗ tune via RELEASE_HISTORY_INDENT=N (default ${ITER150_DEFAULT_CONTINUATION_LINE_HANGING_INDENT_CHARACTERS_FOR_VISUAL_WRAP_AFFORDANCE})"
     echo "  ⧗ pass extra git-log args after '--', e.g.: $0 -- main~20..HEAD"
     echo ""
 }

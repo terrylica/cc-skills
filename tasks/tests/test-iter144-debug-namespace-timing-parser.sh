@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-144 regression test for the semantic-release DEBUG namespace stderr parser script. Validates against a SYNTHETIC fixture log containing known ISO8601 timestamps + known semantic-release: namespaces + known options-for plugin/lifecycle-step markers + known silent SyntaxError stack traces. Asserts the parser correctly: (a) sums cumulative elapsed-milliseconds per debug-namespace with documented timestamp deltas, (b) sums per plugin-lifecycle-step using options-for markers with documented LOADING-PHASE-ONLY caveat, (c) counts silent JSON.parse SyntaxError stack traces emitted by the getTagsNotes swallowed catch block, (d) handles multi-line continuation lines without ISO8601 prefix by skipping them, (e) emits BOTH ranking dimensions in correct sort order, (f) honors ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY operator-tunable override. Synthetic fixture chosen over live capture so the test is deterministic (live semantic-release timing varies with network).
+# Iter-144 regression test for the semantic-release DEBUG namespace stderr parser script. Validates against a SYNTHETIC fixture log containing known ISO8601 timestamps + known semantic-release: namespaces + known options-for plugin/lifecycle-step markers + known silent SyntaxError stack traces. Asserts the parser correctly: (a) sums cumulative elapsed-milliseconds per debug-namespace with documented timestamp deltas, (b) sums per plugin-lifecycle-step using options-for markers with documented LOADING-PHASE-ONLY caveat, (c) counts silent JSON.parse SyntaxError stack traces emitted by the getTagsNotes swallowed catch block, (d) handles multi-line continuation lines without ISO8601 prefix by skipping them, (e) emits BOTH ranking dimensions in correct sort order, (f) honors SEMREL_TIMING_PARSER_TOP_N operator-tunable override. Synthetic fixture chosen over live capture so the test is deterministic (live semantic-release timing varies with network).
 set -euo pipefail
 
 ITER144_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -140,9 +140,9 @@ iter144_assert_substring_present_in_parser_output \
 
 # ─── Group C: Operator-tunable top-N override ────────────────────────────────
 echo ""
-echo "GROUP C (2 assertions): ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY honored"
+echo "GROUP C (2 assertions): SEMREL_TIMING_PARSER_TOP_N honored"
 
-ITER144_PARSER_OUTPUT_WITH_TOP_N_OVERRIDE_SET_TO_THREE=$(ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY=3 python3 "$ITER144_PARSER_SCRIPT_ABSOLUTE_PATH" "$ITER144_SYNTHETIC_DEBUG_LOG_FIXTURE_FILE_PATH" 2>&1)
+ITER144_PARSER_OUTPUT_WITH_TOP_N_OVERRIDE_SET_TO_THREE=$(SEMREL_TIMING_PARSER_TOP_N=3 python3 "$ITER144_PARSER_SCRIPT_ABSOLUTE_PATH" "$ITER144_SYNTHETIC_DEBUG_LOG_FIXTURE_FILE_PATH" 2>&1)
 
 iter144_assert_substring_present_in_parser_output \
     "C1: Top-3 header rendered when override=3 (instead of default Top-10)" \
@@ -152,7 +152,7 @@ iter144_assert_substring_present_in_parser_output \
 iter144_assert_substring_present_in_parser_output \
     "C2: Top-N override env-var name documented in parser output" \
     "$ITER144_PARSER_OUTPUT_WITH_TOP_N_OVERRIDE_SET_TO_THREE" \
-    "ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY"
+    "SEMREL_TIMING_PARSER_TOP_N"
 
 # ─── Group D: Edge cases — empty log, missing file ───────────────────────────
 echo ""

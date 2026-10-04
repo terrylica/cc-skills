@@ -8,6 +8,9 @@
 # the iter-160 doctor's FILE-SIZE-OK rationale.
 # Phase 1 of 5: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, iter-169 pending-release informational preview (next version + triggering commit, post-iter-167 ~228ms), plugin validation via validate-plugins.mjs, and releasable conventional commits since last tag. Exits non-zero on any failure. Must pass before release:version can run.
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/../../scripts/lib/env-knob.sh"
 
 # Run from the repo root regardless of who invoked us (bootstrap-monorepo
 # Nx-convergence rule 6: the orchestrator is swappable, the script is the truth).
@@ -106,14 +109,14 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
 #     iter-130 timing report is preserved bit-for-bit by seeding the phase
 #     start time backwards from the externally-captured elapsed_ms sidecar.
 #
-# Adaptive lane count (operator-tunable via ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES):
+# Adaptive lane count (operator-tunable via PREFLIGHT_AUDIT_PARALLEL_LANES):
 # default clamp(sysctl_hw_ncpu - 4, 4, 12), same heuristic as iter-128's
 # marketplace-suite adaptive sizing. Floors at 4 for low-end laptops; ceilings
 # at 12 to avoid the bun-cold-start contention plateau measured in iter-128.
 # The 17 audits are non-bun-spawning shell scripts so the plateau may differ,
 # but the same clamp is safe.
 #
-# Opt-out: ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 forces -P 1 (serial
+# Opt-out: PREFLIGHT_AUDIT_SERIAL=1 forces -P 1 (serial
 # through xargs), preserving the sidecar contract. Use when diagnosing
 # audit-suite issues where parallelism could confuse output ordering.
 #
@@ -161,9 +164,11 @@ __iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_c
     elif [[ "$recommended_lane_count" -gt 12 ]]; then
         recommended_lane_count=12
     fi
-    # Opt-out for diagnostics: ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1
+    # Opt-out for diagnostics: PREFLIGHT_AUDIT_SERIAL=1
     # forces -P 1 (serial through xargs), preserving the sidecar contract.
-    if [[ "${ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION:-0}" == "1" ]]; then
+    local preflight_audit_serial
+    cc_knob preflight_audit_serial PREFLIGHT_AUDIT_SERIAL ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION "0"
+    if [[ "$preflight_audit_serial" == "1" ]]; then
         recommended_lane_count=1
     fi
     echo "$recommended_lane_count"
@@ -171,7 +176,7 @@ __iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_c
 
 __iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per_audit_log_exit_and_elapsed_ms_sidecar_capture() {
     local lane_count
-    lane_count="${ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES:-$(__iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic)}"
+    cc_knob lane_count PREFLIGHT_AUDIT_PARALLEL_LANES ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES "$(__iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic)"
     # BSD-xargs hardening: -S 16384 to handle long task names (some
     # exceed 200 chars + the bash worker body). Same iter-90 hardening
     # pattern as the marketplace-suite runner.
@@ -257,7 +262,8 @@ __iter130_emit_top_n_slowest_preflight_checks_ranked_by_elapsed_milliseconds_des
     if [[ "${#iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -eq 0 ]]; then
         return 0
     fi
-    local top_n_threshold_for_slowest_check_ranking_display="${ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY:-5}"
+    local top_n_threshold_for_slowest_check_ranking_display
+    cc_knob top_n_threshold_for_slowest_check_ranking_display PREFLIGHT_TIMING_TOP_N ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY "5"
     echo ""
     echo "    ⧗ ─── Top ${top_n_threshold_for_slowest_check_ranking_display} slowest preflight checks (iter-130 bottleneck ranking, iter-137 parallelism-aware) ───"
     # Sort -rn -k1 (descending by first TAB-separated field, numeric).
@@ -275,7 +281,7 @@ __iter130_emit_top_n_slowest_preflight_checks_ranked_by_elapsed_milliseconds_des
                 printf "      %2d. %6d ms  %s\n", NR, $1, $2
             }
         }'
-    echo "    ⧗ (override count via ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=N)"
+    echo "    ⧗ (override count via PREFLIGHT_TIMING_TOP_N=N)"
     # Iter-137 wall-clock-attribution hint: enumerate distinct parallel
     # buckets and surface the SLOWEST member of each (= critical path).
     # Operators see "phases in [parallel: BUCKET] run concurrently —

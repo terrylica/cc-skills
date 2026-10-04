@@ -6,7 +6,7 @@ ITER157_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2
 cd "$ITER157_REPO_ROOT"
 # The installed hook locates the iter-153 advisor in ~/eon/cc-skills by default;
 # point it at the tree under test so a worktree or renamed script is what runs.
-export ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE="${ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE:-$ITER157_REPO_ROOT}"
+export COMMITS_HOOK_CC_SKILLS_PATH="${COMMITS_HOOK_CC_SKILLS_PATH:-$ITER157_REPO_ROOT}"
 
 ITER157_HOOK_SOURCE_RELATIVE_PATH="scripts/iter157-commit-msg-hook.sh"
 ITER157_HOOK_SOURCE_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_HOOK_SOURCE_RELATIVE_PATH"

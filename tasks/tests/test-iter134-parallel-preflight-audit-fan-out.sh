@@ -222,14 +222,14 @@ assert_substring_present \
 # ─── Tier 1.G: operator-tunable env-var knobs documented in script ───────
 
 assert_substring_present \
-    "Tier 1.G1: iter-134 operator knob ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES referenced" \
+    "Tier 1.G1: iter-134 operator knob PREFLIGHT_AUDIT_PARALLEL_LANES referenced" \
     "$preflight_script_source" \
-    "ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES"
+    "PREFLIGHT_AUDIT_PARALLEL_LANES"
 
 assert_substring_present \
-    "Tier 1.G2: iter-134 operator opt-out ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION referenced" \
+    "Tier 1.G2: iter-134 operator opt-out PREFLIGHT_AUDIT_SERIAL referenced" \
     "$preflight_script_source" \
-    "ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION"
+    "PREFLIGHT_AUDIT_SERIAL"
 
 # ─── Tier 2: integration assertions (self-skip under recursion guard) ────
 echo ""
@@ -242,7 +242,7 @@ if [[ "${MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD:-0}
 else
     echo "  → Running preflight with PREFLIGHT_TIMING_PROFILE=1 (runs the full preflight; takes minutes)..."
     iter135_preflight_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
-        ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=10 \
+        PREFLIGHT_TIMING_TOP_N=10 \
         bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
 
     # Tier 2.A: preflight passes end-to-end
@@ -287,21 +287,21 @@ else
     fi
 
     # Tier 2.E: opt-out path works (--lanes=1 sequential mode).
-    # Verifies the ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 escape
+    # Verifies the PREFLIGHT_AUDIT_SERIAL=1 escape
     # hatch still routes through xargs (and therefore through the sidecar
     # contract) — just with -P 1. Skipped in normal runs to keep this test
     # fast; gated behind opt-in flag matching iter-132's tier-2.D pattern.
-    if [[ "${ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER:-0}" == "1" ]]; then
-        echo "  → Running preflight with ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1..."
+    if [[ "${TEST_SERIAL_MODE_INTEGRATION:-0}" == "1" ]]; then
+        echo "  → Running preflight with PREFLIGHT_AUDIT_SERIAL=1..."
         iter135_serial_mode_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
-            ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 \
+            PREFLIGHT_AUDIT_SERIAL=1 \
             bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
         assert_substring_present \
-            "Tier 2.E1: preflight passes under serial-mode opt-out (ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1)" \
+            "Tier 2.E1: preflight passes under serial-mode opt-out (PREFLIGHT_AUDIT_SERIAL=1)" \
             "$iter135_serial_mode_integration_output" \
             "All preflight checks passed"
     else
-        echo "  ⊘ Tier 2.E (serial-mode opt-out integration) SKIPPED — set ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1 to enable"
+        echo "  ⊘ Tier 2.E (serial-mode opt-out integration) SKIPPED — set TEST_SERIAL_MODE_INTEGRATION=1 to enable"
         echo "    (gated to keep the regression test fast in the common case; serial mode runs ~2s slower)"
     fi
 fi

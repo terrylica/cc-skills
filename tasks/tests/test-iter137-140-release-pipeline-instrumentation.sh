@@ -278,9 +278,9 @@ __iter141_assert_substring_present \
 
 # 3.G: ITER139 top-N override env-var
 __iter141_assert_substring_present \
-    "Iter-139.C7: ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY operator-tunable override exists" \
+    "Iter-139.C7: RELEASE_TIMING_TOP_N operator-tunable override exists" \
     "$release_full_orchestrator_source" \
-    "ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY"
+    "RELEASE_TIMING_TOP_N"
 
 echo ""
 echo "── ITER-140: successCmd per-step instrumentation + sleep-2 elimination forensic pin ──"
@@ -306,9 +306,9 @@ __iter141_assert_substring_present \
 
 # 4.C: ITER140 top-N override env-var
 __iter141_assert_substring_present \
-    "Iter-140.D4: ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY operator-tunable override exists in iter-142 extracted script" \
+    "Iter-140.D4: RELEASE_SUCCESSCMD_TOP_N operator-tunable override exists in iter-142 extracted script" \
     "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
-    "ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY"
+    "RELEASE_SUCCESSCMD_TOP_N"
 
 # 4.D: end-of-block top-N ranking renders sort -rn pipeline (mirrors iter-130 / iter-139)
 __iter141_assert_substring_present \

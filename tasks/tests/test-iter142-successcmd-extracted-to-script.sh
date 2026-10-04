@@ -105,7 +105,7 @@ iter142_assert_present \
 iter142_assert_present \
     "B4: iter-140 top-N override knob preserved" \
     "$ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH" \
-    'ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY'
+    'RELEASE_SUCCESSCMD_TOP_N'
 
 iter142_assert_present \
     "B5: iter-140 sort -rn ranking pipeline preserved" \

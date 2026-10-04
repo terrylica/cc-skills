@@ -46,8 +46,8 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — read
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:release-history${ITER156_ANSI_COLOR_RESET}
       Awk-based soft-wrap renderer for verbose conventional-commit subjects.
-      Tunables: ITER150_COMMIT_COUNT_TO_DISPLAY (default 10),
-                ITER150_SOFT_WRAP_COLUMN_WIDTH (default 80).
+      Tunables: RELEASE_HISTORY_COUNT (default 10),
+                RELEASE_HISTORY_WRAP (default 80).
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DETECT (iter-151) — preflight long-subject overlay classifier ───${ITER156_ANSI_COLOR_RESET}
 
@@ -167,7 +167,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — 
       shared-lib presence + canonical-function exports, plus two
       end-to-end advisor chain probes (iter-163 footer-form → MAJOR,
       iter-166 synthetic-feat → MINOR + v1.1.0 in a mktemp -d temp git
-      repo via ITER165_REPO_ROOT_OVERRIDE). Per-check wall-clock latency
+      repo via COMMITS_REPO_ROOT). Per-check wall-clock latency
       reporting. Industry-standard brew-doctor/npm-doctor pattern.
       Exit 0 if toolkit healthy; exit 1 if CRITICAL check fails.
 

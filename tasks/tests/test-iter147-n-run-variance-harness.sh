@@ -86,14 +86,14 @@ iter147_assert_substring_present_in_file \
     "iter147_compute_percentile_p_of_integer_value_sample_list_using_nearest_rank_method"
 
 iter147_assert_substring_present_in_file \
-    "B3: harness honors ITER147_VARIANCE_PROFILE_RUN_COUNT env var" \
+    "B3: harness honors RELEASE_VARIANCE_RUNS env var" \
     "$ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH" \
-    "ITER147_VARIANCE_PROFILE_RUN_COUNT"
+    "RELEASE_VARIANCE_RUNS"
 
 iter147_assert_substring_present_in_file \
-    "B4: harness honors ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS env var" \
+    "B4: harness honors RELEASE_VARIANCE_REPLAY env var" \
     "$ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH" \
-    "ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS"
+    "RELEASE_VARIANCE_REPLAY"
 
 iter147_assert_substring_present_in_file \
     "B5: harness emits HIGH variance trap flag with sigma/p50 ratio threshold 0.20" \
@@ -126,8 +126,8 @@ cp "$ITER147_REPLAY_FIXTURE_STDERR_LOG_PATH_FOR_HARNESS_FUNCTIONAL_VALIDATION" /
 cp "$ITER147_REPLAY_FIXTURE_STDERR_LOG_PATH_FOR_HARNESS_FUNCTIONAL_VALIDATION" /tmp/iter147-variance-profile-run-2.log
 
 ITER147_HARNESS_REPLAY_FUNCTIONAL_SMOKE_TEST_STDOUT_CAPTURE=$(
-    ITER147_VARIANCE_PROFILE_RUN_COUNT=2 \
-    ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 \
+    RELEASE_VARIANCE_RUNS=2 \
+    RELEASE_VARIANCE_REPLAY=1 \
     python3 "$ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH" 2>&1 || true
 )
 
@@ -155,8 +155,8 @@ ITER147_TOTAL_ASSERTIONS_EVALUATED=$((ITER147_TOTAL_ASSERTIONS_EVALUATED + 1))
 # `set -euo pipefail`. We WANT python to exit non-zero here; we're verifying
 # the rejection message accompanies the non-zero exit.
 ITER147_HARNESS_N_LESS_THAN_TWO_REJECTION_OUTPUT_CAPTURE=$(
-    ITER147_VARIANCE_PROFILE_RUN_COUNT=1 \
-    ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 \
+    RELEASE_VARIANCE_RUNS=1 \
+    RELEASE_VARIANCE_REPLAY=1 \
     python3 "$ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH" 2>&1 || true
 )
 if [[ "$ITER147_HARNESS_N_LESS_THAN_TWO_REJECTION_OUTPUT_CAPTURE" == *"undefined for a single sample"* ]]; then
@@ -212,9 +212,9 @@ echo ""
 echo "GROUP E (3 assertions): docs/RELEASE.md surfaces both iter-147 knobs"
 
 iter147_assert_substring_present_in_file \
-    "E1: docs/RELEASE.md mentions ITER147_VARIANCE_PROFILE_RUN_COUNT knob" \
+    "E1: docs/RELEASE.md mentions RELEASE_VARIANCE_RUNS knob" \
     "$ITER147_RELEASE_MD_DOC_RELATIVE_PATH" \
-    "ITER147_VARIANCE_PROFILE_RUN_COUNT"
+    "RELEASE_VARIANCE_RUNS"
 
 iter147_assert_substring_present_in_file \
     "E2: docs/RELEASE.md mentions RELEASE_SSH_MULTIPLEXING_ENABLED knob" \

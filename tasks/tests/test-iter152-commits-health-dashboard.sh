@@ -92,29 +92,29 @@ iter152_assert_substring_present_in_file \
     "| awk"
 
 iter152_assert_substring_present_in_file \
-    "B2: renderer honors ITER152_COMMIT_COUNT_TO_ANALYZE env-var tunable" \
+    "B2: renderer honors COMMITS_HEALTH_WINDOW env-var tunable" \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER152_COMMIT_COUNT_TO_ANALYZE"
+    "COMMITS_HEALTH_WINDOW"
 
 iter152_assert_substring_present_in_file \
-    "B3: renderer honors ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS env-var tunable" \
+    "B3: renderer honors COMMITS_SUBJECT_HARD_CAP env-var tunable" \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS"
+    "COMMITS_SUBJECT_HARD_CAP"
 
 iter152_assert_substring_present_in_file \
-    "B4: renderer honors ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS env-var tunable" \
+    "B4: renderer honors COMMITS_SUBJECT_TARGET env-var tunable" \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS"
+    "COMMITS_SUBJECT_TARGET"
 
 iter152_assert_substring_present_in_file \
-    "B5: renderer honors ITER152_HISTOGRAM_BAR_WIDTH env-var tunable for terminal-fit predictability" \
+    "B5: renderer honors COMMITS_HEALTH_BAR_WIDTH env-var tunable for terminal-fit predictability" \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER152_HISTOGRAM_BAR_WIDTH"
+    "COMMITS_HEALTH_BAR_WIDTH"
 
 iter152_assert_substring_present_in_file \
-    "B6: renderer honors ITER152_WORST_OFFENDER_CALLOUT_COUNT env-var tunable" \
+    "B6: renderer honors COMMITS_HEALTH_LONGEST_COUNT env-var tunable" \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER152_WORST_OFFENDER_CALLOUT_COUNT"
+    "COMMITS_HEALTH_LONGEST_COUNT"
 
 # ─── Group C: Panel-by-panel correctness ────────────────────────────────────
 echo ""
@@ -229,7 +229,7 @@ else
 fi
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=$((ITER152_TOTAL_ASSERTIONS_EVALUATED + 1))
-if [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"tune via ITER152_"* ]] \
+if [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"tune via COMMITS_"* ]] \
    && [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"moon run repo:release-history"* ]]; then
     echo "  ✓ F4: renderer emits footer with operator-tunable knob hints + iter-150 cross-reference"
 else

@@ -69,12 +69,15 @@ set -euo pipefail
 # script is `<repo>/scripts/<name>.sh`, so its own directory's parent IS the
 # root, for every caller, from every cwd. It also removes one `git` fork —
 # harmless to iter-174 A6, whose shim set deliberately excludes `git`.
-if [[ -z "${ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE:-}" ]]; then
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
+cc_knob ITER160_CC_SKILLS_REPO_ROOT_OVERRIDE_RESOLVED COMMITS_DOCTOR_CC_SKILLS_ROOT ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE ""
+if [[ -z "$ITER160_CC_SKILLS_REPO_ROOT_OVERRIDE_RESOLVED" ]]; then
     # Parameter expansion + a subshell `cd`/`pwd`: no external command, so this
     # resolution costs nothing on the operator-facing hot path.
     ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$(cd "${BASH_SOURCE[0]%/*}/.." && pwd)"
 else
-    ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE"
+    ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_OVERRIDE_RESOLVED"
 fi
 ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter155-json-string-escape.sh"
 
@@ -83,7 +86,7 @@ ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$I
 # A root that does not carry the iter-155 shared library is not a cc-skills
 # checkout, and continuing from one produces 13 false CRITICALs instead of one
 # true error. Reachable now only through a wrong
-# ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE, but that is precisely the
+# COMMITS_DOCTOR_CC_SKILLS_ROOT, but that is precisely the
 # remaining way to make the doctor lie, so it is refused LOUDLY rather than
 # reported as a broken toolkit. Exit 2 (not 1) so an operator and a script can
 # both tell "the doctor could not run" apart from "the toolkit is broken".
@@ -92,7 +95,7 @@ if [[ ! -f "$ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_ST
     echo "       Resolved root: $ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH" >&2
     echo "       Expected (missing): \${root}/scripts/lib/iter155-json-string-escape.sh" >&2
     echo "       This is a HARNESS error, not a toolkit verdict — exiting 2 rather than reporting TOOLKIT_BROKEN." >&2
-    echo "       If you set ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE, point it at a cc-skills checkout." >&2
+    echo "       If you set COMMITS_DOCTOR_CC_SKILLS_ROOT, point it at a cc-skills checkout." >&2
     exit 2
 fi
 
@@ -771,7 +774,7 @@ fi
 # iter-165 aggregator → iter-161 classifier → iter-164 resolver. Builds
 # a throwaway temp git repo with one tagged baseline + one synthetic
 # `feat:` commit, runs iter-165 in --json mode against it via
-# ITER165_REPO_ROOT_OVERRIDE, and asserts the aggregator emits both
+# COMMITS_REPO_ROOT, and asserts the aggregator emits both
 # aggregate_bump_label=MINOR AND next_version=v1.1.0. This probe fails
 # CRITICAL if any link regresses: iter-165 stops sourcing iter-161,
 # iter-161 stops mapping feat→MINOR, iter-165 stops sourcing iter-164,
@@ -816,7 +819,7 @@ if [[ "$iter166_end_to_end_aggregator_probe_setup_exit_code" -ne 0 ]]; then
         "critical" "fail" "0" "failing sub-step: git init / config / commit / tag while building the synthetic probe repo | hypothesis (NOT established by this check): could not set up synthetic temp git repo for probe"
 elif [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
-        bash -c "cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json | grep -q '\"aggregate_bump_label_per_semver_precedence\": \"MINOR\"' && cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json | grep -q '\"next_version\": \"v1.1.0\"'"
+        bash -c "cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && COMMITS_REPO_ROOT='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json | grep -q '\"aggregate_bump_label_per_semver_precedence\": \"MINOR\"' && cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && COMMITS_REPO_ROOT='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json | grep -q '\"next_version\": \"v1.1.0\"'"
     iter166_end_to_end_aggregator_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
     iter166_end_to_end_aggregator_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
     if [[ "$iter166_end_to_end_aggregator_exit" -eq 0 ]]; then

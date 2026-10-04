@@ -66,7 +66,7 @@ Limitations (documented honestly, not glossed over):
 
 Usage:
     python3 scripts/iter144-release-step-timing-parser.py <debug-log-file>
-    [ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY=N]
+    [SEMREL_TIMING_PARSER_TOP_N=N]
         (default 10, mirrors iter-130/139/140 top-N convention)
 """
 
@@ -78,6 +78,19 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
+
+
+def cc_knob(new: str, old: str, default: str) -> str:
+    """Env knob with a deprecated alias: NEW if set, else OLD (with a stderr notice), else DEFAULT.
+
+    Same rule as scripts/lib/env-knob.sh, which a Python script cannot source (cc-skills #224).
+    """
+    if os.environ.get(new):
+        return os.environ[new]
+    if os.environ.get(old):
+        print(f"{old} is deprecated; use {new} (cc-skills #224)", file=sys.stderr)
+        return os.environ[old]
+    return default
 
 # ─── Constants (self-documenting names per CLAUDE.md directive) ───────────────
 
@@ -118,7 +131,7 @@ ITER144_UNATTRIBUTED_PRE_PLUGIN_PIPELINE_BOOTSTRAP_BUCKET_LABEL_FOR_LINES_BEFORE
 ITER144_DEFAULT_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY_IN_RANKING_OUTPUT = 10
 
 ITER144_OPERATOR_TUNABLE_TOP_N_OVERRIDE_ENVIRONMENT_VARIABLE_NAME = (
-    "ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY"
+    "SEMREL_TIMING_PARSER_TOP_N"
 )
 
 
@@ -467,9 +480,10 @@ def iter144_main_entry_point_parses_cli_args_invokes_debug_log_walker_and_render
         return 1
 
     top_n_threshold_resolved_from_env_or_default = int(
-        os.environ.get(
+        cc_knob(
             ITER144_OPERATOR_TUNABLE_TOP_N_OVERRIDE_ENVIRONMENT_VARIABLE_NAME,
-            ITER144_DEFAULT_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY_IN_RANKING_OUTPUT,
+            "ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY",
+            str(ITER144_DEFAULT_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY_IN_RANKING_OUTPUT),
         )
     )
 

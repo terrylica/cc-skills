@@ -53,9 +53,9 @@ assert_substring_present \
     "iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary"
 
 assert_substring_present \
-    "Tier 1.A3: iter-130 operator-tunable env var ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY present" \
+    "Tier 1.A3: iter-130 operator-tunable env var PREFLIGHT_TIMING_TOP_N present" \
     "$preflight_script_source" \
-    "ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY"
+    "PREFLIGHT_TIMING_TOP_N"
 
 assert_substring_present \
     "Tier 1.A4: iter-130 sort -rn -k1 ranking pipeline present (descending by elapsed_ms first field)" \
@@ -168,9 +168,9 @@ else
     # PREFLIGHT_INTEGRATION_TIER=1 to keep the regression test under 10s in
     # the common case. The suite's iter-131 integration above already covers
     # the shared bottleneck-ranking-summary design pattern.
-    if [[ "${ITER132_RUN_PREFLIGHT_INTEGRATION_TIER:-0}" == "1" ]]; then
+    if [[ "${TEST_PREFLIGHT_INTEGRATION:-0}" == "1" ]]; then
         iter130_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
-            ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=3 \
+            PREFLIGHT_TIMING_TOP_N=3 \
             bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
 
         assert_substring_present \
@@ -181,9 +181,9 @@ else
         assert_substring_present \
             "Tier 2.A2: iter-130 emits override-hint footer pointing operator to ITER130_TOP_N" \
             "$iter130_integration_output" \
-            "override count via ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY"
+            "override count via PREFLIGHT_TIMING_TOP_N"
     else
-        echo "  ⊘ Tier 2.A (iter-130 preflight integration) SKIPPED — set ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1 to enable"
+        echo "  ⊘ Tier 2.A (iter-130 preflight integration) SKIPPED — set TEST_PREFLIGHT_INTEGRATION=1 to enable"
         echo "    (preflight is ~7s; gated to keep the regression test fast in the common case)"
     fi
 fi

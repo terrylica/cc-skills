@@ -143,13 +143,16 @@
 #   - Future iter could add --since <tag> override, --until <ref>, etc.
 
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
 
 # Resolve target git repo (what to walk) and script home (where libs live).
 # These are deliberately separate so iter-165 can run from any cwd while
 # always sourcing the libs from its own cc-skills install location — which
 # also makes it parallel-safe under regression tests that spin up synthetic
-# git repos in /tmp via ITER165_REPO_ROOT_OVERRIDE.
-ITER165_TARGET_GIT_REPO_TOPLEVEL_ABSOLUTE_PATH_TO_WALK_FOR_RELEASE_PREVIEW="${ITER165_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+# git repos in /tmp via COMMITS_REPO_ROOT.
+cc_knob ITER165_TARGET_GIT_REPO_TOPLEVEL_ABSOLUTE_PATH_TO_WALK_FOR_RELEASE_PREVIEW COMMITS_REPO_ROOT ITER165_REPO_ROOT_OVERRIDE "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ITER165_TARGET_GIT_REPO_TOPLEVEL_ABSOLUTE_PATH_TO_WALK_FOR_RELEASE_PREVIEW"
 
 ITER165_SCRIPT_HOME_DIRECTORY_ABSOLUTE_PATH_RESOLVED_FROM_BASH_SOURCE_FOR_SHARED_LIB_LOCATION_PINNING="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

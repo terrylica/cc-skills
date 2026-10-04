@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Execute complete release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → session-chronicle bundle (private repos only) → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory.
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/../../scripts/lib/env-knob.sh"
 
 # The orchestrator is swappable; these scripts are the truth (bootstrap-monorepo
 # Nx-convergence rule 6). Resolve the repo root from this file's own location and
@@ -31,7 +34,7 @@ readonly CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR="$CC_SKILLS_REPO_ROOT/tasks/release"
 #     after each phase completes, inline with phase boundary banners.
 #   - End-of-script: top-N ranking sorted descending by elapsed-ms, mirroring
 #     iter-130's preflight ranking. Default N=5; operator-tunable via
-#     ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY.
+#     RELEASE_TIMING_TOP_N.
 #
 # Removed the previous `#MISE depends=["release:preflight"]` declaration so
 # preflight runs INSIDE the orchestrator script body where it can be wrapped
@@ -81,14 +84,15 @@ __iter139_emit_top_n_slowest_release_phases_ranked_by_elapsed_milliseconds_desce
     if [[ "${#__iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -eq 0 ]]; then
         return 0
     fi
-    local top_n_threshold_for_slowest_release_phase_ranking_display="${ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY:-5}"
+    local top_n_threshold_for_slowest_release_phase_ranking_display
+    cc_knob top_n_threshold_for_slowest_release_phase_ranking_display RELEASE_TIMING_TOP_N ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY "5"
     echo ""
     echo "    ⧗ ─── Top ${top_n_threshold_for_slowest_release_phase_ranking_display} slowest release phases (iter-139 pipeline-level bottleneck ranking) ───"
     printf '%s\n' "${__iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
         | sort -rn -k1 \
         | head -n "${top_n_threshold_for_slowest_release_phase_ranking_display}" \
         | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
-    echo "    ⧗ (override count via ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY=N)"
+    echo "    ⧗ (override count via RELEASE_TIMING_TOP_N=N)"
     echo "    ⧗ (set PREFLIGHT_TIMING_PROFILE=1 too for the iter-130 per-check sub-ranking inside Phase 1)"
 }
 
@@ -149,11 +153,11 @@ fi
 # `semantic-release:get-git-auth-url` p50 BEFORE and AFTER:
 #
 #   # before
-#   ITER147_VARIANCE_PROFILE_RUN_COUNT=5 \\
+#   RELEASE_VARIANCE_RUNS=5 \\
 #     scripts/iter147-release-timing-variance-harness.py
 #   # after (env-var on)
 #   RELEASE_SSH_MULTIPLEXING_ENABLED=1 GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=$HOME/.ssh/controlmasters/%r@%h:%p -o ControlPersist=10m" \\
-#     ITER147_VARIANCE_PROFILE_RUN_COUNT=5 \\
+#     RELEASE_VARIANCE_RUNS=5 \\
 #     scripts/iter147-release-timing-variance-harness.py
 if [[ "${RELEASE_SSH_MULTIPLEXING_ENABLED:-0}" == "1" ]]; then
     ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION="$HOME/.ssh/controlmasters"
