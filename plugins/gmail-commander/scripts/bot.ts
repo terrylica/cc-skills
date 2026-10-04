@@ -9,25 +9,19 @@
 import { createTelegramBot, loadBotCredentials } from "./lib/bot-factory.js";
 import { registerCommands, setCommandMenu } from "./lib/commands.js";
 import { registerCallbacks, clearExpiredSessions, pendingSessions } from "./lib/callbacks.js";
-import { loadBotState, setStateFile } from "./lib/state.js";
-import { setAuditDir } from "./lib/audit.js";
+import { loadBotState } from "./lib/state.js";
 import { auditLog } from "./lib/audit.js";
 import { createDraft } from "./lib/gmail-client.js";
 import { escapeHtml } from "./lib/telegram-format.js";
 import { handleAgentQuery } from "./lib/agent-router.js";
 import { acquireLock, releaseLock } from "./lib/session-guard.js";
-import { join } from "path";
 
 // --- Configuration ---
 
 const PID_FILE = "/tmp/gmail-commander-bot.pid";
 
-// Configure audit dir and state file from env or defaults
-const auditDir = Bun.env.AUDIT_DIR || join(process.env.HOME || "~", "own", "amonic", "logs", "audit");
-setAuditDir(auditDir);
-
-const stateFile = Bun.env.BOT_STATE_FILE || join(process.env.HOME || "~", "own", "amonic", "logs", "bot-state.json");
-setStateFile(stateFile);
+// The audit dir and state file resolve in lib/audit.ts and lib/state.ts: AUDIT_DIR and
+// BOT_STATE_FILE when set (the mca tenant sets both), else ~/.local/state/gmail-commander/.
 
 // --- Main ---
 

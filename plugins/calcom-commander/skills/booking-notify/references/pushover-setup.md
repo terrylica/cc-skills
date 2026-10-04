@@ -49,7 +49,7 @@ export PUSHOVER_USER_KEY="$(op item get "$PUSHOVER_OP_UUID" --vault 'Claude Auto
 export PUSHOVER_SOUND='dune'
 ```
 
-For the launchd daemons, write the resolved values as `export KEY='value'` lines in `~/own/amonic/.env.launchd` (gitignored, hand-maintained). That file is pre-baked on purpose: resolving `op` at launch would trigger macOS Automation prompts under launchd.
+For the launchd daemons, write the resolved values as `export KEY='value'` lines in `~/gh/vjspc/amonic/.env.launchd` (gitignored, hand-maintained). That file is pre-baked on purpose: resolving `op` at launch would trigger macOS Automation prompts under launchd.
 
 ## Step 6: Test
 

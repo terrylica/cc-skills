@@ -6,7 +6,7 @@
 import { appendFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from "fs";
 import { join } from "path";
 
-const AUDIT_DIR = process.env.AUDIT_DIR || `${process.env.HOME}/own/amonic/logs/audit`;
+const AUDIT_DIR = process.env.AUDIT_DIR || `${process.env.HOME}/.local/state/calcom-commander/audit`;
 const RETENTION_DAYS = 14;
 
 function getLogPath(): string {

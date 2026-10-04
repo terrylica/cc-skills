@@ -40,7 +40,7 @@ Cal.com CLI (compiled Bun binary): `scripts/calcom-cli/` — separate `package.j
 | `PUSHOVER_OP_UUID`         | No       | 1Password item UUID for Pushover credentials                |
 | `WEBHOOK_RELAY_URL`        | No       | Cloud Run webhook relay URL                                 |
 | `CALCOM_API_URL`           | No       | Cal.com API base URL (default: self-hosted instance)        |
-| `AUDIT_DIR`                | No       | Audit log directory (default: `~/own/amonic/logs/audit`)    |
+| `AUDIT_DIR`                | No       | Audit log directory (default: `~/.local/state/calcom-commander/audit`) |
 | `BOT_STATE_FILE`           | No       | Bot state file path                                         |
 
 ## Conventions
@@ -48,7 +48,7 @@ Cal.com CLI (compiled Bun binary): `scripts/calcom-cli/` — separate `package.j
 - **Hooks**: Use `$HOME`-based paths, never `$CLAUDE_PLUGIN_ROOT`
 - **Skills**: Follow Suite Pattern (Template F) with mandatory preflight
 - **CLI paths**: `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/calcom-cli/calcom`
-- **Secrets**: 1Password (`op`, via `OP_SERVICE_ACCOUNT_TOKEN`); daemons read their env from `~/own/amonic/.env.launchd` (gitignored, hand-maintained), sourced by the launcher scripts; interactive use takes env from the calling shell. See [env-setup.md](./skills/calcom-access/references/env-setup.md)
+- **Secrets**: 1Password (`op`, via `OP_SERVICE_ACCOUNT_TOKEN`); daemons read their env from `~/gh/vjspc/amonic/.env.launchd` (gitignored, hand-maintained), sourced by the launcher scripts; interactive use takes env from the calling shell. See [env-setup.md](./skills/calcom-access/references/env-setup.md)
 - **Deploy**: SKILL.md prescription for Cloud Run + Docker Compose (not in CLI)
 - **Dual-channel**: Telegram (HTML) + Pushover (plain text). Build in HTML, strip for Pushover.
 - **Pushover optional**: All Pushover functionality gracefully degrades if credentials not set
