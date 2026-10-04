@@ -222,9 +222,9 @@ iter147_assert_substring_present_in_file \
     "RELEASE_SSH_MULTIPLEXING_ENABLED"
 
 iter147_assert_substring_present_in_file \
-    "E3: docs/RELEASE.md cross-references iter-146 as the ~/.ssh/config-modifying sibling path" \
+    "E3: docs/RELEASE.md cross-references the iter-146 ~/.ssh/config-modifying sibling script" \
     "$ITER147_RELEASE_MD_DOC_RELATIVE_PATH" \
-    "iter-146"
+    "scripts/iter146-github-ssh-controlmaster-setup.sh"
 
 # ─── Final report ─────────────────────────────────────────────────────────────
 echo ""
