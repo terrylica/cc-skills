@@ -58,10 +58,10 @@
 #   moon run repo:commits-health
 #
 #   # Custom window size
-#   ITER152_COMMIT_COUNT_TO_ANALYZE=20 moon run repo:commits-health
+#   COMMITS_HEALTH_WINDOW=20 moon run repo:commits-health
 #
 #   # Custom hard-cap threshold (operators on stricter projects)
-#   ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 moon run repo:commits-health
+#   COMMITS_SUBJECT_HARD_CAP=50 moon run repo:commits-health
 #
 # DESIGN NOTES:
 #
@@ -84,6 +84,9 @@
 #     community prior art validating the classification approach
 
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
 
 # ─── ITER-171 UTF-8 LOCALE INVARIANT GUARD FOR CHARACTER-COUNTING CORRECTNESS ─
 # Empirically verified iter-171 audit probe finding: bash ${#var} returns
@@ -172,11 +175,11 @@ ITER152_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2
 cd "$ITER152_REPO_ROOT"
 
 # ─── Operator-tunable knobs ─────────────────────────────────────────────────
-ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW="${ITER152_COMMIT_COUNT_TO_ANALYZE:-10}"
-ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE="${ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS:-72}"
-ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE="${ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS:-50}"
-ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS="${ITER152_HISTOGRAM_BAR_WIDTH:-20}"
-ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3="${ITER152_WORST_OFFENDER_CALLOUT_COUNT:-3}"
+cc_knob ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW COMMITS_HEALTH_WINDOW ITER152_COMMIT_COUNT_TO_ANALYZE "10"
+cc_knob ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE COMMITS_SUBJECT_HARD_CAP ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS "72"
+cc_knob ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE COMMITS_SUBJECT_TARGET ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS "50"
+cc_knob ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS COMMITS_HEALTH_BAR_WIDTH ITER152_HISTOGRAM_BAR_WIDTH "20"
+cc_knob ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3 COMMITS_HEALTH_LONGEST_COUNT ITER152_WORST_OFFENDER_CALLOUT_COUNT "3"
 
 # ─── ANSI color codes (TTY-only gracefully degrade) ─────────────────────────
 if [[ -t 1 ]]; then
@@ -232,7 +235,7 @@ iter152_render_panel_1_iter150_readable_view_by_delegating_to_iter150_renderer_f
     local iter150_renderer_script_absolute_path
     iter150_renderer_script_absolute_path="$ITER152_REPO_ROOT/scripts/iter150-readable-git-log.sh"
     if [[ -x "$iter150_renderer_script_absolute_path" ]]; then
-        ITER150_COMMIT_COUNT_TO_DISPLAY="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+        RELEASE_HISTORY_COUNT="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
             "$iter150_renderer_script_absolute_path" 2>/dev/null \
             | awk '/^═+$/ { count++; if (count >= 1 && count <= 2) next } count >= 1 && !/⧗ tune via/ && !/⧗ pass extra/ && !/^ITER-150/ { print }' \
             | sed -e '1,/^$/d' \
@@ -499,9 +502,9 @@ iter152_render_panel_5_recent_vs_previous_window_trend_signal_with_improving_or_
 iter152_emit_dashboard_footer_with_operator_tunable_knob_hints_and_iter150_iter151_cross_references() {
     echo ""
     echo "═══════════════════════════════════════════════════════════════════════════════"
-    echo "  ⧗ tune via ITER152_COMMIT_COUNT_TO_ANALYZE=N (default ${ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW})"
-    echo "  ⧗ tune via ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=N (default ${ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE})"
-    echo "  ⧗ tune via ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS=N (default ${ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE})"
+    echo "  ⧗ tune via COMMITS_HEALTH_WINDOW=N (default ${ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW})"
+    echo "  ⧗ tune via COMMITS_SUBJECT_HARD_CAP=N (default ${ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE})"
+    echo "  ⧗ tune via COMMITS_SUBJECT_TARGET=N (default ${ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE})"
     echo "  ⧗ iter-150 readable view alone:           moon run repo:release-history"
     echo "  ⧗ iter-151 preflight classification:      runs automatically at release:preflight Check 4l"
     echo "  ⧗ iter-150 convention (50/72 rule):       https://www.conventionalcommits.org/"

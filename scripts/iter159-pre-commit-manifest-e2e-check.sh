@@ -31,15 +31,18 @@
 #     dispatch logic).
 #
 # Tunables:
-#   ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT (default 1)
+#   PRECOMMIT_MANIFEST_E2E_TRIALS (default 1)
 #     Number of git-commit attempts per subject variant. Multiple trials
 #     surface variance in the framework's dispatch overhead.
 
 set -euo pipefail
+# Operator env knobs with deprecated ITER###_ aliases (cc-skills #224).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
 
 ITER159_HARNESS_SCRIPT_DIRECTORY_ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ITER159_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$(cd "$ITER159_HARNESS_SCRIPT_DIRECTORY_ABSOLUTE_PATH/.." && pwd)"
-ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT="${ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT:-1}"
+cc_knob PRECOMMIT_MANIFEST_E2E_TRIALS PRECOMMIT_MANIFEST_E2E_TRIALS ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT "1"
 
 # Require the pre-commit binary on PATH. We do not auto-install — operators
 # may have it in a venv (cc-skills' canonical workspace has it at
@@ -58,7 +61,7 @@ echo "  ITER-159 EMPIRICAL END-TO-END PRE-COMMIT-FRAMEWORK VALIDATION HARNESS"
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo "  cc-skills source: $ITER159_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH"
 echo "  pre-commit:       $ITER159_PRE_COMMIT_BINARY_VERSION_REPORT"
-echo "  trials/variant:   $ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT"
+echo "  trials/variant:   $PRECOMMIT_MANIFEST_E2E_TRIALS"
 echo ""
 
 # ─── Set up sandbox repo + sandboxed pre-commit cache ───────────────────────
@@ -141,7 +144,7 @@ iter159_invoke_git_commit_through_pre_commit_framework_and_capture_exit_code_and
     local empirical_fail_count=0
     local trial_wall_clock_durations_in_milliseconds=()
 
-    while (( trial_number <= ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT )); do
+    while (( trial_number <= PRECOMMIT_MANIFEST_E2E_TRIALS )); do
         # Ensure the worktree has something to commit (an empty commit suffices).
         (
             cd "$ITER159_SANDBOX_REPO_ABSOLUTE_PATH"
@@ -180,10 +183,10 @@ iter159_invoke_git_commit_through_pre_commit_framework_and_capture_exit_code_and
     fi
 
     if (( empirical_fail_count == 0 )); then
-        echo "  ✓ $subject_label_for_logging: $empirical_pass_count/$ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT trials passed @ $latency_summary"
+        echo "  ✓ $subject_label_for_logging: $empirical_pass_count/$PRECOMMIT_MANIFEST_E2E_TRIALS trials passed @ $latency_summary"
         return 0
     else
-        echo "  ✗ $subject_label_for_logging: $empirical_fail_count/$ITER159_VALIDATION_TRIAL_COUNT_PER_SUBJECT_VARIANT trials FAILED @ $latency_summary"
+        echo "  ✗ $subject_label_for_logging: $empirical_fail_count/$PRECOMMIT_MANIFEST_E2E_TRIALS trials FAILED @ $latency_summary"
         return 1
     fi
 }

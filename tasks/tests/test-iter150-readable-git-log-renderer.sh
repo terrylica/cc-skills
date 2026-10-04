@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-150 regression test pinning the readable-git-log-renderer wrapper. Asserts (a) renderer script exists + executable + bash-syntax-clean + shellcheck-clean, (b) renderer uses awk per the cc-skills CLAUDE.md 'Terminal text unwrapping: awk only' principle (rejects par/fmt/fold/pandoc/textwrap/pysbd), (c) renderer honors ITER150_COMMIT_COUNT_TO_DISPLAY + ITER150_SOFT_WRAP_COLUMN_WIDTH + ITER150_CONTINUATION_INDENT env-var tunables, (d) renderer implements hyphen-replacement so verbose kebab-cased subjects soft-wrap on word boundaries (the iter-144-through-iter-149 cohort would otherwise dump as 1000-char unbroken lines), (e) renderer parses conventional-commit type-scope prefix correctly with double-colon defect fixed (RLENGTH-2 strips both colon and space), (f) functional smoke test against the actual cc-skills repo emits expected multi-line readable output for the iter-149 commit which was 1078 chars on one line in the underlying git history, (g) tasks/release/history task wrapper exists + delegates to the renderer via exec.
+# Iter-150 regression test pinning the readable-git-log-renderer wrapper. Asserts (a) renderer script exists + executable + bash-syntax-clean + shellcheck-clean, (b) renderer uses awk per the cc-skills CLAUDE.md 'Terminal text unwrapping: awk only' principle (rejects par/fmt/fold/pandoc/textwrap/pysbd), (c) renderer honors RELEASE_HISTORY_COUNT + RELEASE_HISTORY_WRAP + RELEASE_HISTORY_INDENT env-var tunables, (d) renderer implements hyphen-replacement so verbose kebab-cased subjects soft-wrap on word boundaries (the iter-144-through-iter-149 cohort would otherwise dump as 1000-char unbroken lines), (e) renderer parses conventional-commit type-scope prefix correctly with double-colon defect fixed (RLENGTH-2 strips both colon and space), (f) functional smoke test against the actual cc-skills repo emits expected multi-line readable output for the iter-149 commit which was 1078 chars on one line in the underlying git history, (g) tasks/release/history task wrapper exists + delegates to the renderer via exec.
 set -euo pipefail
 
 ITER150_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -88,19 +88,19 @@ iter150_assert_substring_present_in_file \
     "awk \\"
 
 iter150_assert_substring_present_in_file \
-    "B2: renderer honors ITER150_COMMIT_COUNT_TO_DISPLAY env-var tunable" \
+    "B2: renderer honors RELEASE_HISTORY_COUNT env-var tunable" \
     "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER150_COMMIT_COUNT_TO_DISPLAY"
+    "RELEASE_HISTORY_COUNT"
 
 iter150_assert_substring_present_in_file \
-    "B3: renderer honors ITER150_SOFT_WRAP_COLUMN_WIDTH env-var tunable" \
+    "B3: renderer honors RELEASE_HISTORY_WRAP env-var tunable" \
     "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER150_SOFT_WRAP_COLUMN_WIDTH"
+    "RELEASE_HISTORY_WRAP"
 
 iter150_assert_substring_present_in_file \
-    "B4: renderer honors ITER150_CONTINUATION_INDENT env-var tunable" \
+    "B4: renderer honors RELEASE_HISTORY_INDENT env-var tunable" \
     "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "ITER150_CONTINUATION_INDENT"
+    "RELEASE_HISTORY_INDENT"
 
 iter150_assert_substring_present_in_file \
     "B5: renderer implements hyphen-replacement so kebab-cased verbose subjects soft-wrap" \
@@ -127,8 +127,8 @@ echo ""
 echo "GROUP D (3 assertions): Functional smoke test emits expected readable output"
 
 ITER150_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST=$(
-    ITER150_COMMIT_COUNT_TO_DISPLAY=10 \
-    ITER150_SOFT_WRAP_COLUMN_WIDTH=80 \
+    RELEASE_HISTORY_COUNT=10 \
+    RELEASE_HISTORY_WRAP=80 \
     "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" 2>&1 || true
 )
 
@@ -141,7 +141,7 @@ else
 fi
 
 ITER150_TOTAL_ASSERTIONS_EVALUATED=$((ITER150_TOTAL_ASSERTIONS_EVALUATED + 1))
-if [[ "$ITER150_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"tune via ITER150_COMMIT_COUNT_TO_DISPLAY"* ]]; then
+if [[ "$ITER150_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"tune via RELEASE_HISTORY_COUNT"* ]]; then
     echo "  ✓ D2: renderer emits operator-tunable knob hints in footer"
 else
     echo "  ✗ D2: renderer footer knob hints missing"
