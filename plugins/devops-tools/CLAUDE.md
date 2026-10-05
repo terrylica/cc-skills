@@ -68,7 +68,7 @@ ssh gpu-host-1 "curl -s 'http://localhost:8123/?query=SELECT+1'"
 | ------------------------------------------------- | ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pretooluse-firecrawl-research-reminder.ts`       | PreToolUse       | WebFetch\|WebSearch | Routes academic-paper fetches to `Skill(firecrawl-research-patterns)`                                                                                               |
 | `posttooluse-1password-pattern-reminder.sh`       | PostToolUse      | Bash                | Reminds that 1Password is last resort (SCS ladder) when `op` is run "bare"                                                                                          |
-| `posttooluse-crown-jewel-plain-keychain-nudge.sh` | PostToolUse      | Bash                | Nudges crown-jewel `security add-generic-password … -T /usr/bin/security` toward the Touch-ID-gated tier (`vault set --gated`); escape hatch `CROWN-JEWEL-PLAIN-OK` |
+| `posttooluse-crown-jewel-plain-keychain-nudge.sh` | PostToolUse      | Bash                | Nudges crown-jewel `security add-generic-password … -T /usr/bin/security` toward a crown-strict vault scope (Secure Enclave + offline recovery key, never in the plain Keychain); escape hatch `CROWN-JEWEL-PLAIN-OK` |
 | `userpromptsubmit-1password-context-injection.sh` | UserPromptSubmit | (any)               | Injects the Self-Custody Secrets ladder when the user mentions 1Password in chat                                                                                    |
 
 ### Credential hooks

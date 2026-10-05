@@ -206,7 +206,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).
+**What it does**: Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward a crown-strict vault scope (Secure Enclave + offline recovery key, never in the plain Keychain). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).
 
 **Example usage**:
 
