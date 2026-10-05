@@ -74,15 +74,15 @@ iter143_assert_node_predicate_holds \
 
 # ─── Group B: Forensic-pin all four community-validated false-flags ──────────
 echo ""
-echo "GROUP B (4 assertions): Four load-bearing @semantic-release/github optimization flags"
+echo "GROUP B (6 assertions): Four load-bearing @semantic-release/github optimization flags, none in a deprecated form"
 
 iter143_assert_node_predicate_holds \
-    "B1: successComment:false (skip per-resolved-commit GET /search/issues API storm — documented bottleneck in semantic-release/github#542/#867/#2204)" \
-    "Array.isArray(gh) && gh[1].successComment === false"
+    "B1: successCommentCondition:false (skip per-resolved-commit GET /search/issues API storm — documented bottleneck in semantic-release/github#542/#867/#2204)" \
+    "Array.isArray(gh) && gh[1].successCommentCondition === false"
 
 iter143_assert_node_predicate_holds \
-    "B2: failComment:false (skip auto-opening GitHub issue on release failure — cc-skills uses iter-139 RELEASE_TIMING_PROFILE local logs instead)" \
-    "Array.isArray(gh) && gh[1].failComment === false"
+    "B2: failCommentCondition:false (skip auto-opening GitHub issue on release failure — cc-skills uses RELEASE_TIMING_PROFILE local logs instead)" \
+    "Array.isArray(gh) && gh[1].failCommentCondition === false"
 
 iter143_assert_node_predicate_holds \
     "B3: releasedLabels:false (skip applying 'released' label to resolved PRs/issues — cc-skills uses tag-as-SSoT release tracking)" \
@@ -91,6 +91,17 @@ iter143_assert_node_predicate_holds \
 iter143_assert_node_predicate_holds \
     "B4: addReleases:false (skip injecting 'previous releases' link block — CHANGELOG.md already links inter-version diffs)" \
     "Array.isArray(gh) && gh[1].addReleases === false"
+
+# @semantic-release/github 11 deprecates successComment:false / failComment:false / failTitle:false
+# ("will be removed in a future major version"). Left in place they warn on every release and will
+# silently stop working at the plugin's next major (#227); the *CommentCondition keys replace them.
+iter143_assert_node_predicate_holds \
+    "B5: deprecated successComment key absent (replaced by successCommentCondition, #227)" \
+    "Array.isArray(gh) && !('successComment' in gh[1])"
+
+iter143_assert_node_predicate_holds \
+    "B6: deprecated failComment / failTitle keys absent (replaced by failCommentCondition, #227)" \
+    "Array.isArray(gh) && !('failComment' in gh[1]) && !('failTitle' in gh[1])"
 
 # ─── Group C: Provenance — iter-143 comment block exists explaining the why ──
 echo ""
