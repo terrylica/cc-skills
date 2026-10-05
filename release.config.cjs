@@ -380,24 +380,28 @@ module.exports = {
     // non-use-cases. ALL FOUR flags are LOAD-BEARING for performance;
     // reintroducing any of them re-adds GitHub API-call cost.
     //
-    //   1. successComment:false — disables the per-resolved-commit
+    //   1. successCommentCondition:false — disables the per-resolved-commit
     //      `GET /search/issues` API storm (semantic-release/github#542, #867,
     //      #2204). cc-skills uses tag-driven releases, not PR-driven, so there
     //      are no resolved PRs/issues to comment on.
-    //   2. failComment:false — no auto-opened GitHub issue on release failure;
+    //   2. failCommentCondition:false — no auto-opened GitHub issue on release failure;
     //      failures surface via local release-pipeline logs instead.
     //   3. releasedLabels:false — no `released` label on resolved PRs/issues;
     //      the tag + GitHub release page is the SSoT.
     //   4. addReleases:false — no "previous releases" back-reference block;
     //      CHANGELOG.md already links inter-version diffs.
     //
-    // The iter-143 regression test pins these four flags to forbid a silent
-    // revert in future config edits.
+    // The *CommentCondition keys replaced successComment:false / failComment:false,
+    // which @semantic-release/github 11 deprecates ("will be removed in a future
+    // major version") and warned about on every release (#227). The README
+    // documents `false` on the condition keys as "do not create any comments at
+    // all". The iter-143 regression test pins these four flags, and the absence of
+    // the deprecated keys, to forbid a silent revert in future config edits.
     [
       "@semantic-release/github",
       {
-        successComment: false,
-        failComment: false,
+        successCommentCondition: false,
+        failCommentCondition: false,
         releasedLabels: false,
         addReleases: false,
       },
