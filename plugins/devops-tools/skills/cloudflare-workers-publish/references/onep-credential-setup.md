@@ -78,12 +78,11 @@ Or via web UI: edit the item, add a TEXT field named `account_id` and a CONCEALE
 
 ```bash
 # Test that the headless service account can read the item
-OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
-  op item get "{item-id}" --vault "Claude Automation" --fields "account_id"
+# OP_SERVICE_ACCOUNT_TOKEN must already be exported — see "Service Account Token" below
+op item get "{item-id}" --vault "Claude Automation" --fields "account_id"
 
 # CRITICAL (CFW-03): Use --reveal for the CONCEALED field
-OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
-  op item get "{item-id}" --vault "Claude Automation" --fields "credential" --reveal
+op item get "{item-id}" --vault "Claude Automation" --fields "credential" --reveal
 
 # Both should return actual values, not masked placeholders
 ```
@@ -105,11 +104,15 @@ This ID is NOT secret (opaque reference, not a credential). Safe to commit to so
 | `account_id` | TEXT           | No                | Cloudflare Account ID (32-char hex) |
 | `credential` | CONCEALED      | **YES** (CFW-03)  | API token (sensitive)               |
 
-## Service Account Token Location
+## Service Account Token
 
-```
-~/.claude/.secrets/op-service-account-token   (chmod 600)
-```
+`publish_static.sh` takes the token from the first of these that is set, and there is no default path:
+
+1. `OP_SERVICE_ACCOUNT_TOKEN` already exported in the environment.
+2. `OP_SA_TOKEN_CMD`, a command whose stdout is the token, for example `export OP_SA_TOKEN_CMD='vault get op-service-account token'`. It is split on whitespace and run as a plain argv, with no shell.
+3. `OP_SA_TOKEN_FILE`, a token file you name (chmod 600).
+
+For the one-off commands in this guide, export it in your shell first, from wherever you keep it, for example `export OP_SERVICE_ACCOUNT_TOKEN="$(vault get op-service-account token)"`. Never pass the token as a command-line argument: any local user can read another process's arguments.
 
 Access scope: Read + Write to the **Claude Automation** vault only.
 
