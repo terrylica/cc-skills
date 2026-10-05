@@ -1,3 +1,16 @@
+## [33.8.1](https://github.com/terrylica/cc-skills/compare/v33.8.0...v33.8.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **gh-tools:** PAT inspect lists a token's repositories again ([7f452ff](https://github.com/terrylica/cc-skills/commit/7f452ffc7c8e36b3f313c115604026b110d7dbd9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#20](https://github.com/terrylica/cc-skills/issues/20)
+
+GitHub's token detail page now renders the selected repositories as plain text (a span plus a tool-tip under "Repository access") instead of links. inspectToken() scanned links only, so every selected-repos token reported "repos: (none listed)", including tokens that were correctly scoped.
+
+That cost a real token on 2026-10-05. While minting claude-sys-release, `gh api` with GH_TOKEN exported answered with the operator's own login (the shell's gh wrapper picks the account from the repo alias). The token appeared to read another private repo, and "(none listed)" seemed to confirm it was not limited to its repo. It was revoked and re-minted before curl with the token showed 200 for its own repo and 404 for another private one.
+
+* **statusline-tools:** cache a failed gateway-floor probe (ten-minute negative entry that keeps the last good floor) so renders stop re-probing the gateway ([#232](https://github.com/terrylica/cc-skills/issues/232)) ([e7d9ec7](https://github.com/terrylica/cc-skills/commit/e7d9ec708a63dca85498306d5ee14c3988d2a0c3)), closes [#231](https://github.com/terrylica/cc-skills/issues/231) [#231](https://github.com/terrylica/cc-skills/issues/231)
+
 # [33.8.0](https://github.com/terrylica/cc-skills/compare/v33.7.0...v33.8.0) (2026-10-05)
 
 
