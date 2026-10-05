@@ -48,8 +48,6 @@ bash tasks/release/augment --tag <tag> --notes-file <path>   # Replace a GitHub 
 
 Every phase is a plain script under `tasks/`, so `bash tasks/release/<phase>` runs it identically with no moon involved — the moon task is a thin wrapper, which is what makes the orchestrator swappable. Args after `--` and the `ITER*` env-var knobs documented below both pass through the wrapper unchanged.
 
-**Legacy output strings**: jdx/mise is retired and not installed. If a task script's own help or diagnostic output still prints a `mise run …` string, it names a runner that does not exist; use the moon commands documented here instead (`mise run release:X` is `moon run repo:release-X`, `mise run commits:X` is `moon run repo:commits-X`).
-
 ### Extensive release notes
 
 Release notes must carry BOTH a narrative paragraph (the _why_) and a point-form list
