@@ -21,10 +21,18 @@ owner       = "exampleorg"
 account     = "orgadmin"
 EOF
 
-run() { # $1 = command string; prints the decision ("deny" or "allow")
-  local json out
-  json=$(printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(printf '%s' "$1" | bun -e 'console.log(JSON.stringify(await Bun.stdin.text()))')")
-  out=$(cd "$tmp/work" && printf '%s' "$json" | env -u GH_TOKEN HOME="$tmp/home" PATH_OWNER_REGISTRY="$tmp/registry.toml" bun "$hook" 2>/dev/null || true)
+# Resolve the REAL bun binary now, under the real HOME. `bun` on PATH is usually proto's shim,
+# which looks for its tools under $HOME/.proto; with the synthetic HOME below it fails whenever
+# PROTO_BUN_VERSION is exported (gate-slot exports it, so the pre-push gate did). The hook then
+# never ran, and the empty output used to be scored "allow" -- every deny case failed and every
+# allow case passed vacuously (found 2026-10-05).
+bun_bin="$(bun -e 'console.log(process.execPath)')"
+
+run() { # $1 = command string; prints the decision ("deny", "allow", or "error" if the hook did not run)
+  local json out rc=0
+  json=$(printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(printf '%s' "$1" | "$bun_bin" -e 'console.log(JSON.stringify(await Bun.stdin.text()))')")
+  out=$(cd "$tmp/work" && printf '%s' "$json" | env -u GH_TOKEN HOME="$tmp/home" PATH_OWNER_REGISTRY="$tmp/registry.toml" "$bun_bin" "$hook" 2>/dev/null) || rc=$?
+  if (( rc != 0 )); then echo "error(rc=$rc)"; return; fi   # the guard always exits 0; anything else means it did not run
   case "$out" in *'"permissionDecision":"deny"'*) echo deny ;; *) echo allow ;; esac
 }
 
