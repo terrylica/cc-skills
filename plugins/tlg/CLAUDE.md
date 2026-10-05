@@ -101,6 +101,8 @@ Fetched from 1Password at runtime via `op item get`. Each profile maps to a diff
 
 **Override**: Set `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` env vars to skip 1Password.
 
+**Service-account token** (no Touch ID prompt): resolved by `scripts/op-sa-token.ts` from the first of `OP_SERVICE_ACCOUNT_TOKEN` (already exported), `OP_SA_TOKEN_CMD` (a command printing the token, run as a plain argv with no shell, e.g. `vault get op-service-account token`) or `OP_SA_TOKEN_FILE` (a file you name). There is no default path. With none set, `op` uses the 1Password app; a source that is set but fails is an error, never skipped.
+
 ## Upstream
 
 MTProto client library is **GramJS** (`telegram` on npm):
