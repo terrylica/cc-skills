@@ -10,9 +10,9 @@
 # It assigns through `printf -v` rather than printing, because `x="$(cc_knob …)"` forks a subshell
 # per read, and the commits doctor's fork budget (tasks/tests/test-iter174-…) caught exactly that.
 #
-# Two readers cannot source this file and carry the same rule inline: the commit-msg hook (it is
-# copied into other repositories and runs before it has located cc-skills) and the two Python
-# scripts under scripts/ (iter144, iter147).
+# The two Python scripts under scripts/ (iter144, iter147) cannot source this file and carry the
+# same rule inline. Every shell reader sources it, including the commit-msg hook: installed
+# repositories run that hook in place through an exec shim, not a copy (#229).
 #
 # Source it; do not execute it.
 
