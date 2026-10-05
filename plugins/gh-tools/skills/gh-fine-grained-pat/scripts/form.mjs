@@ -572,9 +572,15 @@ export async function inspectToken(page, name) {
   await page.waitForTimeout(900);
   const data = await page.evaluate(() => {
     const text = (document.body.innerText || "").replace(/\s+/g, " ");
+    // Selected repos used to be links; since ~2026-10 GitHub renders them as plain text
+    // (span.color-fg-muted + a tool-tip under "Repository access"), so a link-only scan
+    // reported "(none listed)" for a correctly scoped token. Accept any leaf element whose
+    // whole text is owner/repo, skipping the editable name/description fields.
     const repos = [];
-    for (const a of document.querySelectorAll('a[href^="/"]')) {
-      const t = (a.textContent || "").trim();
+    for (const el of document.querySelectorAll("a, span, tool-tip, li, div")) {
+      if (el.children.length) continue;
+      if (el.closest("textarea, .js-token-display-field, .js-token-form-field")) continue;
+      const t = (el.textContent || "").trim();
       if (/^[\w.-]+\/[\w.-]+$/.test(t)) repos.push(t);
     }
     return { text, repos: [...new Set(repos)] };
