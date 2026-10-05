@@ -1,3 +1,23 @@
+# [33.8.0](https://github.com/terrylica/cc-skills/compare/v33.7.0...v33.8.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* **commits-hook:** the installed hook is an exec shim, so the hook sources the shared knob helper ([0d7134c](https://github.com/terrylica/cc-skills/commit/0d7134cb20d45357555f030299290399af27442a)), closes [#225](https://github.com/terrylica/cc-skills/issues/225) [#226](https://github.com/terrylica/cc-skills/issues/226) [#229](https://github.com/terrylica/cc-skills/issues/229)
+* **release:** use successCommentCondition/failCommentCondition instead of the deprecated false forms ([e8567a0](https://github.com/terrylica/cc-skills/commit/e8567a0f2e3304cb4b12d7e4c8f4681d90399b69)), closes [#227](https://github.com/terrylica/cc-skills/issues/227)
+
+@semantic-release/github 11 warns on every release that 'false' for successComment and for failComment/failTitle is deprecated and will be removed in a future major version. When that happens the two settings would silently stop skipping the per-commit GET /search/issues calls and the auto-opened failure issue. The plugin README documents 'do not create any comments at all: set to false' on the condition keys, and its verify step accepts false for them; success.js and fail.js skip the same code paths for it.
+
+test-iter143 now pins the condition keys and that the deprecated keys are absent (11/11).
+
+
+
+### Features
+
+* **gh-tools:** PAT engine stores web credentials in crown-strict vault scopes ([72fa042](https://github.com/terrylica/cc-skills/commit/72fa0423e62c461a4b0c836f869f6a5b0e521442)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+The github-web-&lt;account> blob (passkey, password, TOTP seed) moves from the retired app-level Touch-ID helper (vault-touchid, which could be impersonated by re-signing) into the crown-strict vault scope github-web-&lt;account>: encrypted only to the owner's Secure Enclave key and an offline recovery key, never mirrored to the plain Keychain. register/patch-password write with 'vault set --stdin &lt;scope> credential'; autosudo and patch-password read with 'vault get &lt;scope> credential' (one Touch ID, enforced by the enclave). VAULT_BLOB_PATH lives in identity.mjs. The four existing accounts were migrated and hash-verified.
+
 # [33.7.0](https://github.com/terrylica/cc-skills/compare/v33.6.0...v33.7.0) (2026-10-05)
 
 
