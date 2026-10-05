@@ -1,3 +1,32 @@
+# [33.7.0](https://github.com/terrylica/cc-skills/compare/v33.6.0...v33.7.0) (2026-10-05)
+
+
+### Bug Fixes
+
+* **preflight:** read banner counts with awk 'NR==1' instead of head -1 under pipefail ([01243c0](https://github.com/terrylica/cc-skills/commit/01243c09e3a5f7aa7ec93d78aec43d35857f0fc0)), closes [#222](https://github.com/terrylica/cc-skills/issues/222)
+
+tasks/release/preflight runs under set -euo pipefail and extracted 41 counts with '... | head -1 || echo 0', plus one top-N ranking with 'head -n N'. If head closes the pipe while its producer is still writing, the producer exits 141, pipefail fails the pipeline, and the '|| echo 0' fallback also runs, so the variable holds 'N' then '0' on a second line (or, for the ranking, set -e aborts the run). Each pipe carries about one line today, so the race is latent, not observed. awk 'NR==1' and awk -v n=N 'NR&lt;=n' read all their input, so the producer always finishes.
+
+The 15 tests that copy the same idiom to reproduce preflight's extraction get the same change, so tests and gate stay the same shape.
+
+* **verify-doc-counts:** report plugin counts in unrecognised wordings, and check the plugin-manifest count ([cb80b9b](https://github.com/terrylica/cc-skills/commit/cb80b9b139d0a83ecde3272e191b5fa2b884f4fe)), closes [#220](https://github.com/terrylica/cc-skills/issues/220)
+
+The residue check existed only for ADR claims, so a plugin count in a new wording was never examined; both stale numbers fixed in the previous commit passed the gate. A narrow 'plugin count' family (number, optional bold, at most one qualifier word, 'plugins' not followed by '/', no leading '-' or word char) now reports such claims; a gap as loose as the ADR family's was measured at 18 hits over the swept corpus, mostly not counts. A new rule checks 'N plugins ship one' in plugins/CLAUDE.md against .claude-plugin/plugin.json on disk (2 today).
+
+Planted and caught: the notes-commander '27** cc-skills plugins' wording and a README '36 plugins' (both INCONCLUSIVE, exit 2); '3 plugins ship one' (drift, exit 1).
+
+
+
+### Features
+
+* **release:** descriptive names for the 23 ITER###_ env knobs; old names still honoured ([5c8bde2](https://github.com/terrylica/cc-skills/commit/5c8bde2c4921df5df1ab6512b1c25812b223de2d)), closes [#_](https://github.com/terrylica/cc-skills/issues/_) [#224](https://github.com/terrylica/cc-skills/issues/224)
+
+The release and commits tooling named its operator env knobs after the iteration that added them (ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES, ITER152_WORST_OFFENDER_CALLOUT_COUNT, ...). They now say what they do: PREFLIGHT_AUDIT_PARALLEL_LANES, COMMITS_HEALTH_LONGEST_COUNT, COMMITS_HOOK_FAIL_MODE and so on. The list was derived from every env read in tasks/ and scripts/, which found four knobs the docs never listed (continuation indent, the hook's cc-skills path, the pre-commit e2e trial count, the doctor's root override).
+
+Old names keep working. Shell scripts resolve NEW, then OLD (printing one stderr line naming the replacement), then the default through cc_knob VAR NEW OLD DEFAULT in scripts/lib/env-knob.sh. It assigns with printf -v and the scripts source it via ${BASH_SOURCE[0]%/*}: the first version used command substitution and dirname, and the commits doctor's fork budget (test-iter174) caught it at 34 forks against a ceiling of 27; it is back to 27. The commit-msg hook is copied into other repositories and runs before it has located cc-skills, so it carries the fallback inline; so do the two Python scripts. iter160, which re-read its override by name after testing it, now resolves once.
+
+docs/RELEASE.md lists the new names, the four previously undocumented knobs and a deprecated-alias table. tasks/tests/test-env-knob-aliases.sh checks the helper (default, new, both, old-with-notice), the iter150 renderer set through its old name, the hook's inline fallback (old names, new names, unset) and the Python helper. Tests that set or grep the old names now use the new ones.
+
 # [33.6.0](https://github.com/terrylica/cc-skills/compare/v33.5.4...v33.6.0) (2026-10-04)
 
 
