@@ -40,6 +40,9 @@
 #                                   "gateway".
 #   STATUSLINE_GATEWAY_STATE_LOG    Telemetry JSONL path. Written ONLY when a
 #                                   gateway is configured.
+#   STATUSLINE_GATEWAY_FLOOR_CACHE  Wrapper-floor cache file (default
+#                                   /tmp/statusline-gateway-floor; a failed
+#                                   probe is cached for ten minutes).
 #   STATUSLINE_PIN_HELPER_PATH      Optional account-pin helper library.
 #   STATUSLINE_PIN_DEVICE_FILE      Optional device-scope pin file.
 #   STATUSLINE_PIN_RESOLVER_FN      Resolver function name in that helper.
@@ -913,30 +916,51 @@ GATEWAY_CACHE_TTL=60
 # JSON body, which IS the current floor. Cached at /tmp/statusline-gateway-floor
 # with a 3600s TTL so we only probe gateway once per hour for this value.
 #
-# Probe failure modes (any → fall back to compiled-in default):
+# Probe failure modes (any → no floor discovered):
 #   - Gateway unreachable: probe times out, no response
-#   - Gateway returns 200 (gate disabled / env var unset): no floor to read
+#   - Gate disabled (env var unset): the route is not gated, so the request
+#     reaches the backend, which answers without a floor (a 404 on the
+#     gateway this was measured against)
 #   - Response body doesn't have the expected error.minimum_wrapper_version_required shape
-# The fallback ensures the renderer always has SOMETHING to compare against,
-# even when gateway is down. The fallback is updated whenever a fresh probe
-# succeeds, so cold-start with a stale fallback only matters for the very
-# first render after a new install.
+# On a failure the renderer keeps the last floor it discovered (from the cache
+# file, however old), and uses the compiled-in fallback only when it has never
+# discovered one. The fallback is a constant.
 GATEWAY_MIN_WRAPPER_VERSION_FALLBACK="1.2.0"
-GATEWAY_FLOOR_CACHE="/tmp/statusline-gateway-floor"
-GATEWAY_FLOOR_TTL=3600  # 1 hour
+GATEWAY_FLOOR_CACHE="${STATUSLINE_GATEWAY_FLOOR_CACHE:-/tmp/statusline-gateway-floor}"
+GATEWAY_FLOOR_TTL=3600           # a discovered floor: re-probe hourly
+GATEWAY_FLOOR_NEGATIVE_TTL=600   # a failed probe: retry after 10 minutes
 
-# Cache-aware floor lookup. The cache file holds a single line containing the
-# discovered floor semver (or empty if discovery failed). On cache miss or
-# expiry, probe gateway; on probe failure, fall back to compiled-in default.
+# Cache-aware floor lookup. The cache file holds the discovered floor semver on
+# its first line. A failed probe writes a SECOND form: an empty first line
+# followed by the last good floor (or nothing), and that negative entry is
+# honoured for GATEWAY_FLOOR_NEGATIVE_TTL.
+#
+# Before 2026-10-05 a failed probe wrote nothing, so every render re-probed. A
+# gateway whose version gate is switched off answers this route with a 404 and
+# no floor, which made every status-line redraw of every session send an
+# anonymous request: measured on one gateway, ~720 per hour and rising with the
+# number of open sessions, for a value that could never arrive. The shorter
+# negative TTL means a brief outage costs at most ten minutes of fallback.
 GATEWAY_MIN_WRAPPER_VERSION=""
+floor_cache_fresh=0
+floor_last_good=""
 if [ -f "$GATEWAY_FLOOR_CACHE" ]; then
+    floor_cache_first=$(sed -n 1p "$GATEWAY_FLOOR_CACHE" 2>/dev/null)
+    if [ -n "$floor_cache_first" ]; then
+        floor_last_good="$floor_cache_first"
+        floor_cache_ttl="$GATEWAY_FLOOR_TTL"
+    else
+        floor_last_good=$(sed -n 2p "$GATEWAY_FLOOR_CACHE" 2>/dev/null)
+        floor_cache_ttl="$GATEWAY_FLOOR_NEGATIVE_TTL"
+    fi
     floor_cache_mtime=$(file_mtime "$GATEWAY_FLOOR_CACHE")
     floor_cache_age=$(( $(date +%s) - floor_cache_mtime ))
-    if [ "$floor_cache_age" -lt "$GATEWAY_FLOOR_TTL" ]; then
-        GATEWAY_MIN_WRAPPER_VERSION=$(cat "$GATEWAY_FLOOR_CACHE" 2>/dev/null)
+    if [ "$floor_cache_age" -lt "$floor_cache_ttl" ]; then
+        floor_cache_fresh=1
+        GATEWAY_MIN_WRAPPER_VERSION="$floor_last_good"
     fi
 fi
-if [ -z "$GATEWAY_MIN_WRAPPER_VERSION" ] && [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
+if [ "$floor_cache_fresh" -eq 0 ] && [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
     # Probe a wrapper-gated route anonymously. The gate runs BEFORE auth, so
     # even without a Bearer header we elicit a 403 with the JSON body that
     # carries `minimum_wrapper_version_required`. Implementation note: the
@@ -954,11 +978,14 @@ try:
 except Exception:
     pass
 " 2>/dev/null) || discovered_floor=""
+    # Cache the outcome either way. A failure writes the negative form (empty
+    # first line) and carries the last good floor forward on line 2.
     if [ -n "$discovered_floor" ]; then
-        printf '%s' "$discovered_floor" > "$GATEWAY_FLOOR_CACHE"
+        { printf '%s\n' "$discovered_floor" > "$GATEWAY_FLOOR_CACHE"; } 2>/dev/null || true
         GATEWAY_MIN_WRAPPER_VERSION="$discovered_floor"
     else
-        GATEWAY_MIN_WRAPPER_VERSION="$GATEWAY_MIN_WRAPPER_VERSION_FALLBACK"
+        { printf '\n%s\n' "$floor_last_good" > "$GATEWAY_FLOOR_CACHE"; } 2>/dev/null || true
+        GATEWAY_MIN_WRAPPER_VERSION="$floor_last_good"
     fi
 fi
 # Belt-and-braces: the comparison sites below feed this to `sort -V`, which
