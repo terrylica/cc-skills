@@ -12,7 +12,7 @@
 //   list                  list fine-grained tokens (id + name)
 //   inspect <name>        read back a token's settings (verification)
 //   delete <name>         revoke a token
-//   register --account A  one-time: capture a passkey + password/TOTP for account A into the gated vault (autonomous sudo)
+//   register --account A  one-time: capture a passkey + password/TOTP for account A into its crown-strict vault scope (autonomous sudo)
 //   patch-password --account A  re-store A's gated password (passkey KEPT); fixes a missed register dialog [--force] [--totp]
 //   agent start|stop|status  memory-only session agent: one Touch-ID unlock lasts the session
 //   accounts              list accounts provisioned for autonomous web-auth
@@ -42,7 +42,7 @@ import {
 
 const sleep = (msec) => new Promise((r) => setTimeout(r, msec));
 import { createToken, listTokens, inspectToken, deleteToken } from "./form.mjs";
-import { resolveAccount, addProvisioned, listProvisioned, isProvisioned, vaultItemName } from "./identity.mjs";
+import { resolveAccount, addProvisioned, listProvisioned, isProvisioned, vaultItemName, VAULT_BLOB_PATH } from "./identity.mjs";
 import { agentStatus, agentStop, agentRunning, AGENT_SOCK } from "./webauth-agent.mjs";
 import { openWebAuthn, mountAuthenticator, getCredentials, serializeCredential, removeAuthenticator } from "./webauthn.mjs";
 
@@ -143,7 +143,7 @@ async function session({ requireAuth = true } = {}) {
     // Autonomous FULL login (extends ADR 2026-06-26 beyond sudo-only): when the
     // session cookie has expired, navigating to settings redirects to /login,
     // whose "Sign in with a passkey" button is already covered by autosudo's
-    // tryPasskey regex. One Touch-ID unlock of the gated blob re-arms the
+    // tryPasskey regex. One Touch-ID unlock of the crown-strict blob re-arms the
     // profile cookie; the manual `pat login` path remains the fallback.
     // (Found live 2026-07-19: expired cookie + GH_PAT_AUTONOMOUS=1 died here
     // without ever reaching the autonomous machinery.)
@@ -450,7 +450,6 @@ async function cmdQuit() {
 }
 
 // ---- autonomous web-auth (ADR 2026-06-26) ----------------------------------
-const TOUCHID_BIN = join(homedir(), ".claude", "tools", "vault", "touchid", "vault-touchid");
 function promptSecret(label) {
   const r = spawnSync(
     "osascript",
@@ -459,16 +458,16 @@ function promptSecret(label) {
   );
   return r.status === 0 ? r.stdout.replace(/\n$/, "") : "";
 }
+// The blob lives in the crown-strict vault scope github-web-<account>: Secure Enclave + offline recovery
+// key only, never mirrored to the plain Keychain. Create the scope once in the owning vault
+// (`vault new-scope github-web-<account> "..."`); writing it costs one Touch ID. Value on stdin, never argv.
 function storeGatedBlob(account, blob) {
-  if (!existsSync(TOUCHID_BIN)) die(`vault-touchid not built at ${TOUCHID_BIN} (compile it; see SCS tiered ADR)`);
-  const r = spawnSync(TOUCHID_BIN, ["set", `vault-gated-github-web-${account}`, process.env.USER ?? "vault"], {
-    input: JSON.stringify(blob),
-  });
-  if (r.status !== 0) die("gated store failed (vault-touchid set)");
+  const r = spawnSync("vault", ["set", "--stdin", vaultItemName(account), VAULT_BLOB_PATH], { input: JSON.stringify(blob) });
+  if (r.status !== 0) die(`vault set failed for ${vaultItemName(account)} — create the crown-strict scope first: vault new-scope ${vaultItemName(account)} "GitHub web sign-in for ${account}"`);
 }
 
 // register --account <a>: one-time ceremony — capture a passkey via a virtual
-// authenticator + password/TOTP, store as ONE gated blob. Touch-ID gated tier.
+// authenticator + password/TOTP, store as ONE blob in the crown-strict scope github-web-<account> (Secure Enclave, Touch ID).
 async function cmdRegister() {
   const account = flag("--account");
   if (!account || account === true) die("usage: register --account <login>");
@@ -510,7 +509,7 @@ async function cmdRegister() {
     const totpSeed = promptSecret(`GitHub TOTP base32 seed for '${account}' (from 2FA 'set up using an app' → text code):`);
     storeGatedBlob(account, { passkey: cred, password, totpSeed });
     addProvisioned(account);
-    console.log(`✓ '${account}' provisioned → gated vault item github-web-${account} (Touch-ID required to use). Registry updated.`);
+    console.log(`✓ '${account}' provisioned → crown-strict vault scope github-web-${account} (Touch-ID required to use). Registry updated.`);
     console.log(`  NOTE: GitHub often invalidates the session once right after adding a passkey. If a later run`);
     console.log(`  shows "not logged in", run \`pat login --account ${account}\` ONE more time — it persists after that.`);
   } finally {
@@ -530,11 +529,11 @@ async function cmdPatchPassword() {
   if (!account || account === true) die("usage: patch-password --account <login> [--force] [--totp]");
   let blob;
   try {
-    blob = JSON.parse(execFileSync("vault", ["get", "--gated", vaultItemName(account)], { encoding: "utf8" }));
+    blob = JSON.parse(execFileSync("vault", ["get", vaultItemName(account), VAULT_BLOB_PATH], { encoding: "utf8" }));
   } catch (e) {
-    die(`could not read gated blob for ${account} (Touch ID denied, or not provisioned — run \`register --account ${account}\` first): ${e.message}`);
+    die(`could not read the crown-strict blob for ${account} (Touch ID denied, or not provisioned — run \`register --account ${account}\` first): ${e.message}`);
   }
-  if (!blob.passkey?.credentialId) die(`gated blob for ${account} has no passkey — run \`register --account ${account}\` instead`);
+  if (!blob.passkey?.credentialId) die(`crown-strict blob for ${account} has no passkey — run \`register --account ${account}\` instead`);
   if (!has("--force") && typeof blob.password === "string" && blob.password.length >= 6) {
     console.log(`✓ ${account}: password already set (${blob.password.length} chars), passkey present. Nothing to do (use --force to overwrite).`);
     return;

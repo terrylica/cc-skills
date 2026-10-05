@@ -21,8 +21,10 @@ export function accountFromOriginUrl(url) {
   return m ? m[1] : null;
 }
 
-/** The single gated vault item holding an account's web credential blob. */
+/** The crown-strict vault scope holding an account's web credential blob. */
 export const vaultItemName = (account) => `github-web-${account}`;
+/** Dot path of the JSON credential blob inside the crown-strict scope github-web-<account>. */
+export const VAULT_BLOB_PATH = "credential";
 
 function originUrl(cwd) {
   try {

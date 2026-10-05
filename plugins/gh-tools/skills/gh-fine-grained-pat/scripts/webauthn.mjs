@@ -2,7 +2,7 @@
 // can satisfy GitHub passkey challenges with NO biometric at run time.
 //
 // The virtual authenticator signs WebAuthn challenges itself; we persist the
-// resident credential it produces (via getCredentials) into the gated vault blob
+// resident credential it produces (via getCredentials) into the crown-strict vault blob
 // and re-inject it (addCredential) on later runs. CDP does the crypto — we only
 // move the credential object around. Enable presence simulation BEFORE the page
 // triggers the prompt (race condition, per Chrome DevTools docs).
@@ -52,7 +52,7 @@ export async function getCredentials(client, authenticatorId) {
   return credentials ?? [];
 }
 
-/** Normalize a CDP credential into the JSON we persist in the gated blob. */
+/** Normalize a CDP credential into the JSON we persist in the crown-strict blob. */
 export function serializeCredential(c) {
   return {
     credentialId: c.credentialId,

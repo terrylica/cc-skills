@@ -1,7 +1,7 @@
 // autosudo.mjs — satisfy GitHub's sudo/login challenge autonomously.
 //
 // One Touch-ID tap per session: the gated github-web-<account> blob is unlocked
-// once (foreground `vault get --gated`, correct GUI context) and cached in the
+// once (foreground `vault get` of the crown-strict scope, correct GUI context) and cached in the
 // memory-only webauth-agent; later commands reuse it with zero prompts. The
 // blob holds { passkey, password, totpSeed }. Primary path = virtual-authenticator
 // passkey; fallback = password + TOTP. Token/secret values never reach chat.
@@ -9,20 +9,20 @@
 import { execFileSync } from "node:child_process";
 import { SEL, sleep, clickExact, evalClick, shot } from "./selectors.mjs";
 import { DEBUG_DIR } from "./browser.mjs";
-import { vaultItemName } from "./identity.mjs";
+import { vaultItemName, VAULT_BLOB_PATH } from "./identity.mjs";
 import { agentGet, agentPut, agentRunning } from "./webauth-agent.mjs";
 import { armStoredPasskey, removeAuthenticator } from "./webauthn.mjs";
 
 const hasForm = async (page) => (await page.locator(SEL.nameInput).count()) > 0;
 
-/** Unlock the account's gated blob — one Touch ID, reused via the session agent. */
+/** Unlock the account's crown-strict blob — one Touch ID, reused via the session agent. */
 export async function getUnlockedBlob(account) {
   const cached = await agentGet(account);
   if (cached.ok) return cached.blob;
-  // Foreground Touch-ID unlock (vault get --gated triggers the biometric prompt).
+  // Foreground Touch-ID unlock (the crown-strict scope decrypts through the Secure Enclave).
   let raw;
   try {
-    raw = execFileSync("vault", ["get", "--gated", vaultItemName(account)], { encoding: "utf8" });
+    raw = execFileSync("vault", ["get", vaultItemName(account), VAULT_BLOB_PATH], { encoding: "utf8" });
   } catch (e) {
     throw new Error(`could not unlock github-web-${account} (Touch ID denied or not provisioned)`, { cause: e });
   }
