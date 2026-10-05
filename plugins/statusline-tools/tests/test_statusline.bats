@@ -585,3 +585,21 @@ FAKE
     [[ "$plain" == *"until compact"* ]]
     [[ "$plain" != *"past compact"* ]]
 }
+
+# 2026-10-05: a failed floor probe used to write nothing, so every render
+# re-probed the gateway (~720 anonymous requests an hour against one gateway
+# whose version gate was off). A failure must be cached for the TTL too.
+@test "a failed gateway floor probe is negative-cached, not retried on every render" {
+    cache="$BATS_TEST_TMPDIR/floor-cache"
+    rm -f "$cache"
+    run bash -c "echo '$TEST_INPUT' | STATUSLINE_GATEWAY_BASE_URL=http://127.0.0.1:9 STATUSLINE_GATEWAY_FLOOR_CACHE='$cache' $STATUSLINE"
+    [ "$status" -eq 0 ]
+    [ -f "$cache" ]
+    [ ! -s "$cache" ]
+    first_mtime=$(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache")
+    sleep 1
+    run bash -c "echo '$TEST_INPUT' | STATUSLINE_GATEWAY_BASE_URL=http://127.0.0.1:9 STATUSLINE_GATEWAY_FLOOR_CACHE='$cache' $STATUSLINE"
+    [ "$status" -eq 0 ]
+    second_mtime=$(stat -f %m "$cache" 2>/dev/null || stat -c %Y "$cache")
+    [ "$first_mtime" = "$second_mtime" ]
+}
