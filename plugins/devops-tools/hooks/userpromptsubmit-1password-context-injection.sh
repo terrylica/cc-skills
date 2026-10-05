@@ -63,17 +63,21 @@ one interface, keeps a machine-readable secrets/manifest.toml index for
 discovery, captures values via a hidden native prompt, and verifies encryption.
 Start with `vault doctor` / `vault spec`. Do NOT invent ad-hoc storage.
 
-TIERED (which Keychain tier?): plain `-T /usr/bin/security` items are SILENTLY
+TIERED (which tier?): plain `-T /usr/bin/security` items are SILENTLY
 readable by any same-user process INCLUDING this agent — use them ONLY for narrow
 automation tokens (e.g. a scoped release PAT). For CROWN JEWELS (master/private/
-age/signing keys, client-confidential secrets) use `vault set --gated <name>`
-(Touch-ID Keychain only). Inject at runtime with `vault run <scope> -- <cmd>`
-(in-memory, nothing on disk; +`--gated <name>=<ENV>` for a crown jewel).
+age/signing keys, client-confidential secrets) use a CROWN-STRICT vault scope:
+encrypted only to the owner's Secure Enclave key (Touch ID, enforced by the chip)
+plus an offline recovery key, never mirrored to the plain Keychain —
+`vault new-scope <name>` (name matched by the vault's `# tier: crown-strict`
+rule), then `vault set --stdin <name> <path>`. Inject at runtime with
+`vault run <scope> -- <cmd>` (in-memory, nothing on disk; one Touch ID for a
+crown-strict scope).
 
 Otherwise apply the SCS ladder directly (top-down):
 
 1) macOS login Keychain = machine SSoT (plain tier is agent-readable, no prompt —
-   narrow automation tokens ONLY; crown jewels -> `vault set --gated`):
+   narrow automation tokens ONLY; crown jewels -> a crown-strict vault scope):
      add:  security add-generic-password -U -s <scope>-<service> -a <user> \
              -w <secret> -T /usr/bin/security -j "<desc + url>" \
              "$HOME/Library/Keychains/login.keychain-db"
