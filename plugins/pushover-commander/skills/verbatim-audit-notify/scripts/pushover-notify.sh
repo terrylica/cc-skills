@@ -93,6 +93,10 @@ ENVIRONMENT:
   PUSHOVER_TOKEN      Override token (skip 1P lookup)
   PUSHOVER_USER       Override user key (skip 1P lookup)
   PUSHOVER_LOG_DIR    Override JSONL log directory (default ~/.local/state/pushover)
+  OP_SERVICE_ACCOUNT_TOKEN | OP_SA_TOKEN_CMD | OP_SA_TOKEN_FILE
+                      1Password service-account token for the last-resort 1P leg,
+                      in that order (OP_SA_TOKEN_CMD: a command printing the token,
+                      e.g. 'vault get op-service-account token'; run without a shell)
   NO_PUSHOVER=1       Write JSONL only, skip remote send (dry run)
 USAGE_EOF
 }
@@ -108,7 +112,27 @@ gen_uuid() {
     fi
 }
 
+# Source the plugin's shared 1Password service-account token resolver (_lib/op_sa_token.sh).
+# This script is normally run through a ~/.local/bin symlink (see SKILL.md), so follow the
+# link chain to the real file before locating _lib relative to it.
+load_op_sa_token_lib() {
+    local self="${BASH_SOURCE[0]}" link="" dir=""
+    while [ -L "$self" ]; do
+        link="$(readlink "$self")"
+        case "$link" in
+            /*) self="$link" ;;
+            *)  self="$(dirname "$self")/$link" ;;
+        esac
+    done
+    dir="$(cd "$(dirname "$self")" && pwd)"
+    local lib="${dir}/../../_lib/op_sa_token.sh"
+    [ -r "$lib" ] || die "missing ${lib} (run this script from the installed plugin, or through the symlink SKILL.md creates)" 1
+    # shellcheck source-path=SCRIPTDIR source=../../_lib/op_sa_token.sh
+    . "$lib"
+}
+
 # Load Pushover credentials, self-custody-first: env -> SCS Keychain -> 1Password.
+OP_SA_NOTE=""
 load_credentials() {
     if [ -n "${PUSHOVER_TOKEN:-}" ] && [ -n "${PUSHOVER_USER:-}" ]; then
         return 0  # (1) already overridden (e.g. injected by `vault run`)
@@ -134,10 +158,17 @@ load_credentials() {
         local saved_http_proxy="${HTTP_PROXY:-}"
         unset HTTPS_PROXY HTTP_PROXY 2>/dev/null || true
 
-        local sa_token_path="$HOME/.claude/.secrets/op-service-account-token"
-        if [ -r "$sa_token_path" ]; then
-            local sa_token
-            sa_token=$(/bin/cat "$sa_token_path")
+        # Service-account token only from a source the user configured (see
+        # _lib/op_sa_token.sh). It reaches `op` through the environment, never argv.
+        load_op_sa_token_lib
+        local sa_token="" sa_rc=0
+        sa_token="$(op_sa_token 2>/dev/null)" || sa_rc=$?
+        case "$sa_rc" in
+            0) ;;
+            1) OP_SA_NOTE="1P leg skipped: $(op_sa_token_unconfigured_hint)" ;;
+            *) OP_SA_NOTE="1P leg skipped: the configured service-account token source failed (exit ${sa_rc})" ;;
+        esac
+        if [ "$sa_rc" -eq 0 ]; then
             export OP_SERVICE_ACCOUNT_TOKEN="$sa_token"
             if PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null); then
                 PUSHOVER_USER=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/user_key" 2>/dev/null) || PUSHOVER_USER=""
@@ -155,7 +186,7 @@ load_credentials() {
     fi
 
     if [ -z "${PUSHOVER_TOKEN:-}" ] || [ -z "${PUSHOVER_USER:-}" ]; then
-        die "could not load Pushover credentials (SCS Keychain items '$KC_TOKEN_ITEM'/'$KC_USER_ITEM' absent; 1P item ${OP_ITEM_ID} in ${OP_VAULT} unavailable)" 1
+        die "could not load Pushover credentials (SCS Keychain items '$KC_TOKEN_ITEM'/'$KC_USER_ITEM' absent; 1P item ${OP_ITEM_ID} in ${OP_VAULT} unavailable${OP_SA_NOTE:+; }${OP_SA_NOTE:-})" 1
     fi
 }
 
