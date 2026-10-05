@@ -585,3 +585,40 @@ FAKE
     [[ "$plain" == *"until compact"* ]]
     [[ "$plain" != *"past compact"* ]]
 }
+
+# 2026-10-05: a failed floor probe used to write nothing, so every render
+# re-probed the gateway (~720 anonymous requests an hour against one gateway
+# whose version gate was off). A failure must be cached, and must keep the last
+# good floor. HOME and the state log are redirected so the test never writes
+# into the operator's real ~/.claude telemetry.
+floor_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1"; }
+render_against_dead_gateway() {
+    echo "$TEST_INPUT" | HOME="$BATS_TEST_TMPDIR" \
+        STATUSLINE_GATEWAY_STATE_LOG="$BATS_TEST_TMPDIR/gateway-state.jsonl" \
+        STATUSLINE_GATEWAY_BASE_URL=http://127.0.0.1:9 \
+        STATUSLINE_GATEWAY_FLOOR_CACHE="$1" "$STATUSLINE"
+}
+
+@test "a failed gateway floor probe is negative-cached, not retried on every render" {
+    cache="$BATS_TEST_TMPDIR/floor-cache"
+    rm -f "$cache"
+    run render_against_dead_gateway "$cache"
+    [ "$status" -eq 0 ]
+    [ -f "$cache" ]
+    [ -z "$(sed -n 1p "$cache")" ]
+    first_mtime=$(floor_mtime "$cache")
+    sleep 1
+    run render_against_dead_gateway "$cache"
+    [ "$status" -eq 0 ]
+    [ "$first_mtime" = "$(floor_mtime "$cache")" ]
+}
+
+@test "a failed probe keeps the last good floor instead of the compiled-in fallback" {
+    cache="$BATS_TEST_TMPDIR/floor-cache-expired"
+    printf '%s\n' "9.9.9" > "$cache"
+    touch -t 202001010000 "$cache"   # expired positive entry
+    run render_against_dead_gateway "$cache"
+    [ "$status" -eq 0 ]
+    [ -z "$(sed -n 1p "$cache")" ]
+    [ "$(sed -n 2p "$cache")" = "9.9.9" ]
+}
