@@ -3,7 +3,7 @@
 // Holds the UNLOCKED github-web-<account> blob in RAM so repeated `pat` commands
 // in one session reuse a single Touch-ID unlock (the operator's hard requirement:
 // one tap, then nothing). The foreground `pat` process does the actual Touch-ID
-// `vault get --gated` (correct GUI context) and PUTs the result here; later
+// `vault get` of the crown-strict scope (correct GUI context) and PUTs the result here; later
 // commands GET it with zero prompts. Nothing is written to disk; entries expire.
 //
 //   node webauth-agent.mjs serve     # run the agent (usually backgrounded)
