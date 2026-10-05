@@ -3,18 +3,19 @@
 # iter-157 idempotent installer/uninstaller for the commit-msg git hook.
 #
 # Operations:
-#   install   — copy iter-157 hook into $(git rev-parse --git-dir)/hooks/commit-msg,
-#               first backing up any pre-existing non-cc-skills hook to
-#               commit-msg.backup-iter157-<unix-timestamp>. Re-runs are no-ops
-#               if the destination already matches the source byte-for-byte.
+#   install   — write a small shim to $(git rev-parse --git-dir)/hooks/commit-msg that
+#               execs this checkout's iter-157 hook script in place (so every repo runs
+#               the current version; nothing to reinstall after an update), first
+#               backing up any pre-existing non-cc-skills hook to
+#               commit-msg.backup-iter157-<unix-timestamp>. Re-runs are no-ops if the
+#               shim is already identical.
 #   uninstall — remove the cc-skills-managed hook and, if a backup exists,
 #               restore the most recent one. Refuses to touch hooks that
 #               lack the cc-skills sentinel marker.
 #   status    — print whether the hook is installed, the source location,
 #               and any backups present.
 #
-# Detection: the hook source script's first comment line uniquely identifies it
-# as cc-skills-managed via the
+# Detection: the shim's comment line uniquely identifies it as cc-skills-managed via the
 # ITER157_CC_SKILLS_MANAGED_COMMIT_MSG_HOOK_SENTINEL_MARKER string the installer
 # embeds into the deployed file. This is how `uninstall` knows it's safe to
 # remove vs. a third-party hook the user installed manually.

@@ -200,7 +200,7 @@ Compare timings across several runs, not one: the release is dominated by networ
 
 ### Deprecated names
 
-Each knob's old name is still read when the new one is unset, and using it prints one line on stderr naming the replacement. The shell scripts resolve both through `cc_knob` in `scripts/lib/env-knob.sh`; the `commit-msg` hook (copied into other repositories) and the two Python scripts carry the same rule inline. The aliases go when #224's follow-up retires them.
+Each knob's old name is still read when the new one is unset, and using it prints one line on stderr naming the replacement. Every shell script, including the `commit-msg` hook (installed repositories run it in place through an exec shim), resolves both through `cc_knob` in `scripts/lib/env-knob.sh`; the two Python scripts carry the same rule inline. The aliases go when #226 retires them.
 
 | Name | Deprecated alias |
 | --- | --- |

@@ -2,9 +2,9 @@
 # Regression: renamed operator env knobs still honour their ITER###_ names, with a deprecation notice (issue #224)
 #
 # The release and commits tooling renamed 23 env knobs from iteration numbers to descriptive names.
-# Old names must keep working: shell profiles set them, and the commit-msg hook is copied into
-# other repositories. Checked here at every layer that resolves them: the shared bash helper
-# (scripts/lib/env-knob.sh), one real script end to end, the copied hook's inline fallback, and the
+# Old names must keep working: shell profiles set them. Installed repositories run the commit-msg hook
+# in place through an exec shim. Checked here at every layer that resolves them: the shared bash helper
+# (scripts/lib/env-knob.sh), one real script end to end, the commit-msg hook, and the
 # inline Python helper.
 
 set -euo pipefail
@@ -37,7 +37,7 @@ case "$err" in
     *) fail "iter150 renderer honours its old name and says so" "stderr: ${err:0:200}" ;;
 esac
 
-# ── 3. The copied commit-msg hook (inline fallback, no helper available) ─────────────────────
+# ── 3. The commit-msg hook (run in place through an exec shim; sources the helper, #229) ────────
 msg=$(mktemp)
 echo "feat: x" > "$msg"
 hook="$REPO_ROOT/scripts/iter157-commit-msg-hook.sh"

@@ -11,9 +11,10 @@
 # (COMPOUND-PREFIX, MISSING-TYPE) get rejected immediately with no operator
 # discipline required.
 #
-# This file is the PORTABLE HOOK BODY — it is copied into the operator's
-# `.git/hooks/commit-msg` by the iter-157 installer. It locates the cc-skills
-# repo containing the iter-153 advisor via the following precedence chain:
+# This file is the HOOK BODY. The iter-157 installer writes a one-line shim to the
+# operator's `.git/hooks/commit-msg` that execs this file in place, so every repo runs
+# the current version. It locates the cc-skills repo containing the iter-153 advisor
+# via the following precedence chain:
 #
 #   1. COMMITS_HOOK_CC_SKILLS_PATH env var (highest)
 #   2. `git config --get cc-skills.repo-path` (repo-local config, persisted)
@@ -34,13 +35,16 @@
 # commit message. Exit 0 accepts, non-zero rejects.
 
 set -euo pipefail
+# Installed repos run this file in place through a one-line exec shim, so the shared helper sits
+# beside it (#229).
+# shellcheck source=/dev/null
+source "${BASH_SOURCE[0]%/*}/lib/env-knob.sh"
 
 # ─── Step 1: locate the iter-153 advisor script via the precedence chain ────
 
 iter157_locate_cc_skills_repo_path_via_env_override_or_git_config_or_canonical_default_location() {
-    # This hook is copied into other repositories and runs before cc-skills is located, so it
-    # cannot source scripts/lib/env-knob.sh; the old ITER157_ names are honoured inline (#224).
-    local path_override="${COMMITS_HOOK_CC_SKILLS_PATH:-${ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE:-}}"
+    local path_override
+    cc_knob path_override COMMITS_HOOK_CC_SKILLS_PATH ITER157_COMMIT_MSG_HOOK_CC_SKILLS_REPO_PATH_OVERRIDE ""
     if [[ -n "$path_override" ]]; then
         printf '%s\n' "$path_override"
         return 0
@@ -59,7 +63,9 @@ ITER157_ITER153_ADVISOR_RELATIVE_PATH="scripts/iter153-commit-subject-advisor.sh
 ITER157_ITER153_ADVISOR_ABSOLUTE_PATH="$ITER157_CC_SKILLS_REPO_PATH/$ITER157_ITER153_ADVISOR_RELATIVE_PATH"
 
 if [[ ! -x "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then
-    if [[ "${COMMITS_HOOK_FAIL_MODE:-${ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND:-open}}" == "closed" ]]; then
+    hook_fail_mode=""
+    cc_knob hook_fail_mode COMMITS_HOOK_FAIL_MODE ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND "open"
+    if [[ "$hook_fail_mode" == "closed" ]]; then
         printf '[iter-157 commit-msg hook] ERROR: iter-153 advisor not found at %s — fail-CLOSED mode rejects commit.\n' \
             "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" >&2
         exit 1
