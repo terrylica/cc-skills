@@ -23,7 +23,9 @@
 #   PUSHOVER_OP_VAULT                   your 1Password vault name
 #   PUSHOVER_OP_ITEM                    1Password item name/id holding the fields
 #   PUSHOVER_KEYCHAIN_SERVICE           macOS Keychain service for fallback (default: pushover-commander)
-#   PUSHOVER_OP_SA_TOKEN_FILE           file with an op Service Account token (default: ~/.claude/.secrets/op-service-account-token)
+#   OP_SA_TOKEN_CMD                     command whose stdout is an op Service Account token
+#                                       (e.g. 'vault get op-service-account token'); see op_sa_token.sh
+#   PUSHOVER_OP_SA_TOKEN_FILE           file with an op Service Account token (no default; or OP_SA_TOKEN_FILE)
 #   PUSHOVER_COMMANDER_PRIVATE_CONFIG   path to the private env file
 #                                       (default: ~/.claude/pushover-commander.private/pushover-commander.local.env)
 #
@@ -42,7 +44,10 @@ fi
 VAULT="${PUSHOVER_OP_VAULT:-}"
 ITEM="${PUSHOVER_OP_ITEM:-}"
 SVC="${PUSHOVER_KEYCHAIN_SERVICE:-pushover-commander}"
-SA_FILE="${PUSHOVER_OP_SA_TOKEN_FILE:-$HOME/.claude/.secrets/op-service-account-token}"
+
+# Service-account token ladder (env token -> OP_SA_TOKEN_CMD -> an explicitly named file).
+# shellcheck source-path=SCRIPTDIR source=op_sa_token.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/op_sa_token.sh"
 
 # Self-custody vault scope, tried FIRST (see scs_read below). Self-custody is the preferred store;
 # 1Password is last resort and company-visible.
@@ -65,14 +70,34 @@ esac
 op_read_label() {
   local ref="op://${VAULT}/${ITEM}/$1"
   # op network calls must bypass the sandbox/OAuth MITM proxy (env -u *PROXY*).
-  if [ -f "${SA_FILE}" ]; then
-    OP_SERVICE_ACCOUNT_TOKEN="$(cat "${SA_FILE}")" \
+  # With a service-account token configured, `op` runs non-interactively; without one it
+  # falls back to the 1Password app integration, as it always has. The token reaches `op`
+  # through its environment only, never its argv.
+  if [ -n "${SA_TOKEN}" ]; then
+    OP_SERVICE_ACCOUNT_TOKEN="${SA_TOKEN}" \
       env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy -u ALL_PROXY -u all_proxy \
       op read "${ref}" 2>/dev/null || true
   else
     env -u HTTPS_PROXY -u HTTP_PROXY -u https_proxy -u http_proxy -u ALL_PROXY -u all_proxy \
       op read "${ref}" 2>/dev/null || true
   fi
+}
+
+# Resolved lazily, once, on the first lookup that actually reaches 1Password: an
+# OP_SA_TOKEN_CMD may prompt (e.g. for a passphrase), so it must not run when the
+# self-custody vault already answered. Called in the main shell, never in $(...), so the
+# result is cached for the remaining labels.
+SA_TOKEN=""
+sa_state="not attempted"
+ensure_sa_token() {
+  [ "$sa_state" = "not attempted" ] || return 0
+  local rc=0
+  SA_TOKEN="$(op_sa_token 2>/dev/null)" || rc=$?
+  case "$rc" in
+    0) sa_state="resolved" ;;
+    1) sa_state="none configured, so op used the 1Password app ($(op_sa_token_unconfigured_hint))" ;;
+    *) sa_state="OP_SA_TOKEN_CMD or the token file is set but failed, so op used the 1Password app (diagnose: . op_sa_token.sh && op_sa_token >/dev/null)" ;;
+  esac
 }
 
 val=""
@@ -82,6 +107,7 @@ for label in $candidates; do
   [ -n "$val" ] && break
   # 1Password second, and only when a vault + item are configured.
   if [ -n "$VAULT" ] && [ -n "$ITEM" ]; then
+    ensure_sa_token
     val="$(op_read_label "$label")"
     [ -n "$val" ] && break
   fi
@@ -95,7 +121,7 @@ if [ -z "$val" ]; then
   if command -v vault >/dev/null 2>&1; then
     scs_state="installed; scope '${SCS_SCOPE}' has no such path (check: vault list)"
   fi
-  op_state="configured"
+  op_state="configured (service-account token: ${sa_state})"
   if [ -z "$VAULT" ] || [ -z "$ITEM" ]; then
     op_state="NOT configured — PUSHOVER_OP_VAULT/PUSHOVER_OP_ITEM are empty; check ${PRIVATE_CONFIG} for renamed or commented-out keys (a disabled key looks exactly like a missing secret)"
   fi

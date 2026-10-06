@@ -12,6 +12,13 @@ set -euo pipefail
 #   SITE_TITLE    — human-readable title for the generated index.html
 #   PROJECT_URL   — GitHub/project URL for the footer link
 #
+# 1PASSWORD SERVICE-ACCOUNT TOKEN (first one set wins; there is no default path):
+#   OP_SERVICE_ACCOUNT_TOKEN — already exported in the environment
+#   OP_SA_TOKEN_CMD          — a command whose stdout is the token, run as a plain
+#                              argv (split on whitespace, no shell), e.g.
+#                              OP_SA_TOKEN_CMD='vault get op-service-account token'
+#   OP_SA_TOKEN_FILE         — a chmod-600 file holding the token
+#
 # PHASES:
 #   1. Fetch Cloudflare credentials from 1Password
 #   2. Auto-generate index.html directory listing
@@ -48,15 +55,37 @@ fi
 # =============================================================================
 echo "Phase 1: Fetching Cloudflare credentials from 1Password..."
 
+# The service-account token comes only from a source the user configured, and reaches
+# `op` through the environment — never argv, which the process table exposes.
+resolve_op_sa_token() {
+  if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+    printf '%s' "$OP_SERVICE_ACCOUNT_TOKEN"
+  elif [ -n "${OP_SA_TOKEN_CMD:-}" ]; then
+    local -a argv=()
+    read -r -a argv <<<"$OP_SA_TOKEN_CMD"
+    "${argv[@]}"
+  elif [ -n "${OP_SA_TOKEN_FILE:-}" ]; then
+    tr -d '\r\n' <"$OP_SA_TOKEN_FILE"
+  else
+    echo "ERROR: no 1Password service-account token source is configured: export OP_SERVICE_ACCOUNT_TOKEN, or set OP_SA_TOKEN_CMD to a command that prints it (e.g. OP_SA_TOKEN_CMD='vault get op-service-account token'), or set OP_SA_TOKEN_FILE to a chmod-600 file holding it" >&2
+    return 1
+  fi
+}
+OP_SERVICE_ACCOUNT_TOKEN="$(resolve_op_sa_token)"
+if [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+  echo "ERROR: the configured 1Password service-account token source produced nothing" >&2
+  exit 1
+fi
+export OP_SERVICE_ACCOUNT_TOKEN
+
 # CFW-04: Split declaration and export to preserve exit codes (SC2155)
-CLOUDFLARE_ACCOUNT_ID=$(OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
-  op item get "$OP_ITEM_ID" --vault "Claude Automation" --fields "account_id")
+CLOUDFLARE_ACCOUNT_ID=$(op item get "$OP_ITEM_ID" --vault "Claude Automation" --fields "account_id")
 export CLOUDFLARE_ACCOUNT_ID
 
 # CFW-03: --reveal is REQUIRED for CONCEALED fields
-CLOUDFLARE_API_TOKEN=$(OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
-  op item get "$OP_ITEM_ID" --vault "Claude Automation" --fields "credential" --reveal)
+CLOUDFLARE_API_TOKEN=$(op item get "$OP_ITEM_ID" --vault "Claude Automation" --fields "credential" --reveal)
 export CLOUDFLARE_API_TOKEN
+unset OP_SERVICE_ACCOUNT_TOKEN
 
 echo "  Account ID: ${CLOUDFLARE_ACCOUNT_ID:0:8}..."
 echo "  Token loaded: yes"

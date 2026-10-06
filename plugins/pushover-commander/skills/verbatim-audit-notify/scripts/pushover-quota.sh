@@ -54,6 +54,10 @@ USAGE:
 ENV:
   PUSHOVER_TOKEN      Override token (skip 1P lookup)
   PUSHOVER_LOG_DIR    Override persist dir (default ~/.local/state/pushover)
+  OP_SERVICE_ACCOUNT_TOKEN | OP_SA_TOKEN_CMD | OP_SA_TOKEN_FILE
+                      1Password service-account token for the 1P lookup, in that
+                      order (OP_SA_TOKEN_CMD: a command printing the token, e.g.
+                      'vault get op-service-account token'; run without a shell)
 
 OUTPUT (persisted JSON):
   {
@@ -84,31 +88,52 @@ if [ -n "$ALERT_THRESHOLD" ]; then
     esac
 fi
 
-# Load Pushover app token from 1P (SA-first, biometric fallback)
+
+# Source the plugin's shared 1Password service-account token resolver (_lib/op_sa_token.sh).
+# This script is normally run through a ~/.local/bin symlink (see SKILL.md), so follow the
+# link chain to the real file before locating _lib relative to it.
+load_op_sa_token_lib() {
+    local self="${BASH_SOURCE[0]}" link="" dir=""
+    while [ -L "$self" ]; do
+        link="$(readlink "$self")"
+        case "$link" in
+            /*) self="$link" ;;
+            *)  self="$(dirname "$self")/$link" ;;
+        esac
+    done
+    dir="$(cd "$(dirname "$self")" && pwd)"
+    local lib="${dir}/../../_lib/op_sa_token.sh"
+    [ -r "$lib" ] || die "missing ${lib} (run this script from the installed plugin, or through the symlink SKILL.md creates)" 1
+    # shellcheck source-path=SCRIPTDIR source=../../_lib/op_sa_token.sh
+    . "$lib"
+}
+
+# Load Pushover app token from 1P (service-account token first, 1Password app fallback).
+# The service-account token comes only from a source the user configured — see
+# _lib/op_sa_token.sh (OP_SERVICE_ACCOUNT_TOKEN, OP_SA_TOKEN_CMD, or a named token file).
 load_token() {
     if [ -n "${PUSHOVER_TOKEN:-}" ]; then
         return 0
     fi
 
-    # Proxy bypass — Claude Code OAuth proxy returns 502 on 1P endpoints
-    local saved_https="${HTTPS_PROXY:-}" saved_http="${HTTP_PROXY:-}"
-    unset HTTPS_PROXY HTTP_PROXY 2>/dev/null || true
+    load_op_sa_token_lib
+    local sa_token="" sa_rc=0
+    sa_token="$(op_sa_token)" || sa_rc=$?
+    case "$sa_rc" in
+        0) ;;
+        1) die "could not load Pushover token: set PUSHOVER_TOKEN, or configure a 1Password service-account token source (options on the line above)" 1 ;;
+        *) die "could not load Pushover token: the configured 1Password service-account token source failed (see the line above)" 1 ;;
+    esac
 
-    local sa_token_path="$HOME/.claude/.secrets/op-service-account-token"
-    if [ -r "$sa_token_path" ]; then
-        local sa_token
-        sa_token=$(/bin/cat "$sa_token_path")
-        export OP_SERVICE_ACCOUNT_TOKEN="$sa_token"
-        if ! PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null); then
-            unset OP_SERVICE_ACCOUNT_TOKEN
-            PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null) || PUSHOVER_TOKEN=""
-        else
-            unset OP_SERVICE_ACCOUNT_TOKEN
-        fi
+    # Proxy bypass — Claude Code OAuth proxy returns 502 on 1P endpoints.
+    # The token reaches `op` via its environment only, never argv.
+    PUSHOVER_TOKEN=$(OP_SERVICE_ACCOUNT_TOKEN="$sa_token" \
+        env -u HTTPS_PROXY -u HTTP_PROXY op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null) || PUSHOVER_TOKEN=""
+    if [ -z "$PUSHOVER_TOKEN" ]; then
+        # Permission denied for the service account: fall back to the 1Password app.
+        PUSHOVER_TOKEN=$(env -u OP_SERVICE_ACCOUNT_TOKEN -u HTTPS_PROXY -u HTTP_PROXY \
+            op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null) || PUSHOVER_TOKEN=""
     fi
-
-    [ -n "$saved_https" ] && export HTTPS_PROXY="$saved_https"
-    [ -n "$saved_http" ] && export HTTP_PROXY="$saved_http"
 
     if [ -z "${PUSHOVER_TOKEN:-}" ]; then
         die "could not load Pushover token from 1P (item ${OP_ITEM_ID} in ${OP_VAULT})" 1

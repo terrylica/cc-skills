@@ -6,9 +6,19 @@
  * prompts when running `op` CLI commands.
  *
  * Only injects for commands matching known Claude Automation vault patterns.
- * Fail-open: if token file is missing or unreadable, returns command unchanged.
+ * Fail-open: if no token source is configured, returns the command unchanged and
+ * `op` falls back to the 1Password app as it would without this hook.
  *
- * Token: ~/.claude/.secrets/op-service-account-token (chmod 600)
+ * Token source — the user's choice, read from the hook's environment, in this order
+ * (and NO default path; until 2026-10 a hard-coded plaintext file under ~/.claude
+ * was read whether or not the user had asked for it):
+ *   1. OP_SERVICE_ACCOUNT_TOKEN already in the environment → nothing to inject; the
+ *      Bash tool inherits it.
+ *   2. OP_SA_TOKEN_CMD — a command whose stdout is the token, e.g.
+ *      `vault get op-service-account token`. Split on whitespace and emitted as
+ *      single-quoted words inside `$(…)`, so the shell runs it as a plain argv with no
+ *      expansion.
+ *   3. OP_SA_TOKEN_FILE — a token file the user names (chmod 600).
  * Vault: Claude Automation (read + write via service account)
  *
  * Called from pretooluse-pueue-wrap-guard.ts (must be last PreToolUse hook
@@ -32,19 +42,47 @@ export const OP_CLAUDE_AUTOMATION_PATTERNS: RegExp[] = [
 /** Detects if OP_SERVICE_ACCOUNT_TOKEN is already set in the command */
 const ALREADY_HAS_OP_TOKEN = /\bOP_SERVICE_ACCOUNT_TOKEN\s*=/;
 
-/** Token file path — service account with access to Claude Automation vault only */
-export const OP_TOKEN_PATH = `${Bun.env.HOME || ""}/.claude/.secrets/op-service-account-token`;
+/** Quote one word for POSIX sh: everything literal inside single quotes. */
+export function shSingleQuote(word: string): string {
+  return `'${word.replaceAll("'", `'\\''`)}'`;
+}
+
+type Env = Record<string, string | undefined>;
+
+/**
+ * Shell text that, evaluated at execution time, yields the token — or null when the
+ * user configured no source (or a named file is missing/empty). Never the token value.
+ */
+export async function opTokenSubstitution(env: Env = Bun.env): Promise<string | null> {
+  const cmd = env.OP_SA_TOKEN_CMD?.trim();
+  if (cmd) {
+    return `$(${cmd.split(/\s+/).map(shSingleQuote).join(" ")})`;
+  }
+  const file = env.OP_SA_TOKEN_FILE?.trim();
+  if (file) {
+    const tokenFile = Bun.file(file);
+    if (!(await tokenFile.exists())) {
+      return null;
+    }
+    // Read only to keep the old fail-open check (missing/empty → leave command alone).
+    if (!(await tokenFile.text()).trim()) {
+      return null;
+    }
+    return `$(cat ${shSingleQuote(file)})`;
+  }
+  return null;
+}
 
 /**
  * If the command targets the "Claude Automation" vault, prepend
- * OP_SERVICE_ACCOUNT_TOKEN=<token> to avoid biometric prompts.
+ * OP_SERVICE_ACCOUNT_TOKEN="$(…)" to avoid biometric prompts.
  *
  * Returns the original command unchanged if:
  * - Command doesn't target Claude Automation vault
- * - Token file doesn't exist or is empty (fail-open)
- * - Token is already set in the command
+ * - Token is already set in the command, or already in the environment
+ * - No token source is configured, or the named file is missing/empty (fail-open)
  */
-export async function maybeInjectOpToken(command: string): Promise<string> {
+export async function maybeInjectOpToken(command: string, env: Env = Bun.env): Promise<string> {
   // Skip if token already present
   if (ALREADY_HAS_OP_TOKEN.test(command)) {
     return command;
@@ -58,17 +96,16 @@ export async function maybeInjectOpToken(command: string): Promise<string> {
     return command;
   }
 
-  // Read token file (fail-open on any error)
-  try {
-    const tokenFile = Bun.file(OP_TOKEN_PATH);
-    if (!(await tokenFile.exists())) {
-      return command;
-    }
-    const token = (await tokenFile.text()).trim();
-    if (!token) {
-      return command;
-    }
+  // Already exported: the Bash tool inherits it, so there is nothing to add.
+  if (env.OP_SERVICE_ACCOUNT_TOKEN?.trim()) {
+    return command;
+  }
 
+  try {
+    const substitution = await opTokenSubstitution(env);
+    if (!substitution) {
+      return command;
+    }
     // Prepend a command SUBSTITUTION — never the token itself.
     //
     // Claude Code records the rewritten command in the session transcript and in
@@ -78,16 +115,12 @@ export async function maybeInjectOpToken(command: string): Promise<string> {
     // ~/.claude/projects and 33 under /private/tmp/claude-501 — and this line is how
     // they got there. It was not a leak by an agent; it was a leak by design.
     //
-    // The token is still READ above so the fail-open semantics are unchanged (missing
-    // file, unreadable file and empty file all return the command untouched, exactly as
-    // before). Only the VALUE is kept out of the command string; the path goes in
-    // instead, and the shell resolves it at execution time.
-    //
-    // Do not "simplify" this back to `${token}`. The value is already in scope on the
-    // line above, which is precisely what makes the regression easy and invisible.
-    return `OP_SERVICE_ACCOUNT_TOKEN="$(cat '${OP_TOKEN_PATH}')" ${command}`;
+    // Only the command (or file path) that PRODUCES the token goes into the command
+    // string; the shell resolves it at execution time. Do not "simplify" this into
+    // resolving the token here and interpolating it.
+    return `OP_SERVICE_ACCOUNT_TOKEN="${substitution}" ${command}`;
   } catch {
-    // Fail-open: any error reading token, allow original command
+    // Fail-open: any error reading the configuration, allow original command
     return command;
   }
 }

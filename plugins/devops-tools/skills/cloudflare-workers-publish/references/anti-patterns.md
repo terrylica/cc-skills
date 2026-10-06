@@ -41,8 +41,8 @@ op item create \
   --vault "Claude Automation"
 
 # Step 2: Script reads via service account (headless, no biometric)
-OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
-  op item get "{item-id}" --vault "Claude Automation" --fields "credential" --reveal
+# OP_SERVICE_ACCOUNT_TOKEN must already be exported — see "Service Account Token" in onep-credential-setup.md
+op item get "{item-id}" --vault "Claude Automation" --fields "credential" --reveal
 ```
 
 See [1Password setup guide](./onep-credential-setup.md) for full provisioning steps.

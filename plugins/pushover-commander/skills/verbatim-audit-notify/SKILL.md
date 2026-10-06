@@ -181,8 +181,10 @@ Followups (the Pushover API response, dispatch failures) are appended as separat
 By default, the sender pulls Pushover credentials from 1Password Claude Automation vault, item `<pushover-item>` (registered in `docs/1password-credential-registry.md`). It follows the cc-skills canonical pattern:
 
 1. Unset `HTTPS_PROXY` / `HTTP_PROXY` (Claude Code OAuth proxy returns 502 on 1P endpoints)
-2. Try Service Account token first (`~/.claude/.secrets/op-service-account-token`)
+2. Try a Service Account token first, taken only from a source you configure, in this order: `OP_SERVICE_ACCOUNT_TOKEN` already in the environment; `OP_SA_TOKEN_CMD`, a command whose stdout is the token (for example `export OP_SA_TOKEN_CMD='vault get op-service-account token'`), split on whitespace and run without a shell; or a token file you name in `OP_SA_TOKEN_FILE` (or `PUSHOVER_OP_SA_TOKEN_FILE`). There is no default file. Resolver: `skills/_lib/op_sa_token.sh`.
 3. Fall back to biometric (`unset OP_SERVICE_ACCOUNT_TOKEN; op read ...`) on permission denied
+
+Under launchd the job sees none of your shell's variables: put `OP_SA_TOKEN_CMD` (with an absolute program path, since launchd's `PATH` is minimal) in the plist's `EnvironmentVariables`.
 
 Override for testing / non-1P environments:
 

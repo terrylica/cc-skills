@@ -6,7 +6,7 @@
  *
  * 1. OP TOKEN INJECTION: Prepends OP_SERVICE_ACCOUNT_TOKEN for commands
  *    targeting the "Claude Automation" 1Password vault. Avoids biometric prompts.
- *    Token: ~/.claude/.secrets/op-service-account-token
+ *    Token source: OP_SA_TOKEN_CMD or OP_SA_TOKEN_FILE (see lib/op-token-injector.ts)
  *
  * 2. PUEUE WRAPPING: Wraps known long-running Bash commands with pueue.
  *    Uses allowlist approach: ONLY wraps commands matching LONG_RUNNING_PATTERNS.

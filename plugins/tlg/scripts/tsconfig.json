@@ -4,5 +4,5 @@
     "types": ["bun"],
     "lib": ["ESNext", "DOM"]
   },
-  "include": ["tg-cli.ts", "cleanup_deleted.ts"]
+  "include": ["tg-cli.ts", "cleanup_deleted.ts", "op-sa-token.ts", "op-sa-token.test.ts"]
 }

@@ -32,6 +32,7 @@ import process from "node:process";
 import { Api, TelegramClient } from "telegram";
 import { Logger, LogLevel } from "telegram/extensions/Logger";
 import { StringSession } from "telegram/sessions";
+import { OP_SA_TOKEN_UNCONFIGURED_HINT, resolveOpSaToken } from "./op-sa-token.ts";
 
 // ── Enums ─────────────────────────────────────────────────
 
@@ -82,7 +83,6 @@ export const PROFILES: Record<string, string> = {
 const DEFAULT_PROFILE = "eon";
 const SESSION_DIR = join(homedir(), ".local/share/gramjs");
 const DEFAULT_OP_VAULT = "Claude Automation";
-const SA_TOKEN_FILE = join(homedir(), ".claude/.secrets/op-service-account-token");
 
 // Telegram's hard limit is 4096 post-parse chars; 3900 leaves margin for a
 // "(Part i/n)" header prepended to continuation chunks.
@@ -114,17 +114,24 @@ function opGet(itemId: string, field: string, reveal = false): string {
     args.push("--reveal");
   }
   // Proxy MUST be bypassed (the OAuth proxy 502s on api.1password.com); prefer
-  // the service-account token (no biometric prompt) when it is available.
+  // a service-account token (no biometric prompt) when the user configured one —
+  // see op-sa-token.ts. It goes into op's environment, never its argv.
   const env: Record<string, string> = { ...process.env } as Record<string, string>;
   delete env.HTTPS_PROXY;
   delete env.HTTP_PROXY;
-  if (existsSync(SA_TOKEN_FILE)) {
-    env.OP_SERVICE_ACCOUNT_TOKEN = readFileSync(SA_TOKEN_FILE, "utf8").trim();
+  const sa = resolveOpSaToken(process.env);
+  if (sa.kind === "failed") {
+    throw new UsageError(`1Password service-account token: ${sa.reason}`);
+  }
+  if (sa.kind === "token") {
+    env.OP_SERVICE_ACCOUNT_TOKEN = sa.token;
   }
   const proc = Bun.spawnSync(["op", ...args], { env, stdout: "pipe", stderr: "pipe" });
   if (proc.exitCode !== 0) {
+    // Without a token `op` falls back to the 1Password app, which needs a desktop session.
+    const hint = sa.kind === "unconfigured" ? ` (${OP_SA_TOKEN_UNCONFIGURED_HINT})` : "";
     throw new UsageError(
-      `1Password lookup failed for '${field}' (item ${itemId}): ${proc.stderr.toString().trim()}`,
+      `1Password lookup failed for '${field}' (item ${itemId}): ${proc.stderr.toString().trim()}${hint}`,
     );
   }
   return proc.stdout.toString().trim();
