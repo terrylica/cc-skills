@@ -38,6 +38,7 @@ ID, app token, or operator-specific app→repo map. All per-user secrets/config 
 | `skills/_lib/chrome_for_testing_resolver.ts`                          | Playwright-free lookup of the newest Chrome for Testing; shared by web-control and `doctor`      |
 | `skills/_lib/pushover_headless_web_control.test.ts`                   | `bun test`: browser selection, fallback, `doctor` deps, import safety on a root-only install     |
 | `skills/_lib/resolve_pushover_secret.sh`                              | env/1Password/Keychain credential resolver (generic)                                             |
+| `skills/_lib/op_sa_token.sh`                                          | sourced `op` service-account token resolver: env → `OP_SA_TOKEN_CMD` → named file; no default    |
 | `skills/_lib/batch_create_pushover_apps.ts`                           | batch create apps from a plan JSON (reuses web-control helpers)                                  |
 | `skills/_lib/{make_app_icon.py,make_custom_sound.sh,find_jingles.sh}` | icon/sound sourcing pipeline                                                                     |
 | `skills/_lib/pushover_api_limits.json`                                | SSoT for Pushover caps + silent-failure rules                                                    |
