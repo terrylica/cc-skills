@@ -1,3 +1,14 @@
+## [33.8.2](https://github.com/terrylica/cc-skills/compare/v33.8.1...v33.8.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* read the 1Password service-account token from OP_SERVICE_ACCOUNT_TOKEN, OP_SA_TOKEN_CMD or a named file, never a hard-coded path ([#234](https://github.com/terrylica/cc-skills/issues/234)) ([58946bc](https://github.com/terrylica/cc-skills/commit/58946bcc258f3816dcaba37d10ed246c9239b924)), closes [#233](https://github.com/terrylica/cc-skills/issues/233)
+
+* fix(itp-hooks): op-token injector takes the service-account token from OP_SA_TOKEN_CMD or OP_SA_TOKEN_FILE, not a hard-coded file
+
+The pueue-wrap hook prepended OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" to any op command against the Claude Automation vault. It now injects only from a source the user configured: nothing when OP_SERVICE_ACCOUNT_TOKEN is already exported, "$('cmd' 'arg' ...)" from OP_SA_TOKEN_CMD (single-quoted words, no expansion), else "$(cat '&lt;file>')" from OP_SA_TOKEN_FILE. No default path; still fail-open, and still never the token value in the rewritten command.
+
 ## [33.8.1](https://github.com/terrylica/cc-skills/compare/v33.8.0...v33.8.1) (2026-10-05)
 
 
