@@ -1,3 +1,21 @@
+# [33.9.0](https://github.com/terrylica/cc-skills/compare/v33.8.2...v33.9.0) (2026-10-07)
+
+
+### Bug Fixes
+
+* **gmail-commander:** mailbox-consolidation ends with Post-Execution Reflection ([ea627e1](https://github.com/terrylica/cc-skills/commit/ea627e1d3fc4a86ea9c3f09c5fc4a76712f60cd3))
+* remap commit references to post-rewrite history ([4bf2dfd](https://github.com/terrylica/cc-skills/commit/4bf2dfd05778210c0a8f36eb9fad2f159c88847f))
+
+The 2026-10-07 history rewrite changed every commit ID from August on. 3,681 references in 32 files (CHANGELOG links, release-note docs, code comments, and one test that runs git show on a historical commit) now point at the new IDs, translated through the git-filter-repo commit map at the same length. Only IDs changed; no prose was edited.
+
+
+
+### Features
+
+* **gmail-commander:** mailbox-consolidation skill ([72b3060](https://github.com/terrylica/cc-skills/commit/72b30602fa2baff98dcb68a8b50fe8c94e6ea1ca))
+
+Agnostic, measured lessons for folding consumer Gmail and other-tenant Workspace mailboxes into one shared hub inbox: mechanism per source (no consumer-Gmail forwarding API; admin routing rule for other tenants), the routing additional-recipient default 'Do not deliver spam to this recipient' that silently drops copies, hub-side Never-spam filters, forward-first-then-final-delta-import, and an Email Log Search / Reports API diagnosis path.
+
 ## [33.8.2](https://github.com/terrylica/cc-skills/compare/v33.8.1...v33.8.2) (2026-10-06)
 
 
