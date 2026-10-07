@@ -4,11 +4,11 @@ Reverse chronological - newest on top.
 
 ## 2026-10-07 — Claude plugin cache is a top-5 category; `.venv` deletion can reclaim nothing
 
-**Trigger**: A full audit on a 926 GB disk at 86% found `~/.claude/plugins/cache` at 28 GB: 1,902 superseded version folders (51 copies of one plugin = 15.5 GB), never garbage-collected. In the same run, deleting ten alpha-forge worktree `.venv`s (`du` total ~14 GB) moved `df` by 0 GB, and a follow-up `uv cache prune` found no unused entries: the venv files were hardlinks shared with the uv cache and other live venvs.
+**Trigger**: A full audit of a developer Mac found the Claude Code plugin cache holding tens of GB of superseded version folders (dozens of copies per plugin), never garbage-collected. In the same audit, deleting several uv-managed `.venv` folders that `du` sized at over 10 GB moved `df` by 0 GB, and a follow-up `uv cache prune` found no unused entries: the venv files were hardlinks shared with the uv cache and other live environments.
 
 **Fix**: Added a Claude Code plugin cache row (delete versions not in `installed_plugins.json`, keep the 3 newest by `sort -V` so already-running sessions keep their loaded version). Changed the Quick Wins `.venv` row from "5-20 GB" to "often ~0 GB", measured with `df` not `du`.
 
-**Evidence**: Session reclaimed 155 GB (131 → 286 GB free): Rust `target/` 76 GB, dev caches 49 GB (bun 19, go-build 14, sccache 10, brew 7.8, uv prune 3.5), plugin versions 27 GB, `.venv`s 0 GB.
+**Evidence**: The largest wins, in order, were Rust `target/` folders, re-downloadable dev caches (bun, go-build, sccache, Homebrew, uv prune) and old plugin versions; the `.venv` deletions contributed nothing measurable.
 
 ## 2026-09-24 — mise rows replaced with proto
 
