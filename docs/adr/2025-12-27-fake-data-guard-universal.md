@@ -7,7 +7,7 @@ consulted: [claude-code-guide]
 research-method: documentation-review
 ---
 
-> ⚠️ **SUPERSEDED 2026-10-01**: the hook was unregistered on 2026-04-24 (`e6c665a9`) because it blocked legitimate writes, such as a seeded `np.random.Generator()`, and it was never re-enabled. Its source, pattern file and tests were deleted on 2026-10-01; recover them from git history (tag `v33.0.1`). The decision below is kept as the record of why it existed.
+> ⚠️ **SUPERSEDED 2026-10-01**: the hook was unregistered on 2026-04-24 (`f741be5fd91198ee6a34abfded9cc7b2a620e1fc`) because it blocked legitimate writes, such as a seeded `np.random.Generator()`, and it was never re-enabled. Its source, pattern file and tests were deleted on 2026-10-01; recover them from git history (tag `v33.0.1`). The decision below is kept as the record of why it existed.
 
 # ADR: Universal Fake Data Guard PreToolUse Hook
 

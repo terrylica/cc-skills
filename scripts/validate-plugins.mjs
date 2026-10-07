@@ -1085,7 +1085,7 @@ async function validateHooksJsonStructure() {
       // Three hook entries across two generators are plain bash assignments instead --
       //     local posttooluse_entry='{"matcher":"Bash|Write|Edit",…,"timeout":10000}'
       // -- so they were read by NO check at all: this pattern skipped them, and the shipped-artifact
-      // loop below only globs `plugins/*/hooks/hooks.json`. Measured on 6f1c9e22: the validator
+      // loop below only globs `plugins/*/hooks/hooks.json`. Measured on 2ebddfd42aebf322cf99b9cda1b315a365ddf859: the validator
       // reported "All 41 plugins valid" over a tree whose installer wrote a 10000-SECOND (2h47m)
       // timeout onto a blocking PostToolUse hook. Issue #109, which the timeout fix did not finish.
       const objectLiterals = [...content.matchAll(/'(\{[^']*\})'/g)].map((literal) => ({

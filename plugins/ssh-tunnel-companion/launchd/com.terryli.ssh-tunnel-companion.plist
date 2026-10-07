@@ -32,7 +32,7 @@
 
   ⚠️ THIS TUNNEL IS LOAD-BEARING — DO NOT STOP OR UNINSTALL IT.
     A fifth forward, localhost:18095 → $TUNNEL_HOST:8095 (a monitoring service's dashboard
-    API), was REMOVED 2026-08-15 (commit d345ddaf) because that service was
+    API), was REMOVED 2026-08-15 (commit 30a74f599544ea2f1379dc65c8445648d25f316b) because that service was
     decommissioned as a TENANT of that host on 2026-07-28 and now runs elsewhere.
     That removal touched the runner ONLY, so this comment kept advertising the
     dead port and on 2026-09-01 nearly got the whole tunnel killed as "stale".

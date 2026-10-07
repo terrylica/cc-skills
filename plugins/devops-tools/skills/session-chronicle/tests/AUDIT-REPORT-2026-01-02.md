@@ -64,7 +64,7 @@ All implementation requirements have been verified. **23 files** created/modifie
 
 | From | To | Link Format | Status |
 |------|----|-------------|--------|
-| Git Commit | S3 bucket | `Session-Chronicle-S3:` trailer | ✓ Verified (commit 34f0082) |
+| Git Commit | S3 bucket | `Session-Chronicle-S3:` trailer | ✓ Verified (commit 71a0f7e03b93b85d9cf5d131e3e705f6d1cf4d7c) |
 | Git Commit | ADR | `ADR:` line | ✓ Verified |
 | ADR | Design Spec | Markdown link (line 13) | ✓ Verified |
 | Design Spec | ADR | Markdown link (line 13) | ✓ Verified |
@@ -111,7 +111,7 @@ All implementation requirements have been verified. **23 files** created/modifie
 | `op` (1Password CLI) signed in | ✓ | `op 2.32.0`, Claude Automation vault accessible |
 | Claude Automation vault accessible | ✓ | AWS keys retrieved successfully |
 | S3 bucket writable | ✓ | Upload to `s3://eon-research-artifacts` succeeded |
-| Git commit includes S3 URIs (not presigned URLs) | ✓ | Commit 34f0082 contains `Session-Chronicle-S3:` trailer |
+| Git commit includes S3 URIs (not presigned URLs) | ✓ | Commit 71a0f7e03b93b85d9cf5d131e3e705f6d1cf4d7c contains `Session-Chronicle-S3:` trailer |
 | Existing ADR cross-referenced in commit | ✓ | `ADR: 2026-01-02-session-chronicle-s3-sharing` in commit |
 | Retrieval command in commit message works | ✓ | E2E test verified retrieve_artifact.sh downloads and decompresses correctly |
 

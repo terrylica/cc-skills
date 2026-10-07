@@ -3,7 +3,7 @@
 #
 # The preflight dependency this description promises is declared in `moon.yml`
 # under `release-version.deps`, NOT here. A `#MISE depends=["release:preflight"]`
-# line used to sit here and was read by nothing (mise was retired in 41df0fe5),
+# line used to sit here and was read by nothing (mise was retired in 1cafed001095e4d6342805d2ba1f0cb73129a192),
 # so this publishing entry point tagged, changelogged, released and
 # pushed with nothing validated (#138). This script has no self-guards, so the
 # gate is orchestrator-level: `moon run repo:release-version` runs preflight
