@@ -2,6 +2,14 @@
 
 Reverse chronological - newest on top.
 
+## 2026-10-07 — Claude plugin cache is a top-5 category; `.venv` deletion can reclaim nothing
+
+**Trigger**: A full audit on a 926 GB disk at 86% found `~/.claude/plugins/cache` at 28 GB: 1,902 superseded version folders (51 copies of one plugin = 15.5 GB), never garbage-collected. In the same run, deleting ten alpha-forge worktree `.venv`s (`du` total ~14 GB) moved `df` by 0 GB, and a follow-up `uv cache prune` found no unused entries: the venv files were hardlinks shared with the uv cache and other live venvs.
+
+**Fix**: Added a Claude Code plugin cache row (delete versions not in `installed_plugins.json`, keep the 3 newest by `sort -V` so already-running sessions keep their loaded version). Changed the Quick Wins `.venv` row from "5-20 GB" to "often ~0 GB", measured with `df` not `du`.
+
+**Evidence**: Session reclaimed 155 GB (131 → 286 GB free): Rust `target/` 76 GB, dev caches 49 GB (bun 19, go-build 14, sccache 10, brew 7.8, uv prune 3.5), plugin versions 27 GB, `.venv`s 0 GB.
+
 ## 2026-09-24 — mise rows replaced with proto
 
 **Trigger**: mise is retired; proto is the only toolchain manager. The Cache Size Reference row, the Quick Wins row and the auto-reinstall Troubleshooting row taught `mise ls` / `mise uninstall`.
