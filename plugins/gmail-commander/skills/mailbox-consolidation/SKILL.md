@@ -8,7 +8,7 @@ allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion
 
 > **Self-Evolving Skill**: This skill improves through use. If a step is wrong, Google changed behaviour, or a workaround was needed, fix this file immediately. Only record real, reproducible findings, and **never add a real address, domain, tenant, rule ID or customer detail**: this plugin is public.
 
-The setup: one **hub** mailbox in a Google Workspace tenant (a shared front-desk inbox) receives everything that used to go to several **sources**. Each source keeps its own copy. Staff reply from the hub using "send mail as" for each source, so families or customers see no change.
+The setup: one **hub** mailbox in a Google Workspace tenant (a shared front-desk inbox) receives everything that used to go to several **sources**. Each source keeps its own copy. Staff reply from the hub using "send mail as" for each source, so correspondents see no change.
 
 Each source type gets a different mechanism, and each mechanism fails silently in its own way. The rules below were all measured, not taken from documentation.
 
