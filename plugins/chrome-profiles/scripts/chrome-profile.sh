@@ -88,10 +88,39 @@ stable_self() {
   printf '%s' "$SELF"
 }
 
-# Register a user-scope MCP server. Prefer the official CLI; fall back to editing ~/.claude.json (backed up first)
-# when a wrapper named `claude` refuses management subcommands.
+# ON-DEMAND MODE. Claude Code starts its own copy of every user-scope MCP server in every session, and a browser
+# server holds 0.1-0.9 GB (measured: 7.8 of 12.3 GB across 9 sessions, 2026-10-06). When an on-demand file exists
+# (default ~/.claude/mcp-browser.json, or CHROME_PROFILES_MCP_CONFIG), servers are registered there instead and load
+# only in a session started with `claude --mcp-config <file>`; a same-named user-scope entry is removed so the server
+# is never started twice. Without such a file, registration stays user scope, exactly as before.
+MCP_ON_DEMAND_FILE="${CHROME_PROFILES_MCP_CONFIG:-$HOME/.claude/mcp-browser.json}"
+
 register_mcp() {
   local name="$1" json="$2"
+  if [ -n "${CHROME_PROFILES_MCP_CONFIG:-}" ] || [ -f "$MCP_ON_DEMAND_FILE" ]; then
+    python3 - "$MCP_ON_DEMAND_FILE" "$name" "$json" <<'EOF'
+import json, os, sys, tempfile
+path, name, spec = sys.argv[1], sys.argv[2], json.loads(sys.argv[3])
+d = json.load(open(path)) if os.path.exists(path) else {}
+d.setdefault("mcpServers", {})[name] = spec
+fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".mcp-on-demand.", suffix=".tmp")
+with os.fdopen(fd, "w") as f:
+    f.write(json.dumps(d, indent=2) + "\n")
+os.chmod(tmp, 0o600)
+os.replace(tmp, path)
+EOF
+    if python3 -c 'import json,os,sys; p=os.path.expanduser("~/.claude.json"); sys.exit(0 if sys.argv[1] in ((json.load(open(p)).get("mcpServers") or {}) if os.path.exists(p) else {}) else 1)' "$name"; then
+      if command -v claude >/dev/null 2>&1 && claude mcp remove --scope user "$name" >/dev/null 2>&1; then
+        say "removed the user-scope '$name' so it no longer starts in every session"
+      else
+        say "'$name' is ALSO registered for every session; remove it: claude mcp remove --scope user $name"
+      fi
+    fi
+    say "registered MCP server '$name' ON DEMAND in $MCP_ON_DEMAND_FILE; load it with: claude --mcp-config $MCP_ON_DEMAND_FILE"
+    return
+  fi
+  # User scope. Prefer the official CLI; fall back to editing ~/.claude.json (backed up first) when a wrapper named
+  # `claude` refuses management subcommands.
   if command -v claude >/dev/null 2>&1 && claude mcp add-json --scope user "$name" "$json" >/dev/null 2>&1; then
     say "registered MCP server '$name' (claude mcp add-json)"
     return
@@ -258,18 +287,29 @@ EOF
       warn "OFF — needed only by chrome-main: open chrome://inspect/#remote-debugging and tick 'Allow remote debugging'"
     fi
 
-    echo "MCP registrations (~/.claude.json)"
-    python3 - "$ROOT" "$EXT_ID" <<'EOF' || rc=1
+    echo "MCP registrations (~/.claude.json = every session; $MCP_ON_DEMAND_FILE = on demand via --mcp-config)"
+    python3 - "$ROOT" "$EXT_ID" "$MCP_ON_DEMAND_FILE" <<'EOF' || rc=1
 import json, os, sys
-root, ext = sys.argv[1], sys.argv[2]
-p = os.path.expanduser("~/.claude.json")
-cfg = (json.load(open(p)).get("mcpServers") or {}) if os.path.exists(p) else {}
+root, ext, ondemand = sys.argv[1], sys.argv[2], sys.argv[3]
+def servers(path):
+    return (json.load(open(path)).get("mcpServers") or {}) if os.path.exists(path) else {}
+user = servers(os.path.expanduser("~/.claude.json"))
+lazy = servers(ondemand)
 cache = json.load(open(os.path.join(root, "Local State")))["profile"]["info_cache"]
 rc = 0
 def say(sym, msg):
     global rc
     print(f"  {sym} {msg}")
     if sym == "✗": rc = 1
+for n in sorted(set(user) & set(lazy)):
+    say("⚠", f"{n}: registered for every session AND on demand; remove the user-scope copy: claude mcp remove --scope user {n}")
+cfg = {**lazy, **user}
+where = {n: ("every session" if n in user else "on demand") for n in cfg}
+browserish = [n for n, v in user.items() if any(k in " ".join([v.get("command", "")] + v.get("args", [])) for k in ("chrome-devtools-mcp", "@playwright/mcp", "playwright-mcp"))]
+if browserish and os.path.exists(ondemand):
+    say("⚠", f"browser servers start in EVERY session ({', '.join(sorted(browserish))}); each holds 0.1-0.9 GB — move them to {ondemand}")
+for n in sorted(cfg):
+    print(f"  · {n}: {where[n]}")
 auto = [n for n, v in cfg.items() if "chrome-devtools-mcp" in " ".join(v.get("args", [])) and "--autoConnect" in v.get("args", [])]
 for n in auto:
     a = cfg[n].get("args", [])
