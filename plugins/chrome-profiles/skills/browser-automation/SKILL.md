@@ -42,7 +42,7 @@ CP="$(cc-plugin-root chrome-profiles)/scripts/chrome-profile.sh"
 bash "$CP" doctor [<account-email>]
 ```
 
-It checks: Chrome against the latest stable release (and whether Google is actually offering it to this Mac yet); whether `chrome://inspect` remote debugging is ON; the shape and the target account of every browser MCP server in `~/.claude.json`; that the email is signed in to **exactly one** profile; that the token is stored; and that no look-alike "Playwright …" extension is standing in for the real one. Fix what it flags before acting.
+It checks: Chrome against the latest stable release (and whether Google is actually offering it to this Mac yet); whether `chrome://inspect` remote debugging is ON; the shape and the target account of every browser MCP server, in `~/.claude.json` (every session) and in the on-demand file `~/.claude/mcp-browser.json` (loaded only with `claude --mcp-config ~/.claude/mcp-browser.json`; when that file exists, `setup` registers there, because Claude Code starts a private copy of every user-scope server in every session and a browser server holds 0.1–0.9 GB); that the email is signed in to **exactly one** profile; that the token is stored; and that no look-alike "Playwright …" extension is standing in for the real one. Fix what it flags before acting.
 
 ## 3. Choose the profile by ACCOUNT EMAIL — never by folder name
 
