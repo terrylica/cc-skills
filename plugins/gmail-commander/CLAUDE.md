@@ -6,6 +6,8 @@
 
 **Skill**: [bot-process-control](./skills/bot-process-control/SKILL.md) — where the bot and digest actually run, how to check them, and what never to start on a workstation.
 
+**Skill**: [mailbox-consolidation](./skills/mailbox-consolidation/SKILL.md) — folding consumer Gmail and other-tenant mailboxes into one shared Workspace inbox: the mechanism per source, the routing-rule spam default that silently drops copies, and forward-first-then-final-import.
+
 ## Where things run
 
 Nothing in this plugin runs as a background job on a workstation any more. The laptop launchd jobs `com.terryli.gmail-commander-bot` and `com.terryli.gmail-commander-digest` were retired on 2026-09-24; do not recreate them, and do not add launchd templates back to this plugin.
