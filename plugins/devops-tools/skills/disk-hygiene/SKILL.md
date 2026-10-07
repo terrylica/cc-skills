@@ -108,6 +108,7 @@ OVERVIEW_EOF
 | sccache     | `~/Library/Caches/Mozilla.sccache/`              | 1-3 GB        | `rm -rf ~/Library/Caches/Mozilla.sccache`                               |
 | go-build    | `~/Library/Caches/go-build/`                     | 5-25 GB       | `go clean -cache` (or `rm -rf` if `go` not on PATH)                     |
 | huggingface | `~/.cache/huggingface/`                          | 1-10 GB       | `rm -rf ~/.cache/huggingface/hub/<model>`                               |
+| Claude Code plugins | `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` | 5-30 GB | Delete versions not in `~/.claude/plugins/installed_plugins.json`, keeping the 3 newest (`sort -V`) for already-running sessions |
 
 ### Safe Cleanup Commands (Always Re-downloadable)
 
@@ -453,7 +454,7 @@ Ordered by typical space reclaimed (highest first):
 | Action                          | Typical Savings | Risk                                      | Command                                                          |
 | ------------------------------- | --------------- | ----------------------------------------- | ---------------------------------------------------------------- |
 | Rust `target/` dirs (Phase 2.5) | 10-60 GB+       | None (cold rebuild on next `cargo build`) | `find ROOTS -type d -name target` + Cargo.toml-sibling guard     |
-| Python `.venv` dirs (Phase 2.5) | 5-20 GB         | None (re-sync via `uv sync`)              | `find ROOTS -type d -name .venv -prune -exec rm -rf {} +`        |
+| Python `.venv` dirs (Phase 2.5) | Often ~0 GB     | None (re-sync via `uv sync`)              | uv hardlinks venv files from its cache: measure with `df` before/after, not `du` |
 | `go clean -cache`               | 5-25 GB         | None (re-downloads)                       | `go clean -cache`                                                |
 | `uv cache prune`                | 5-40 GB         | None (drops only unused entries)          | `uv cache prune` (check `lsof ~/.cache/uv/.lock` first)          |
 | `brew cleanup --prune=all`      | 3-10 GB         | None (re-downloads)                       | `brew cleanup --prune=all`                                       |
