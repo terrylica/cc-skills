@@ -3,7 +3,7 @@
  * emit updatedInput, directly or via allowWithInput. For that tool updatedInput carries the user's
  * answers, so a rewrite suppresses the dialog and the question returns unanswered (86 of 86 calls,
  * 2026-09-12 to 2026-09-24). The decisive fixture is the ORIGINAL premise annotator from cc-skills
- * 909d0625, which never spelled `updatedInput` itself and would slip past a naive grep.
+ * 28e75a92, which never spelled `updatedInput` itself and would slip past a naive grep.
  */
 import { afterAll, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
@@ -40,10 +40,10 @@ async function flagged(root: string): Promise<boolean> {
 }
 
 describe("validate-plugins check (c): no updatedInput for AskUserQuestion", () => {
-  it("flags the ORIGINAL premise annotator (909d0625), which only calls allowWithInput", async () => {
+  it("flags the ORIGINAL premise annotator (28e75a92), which only calls allowWithInput", async () => {
     const original = execFileSync(
       "git",
-      ["show", "909d0625:plugins/itp-hooks/hooks/pretooluse-pr-premise-annotator.ts"],
+      ["show", "28e75a92:plugins/itp-hooks/hooks/pretooluse-pr-premise-annotator.ts"],
       { cwd: REPO_ROOT, encoding: "utf8" },
     );
     expect(await flagged(fixture("original-annotator", "AskUserQuestion", original))).toBe(true);

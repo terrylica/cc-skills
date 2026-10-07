@@ -306,7 +306,7 @@ RETRIEVE_EOF
 - [x] `op` (1Password CLI) signed in — `op 2.32.0` (validate-credential-access.sh)
 - [x] Claude Automation vault accessible — AWS keys retrieved (validate-credential-access.sh)
 - [x] S3 bucket writable — Upload to `s3://eonlabs-findings` succeeded (validate-s3-upload.sh)
-- [x] Git commit includes S3 URIs (not presigned URLs) — Commit 34f0082 (validate-commit-format.sh)
+- [x] Git commit includes S3 URIs (not presigned URLs) — Commit 71a0f7e03b93b85d9cf5d131e3e705f6d1cf4d7c (validate-commit-format.sh)
 - [x] Existing ADR cross-referenced in commit (if applicable) — `ADR: 2026-01-02-session-chronicle-s3-sharing`
 - [x] Retrieval command in commit message works — E2E test verified (retrieve_artifact.sh)
 

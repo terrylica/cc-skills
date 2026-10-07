@@ -9,7 +9,7 @@
  * line per failing test, so a tail of the log is enough to locate it.
  *
  * Token: `BUN-UNIT-FAIL`, deliberately distinct from the hook suite's
- * FILE-FAIL / FILE-PASS (db49c313), and never shaped like `^\s*N pass|fail`,
+ * FILE-FAIL / FILE-PASS (830d71185d083338c8b6df089e77776825fb783a), and never shaped like `^\s*N pass|fail`,
  * which tasks/release/preflight greps out of this suite's log.
  *
  * Usage: bun tasks/lib/bun-junit-failure-roster.ts <junit.xml>

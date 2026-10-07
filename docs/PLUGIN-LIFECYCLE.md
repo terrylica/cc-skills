@@ -77,7 +77,7 @@ Understanding how Claude Code manages plugins, marketplaces, and their configura
     "installPath": "/Users/username/.claude/plugins/marketplaces/cc-skills/plugins/itp",
     "version": "<version>",
     "installedAt": "2026-01-14T00:00:00.000Z",
-    "gitCommitSha": "8d9b4ab..."
+    "gitCommitSha": "238bebce464a2685b986c3af5e3f3e26aea9d7ba..."
   }
 }
 ```

@@ -10,7 +10,7 @@ research-method: multi-agent
 
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-06-pretooluse-posttooluse-hooks/spec.md)
 
-> **Partial reversal (2026-04-14)**: The `pretooluse-guard.sh` hook (ASCII art blocking on Write/Edit) was removed. It produced excessive false positives on legitimate uses (session chronicles, CLAUDE.md diagrams, third-party output). The `posttooluse-reminder.ts` soft reminder for direct `graph-easy` CLI usage remains, as do the `itp:graph-easy` and `itp:adr-graph-easy-architect` skills. See commit `ea36c32d`.
+> **Partial reversal (2026-04-14)**: The `pretooluse-guard.sh` hook (ASCII art blocking on Write/Edit) was removed. It produced excessive false positives on legitimate uses (session chronicles, CLAUDE.md diagrams, third-party output). The `posttooluse-reminder.ts` soft reminder for direct `graph-easy` CLI usage remains, as do the `itp:graph-easy` and `itp:adr-graph-easy-architect` skills. See commit `f2da7577eda284e928fcb62ec3c9f2087ab3aa97`.
 
 ## Context and Problem Statement
 

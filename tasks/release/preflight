@@ -471,7 +471,7 @@ SANDWICH_SCANNER_AWK_SCRIPT_PATH="$(dirname "$0")/../../scripts/skill-md-self-ev
 # invocation below simply errored to stderr, the while-loop read zero rows, and
 # the gate printed "✓ All skills have self-evolution sandwich" — a release gate
 # reporting PASS because it could not look. (The path was one `../` too deep
-# from 302f5724, which moved .mise/tasks/ up to tasks/.)
+# from 3905ad99807c6c35729b5280a7eebd841a3eaa80, which moved .mise/tasks/ up to tasks/.)
 if [[ ! -f "$SANDWICH_SCANNER_AWK_SCRIPT_PATH" ]]; then
     echo "  ✗ sandwich scanner not found: $SANDWICH_SCANNER_AWK_SCRIPT_PATH"
     exit 1
