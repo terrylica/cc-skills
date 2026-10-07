@@ -239,7 +239,9 @@ function checkPueueUsage(command: string): string | null {
   }
 
   // 2. Quick status/check commands (not long-running)
-  if (/--status|--plan|--help|-h|--version/i.test(commandLower)) {
+  // Whole flags only: a bare substring test let any argument containing "-h" (e.g. a host named
+  // "gpu-host") silently disable the reminder.
+  if (/(?:^|\s)(?:--status|--plan|--help|-h|--version)(?=\s|=|$|['"])/i.test(commandLower)) {
     return null;
   }
 
