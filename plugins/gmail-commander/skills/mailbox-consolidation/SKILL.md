@@ -87,3 +87,11 @@ Snapshot the hub's settings into a baseline file and diff them on a schedule. Se
 ## 6. Record as you go
 
 Record each source's mechanism, rule ID, the date it went live and the test that proved it, in the project's own private records, never in this public skill. When a status turns out to be only partly true (for example "routed copies arrive", true only for non-spam), correct that record in the same change as the fix.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did a mechanism behave differently from the table above?** For example, Google added an API for consumer forwarding, a routing default changed, or an import began carrying new mail. Fix the table, and note the date and what was measured.
+2. **Did a test pass for the wrong reason?** For example, an internal sender, a self-send, or `X-Gm-Spam: 0` on a path meant to cover spam. Add it to section 5.
+3. **Did anything project-specific land in this file?** That means an address, a domain, a rule ID or a customer name. Remove it; it belongs in the project's private records.
