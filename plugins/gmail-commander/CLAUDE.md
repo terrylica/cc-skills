@@ -84,7 +84,7 @@ rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
 
 ### Diagnosing `invalid_grant`
 
-The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires the CLI reports `invalid_grant`. Fix for the CLI: move the token file aside and re-consent via browser — see [gmail-access SKILL.md](./skills/gmail-access/SKILL.md#diagnosing-invalid_grant). The deployment holds its own refresh token; renewing that one is a runbook task in the private repository.
+When the refresh token expires, the CLI reports `invalid_grant`. Fix for the CLI: move the token file aside and re-consent via browser — see [gmail-access SKILL.md](./skills/gmail-access/SKILL.md#diagnosing-invalid_grant). The deployment holds its own refresh token; renewing that one is a runbook task in the private repository.
 
 ## Environment Variables
 
@@ -138,7 +138,6 @@ Gotcha the builder also absorbs: Gmail's `drafts.update` rejects with `400 Messa
 - **CLI paths**: `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail`
 - **CLI build**: from the committed `scripts/gmail-cli/bun.lock` with `bun install --frozen-lockfile && bun run build`; the compiled binary itself is gitignored
 - **Sender alignment**: Auto-detect for replies, AskUserQuestion for new emails
-- **Secrets**: interactive CLI use takes `GMAIL_OP_UUID` from the calling shell or the command line; OAuth client credentials come from 1Password (`op read`, optionally via `OP_SERVICE_ACCOUNT_TOKEN`). The deployment's secrets live in its own secret store and are documented only in its private repository
 
 ## Skills
 
@@ -147,4 +146,5 @@ Gotcha the builder also absorbs: Gmail's `drafts.update` rejects with `400 Messa
 - [gmail-access](./skills/gmail-access/SKILL.md)
 - [health](./skills/health/SKILL.md)
 - [interactive-bot](./skills/interactive-bot/SKILL.md)
+- [mailbox-consolidation](./skills/mailbox-consolidation/SKILL.md)
 - [setup](./skills/setup/SKILL.md)
