@@ -142,16 +142,16 @@ CACHE_CLEAN_EOF
 
 ### ⚠️ uv cache lock — never reach for `--force` before naming the holder
 
-`uv cache clean` waits 300 s for an exclusive lock, then errors. Earlier revisions of this skill said "use `--force`". **That advice is wrong when the lock holder is a long-running service**, and it is the same class of mistake as the catgpt-gateway incident: mutating a cache underneath a live daemon.
+`uv cache clean` waits 300 s for an exclusive lock, then errors. Earlier revisions of this skill said "use `--force`". **That advice is wrong when the lock holder is a long-running service**, and it is the same class of mistake as the api-gateway incident: mutating a cache underneath a live daemon.
 
 Measured 2026-08-24: `uv cache clean` timed out, and the holders were
 
 ```
-uv 1934  uv run python ~/eon/tasc/kernel/embed.py serve  --model minishlab/potion-retrieval-32M
-uv 2652  uv run python ~/eon/tasc/kernel/embed.py rerank --serve --model Xenova/ms-marco-MiniLM-L-6-v2
+uv 1934  uv run python ~/code/search-svc/kernel/embed.py serve  --model minishlab/potion-retrieval-32M
+uv 2652  uv run python ~/code/search-svc/kernel/embed.py rerank --serve --model Xenova/ms-marco-MiniLM-L-6-v2
 ```
 
-— both children of the **launchd job `com.tasc.serve`**, up 1 h 37 m. These are persistent daemons, so the lock is never released and `clean` can never succeed on its own. Always identify the holder before deciding:
+— both children of the **launchd job `com.search-svc.serve`**, up 1 h 37 m. These are persistent daemons, so the lock is never released and `clean` can never succeed on its own. Always identify the holder before deciding:
 
 ```bash
 lsof ~/.cache/uv/.lock 2>/dev/null          # exact PIDs holding the lock
@@ -211,7 +211,7 @@ stat -f 'links=%l size=%z %N' "$(find ~/.cache/uv/archive-v0 -type f -size +20M 
 
 ```bash
 /usr/bin/env bash << 'ARTIFACT_SCAN_EOF'
-ROOTS=(~/eon ~/own ~/src ~/code ~/projects)
+ROOTS=(~/code ~/projects ~/src)
 for n in target .venv node_modules .zig-cache zig-cache; do
   echo "=== $n (top 10 by size) ==="
   find "${ROOTS[@]}" -maxdepth 5 -type d -name "$n" -prune 2>/dev/null \
@@ -226,7 +226,7 @@ ARTIFACT_SCAN_EOF
 
 ```bash
 /usr/bin/env bash << 'TARGET_CLEAN_EOF'
-ROOTS=(~/eon ~/own)
+ROOTS=(~/code ~/projects)
 find "${ROOTS[@]}" -maxdepth 5 -type d -name target -prune 2>/dev/null | while read -r t; do
   [ -f "$(dirname "$t")/Cargo.toml" ] && rm -rf "$t" && echo "cleaned: $t"
 done
@@ -236,12 +236,12 @@ TARGET_CLEAN_EOF
 `.venv` / `node_modules` are safe to bulk-delete by name (regenerated on next `uv sync` / `install`):
 
 ```bash
-find ~/eon ~/own -maxdepth 5 -type d -name .venv -prune -exec rm -rf {} +
+find ~/code ~/projects -maxdepth 5 -type d -name .venv -prune -exec rm -rf {} +
 ```
 
 ### ⚠️ CHECK FOR DEPENDENT SERVICES FIRST — this is not optional
 
-`node_modules` and `.venv` are only "safe to bulk-delete" for repos nobody is _running_. On 2026-07-31 a bulk delete took out `catgpt-gateway/node_modules`; its launchd watchdog then failed 95 times and, in trying to restart the gateway, drove a Chrome launch that raised a macOS TCC prompt. The user reported it as a mysterious permission pop-up, and the disk cleanup was two steps removed from the symptom.
+`node_modules` and `.venv` are only "safe to bulk-delete" for repos nobody is _running_. On 2026-07-31 a bulk delete took out `api-gateway/node_modules`; its launchd watchdog then failed 95 times and, in trying to restart the gateway, drove a Chrome launch that raised a macOS TCC prompt. The user reported it as a mysterious permission pop-up, and the disk cleanup was two steps removed from the symptom.
 
 Build the exclusion list BEFORE deleting anything:
 
@@ -264,7 +264,7 @@ DEPCHECK_EOF
 
 Then `SKIP` any candidate path under one of those roots, and **print the skip** so the operator can see the guard fired. After cleanup, re-run the same list and assert each repo still has the manifest-matching directory (`package.json` → `node_modules`, `pyproject.toml` → `.venv`).
 
-> **⚠️ Check EVERY manifest in the repo, not just the one at the root.** The version above walks up from the launchd program to the first `package.json` or `pyproject.toml` and stops — so for a repo whose service code lives in a subdirectory it verifies the wrong thing. Measured 2026-08-03 on `~/eon/tasc`: the root has `pyproject.toml` (so the check reported `.venv=ok` and `node_modules=—`, i.e. "not applicable") while the service actually needs **`ts/node_modules`**, which was missing. The guard reported the repo healthy while its launchd job had been crash-looping 11,593 times. Enumerate instead:
+> **⚠️ Check EVERY manifest in the repo, not just the one at the root.** The version above walks up from the launchd program to the first `package.json` or `pyproject.toml` and stops — so for a repo whose service code lives in a subdirectory it verifies the wrong thing. Measured 2026-08-03 on `~/code/search-svc`: the root has `pyproject.toml` (so the check reported `.venv=ok` and `node_modules=—`, i.e. "not applicable") while the service actually needs **`ts/node_modules`**, which was missing. The guard reported the repo healthy while its launchd job had been crash-looping 11,593 times. Enumerate instead:
 >
 > ```bash
 > find "$repo" -name package.json -not -path '*/node_modules/*' -maxdepth 3 \
@@ -273,26 +273,26 @@ Then `SKIP` any candidate path under one of those roots, and **print the skip** 
 >   | while read -r m; do d=$(dirname "$m"); [ -d "$d/.venv" ] || echo "MISSING $d/.venv"; done
 > ```
 >
-> Also note a Python venv can be present and still incomplete: `uv sync` installs only the default dependency group. `tasc` declared its embedding deps under `[dependency-groups] embed`, so the venv existed, imported `pymupdf` fine, and failed on `import numpy` until `uv sync --group embed` was run. **A directory existing is not the same as the dependencies being installed** — where a repo documents a group/extra, restore it.
+> Also note a Python venv can be present and still incomplete: `uv sync` installs only the default dependency group. `search-svc` declared its embedding deps under `[dependency-groups] embed`, so the venv existed, imported `pymupdf` fine, and failed on `import numpy` until `uv sync --group embed` was run. **A directory existing is not the same as the dependencies being installed** — where a repo documents a group/extra, restore it.
 
 > **🔴 The walk-up finds NOTHING when the job execs a runner shim outside the repo.** Both versions above start at `ProgramArguments.0` and walk _up_ the filesystem. But a launchd runner-shim policy (signed, distinctly-named shims in `~/.local/libexec/` or `~/.claude/tools/launchd-runners/libexec/`) puts the program in a directory that has no ancestor relationship to the repo at all — the walk-up terminates at `$HOME` or, worse, lands on `~/.claude` and reports _that_ as the repo. The guard then emits a confident, entirely wrong exclusion list, and the real repo is deleted.
 >
-> Measured 2026-09-13: the exclusion list named `~/.claude` for 16 jobs and never mentioned `~/eon/iterm2-scripts`, `~/eon/mql5`, `~/eon/claude-sys` — so the cleanup removed all three repos' `.venv`/`node_modules`, killing `com.terryli.iterm2-autosnapshot` (crash-safety snapshots), `com.terryli.pushover-telemetry` (a Bun/TS daemon) and `com.terryli.typeless-keystroker`. **Grep the shim for repo paths as well as walking up:**
+> Measured 2026-09-13: the exclusion list named `~/.claude` for 16 jobs and never mentioned `~/code/terminal-scripts`, `~/code/trading-tools`, `~/code/sys-config` — so the cleanup removed all three repos' `.venv`/`node_modules`, killing `com.example.terminal-snapshot` (crash-safety snapshots), `com.example.notify-telemetry` (a Bun/TS daemon) and `com.example.keystroke-helper`. **Grep the shim for repo paths as well as walking up:**
 >
 > ```bash
 > for p in "$HOME"/Library/LaunchAgents/*.plist; do
 >   prog=$(plutil -extract ProgramArguments.0 raw "$p" 2>/dev/null) || continue
 >   [ -f "$prog" ] || continue
 >   # shims are often compiled binaries — `strings`, not `grep`, and search env-var
->   # defaults too (e.g. ITERM2_SCRIPTS_REPO=/Users/.../eon/iterm2-scripts)
+>   # defaults too (e.g. SCRIPTS_REPO=/Users/.../code/terminal-scripts)
 >   strings "$prog" 2>/dev/null \
->     | grep -oE '/Users/[^/]+/(eon|own|vj|src)/[A-Za-z0-9._-]+' | sort -u
+>     | grep -oE '/Users/[^/]+/(code|projects|src)/[A-Za-z0-9._-]+' | sort -u
 > done | sort -u
 > ```
 >
 > Union that with the walk-up result. Also check the plist's `StandardOutPath`/ `StandardErrorPath` and `WorkingDirectory` — those frequently point into the real repo even when `ProgramArguments` does not.
 >
-> **Corollary — a self-healing runner can be permanently poisoned while looking fine.** `iterm2-autosnapshot`'s shim rebuilds a missing venv, but caps attempts and persists the counter in `~/.local/state/<job>/venv-bootstrap-attempts.txt`. That counter had been sitting at `5/5` since Aug 21 and was never consulted, because the venv existed. Deleting the venv made the job hit the _stale_ exhausted cap on its first try and refuse to self-heal: `FATAL: venv bootstrap cap exhausted (5/5)`. Restoring deps is not enough — **reset the attempt counter and kickstart**, then confirm from the log that real work resumed (here, `[auto-snapshot] wrote 17 tabs`), not merely `exit 0`.
+> **Corollary — a self-healing runner can be permanently poisoned while looking fine.** `terminal-snapshot`'s shim rebuilds a missing venv, but caps attempts and persists the counter in `~/.local/state/<job>/venv-bootstrap-attempts.txt`. That counter had been sitting at `5/5` since Aug 21 and was never consulted, because the venv existed. Deleting the venv made the job hit the _stale_ exhausted cap on its first try and refuse to self-heal: `FATAL: venv bootstrap cap exhausted (5/5)`. Restoring deps is not enough — **reset the attempt counter and kickstart**, then confirm from the log that real work resumed (here, `[auto-snapshot] wrote 17 tabs`), not merely `exit 0`.
 
 **Caveats:**
 
@@ -339,7 +339,7 @@ STALE_EOF
 **1. Apparent size ≠ allocated size (sparse files).** `ls -l` and `find -size` report the file's _logical_ extent; `du` reports blocks actually on disk. A corrupted index or a database with a runaway seek produces a sparse file where these differ by orders of magnitude. Measured 2026-08-03 on a ChromaDB HNSW file:
 
 ```
-ls -l  link_lists.bin  ->  2831.5 GB   (apparent — impossible on a 926 GB disk)
+ls -l  link_lists.bin  ->  2831.5 GB   (apparent — impossible on a ~1 TB disk)
 du -h  link_lists.bin  ->  174 GB      (actual)
 ```
 
@@ -358,7 +358,7 @@ Before deleting one, prove it is unreferenced and superseded:
 - the app's own index/manifest does not mention its UUID;
 - a healthy replacement exists and the app has completed a run since.
 
-Real case: `~/.mempalace` had grown to **190 GB**, of which **175 GB** was one directory named `<uuid>.corrupt-20260802-160712.drift-20260802-160712` — the app had already diagnosed and set aside the damage from a 3-day crash loop, and a healthy 882 MB collection had replaced it. Deleting it took the volume from 82 % to 60 % full in one command.
+Real case: `~/.memory-store` had grown to **190 GB**, of which **175 GB** was one directory named `<uuid>.corrupt-20260802-160712.drift-20260802-160712` — the app had already diagnosed and set aside the damage from a 3-day crash loop, and a healthy 882 MB collection had replaced it. Deleting it took the volume from 82 % to 60 % full in one command.
 
 ### Common Forgotten File Types
 

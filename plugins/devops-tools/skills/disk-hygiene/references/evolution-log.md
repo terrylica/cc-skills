@@ -18,211 +18,99 @@ Reverse chronological - newest on top.
 
 ## 2026-09-13 — The dependent-service guard is blind to runner shims, and it broke three live services
 
-**Trigger**: Full audit on a 926 GB volume at 89 % (100 GB free). Reclaimed 87 GB to 181 GiB free / 80 %. But the Phase-2.5 exclusion list was wrong, and the cleanup killed three running launchd jobs.
+**Trigger**: Full audit on a ~1 TB volume at 89 % (100 GB free). Reclaimed 87 GB to 181 GiB free / 80 %. But the Phase-2.5 exclusion list was wrong, and the cleanup killed three running launchd jobs.
 
-**Root cause**: The dependent-service guard starts at `ProgramArguments.0` and walks _up_ the filesystem looking for a manifest. This machine follows a launchd runner-shim policy — every job execs a signed, distinctly-named shim in `~/.local/libexec/` or `~/.claude/tools/launchd-runners/libexec/`, which has **no ancestor relationship to the repo it serves**. The walk-up therefore landed on `~/.claude` for 16 jobs and never named the real repos. The guard printed a confident exclusion list and the cleanup deleted `.venv`/`node_modules` from `~/eon/iterm2-scripts`, `~/eon/mql5` and `~/eon/claude-sys`, breaking `com.terryli.iterm2-autosnapshot` (crash-safety snapshots), `com.terryli.pushover-telemetry` (Bun/TS daemon) and `com.terryli.typeless-keystroker`. All three were restored in-session and verified doing real work again.
+**Root cause**: The dependent-service guard starts at `ProgramArguments.0` and walks _up_ the filesystem looking for a manifest. This machine follows a launchd runner-shim policy — every job execs a signed, distinctly-named shim in `~/.local/libexec/` or `~/.claude/tools/launchd-runners/libexec/`, which has **no ancestor relationship to the repo it serves**. The walk-up therefore landed on `~/.claude` for 16 jobs and never named the real repos. The guard printed a confident exclusion list and the cleanup deleted `.venv`/`node_modules` from `~/code/terminal-scripts`, `~/code/trading-tools` and `~/code/sys-config`, breaking `com.example.terminal-snapshot` (crash-safety snapshots), `com.example.notify-telemetry` (Bun/TS daemon) and `com.example.keystroke-helper`. All three were restored in-session and verified doing real work again.
 
 **Fix**: Grep the shim binary for repo paths (`strings`, not `grep` — the shims are compiled Mach-O) and union that with the walk-up result. Also check `StandardOutPath`/`StandardErrorPath`/`WorkingDirectory`, which often point into the real repo when `ProgramArguments` does not. Added to SKILL.md as a 🔴 callout under the dependent-services guard.
 
-**Second finding — a self-healing runner can be permanently poisoned while looking healthy.** `iterm2-autosnapshot`'s shim rebuilds a missing venv but caps attempts and persists the counter at `~/.local/state/<job>/venv-bootstrap-attempts.txt`. That counter had read `5/5` since Aug 21 and was never consulted, because the venv existed. Deleting the venv made the job hit the _stale_ exhausted cap on its very first attempt: `FATAL: venv bootstrap cap exhausted (5/5 attempts)`. **Restoring dependencies was not sufficient** — the counter had to be reset and the job kickstarted. Verify recovery from the log's real-work line (`[auto-snapshot] wrote 17 tabs`), never from `exit 0` alone, since an interval job legitimately reports `state = not running` between ticks.
+**Second finding — a self-healing runner can be permanently poisoned while looking healthy.** `terminal-snapshot`'s shim rebuilds a missing venv but caps attempts and persists the counter at `~/.local/state/<job>/venv-bootstrap-attempts.txt`. That counter had read `5/5` since Aug 21 and was never consulted, because the venv existed. Deleting the venv made the job hit the _stale_ exhausted cap on its very first attempt: `FATAL: venv bootstrap cap exhausted (5/5 attempts)`. **Restoring dependencies was not sufficient** — the counter had to be reset and the job kickstarted. Verify recovery from the log's real-work line (`[auto-snapshot] wrote 17 tabs`), never from `exit 0` alone, since an interval job legitimately reports `state = not running` between ticks.
 
 **Third finding — `uv cache prune`'s reclaim figure is inflated by hardlinks.** Prune reported `Removed 1538143 files (115.0GiB)` but `df` moved only 7 GiB. uv sums the apparent size of every removed entry; because `archive-v0` files are hardlinked into each `.venv`, entries whose links had already been dropped by the earlier `.venv` sweep were counted at full size a second time. The same double-count runs the other way: the `.venv` sweep measured 52 GB by `du` but yielded 25 GB in `df`. **Trust `df` deltas, not the tool's own total**, and expect `du`-based estimates across the uv cache and venvs to overstate the union badly. Real end-to-end reclaim was 60 GB for those two phases, not the ~167 GB the two tools summed to.
 
-**Also confirmed (unchanged from 2026-08-24)**: the uv lock holders were again `com.tasc.serve`'s two `uv run` children, up 5 days. The documented bootout → prune → bootstrap → verify cycle worked cleanly; wrapping it in an EXIT trap guarantees the service is restored even if prune fails. Cache went 133 G → 18 G; tasc came back with an identical 5-process tree and HTTP 200 on port 3000.
+**Also confirmed (unchanged from 2026-08-24)**: the uv lock holders were again `com.search-svc.serve`'s two `uv run` children, up 5 days. The documented bootout → prune → bootstrap → verify cycle worked cleanly; wrapping it in an EXIT trap guarantees the service is restored even if prune fails. Cache went 133 G → 18 G; search-svc came back with an identical 5-process tree and HTTP 200 on port 3000.
 
-**Non-finding worth recording**: `~/eon/alpha-forge/scripts/equity-ingest/node_modules` was deleted and `com.terryli.equity-ingest-runner` shows `exit=1`, but the two are unrelated — its error log is 0 bytes dated Aug 3, and the directory held no manifest, so the modules were orphaned and unreproducible. **`launchctl list` exit codes are the LAST exit, possibly weeks stale** — always corroborate with log mtimes before blaming the cleanup.
+**Non-finding worth recording**: `~/code/research-repo/scripts/ingest/node_modules` was deleted and `com.example.ingest-runner` shows `exit=1`, but the two are unrelated — its error log is 0 bytes dated Aug 3, and the directory held no manifest, so the modules were orphaned and unreproducible. **`launchctl list` exit codes are the LAST exit, possibly weeks stale** — always corroborate with log mtimes before blaming the cleanup.
 
 **Action taken**: Added the runner-shim callout + stale-self-heal-counter corollary to SKILL.md; recorded the hardlink accounting caveat here.
 
 ## 2026-08-24 — `--force` on a locked uv cache was dangerous advice; and the uv cache was 78 % orphaned venvs
 
-**Trigger**: Full audit on terryli's MBP, 730 GB used / 81 % full. Reclaimed
-**190 GB** (Trash 93 GB, Rust `target/` 56 GB, assorted caches 40 GB), landing at
-540 GB / 60 %. Three separate defects surfaced.
+**Trigger**: Full audit on <user>'s MBP, 730 GB used / 81 % full. Reclaimed **190 GB** (Trash 93 GB, Rust `target/` 56 GB, assorted caches 40 GB), landing at 540 GB / 60 %. Three separate defects surfaced.
 
-**Defect 1 — the skill told you to `--force` a lock it never identified.**
-`uv cache clean` timed out after 300 s. The old troubleshooting row said "Lock held
-by running uv → use `--force`". Naming the holder first showed why that is wrong:
+**Defect 1 — the skill told you to `--force` a lock it never identified.** `uv cache clean` timed out after 300 s. The old troubleshooting row said "Lock held by running uv → use `--force`". Naming the holder first showed why that is wrong:
 
 ```
-uv 1934 / uv 2652  — uv run python ~/eon/tasc/kernel/embed.py {serve,rerank --serve}
-                     both children of launchd job com.tasc.serve, up 1 h 37 m
+uv 1934 / uv 2652  — uv run python ~/code/search-svc/kernel/embed.py {serve,rerank --serve}
+                     both children of launchd job com.search-svc.serve, up 1 h 37 m
 ```
 
-Persistent daemons never release the lock, so `clean` can _never_ succeed on its
-own — and forcing it mutates a cache under a live service, the exact shape of the
-2026-07-31 catgpt-gateway incident. Worse, `tasc` is the same repo as the 11,593-
-crash-loop entry below. **Fix**: replaced the `--force` advice with a
-name-the-holder-first decision table (`lsof ~/.cache/uv/.lock` → `ps` → `launchctl
-list`), and switched the recommended verb to **`uv cache prune`** (drops only
-unused entries) everywhere `clean --force` appeared.
+Persistent daemons never release the lock, so `clean` can _never_ succeed on its own — and forcing it mutates a cache under a live service, the exact shape of the 2026-07-31 api-gateway incident. Worse, `search-svc` is the same repo as the 11,593- crash-loop entry below. **Fix**: replaced the `--force` advice with a name-the-holder-first decision table (`lsof ~/.cache/uv/.lock` → `ps` → `launchctl list`), and switched the recommended verb to **`uv cache prune`** (drops only unused entries) everywhere `clean --force` appeared.
 
-**Defect 2 — the headline cache number is not what it looks like.** The 69 GB uv
-cache classified as:
+**Defect 2 — the headline cache number is not what it looks like.** The 69 GB uv cache classified as:
 
 | Entry shape                       | Count | Size      |
 | --------------------------------- | ----- | --------- |
 | Full venvs (contain `pyvenv.cfg`) | 210   | **39 GB** |
 | Genuine unpacked wheels           | 1,577 | 10 GB     |
 
-78 % was orphaned build/tool environments, never garbage-collected — a hygiene
-failure, not the dedup layer doing its job. Also confirmed `links=1` on sampled
-cache files, so they were _not_ hardlinked into any live venv (deleting would
-genuinely reclaim; `links>1` would have reclaimed nothing). **Fix**: added a
-classify-before-you-judge subsection with both the `pyvenv.cfg` split and the
-hardlink check, so future runs quote a real number instead of the raw `du`.
+78 % was orphaned build/tool environments, never garbage-collected — a hygiene failure, not the dedup layer doing its job. Also confirmed `links=1` on sampled cache files, so they were _not_ hardlinked into any live venv (deleting would genuinely reclaim; `links>1` would have reclaimed nothing). **Fix**: added a classify-before-you-judge subsection with both the `pyvenv.cfg` split and the hardlink check, so future runs quote a real number instead of the raw `du`.
 
-**Defect 3 — `rm -rf ~/.Trash/*` is a zsh footgun.** Under zsh's default `nomatch`,
-an empty Trash makes the glob a fatal error: `rm` never runs and the block exits 1.
-That non-zero status can abort a `set -e` script or be misread as a failed delete.
-**Fix**: Quick Wins now says `find ~/.Trash -mindepth 1 -delete` — glob-free, and
-it handles the spaces/brackets in scene-release filenames.
+**Defect 3 — `rm -rf ~/.Trash/*` is a zsh footgun.** Under zsh's default `nomatch`, an empty Trash makes the glob a fatal error: `rm` never runs and the block exits 1. That non-zero status can abort a `set -e` script or be misread as a failed delete. **Fix**: Quick Wins now says `find ~/.Trash -mindepth 1 -delete` — glob-free, and it handles the spaces/brackets in scene-release filenames.
 
-**Worth recording — don't let "Python is bloated" be the conclusion.** In this same
-audit Rust's per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python
-`.venv`s (8× more), because `target/` is per-repo with zero sharing while uv's
-archive is shared across every project. The largest Python entries were
-`torch-2.13.0` at 479 MB, cached twice — compiled tensor kernels, which no language
-change would shrink. Go was the genuinely cheap one: 143 MB of cache, static
-binaries, no runtime env. Added to SKILL.md so the measured split is reported
-instead of folk wisdom.
+**Worth recording — don't let "Python is bloated" be the conclusion.** In this same audit Rust's per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python `.venv`s (8× more), because `target/` is per-repo with zero sharing while uv's archive is shared across every project. The largest Python entries were `torch-2.13.0` at 479 MB, cached twice — compiled tensor kernels, which no language change would shrink. Go was the genuinely cheap one: 143 MB of cache, static binaries, no runtime env. Added to SKILL.md so the measured split is reported instead of folk wisdom.
 
-**What worked and should be kept**: the launchd dependent-service guard fired
-correctly, skipping both `opendeviationbar-patterns` `target/` dirs, and the
-post-cleanup sweep confirmed every launchd job at exit code 0 with zero dirtied
-repos. The `/tmp/<name>.sh` workaround from 2026-05-09 was needed again — an inline
-`IFS=$'\t'` loop tripped the pueue hook with `parse error near TASK_ID=$(pueue
-add`; scripting it worked first try. The manifest sweep also emitted MISSING lines
-for monorepo sub-packages whose `node_modules` is hoisted to the repo root —
-**verify the root before reporting damage**; all were false positives.
+**What worked and should be kept**: the launchd dependent-service guard fired correctly, skipping both `opendeviationbar-patterns` `target/` dirs, and the post-cleanup sweep confirmed every launchd job at exit code 0 with zero dirtied repos. The `/tmp/<name>.sh` workaround from 2026-05-09 was needed again — an inline `IFS=$'\t'` loop tripped the pueue hook with `parse error near TASK_ID=$(pueue add`; scripting it worked first try. The manifest sweep also emitted MISSING lines for monorepo sub-packages whose `node_modules` is hoisted to the repo root — **verify the root before reporting damage**; all were false positives.
 
-**Note**: SKILL.md grew 33.0 KB → 38.2 KB. Approaching the 40 KB bloat threshold —
-next edit should prefer prose over wide tables (the "Forgotten File Types" table is
-already padded to ~700 chars/line by one long row).
+**Note**: SKILL.md grew 33.0 KB → 38.2 KB. Approaching the 40 KB bloat threshold — next edit should prefer prose over wide tables (the "Forgotten File Types" table is already padded to ~700 chars/line by one long row).
 
 ## 2026-08-03b — The dependent-service guard checked only the repo ROOT, and a venv can be present but incomplete
 
-**Trigger**: The guard added earlier the same day reported `~/eon/tasc` healthy
-(`.venv=ok`, `node_modules=—`) while `com.tasc.serve` had been crash-looping
-**11,593 times over ~32 hours**. Both readings were technically true and together
-useless.
+**Trigger**: The guard added earlier the same day reported `~/code/search-svc` healthy (`.venv=ok`, `node_modules=—`) while `com.search-svc.serve` had been crash-looping **11,593 times over ~32 hours**. Both readings were technically true and together useless.
 
 **Two distinct defects:**
 
-1. **Root-only manifest walk.** The check walks up from the launchd program to the
-   FIRST `package.json`/`pyproject.toml` and stops. `tasc` has `pyproject.toml` at
-   the root, so it reported `.venv=ok` and treated node deps as not-applicable —
-   but the service needs **`ts/node_modules`**, one directory down, which was
-   missing (`Cannot find module 'ajv/dist/2020'`, 11,637 log occurrences). Fix:
-   enumerate every manifest in the repo (maxdepth 3, excluding `node_modules/` and
-   `.venv/`) and check each one's sibling directory.
-2. **Present ≠ complete.** After restoring `ts/node_modules` the service still
-   failed with `ModuleNotFoundError: No module named 'numpy'`. The `.venv` existed
-   and imported `pymupdf` fine, because `uv sync` installs only the DEFAULT
-   dependency group; `tasc` declares its embedding deps under
-   `[dependency-groups] embed`. Resolved with `uv sync --group embed`. A directory
-   existing is not evidence the dependencies are installed.
+1. **Root-only manifest walk.** The check walks up from the launchd program to the FIRST `package.json`/`pyproject.toml` and stops. `search-svc` has `pyproject.toml` at the root, so it reported `.venv=ok` and treated node deps as not-applicable — but the service needs **`ts/node_modules`**, one directory down, which was missing (`Cannot find module 'ajv/dist/2020'`, 11,637 log occurrences). Fix: enumerate every manifest in the repo (maxdepth 3, excluding `node_modules/` and `.venv/`) and check each one's sibling directory.
+2. **Present ≠ complete.** After restoring `ts/node_modules` the service still failed with `ModuleNotFoundError: No module named 'numpy'`. The `.venv` existed and imported `pymupdf` fine, because `uv sync` installs only the DEFAULT dependency group; `search-svc` declares its embedding deps under `[dependency-groups] embed`. Resolved with `uv sync --group embed`. A directory existing is not evidence the dependencies are installed.
 
-**Also corrected in this pass**: the crash loop was NOT caused by the disk
-cleanup — it began ~2026-08-02 14:00 local, roughly 32 h before. Checking that
-before assuming culpability mattered, because the previous entry's incident made
-"the cleanup broke it" the tempting default.
+**Also corrected in this pass**: the crash loop was NOT caused by the disk cleanup — it began ~2026-08-02 14:00 local, roughly 32 h before. Checking that before assuming culpability mattered, because the previous entry's incident made "the cleanup broke it" the tempting default.
 
-**Adversarial verification earned its keep.** Before deleting a 4.48 GB
-`TASC 1982-2022` archive from Downloads, a second agent independently re-derived
-the redundancy claim: 4,662 PDFs in both locations, **matching MD5 checksums**
-sampled across 1982–2022, the repo copy gitignored by design and documented in
-its README, and extraction proven one-way (PDF → JSONL is lossy). Verdict
-CONFIRMED SAFE, deleted. The same pass **REFUTED** two other "obviously stale"
-installers — an app dmg whose version matched what was installed, and a
-`Claude.dmg` whose app had been modified after the download — both kept.
+**Adversarial verification earned its keep.** Before deleting a 4.48 GB `TASC 1982-2022` archive from Downloads, a second agent independently re-derived the redundancy claim: 4,662 PDFs in both locations, **matching MD5 checksums** sampled across 1982–2022, the repo copy gitignored by design and documented in its README, and extraction proven one-way (PDF → JSONL is lossy). Verdict CONFIRMED SAFE, deleted. The same pass **REFUTED** two other "obviously stale" installers — an app dmg whose version matched what was installed, and a `Claude.dmg` whose app had been modified after the download — both kept.
 
-**Measurement note worth carrying**: a `du -sh ~/.Trash` reading of 14G in Phase 1
-could not be reproduced later (0B, 0 items, confirmed by `du`, `find`, `ls` and
-`stat` agreeing). Cause unestablished. Recorded as unresolved rather than
-explained away.
+**Measurement note worth carrying**: a `du -sh ~/.Trash` reading of 14G in Phase 1 could not be reproduced later (0B, 0 items, confirmed by `du`, `find`, `ls` and `stat` agreeing). Cause unestablished. Recorded as unresolved rather than explained away.
 
 ## 2026-08-03 — The biggest win was an app's own quarantined wreckage, and a sparse file lied by 16x
 
-**Trigger**: A full audit two days after the 2026-07-31 pass, which had left the
-volume at 61 % / 356 GB free. It was back to **82 % / 167 GB free** — 189 GB
-consumed in 48 hours. Phases 1, 2 and 2.5 all came back small (in-repo artifacts
-were only 12 GB, down from 109 GB), so the existing phases could not explain it.
+**Trigger**: A full audit two days after the 2026-07-31 pass, which had left the volume at 61 % / 356 GB free. It was back to **82 % / 167 GB free** — 189 GB consumed in 48 hours. Phases 1, 2 and 2.5 all came back small (in-repo artifacts were only 12 GB, down from 109 GB), so the existing phases could not explain it.
 
-**What actually found it**: a plain top-level `du` of `$HOME`, which no phase
-prescribed. `~/.mempalace` was **190 GB** — larger than every cache, every repo
-and every `Library` subdirectory combined.
+**What actually found it**: a plain top-level `du` of `$HOME`, which no phase prescribed. `~/.memory-store` was **190 GB** — larger than every cache, every repo and every `Library` subdirectory combined.
 
 **Two new failure modes, both now documented in Phase 3:**
 
-1. **Sparse files make `ls -l` lie.** The offending file reported **2,831 GB
-   apparent** against **174 GB allocated** — an impossible number on a 926 GB
-   disk. Anything sizing candidates with `ls -l` or `find -size` would have been
-   wildly misled; `du` was correct throughout.
-2. **Applications quarantine their own wreckage under self-describing names.**
-   The 175 GB lived in one directory literally named
-   `<uuid>.corrupt-20260802-160712.drift-20260802-160712`. MemPalace had detected
-   corruption from a 3-day crash loop, set the collection aside, and rebuilt a
-   healthy 882 MB replacement. The disk symptom and a separate 3-day service
-   outage were the same root cause. Added a marker-grep (`*corrupt*`, `.drift-*`,
-   `.pre-rebuild-*`, `.bak-*`, `.quarantine*`) plus a three-part safety proof
-   (no live fd, unreferenced in the app's manifest, healthy replacement exists).
+1. **Sparse files make `ls -l` lie.** The offending file reported **2,831 GB apparent** against **174 GB allocated** — an impossible number on a ~1 TB disk. Anything sizing candidates with `ls -l` or `find -size` would have been wildly misled; `du` was correct throughout.
+2. **Applications quarantine their own wreckage under self-describing names.** The 175 GB lived in one directory literally named `<uuid>.corrupt-20260802-160712.drift-20260802-160712`. MemPalace had detected corruption from a 3-day crash loop, set the collection aside, and rebuilt a healthy 882 MB replacement. The disk symptom and a separate 3-day service outage were the same root cause. Added a marker-grep (`*corrupt*`, `.drift-*`, `.pre-rebuild-*`, `.bak-*`, `.quarantine*`) plus a three-part safety proof (no live fd, unreferenced in the app's manifest, healthy replacement exists).
 
-**Also added — the dependent-service check, promoted from a note to a required
-step.** The 2026-07-31 pass deleted `catgpt-gateway/node_modules`; its watchdog
-then failed 95 times and its restart attempts drove a Chrome launch that raised a
-macOS TCC prompt the user reported as a mystery. Phase 2.5 now builds the
-exclusion list from `~/Library/LaunchAgents/*.plist` BEFORE deleting, prints each
-skip so the guard is visible, and re-asserts the manifest→directory pairing
-afterwards. On this run it correctly protected `tasc`, `opendeviationbar-patterns`
-and `iterm2-scripts-moon`.
+**Also added — the dependent-service check, promoted from a note to a required step.** The 2026-07-31 pass deleted `api-gateway/node_modules`; its watchdog then failed 95 times and its restart attempts drove a Chrome launch that raised a macOS TCC prompt the user reported as a mystery. Phase 2.5 now builds the exclusion list from `~/Library/LaunchAgents/*.plist` BEFORE deleting, prints each skip so the guard is visible, and re-asserts the manifest→directory pairing afterwards. On this run it correctly protected `search-svc`, `opendeviationbar-patterns` and `terminal-scripts-moon`.
 
-**Evidence**: total reclaimed **219 GB** (730 → 510 GB used, 82 % → 57 % full):
-185.75 GB MemPalace (174.53 corrupt quarantine + 11.22 two pre-rebuild backups),
-20.05 GB caches (uv 10.40 at `~/.cache/uv`, huggingface 3.91, go-build 3.54,
-Homebrew 2.2), 10.53 GB in-repo artifacts. Post-cleanup verification found no new
-launchd failures; `com.tasc.serve` exit 1 was pre-existing with 11,593 runs and an
-intact `.venv`.
+**Evidence**: total reclaimed **219 GB** (730 → 510 GB used, 82 % → 57 % full): 185.75 GB MemPalace (174.53 corrupt quarantine + 11.22 two pre-rebuild backups), 20.05 GB caches (uv 10.40 at `~/.cache/uv`, huggingface 3.91, go-build 3.54, Homebrew 2.2), 10.53 GB in-repo artifacts. Post-cleanup verification found no new launchd failures; `com.search-svc.serve` exit 1 was pre-existing with 11,593 runs and an intact `.venv`.
 
-**Sizing datum worth reusing**: a healthy MemPalace index is **~0.5× its source
-corpus** (4.05 GB index / 8.43 GB of `~/.claude/projects` JSONL = 0.48×), growing
-~0.15 GB/day against ~0.30 GB/day of corpus. Any multiple of that ratio is
-pathological, not "a big index".
+**Sizing datum worth reusing**: a healthy MemPalace index is **~0.5× its source corpus** (4.05 GB index / 8.43 GB of `~/.claude/projects` JSONL = 0.48×), growing ~0.15 GB/day against ~0.30 GB/day of corpus. Any multiple of that ratio is pathological, not "a big index".
 
 ## 2026-07-31 — Phase 1 read the WRONG VOLUME and under-reported disk use by 70x
 
-**Trigger**: A full audit opened with the skill's own `df -h /`, which reported
-**10Gi used, 185Gi avail** — a machine that appeared almost empty. The truth was
-**707GB used, 80% full**. On APFS (Catalina onward) `/` is the sealed READ-ONLY
-system volume with a fixed ~10GB footprint; all user and application data lives
-on `/System/Volumes/Data`. Every number in Phase 1's headline was meaningless,
-and an agent trusting it would reasonably conclude there was nothing to clean and
-stop before reaching Phase 2.5 — where 109.6 GB of `target/` was waiting.
+**Trigger**: A full audit opened with the skill's own `df -h /`, which reported **10Gi used, 185Gi avail** — a machine that appeared almost empty. The truth was **707GB used, 80% full**. On APFS (Catalina onward) `/` is the sealed READ-ONLY system volume with a fixed ~10GB footprint; all user and application data lives on `/System/Volumes/Data`. Every number in Phase 1's headline was meaningless, and an agent trusting it would reasonably conclude there was nothing to clean and stop before reaching Phase 2.5 — where 109.6 GB of `target/` was waiting.
 
-**Fix**: `df -h /System/Volumes/Data` in Phase 1 and in Template A, with an
-inline comment stating why `/` is wrong and citing the measured 10Gi-vs-707GB
-discrepancy so the next reader does not "simplify" it back.
+**Fix**: `df -h /System/Volumes/Data` in Phase 1 and in Template A, with an inline comment stating why `/` is wrong and citing the measured 10Gi-vs-707GB discrepancy so the next reader does not "simplify" it back.
 
-**Also corrected**: the uv cache row listed only `~/Library/Caches/uv/`; on this
-machine uv kept **21 GB** at `~/.cache/uv/` and the Phase 2 size probe printed
-`N/A` while the real cache was the single largest one present. Row now lists both
-locations. (`uv cache clean` finds it either way — only the _measurement_ was blind.)
+**Also corrected**: the uv cache row listed only `~/Library/Caches/uv/`; on this machine uv kept **21 GB** at `~/.cache/uv/` and the Phase 2 size probe printed `N/A` while the real cache was the single largest one present. Row now lists both locations. (`uv cache clean` finds it either way — only the _measurement_ was blind.)
 
-**Evidence**: 2026-07-31 audit, terryli's MBP. Total reclaimed **175.8 GB**
-(185GB → 356GB free, 80% → 61% full): 113.9 GB build artifacts, 34.7 GB caches,
-27.2 GB retired forks. Largest single item: `fork-tools/flowsurface/target` at
-**66 GB, untouched since 2026-03-14**.
+**Evidence**: 2026-07-31 audit, <user>'s MBP. Total reclaimed **175.8 GB** (185GB → 356GB free, 80% → 61% full): 113.9 GB build artifacts, 34.7 GB caches, 27.2 GB retired forks. Largest single item: `fork-tools/flowsurface/target` at **66 GB, untouched since 2026-03-14**.
 
-**Confirmed still accurate**: the 2026-05-09 heredoc/pueue-hook workaround (used
-pre-emptively, worked); the Cargo.toml-sibling guard (correctly skipped
-`fork-tools/opengrep/src/target`, a name match with no crate); and the
-rustup-pin warning — 1.93/1.94.x/1.95 were pinned by `rust-toolchain.toml` /
-`.prototools` files and would have auto-reinstalled, leaving only 1.96.0/1.96.1
-safely removable.
+**Confirmed still accurate**: the 2026-05-09 heredoc/pueue-hook workaround (used pre-emptively, worked); the Cargo.toml-sibling guard (correctly skipped `fork-tools/opengrep/src/target`, a name match with no crate); and the rustup-pin warning — 1.93/1.94.x/1.95 were pinned by `rust-toolchain.toml` / `.prototools` files and would have auto-reinstalled, leaving only 1.96.0/1.96.1 safely removable.
 
 ## 2026-06-29 — In-repo build artifacts were invisible; added Phase 2.5
 
-**Trigger**: A deep multi-round audit on terryli's MBP had already reclaimed ~140 GB from caches/apps/VMs, yet the largest single category was still untouched because the skill never looked _inside_ repos: 62 GB of Rust `target/` (one repo's `target/` alone was 35 GB) plus 20 GB of Python `.venv` across ~50 repos. The Phase 1/2 scans only walk `~/Library` and the dev-cache dirs, so compiler/dependency output in the code tree was structurally invisible.
+**Trigger**: A deep multi-round audit on <user>'s MBP had already reclaimed ~140 GB from caches/apps/VMs, yet the largest single category was still untouched because the skill never looked _inside_ repos: 62 GB of Rust `target/` (one repo's `target/` alone was 35 GB) plus 20 GB of Python `.venv` across ~50 repos. The Phase 1/2 scans only walk `~/Library` and the dev-cache dirs, so compiler/dependency output in the code tree was structurally invisible.
 
 **Root cause**: Conceptual gap — the skill modeled "disk hog" as caches (in `~/Library`/`~/.cache`) or loose forgotten files, but not regenerable build output that lives in-repo. On a developer machine this is frequently the #1 consumer.
 
@@ -236,7 +124,7 @@ safely removable.
 
 ## 2026-05-15 — Three new high-impact cache vectors discovered
 
-**Trigger**: Second disk audit on terryli's MBP found 21GB in `~/Library/Caches/go-build` plus multi-toolchain accumulation in rustup (8.8GB, 6 versions) and mise installs (7GB) — none of which were in the skill's cache reference table. Skill incorrectly listed `cargo cache -a` as the rustup cleanup; the actual command is `rustup toolchain uninstall <name>`. Mise toolchain pruning wasn't documented at all.
+**Trigger**: Second disk audit on <user>'s MBP found 21GB in `~/Library/Caches/go-build` plus multi-toolchain accumulation in rustup (8.8GB, 6 versions) and mise installs (7GB) — none of which were in the skill's cache reference table. Skill incorrectly listed `cargo cache -a` as the rustup cleanup; the actual command is `rustup toolchain uninstall <name>`. Mise toolchain pruning wasn't documented at all.
 
 **Root cause**: The skill's cache table predates heavy Go and multi-version-Rust usage. It also confuses `cargo` registry caching with `rustup` toolchain installs (they're distinct concerns at different paths).
 
@@ -265,7 +153,7 @@ safely removable.
 
 **Fix**: For multi-line drilldowns, write the script to `/tmp/<name>.sh` with the `Write` tool, then invoke as `bash /tmp/<name>.sh`. This bypasses the inline heredoc → hook re-quote path entirely. Single-line `du -sh "$VAR"/path/*` style commands still work fine.
 
-**Evidence**: 2026-05-09 disk audit on terryli's MBP — Chrome / Claude / MacWhisper drilldowns failed twice via heredoc, succeeded immediately when scripted via `/tmp/disk-hygiene-scan.sh`. Reclaim totals were unaffected; 40GB freed across both passes (caches 19GB + selected items 20GB physical).
+**Evidence**: 2026-05-09 disk audit on <user>'s MBP — Chrome / Claude / MacWhisper drilldowns failed twice via heredoc, succeeded immediately when scripted via `/tmp/disk-hygiene-scan.sh`. Reclaim totals were unaffected; 40GB freed across both passes (caches 19GB + selected items 20GB physical).
 
 **Action taken**: Added "pueue hook + heredoc with spaced paths" row to Troubleshooting table in SKILL.md, plus a "Hook-safe multi-line scripts" note in Phase 2.
 
