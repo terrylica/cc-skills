@@ -76,6 +76,17 @@ Snapshot the hub's settings into a baseline file and diff them on a schedule. Se
 - Each consumer source needs its owner's consent for the import. Google emails an approval request that is valid for about 24 hours.
 - Forwarding does **not** count as account activity. A consumer source that staff stop signing into can still be closed for inactivity.
 
+### Closing gaps exactly: Message-ID diff + `messages.insert` (preferred over a delta import)
+
+Gaps happen even when everything is "on": the time between the import snapshot and forwarding going live, routed copies that bounced while the hub's domain was down (routing **never retries** them), and copies dropped as spam before the routing fix. Measure and fill them by **Message-ID**, not by date or count:
+
+1. List the hub's `Message-ID`s since a cutoff (metadata scope is enough).
+2. For each source, list inbound mail since the cutoff (`-in:sent -in:drafts -in:spam -in:trash`, matching the import's defaults) and keep the IDs the hub lacks. Exclude your own test sender.
+3. Dry-run, printing **counts only**. Then for each missing message, read `format=raw` from the source (a read-only grant is enough: `gmail.readonly` via OAuth for a consumer account, or domain-wide delegation for a Workspace one), and `POST upload/gmail/v1/users/me/messages?uploadType=multipart&internalDateSource=dateHeader` into the hub, with `labelIds: ["INBOX","UNREAD"]` and the raw bytes as `message/rfc822`. The hub only needs `gmail.insert`.
+4. Log the source ID and the new hub ID of each insert (privately), then re-run the dry run: it must report **0 missing**. Re-runs are idempotent because selection is by Message-ID.
+
+Compared with re-running the Admin import, this needs no new owner consent, works for sources in **other tenants** too, copies exactly the missing messages, and the content passes only through the script. Tell staff that backfilled mail shows as new in the hub, although it may already have been answered from the source mailbox.
+
 ## 5. Proving it, and diagnosing a "not working"
 
 1. **Test from an outside consumer account** to the source. A test sent from the hub to the source is unreliable: Gmail merges the returning copy into the hub's Sent item (same Message-ID). Internal tests also skip the spam scoring that catches outside senders.
