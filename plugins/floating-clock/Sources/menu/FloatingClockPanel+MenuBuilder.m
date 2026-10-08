@@ -90,6 +90,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowBrightnessBar:) keyEquivalent:@""];
     [displayItems addObject:sbb];
 
+    // TTS-rate rail (TTSRateStatusIndicator). Backing key: TTSBarEnabled
+    // (registered NO).
+    NSMenuItem *stb = [[NSMenuItem alloc] initWithTitle:@"Show TTS Speed Bar"
+                                                 action:@selector(toggleShowTTSBar:) keyEquivalent:@""];
+    [displayItems addObject:stb];
+
     // v4 iter-248: "Show Debug Labels" menu item removed — canonical
     // [LOCAL]/[ACTIVE]/[NEXT] corner overlays no longer rendered per
     // user directive. Toggle action retained on the panel for

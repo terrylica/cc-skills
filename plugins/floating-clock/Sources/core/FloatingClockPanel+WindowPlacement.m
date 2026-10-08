@@ -9,6 +9,7 @@
 #import "AudioStatusIndicator.h"
 #import "NetworkStatusIndicator.h"
 #import "BrightnessStatusIndicator.h"
+#import "TTSRateStatusIndicator.h"
 
 @implementation FloatingClockPanel (WindowPlacement)
 
@@ -55,6 +56,7 @@
     [_audioStatusIndicator syncPosition];
     [_networkStatusIndicator syncPosition];
     [_brightnessStatusIndicator syncPosition];
+    [_ttsRateStatusIndicator syncPosition];
 }
 
 - (void)restorePosition {

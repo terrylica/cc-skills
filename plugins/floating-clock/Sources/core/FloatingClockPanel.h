@@ -12,6 +12,7 @@
 @class FCAudioStatusIndicator; // always-visible audio I/O device + level bar (2026-06-11)
 @class FCNetworkStatusIndicator; // network service picker bar (default-route chooser)
 @class FCBrightnessStatusIndicator; // 0-140% display brightness rail (2026-09-19)
+@class FCTTSRateStatusIndicator; // 1-3x text-to-speech playback-rate rail (2026-10-08)
 @class FCSolarOutlinedTextView; // round-join outlined compact text (solar canvas, 2026-06-11)
 
 NS_ASSUME_NONNULL_BEGIN
@@ -52,6 +53,11 @@ NS_ASSUME_NONNULL_BEGIN
     // value; above it, EDR headroom the brightness slider cannot reach.
     // Top of the indicator stack — it sums all four juniors' slots.
     FCBrightnessStatusIndicator *_brightnessStatusIndicator;
+
+    // TTS-rate rail (2026-10-08): 1-3x playback rate for a text-to-speech
+    // reader that follows a one-line rate file. Top of the stack, above the
+    // brightness rail. Ships OFF (inert without such a reader).
+    FCTTSRateStatusIndicator *_ttsRateStatusIndicator;
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}

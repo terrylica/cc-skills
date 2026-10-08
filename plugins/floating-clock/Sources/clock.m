@@ -15,6 +15,7 @@
 #import "core/AudioStatusIndicator.h"
 #import "core/NetworkStatusIndicator.h"
 #import "core/BrightnessStatusIndicator.h"
+#import "core/TTSRateStatusIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
 #import "core/FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
 #import "menu/FloatingClockPanel+MenuBuilder.h"
@@ -156,6 +157,11 @@
         // persisted: a crash-loop must not relaunch into a boosted panel.
         @"BrightnessBarEnabled": @YES,
         @"BrightnessBarStep": @5,
+        // TTS-rate rail (2026-10-08): writes a 1-3x playback rate to a one-line
+        // file that a text-to-speech reader follows live. OFF by default — with
+        // no such reader installed it does nothing. TTSRateFile is that file.
+        @"TTSBarEnabled": @NO,
+        @"TTSRateFile": @"~/.config/floating-clock/tts-rate",
         // Optional name of a microphone whose hardware mute button should be
         // watched in addition to the current default input. Empty ships in
         // the public build; set it locally to pin a specific mic.
@@ -303,6 +309,15 @@
     _brightnessStatusIndicator.micIndicator     = _micMuteIndicator;
     _brightnessStatusIndicator.vpnIndicator     = _vpnStatusIndicator;
     _brightnessStatusIndicator.networkIndicator = _networkStatusIndicator;
+
+    // TTS-rate rail (2026-10-08) — new top of the stack, above brightness.
+    // Sums all five juniors' slots, so none of them needs an edit.
+    _ttsRateStatusIndicator = [[FCTTSRateStatusIndicator alloc] initWithClockPanel:self];
+    _ttsRateStatusIndicator.audioIndicator      = _audioStatusIndicator;
+    _ttsRateStatusIndicator.micIndicator        = _micMuteIndicator;
+    _ttsRateStatusIndicator.vpnIndicator        = _vpnStatusIndicator;
+    _ttsRateStatusIndicator.networkIndicator    = _networkStatusIndicator;
+    _ttsRateStatusIndicator.brightnessIndicator = _brightnessStatusIndicator;
 
     // Install ⌘Q global handler; retain the returned observer so we can
     // remove it on terminate — otherwise leaks reports a 32-byte root leak

@@ -30,6 +30,7 @@
 #import "test_network.h"                 // network picker bar catalog
 #import "test_overlay_width.h"           // overlay width agreement + telemetry math
 #import "test_brightness.h"              // 2026-09-19 brightness-rail arithmetic
+#import "test_tts_rate.h"                // 2026-10-08 TTS-rate rail arithmetic
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
@@ -885,6 +886,13 @@ int main(void) {
         RUN_TEST(test_clamp_level_percent);
         RUN_TEST(test_apply_level_delta);
         RUN_TEST(test_brightness_step_percent);
+        // TTS-rate rail (2026-10-08): floor/ceiling/NaN, evenly spaced
+        // detents round-tripping through the track, and the rate-file format.
+        RUN_TEST(test_tts_rate_clamp);
+        RUN_TEST(test_tts_rate_track_mapping);
+        RUN_TEST(test_tts_rate_nearest_detent);
+        RUN_TEST(test_tts_rate_delta_and_label);
+        RUN_TEST(test_tts_rate_file_roundtrip);
         RUN_TEST(test_max_safe_factor_is_monotonic);
         RUN_TEST(test_applied_factor_for_level);
         RUN_TEST(test_gamma_baseline_neutrality_guard);

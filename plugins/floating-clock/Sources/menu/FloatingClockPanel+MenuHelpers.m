@@ -97,6 +97,8 @@
             item.state = [d boolForKey:@"NetworkBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if ([item.title isEqualToString:@"Show Brightness Bar"]) {
             item.state = [d boolForKey:@"BrightnessBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show TTS Speed Bar"]) {
+            item.state = [d boolForKey:@"TTSBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
             NSString *subTitle = item.title;
             id currentValue = nil;

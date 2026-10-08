@@ -48,6 +48,8 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/core/BluetoothPairedAudioDeviceConnector.m \
     Sources/core/BrightnessStatusIndicator.m \
     Sources/core/BrightnessBarZoneView.m \
+    Sources/core/TTSRateStatusIndicator.m \
+    Sources/core/TTSRateBarZoneView.m \
     Sources/core/FCXDRBrightness.m \
     Sources/core/ClockChildWindowAttachment.m \
     Sources/core/LocationProvider.m \
