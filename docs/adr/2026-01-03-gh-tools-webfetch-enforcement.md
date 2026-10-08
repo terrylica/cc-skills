@@ -5,10 +5,7 @@ date: 2026-01-03
 
 # ADR: gh-tools WebFetch Enforcement Hook
 
-**Status**: Accepted
-**Date**: 2026-01-03
-**Deciders**: Terry Li
-**Affects**: gh-tools plugin, ~/.claude/CLAUDE.md
+**Status**: Accepted **Date**: 2026-01-03 **Deciders**: terrylica **Affects**: gh-tools plugin, ~/.claude/CLAUDE.md
 
 ## Context and Problem Statement
 

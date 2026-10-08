@@ -222,7 +222,7 @@ function shouldSkipPath(path: string, includeWorktrees: boolean): boolean {
     "nt/repos",
     "cc-skills-garch-fix",
     "cc-skills-interactive-json-form",
-    "sred-analysis",
+    "project-d",
     ".uv-cache",
     ".venv",
     "site-packages",
@@ -262,8 +262,8 @@ function shouldSkipPath(path: string, includeWorktrees: boolean): boolean {
  *
  * This was 3, which silently halved the sweep: it found 12 packages when the
  * estate had 24. Everything nested further down was invisible while the tool
- * still reported a confident "0 drift" — e.g. `ccmax-monitor/services/
- * team-console`, `legal-docs-source/skills/eon-timedoctor`, `crown-intl/apps/
+ * still reported a confident "0 drift" — e.g. `relay-monitor/services/
+ * team-console`, `project-b/skills/foo`, `project-c/apps/
  * web` (three levels under its root on its own), and all six cc-skills plugin
  * packages. 10 comfortably covers the deepest real package while still
  * bounding the walk; the exclusion list below, not the depth limit, is what

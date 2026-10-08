@@ -1,6 +1,6 @@
 """Drift + completeness gate for cc-skills' machine-readable Python ``cli_spec.json`` SSoT.
 
-Same CLI-first doctrine gate as ccmax-monitor / opendeviationbar-patterns: the
+Same CLI-first doctrine gate as relay-monitor / research-lab-repo: the
 committed ``cli_spec.json`` must equal a fresh regeneration (no stale spec), and
 every Python ``argparse`` CLI in the repo must be represented (no silent omission
 when a skill CLI is added/removed). Fast (<2s), stdlib-only, no network.

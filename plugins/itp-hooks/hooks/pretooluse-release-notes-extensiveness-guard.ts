@@ -5,7 +5,7 @@
  * Hard-blocks release/tag-publishing commands whose notes are not extensive and
  * human-readable. Every release — any repo, any bump — must carry BOTH a
  * narrative paragraph (the "why") AND a point-form summary. Terse commit-dump
- * releases (opendeviationbar-py v13.79.0 style) are blocked.
+ * releases (opendeviationbar v13.79.0 style) are blocked.
  *
  * Interception points (see release-notes-extensiveness-patterns.ts):
  *   - gh release create|edit  → measure inline --notes / --notes-file text

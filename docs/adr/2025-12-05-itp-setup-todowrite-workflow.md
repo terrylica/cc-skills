@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-05
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [Claude-Planning]
 research-method: single-agent
 clarification-iterations: 4

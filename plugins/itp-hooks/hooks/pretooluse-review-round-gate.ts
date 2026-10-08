@@ -130,7 +130,7 @@ export async function main(): Promise<void> {
   // MEASURE THE BRANCH BEING SUBMITTED, not the session's cwd. `gh pr create --head <branch>` run
   // from the main checkout (because the harness's worktree isolation can refuse git inside the
   // worktree) used to be measured on `main` and denied, although the branch's self-review was
-  // recorded at its exact commit (2026-09-28, doorward-systems/ccmax-monitor#133). When a local
+  // recorded at its exact commit (2026-09-28, example-org/relay-monitor#133). When a local
   // worktree has the named branch checked out, its facts are the right ones; otherwise cwd, as before.
   let cwd = input.cwd ?? process.cwd();
   if (kind === "pr-create") {

@@ -33,7 +33,7 @@
 // names and the current primary are all discovered at runtime, so this file
 // carries no personal configuration.
 //
-// NSUserDefaults (domain com.terryli.floating-clock):
+// NSUserDefaults (domain com.cc-skills.floating-clock):
 //   NetworkBarEnabled  BOOL  YES  master on/off (also in the context menu)
 #import <Cocoa/Cocoa.h>
 

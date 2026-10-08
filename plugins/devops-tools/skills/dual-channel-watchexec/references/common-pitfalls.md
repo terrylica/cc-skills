@@ -116,9 +116,9 @@ PUSHOVER_APP_TOKEN=$(doppler secrets get PUSHOVER_APP_TOKEN \
 PUSHOVER_USER_KEY=$(doppler secrets get PUSHOVER_USER_KEY \
   --project notifications --config dev --plain)
 
-# For Telegram (claude-config/dev):
+# For Telegram (private-config/dev):
 TELEGRAM_BOT_TOKEN=$(doppler secrets get TELEGRAM_BOT_TOKEN \
-  --project claude-config --config dev --plain)
+  --project private-config --config dev --plain)
 
 # ✅ ALSO CORRECT - Validate env vars are set
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"

@@ -3,7 +3,7 @@ adr: 2026-01-02-session-chronicle-s3-sharing
 source: ~/.claude/plans/resilient-sleeping-pnueli.md
 implementation-status: complete
 s3_artifacts:
-  bucket: s3://eonlabs-findings
+  bucket: s3://example-findings-bucket
   prefix: sessions/
   credential_source: 1Password Claude Automation vault (<chronicle-item>)
 ---
@@ -77,7 +77,7 @@ export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/<chronicle-item>/acce
 export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
-aws s3 cp "$FILE" "s3://eonlabs-findings/$PATH"
+aws s3 cp "$FILE" "s3://example-findings-bucket/$PATH"
 CREDS_EOF
 ```
 
@@ -122,7 +122,7 @@ Session-Chronicle Provenance:
   ...
 
 Artifacts (S3):
-  bucket: s3://eonlabs-findings/sessions/<id>
+  bucket: s3://example-findings-bucket/sessions/<id>
   files:
     - manifest.json
     - <session_1>.jsonl.br
@@ -136,10 +136,10 @@ Retrieval (requires 1Password Claude Automation vault access):
   export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/<chronicle-item>/access key id")
   export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/secret access key")
   export AWS_DEFAULT_REGION="us-west-2"
-  aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
+  aws s3 sync s3://example-findings-bucket/sessions/<id>/ ./artifacts/
   RETRIEVE_EOF
 
-Session-Chronicle-S3: s3://eonlabs-findings/sessions/<id>
+Session-Chronicle-S3: s3://example-findings-bucket/sessions/<id>
 ```
 
 **ADR Linking**: Link to existing ADRs only (no auto-creation). User specifies which ADR relates to the finding during the CONFIRM phase.
@@ -152,10 +152,10 @@ Session-Chronicle-S3: s3://eonlabs-findings/sessions/<id>
 
 | From                 | To                 | Link Format                         | Example                                                                    |
 | -------------------- | ------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
-| **Git Commit**       | S3 bucket          | `Session-Chronicle-S3:` trailer     | `Session-Chronicle-S3: s3://eonlabs-findings/sessions/<id>` |
+| **Git Commit**       | S3 bucket          | `Session-Chronicle-S3:` trailer     | `Session-Chronicle-S3: s3://example-findings-bucket/sessions/<id>` |
 | **Git Commit**       | ADR                | `Related ADR:` line                 | `Related ADR: 2025-12-15-finding-name`                                     |
 | **Git Commit**       | Design Spec        | `Design Spec:` line                 | `Design Spec: /docs/design/2025-12-15-finding-name/spec.md`                |
-| **Finding Doc**      | S3 artifacts       | Artifacts section                   | `s3://eonlabs-findings/sessions/<id>/manifest.json`         |
+| **Finding Doc**      | S3 artifacts       | Artifacts section                   | `s3://example-findings-bucket/sessions/<id>/manifest.json`         |
 | **Finding Doc**      | ADR                | YAML frontmatter + link             | `ADR: [Title](/docs/adr/YYYY-MM-DD-slug.md)`                               |
 | **Finding Doc**      | Design Spec        | YAML frontmatter + link             | `Design Spec: [Title](/docs/design/YYYY-MM-DD-slug/spec.md)`               |
 | **Finding Doc**      | Git Commit         | Provenance table                    | `Git Commit: <sha>`                                                        |
@@ -165,7 +165,7 @@ Session-Chronicle-S3: s3://eonlabs-findings/sessions/<id>
 | **ADR**              | Design Spec        | Related links section               | `- [Design Spec](/docs/design/YYYY-MM-DD-slug/spec.md)`                    |
 | **ADR**              | Related Findings   | Related links section               | `- [Finding](/findings/finding-name.md)`                                   |
 | **Design Spec**      | ADR                | YAML frontmatter                    | `adr: 2025-12-15-slug`                                                     |
-| **Design Spec**      | S3 artifacts       | Implementation artifacts section    | `S3 Location: s3://eonlabs-findings/...`                             |
+| **Design Spec**      | S3 artifacts       | Implementation artifacts section    | `S3 Location: s3://example-findings-bucket/...`                             |
 | **Design Spec**      | Source Plan        | YAML frontmatter                    | `source: ~/.claude/plans/xxx.md`                                           |
 | **SKILL.md**         | Implementation ADR | References section                  | `- [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)` |
 | **S3 manifest.json** | Finding doc        | `finding.local_path` field          | `"local_path": "findings/finding-name.md"`                                 |
@@ -282,7 +282,7 @@ export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/
 export AWS_DEFAULT_REGION="us-west-2"
 
 # Sync all artifacts
-aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
+aws s3 sync s3://example-findings-bucket/sessions/<id>/ ./artifacts/
 
 # Decompress Brotli files
 for f in ./artifacts/*.br; do brotli -d "$f"; done
@@ -292,7 +292,7 @@ RETRIEVE_EOF
 **Alternative**: Use the retrieval script
 
 ```bash
-./scripts/retrieve_artifact.sh s3://eonlabs-findings/sessions/<id>/ ./artifacts
+./scripts/retrieve_artifact.sh s3://example-findings-bucket/sessions/<id>/ ./artifacts
 ```
 
 ---
@@ -305,7 +305,7 @@ RETRIEVE_EOF
 - [x] `aws` CLI installed — `aws-cli/2.32.26` (validate-prerequisites.sh)
 - [x] `op` (1Password CLI) signed in — `op 2.32.0` (validate-credential-access.sh)
 - [x] Claude Automation vault accessible — AWS keys retrieved (validate-credential-access.sh)
-- [x] S3 bucket writable — Upload to `s3://eonlabs-findings` succeeded (validate-s3-upload.sh)
+- [x] S3 bucket writable — Upload to `s3://example-findings-bucket` succeeded (validate-s3-upload.sh)
 - [x] Git commit includes S3 URIs (not presigned URLs) — Commit 71a0f7e03b93b85d9cf5d131e3e705f6d1cf4d7c (validate-commit-format.sh)
 - [x] Existing ADR cross-referenced in commit (if applicable) — `ADR: 2026-01-02-session-chronicle-s3-sharing`
 - [x] Retrieval command in commit message works — E2E test verified (retrieve_artifact.sh)
@@ -316,7 +316,7 @@ RETRIEVE_EOF
 
 | Field          | Value                        |
 | -------------- | ---------------------------- |
-| Bucket         | `s3://eonlabs-findings`      |
+| Bucket         | `s3://example-findings-bucket`      |
 | Region         | `us-west-2`                  |
 | Account        | `<company-aws-account-id>`               |
 | 1Password Item | `<chronicle-item>` |

@@ -1,9 +1,8 @@
 # Link Validation Hook Test - Meta-Prompt
 
-**Version**: 8.1.8+
-**Purpose**: Test lychee-stop-hook in non-marketplace repositories
+**Version**: 8.1.8+ **Purpose**: Test lychee-stop-hook in non-marketplace repositories
 
-Copy this prompt to Claude Code when working in a **non-marketplace repo** (e.g., `~/eon/alpha-forge`):
+Copy this prompt to Claude Code when working in a **non-marketplace repo** (e.g., `~/code/research-repo`):
 
 ---
 
@@ -97,7 +96,7 @@ This test will NOT work in marketplace repos (like cc-skills) because:
 - Marketplace plugins use relative paths correctly
 - lint-relative-paths auto-detects and skips marketplace repos
 
-Test in regular repos like alpha-forge, or any repo without `.claude-plugin/marketplace.json`.
+Test in regular repos like research-repo, or any repo without `.claude-plugin/marketplace.json`.
 ````
 
 ---

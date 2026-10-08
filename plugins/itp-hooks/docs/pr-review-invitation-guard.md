@@ -9,7 +9,7 @@
 
 ## Why it exists
 
-On 2026-09-06 an agent posted `CHANGES_REQUESTED` on Eon-Labs/alpha-forge#656 — authored by the CEO — on the strength of a premise it had invented: it reported the PR as "waiting on my review". No request existed. One arrived at 2026-09-07T05:22:34Z, **19 h 29 m later**.
+On 2026-09-06 an agent posted `CHANGES_REQUESTED` on example-org/research-repo#656 — authored by another person — on the strength of a premise it had invented: it reported the PR as "waiting on my review". No request existed. One arrived at 2026-09-07T05:22:34Z, **19 h 29 m later**.
 
 The review's _content_ was substantive and largely adopted: the merged head commit is titled `Terry's review: make the erratum reachable from the ledger, and link the brain retraction`, and the corrected script's docstring cites `(#656 review)`. The defect was its **form** and its **premise**, not its findings.
 
@@ -27,7 +27,7 @@ What this hook does instead is make the blocking form cost one deliberate keystr
 
 | Surface                          | Why                                                                                                                                                                                                                                                                                                 |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--approve`                      | 17 of these on other authors' PRs, 10 since 2026-08-21. The `main` ruleset sets `required_approving_review_count: 1` and GitHub forbids self-approval, so terrylica ↔ ChenLi0830 is a reciprocal approval pair and it is the **only** way anything merges. Gating it would deadlock the repository. |
+| `--approve`                      | 17 of these on other authors' PRs, 10 since 2026-08-21. The `main` ruleset sets `required_approving_review_count: 1` and GitHub forbids self-approval, so terrylica ↔ <reviewer> is a reciprocal approval pair and it is the **only** way anything merges. Gating it would deadlock the repository. |
 | `--comment`                      | Carries identical findings without gating anyone. It is the intended fallback, which makes the honest description of this guard's effect a **rename, not a prevention**.                                                                                                                            |
 | `gh issue *`                     | Closing or commenting on a collaborator's issue is ordinary triage — terrylica closed Mayweiwang's #441 and #442 and has 24 comments on #435. Scoping this to "mutating another author's artifact" would have swallowed all of it.                                                                  |
 | `gh pr close` / `merge` / `edit` | More consequential than a blocking review, and deliberately out of scope: this guard is about review _state_. Widening it is a separate decision, not an oversight.                                                                                                                                 |
@@ -48,7 +48,7 @@ Since 73 % of review submissions in this repo are rounds 2+ (`review-round-artif
 
 That reasoning is correct, and it is exactly why this guard **inverts the fallback**. The thing being replaced is an agent's _assertion_ about who asked for a review, and no local file carries that fact, so the call has to happen. What must not happen is its failure quietly meaning yes.
 
-Every gap resolves to **deny**: opaque command, unresolved author, unresolved actor, unqueryable timeline. Calls are bounded at 3 s via `AbortSignal.timeout`, and the child pid is killed directly in a `finally` — never `pkill -f`, which matches processes this hook did not start. alpha-forge PR #576 shipped the shell equivalent after finding an unbounded `gh repo view` inside a PreToolUse hook.
+Every gap resolves to **deny**: opaque command, unresolved author, unresolved actor, unqueryable timeline. Calls are bounded at 3 s via `AbortSignal.timeout`, and the child pid is killed directly in a `finally` — never `pkill -f`, which matches processes this hook did not start. research-repo PR #576 shipped the shell equivalent after finding an unbounded `gh repo view` inside a PreToolUse hook.
 
 ## The four doors
 
@@ -124,8 +124,8 @@ A pair chosen to differ only in ground truth, not in command shape:
 
 | PR   | Ground truth                                                 | Verdict  | Latency |
 | ---- | ------------------------------------------------------------ | -------- | ------- |
-| #426 | ChenLi0830's; blocked by terrylica 2026-09-03; never invited | **deny** | 1949 ms |
-| #656 | ChenLi0830's; review requested 2026-09-07T05:22:34Z          | allow    | 2721 ms |
+| #426 | <reviewer>'s; blocked by terrylica 2026-09-03; never invited | **deny** | 1949 ms |
+| #656 | <reviewer>'s; review requested 2026-09-07T05:22:34Z          | allow    | 2721 ms |
 
 Had both denied, the guard would be reporting its own prior rather than reading the API. Controls: `ls -la`, `--approve` and `--comment` all allow in 12–13 ms with no network; the leading-assignment override allows in 21 ms.
 

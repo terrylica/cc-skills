@@ -170,8 +170,8 @@ async function setOwner(page, spec, opts = {}) {
   // completely silent, leaving the form on the authenticated USER with
   // repository access at "Public Repositories (read-only)". That mints a token
   // which looks repo-scoped in the spec and is account-scoped in reality:
-  // measured 2026-09-04, sha256 0bc5d79ed5c1 saw 251 public repos, ZERO
-  // private, and GET /repos/doorward-systems/ccmax-monitor returned 404 while
+  // measured 2026-09-04, sha256 <sha-prefix> saw 251 public repos, ZERO
+  // private, and GET /repos/example-org/relay-monitor returned 404 while
   // git receive-pack answered 403. Read the owner control back instead.
   //
   // POSITIVE REJECTION only (cf. HEART-168): throw when the control can be read
@@ -195,7 +195,7 @@ async function setOwner(page, spec, opts = {}) {
     throw new Error(
       `resource owner NOT set: the control still reads '${self}', not '${spec.owner}'. ` +
         `Minting now would produce an account-scoped token that silently cannot write to ` +
-        `${spec.repositoryAccess?.repos?.[0] ?? "the selected repo"} (this is exactly how sha256 0bc5d79ed5c1 ` +
+        `${spec.repositoryAccess?.repos?.[0] ?? "the selected repo"} (this is exactly how sha256 <sha-prefix> ` +
         `was produced). Refusing. Screenshot: ${DEBUG_DIR}/owner-mismatch.png`,
     );
   }
@@ -217,7 +217,7 @@ async function setExpiration(page, spec) {
     // miss, so the menu stayed on its 30-day default and the spec's "none" was
     // silently downgraded — a release token that dies in 30 days while the spec
     // and every review of it say "never expires". Measured 2026-09-04:
-    // doorward-systems offers only 7/30/60/90/366 days + "Custom between 1 and
+    // example-org offers only 7/30/60/90/366 days + "Custom between 1 and
     // 366 days". Fail CLOSED and name the cap, rather than inventing a lifetime.
     // clickExact() RESOLVES to undefined and THROWS on a miss — so the miss must
     // be caught, never tested for falsiness (testing it would fire on success).
@@ -392,7 +392,7 @@ async function generate(page) {
   // and clicking it again 1.6 s later re-posted the form while the first submit
   // was still in flight. GitHub answered with a freshly-rendered form and no
   // token — indistinguishable, from the caller, from "the form was wrong".
-  // Measured 2026-09-04: a GH_PAT_TRACE run proved owner=doorward-systems and
+  // Measured 2026-09-04: a GH_PAT_TRACE run proved owner=example-org and
   // expiration=366 days immediately before submit, while the failure screenshot
   // showed expiration back at its 30-day default — the screenshot was of the
   // SECOND, freshly-rendered form, not of the one that was submitted.

@@ -3,7 +3,7 @@
 // Always-visible (default ON) interactive bar pinned directly above the
 // floating clock showing the CURRENT default input and output audio devices
 // plus their volume levels as numbers (0–100). Replaces the decommissioned
-// com.terryli.audio-device-monitor launchd service's automatic "plug and
+// com.example.audio-device-monitor launchd service's automatic "plug and
 // play" prioritization with fully MANUAL, clock-centric control:
 //
 //   · Click a device NAME   → switch that category (input/output,
@@ -22,7 +22,7 @@
 // preserving the clock's sub-0.1% idle CPU budget. User-initiated changes
 // re-read immediately for instant feedback.
 //
-// NSUserDefaults (domain com.terryli.floating-clock):
+// NSUserDefaults (domain com.cc-skills.floating-clock):
 //   AudioBarEnabled  BOOL  YES   master on/off (always visible by default)
 //   AudioBarStep     int   5     ± click step in percent (clamped 1–25)
 //

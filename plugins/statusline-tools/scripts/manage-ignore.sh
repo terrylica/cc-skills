@@ -2,7 +2,7 @@
 # manage-ignore.sh - Manage global ignore patterns for lint-relative-paths
 #
 # MIT License
-# Copyright (c) 2025 Terry Li
+# Copyright (c) 2025 terrylica
 #
 # Usage:
 #   manage-ignore.sh add <pattern>    Add a pattern to the ignore file
@@ -64,7 +64,7 @@ cmd_add() {
 
     if [[ -z "$pattern" ]]; then
         log_error "Usage: manage-ignore.sh add <pattern>"
-        log_info "Example: manage-ignore.sh add alpha-forge"
+        log_info "Example: manage-ignore.sh add research-repo"
         exit 1
     fi
 
@@ -124,7 +124,7 @@ cmd_remove() {
 
     if [[ -z "$pattern" ]]; then
         log_error "Usage: manage-ignore.sh remove <pattern>"
-        log_info "Example: manage-ignore.sh remove alpha-forge"
+        log_info "Example: manage-ignore.sh remove research-repo"
         exit 1
     fi
 
@@ -163,9 +163,9 @@ usage() {
     echo "  remove <pattern>  Remove a pattern from the ignore file"
     echo ""
     echo "Examples:"
-    echo "  $(basename "$0") add alpha-forge"
+    echo "  $(basename "$0") add research-repo"
     echo "  $(basename "$0") list"
-    echo "  $(basename "$0") remove alpha-forge"
+    echo "  $(basename "$0") remove research-repo"
     exit 1
 }
 

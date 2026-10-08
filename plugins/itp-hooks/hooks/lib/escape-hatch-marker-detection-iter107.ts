@@ -329,7 +329,7 @@ function isIndentedCodeBlockLine(rawLine: string): boolean {
  * have — the stripper eats from that stray tick through the first backtick
  * inside a legitimate escape comment, deleting the `<!--` opener and the marker
  * with it. The file the operator deliberately exempted silently stops being
- * exempt. That is not hypothetical: `~/eon/ccmax-monitor`'s PROVENANCE.md opens
+ * exempt. That is not hypothetical: `~/eon/relay-monitor`'s PROVENANCE.md opens
  * with a multi-line escape comment whose interior contains a code span.
  *
  * Per-line stripping cannot reach across a line boundary, so a stray tick can

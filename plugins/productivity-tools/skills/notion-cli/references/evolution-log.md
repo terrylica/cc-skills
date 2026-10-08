@@ -8,4 +8,4 @@ Reverse chronological. Newest first.
 
 **What**: Created capabilities-pattern skill wrapping the `notion` CLI. Documented all 39 subcommands, output formats, filter syntax, credential storage (Doppler SSoT), and troubleshooting.
 
-**Evidence**: Successfully authenticated to EonLabs workspace, searched pages, verified JSON piping. Token stored in Doppler `claude-config/prd:NOTION_API_TOKEN`.
+**Evidence**: Successfully authenticated to a Notion workspace, searched pages, verified JSON piping. Token stored in Doppler `private-config/prd:NOTION_API_TOKEN`.

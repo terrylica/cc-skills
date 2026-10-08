@@ -10,7 +10,7 @@
 #
 #   (1) `gh repo create` with NO explicit owner in a mapped path → DENY.
 #   (2) `gh repo create <wrong-owner>/name` → DENY;  <right-owner>/name → ALLOW.
-#   (3) an org listed in allow_orgs (e.g. Eon-Labs under ~/eon) → ALLOW.
+#   (3) an org listed in allow_orgs (e.g. example-org under ~/eon) → ALLOW.
 #   (4) `git remote set-url` / `git push` to a mismatched owner → DENY;
 #       the correct host-alias owner → ALLOW.
 #   (5) ALLOW_OWNER_MISMATCH=1 escape hatch → ALLOW.
@@ -38,11 +38,11 @@ owner       = "vanjobbers"
 [[mapping]]
 path_prefix = "~/eon/cc-skills"
 owner       = "terrylica"
-allow_orgs  = ["Eon-Labs"]
+allow_orgs  = ["example-org"]
 [[mapping]]
 path_prefix = "~/eon"
 owner       = "terrylica"
-allow_orgs  = ["Eon-Labs", "EonLabs-Spartan"]
+allow_orgs  = ["example-org", "example-org-legacy"]
 [[mapping]]
 path_prefix = "~/gh/vjspc"
 owner       = "vjspc"
@@ -84,8 +84,8 @@ echo "[3] gh repo create terrylica/foo in ~/vj → DENY"
 IFS=$'\t' read -r rc out < <(run "$VJ" '"gh repo create terrylica/foo"')
 if is_deny "$out"; then pass "wrong owner blocked"; else err "expected deny, got rc=$rc out=$out"; fi
 
-echo "[4] gh repo create Eon-Labs/foo in ~/eon → ALLOW (allow_orgs)"
-IFS=$'\t' read -r rc out < <(run "$EON" '"gh repo create Eon-Labs/foo"')
+echo "[4] gh repo create example-org/foo in ~/eon → ALLOW (allow_orgs)"
+IFS=$'\t' read -r rc out < <(run "$EON" '"gh repo create example-org/foo"')
 if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "allow_orgs owner allowed"; else err "expected allow, got rc=$rc out=$out"; fi
 
 echo "[5] git remote set-url to terrylica in ~/vj → DENY"

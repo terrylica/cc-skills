@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-02-05
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   - Claude Code Guide Agent (hook input structure)
   - Explore Agent (existing plan exemption patterns)

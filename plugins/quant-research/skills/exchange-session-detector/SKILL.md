@@ -54,7 +54,7 @@ df = detector.detect_sessions_and_holidays(dates_df)
 ### Tier 1: Simple Hour-Range (What Most Projects Start With)
 
 ```python
-# Pattern from opendeviationbar-py/ouroboros.py
+# Pattern from opendeviationbar/ouroboros.py
 EXCHANGE_SESSION_HOURS = {
     "sydney":  {"tz": "Australia/Sydney",   "start": 10, "end": 16},
     "tokyo":   {"tz": "Asia/Tokyo",         "start":  9, "end": 15},
@@ -174,7 +174,7 @@ The `exchange_calendars` library is ~10MB installed and has no heavy dependencie
 
 Validated implementation: `~/eon/exness-data-preprocess/src/exness_data_preprocess/session_detector.py` + `exchanges.py`
 
-Simplified predecessor: `~/eon/opendeviationbar-py/python/opendeviationbar/ouroboros.py` (Tier 1 only)
+Simplified predecessor: `<project>/python/<package>/ouroboros.py` (Tier 1 only)
 
 ## Post-Execution Reflection
 

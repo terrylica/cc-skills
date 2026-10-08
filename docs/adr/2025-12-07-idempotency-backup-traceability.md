@@ -1,7 +1,7 @@
 ---
 status: implemented
 date: 2025-12-07
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [Hook-Idempotency-Agent, Script-Idempotency-Agent, State-Data-Agent]
 research-method: 9-agent-parallel-dctl
 clarification-iterations: 4

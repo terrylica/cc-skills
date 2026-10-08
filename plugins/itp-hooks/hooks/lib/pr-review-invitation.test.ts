@@ -54,13 +54,13 @@ describe("porcelain door", () => {
   });
 
   it("reads a PR number out of a full URL", () => {
-    expect(explicitPrNumber("gh pr review https://github.com/Eon-Labs/alpha-forge/pull/656 -r")).toBe(656);
+    expect(explicitPrNumber("gh pr review https://github.com/example-org/research-repo/pull/656 -r")).toBe(656);
   });
 
   it("honours an explicit -R, which outranks the cwd", () => {
     // Resolving from the cwd here would query a DIFFERENT repository's #656 and could
     // AFFIRMATIVELY ALLOW on a fact about the wrong pull request -- worse than missing it.
-    expect(blocking("gh pr review -R Eon-Labs/alpha-forge 656 -r")?.repo).toBe("Eon-Labs/alpha-forge");
+    expect(blocking("gh pr review -R example-org/research-repo 656 -r")?.repo).toBe("example-org/research-repo");
   });
 
   it("reports an unstated PR number as null rather than guessing", () => {
@@ -70,14 +70,14 @@ describe("porcelain door", () => {
 });
 
 describe("P0 regressions: extraction must not use the predicate helper", () => {
-  // Every case here was MEASURED allowing a real blocking review on Eon-Labs/alpha-forge#682
-  // (author ChenLi0830, terrylica never invited) by resolving a DIFFERENT pull request and then
+  // Every case here was MEASURED allowing a real blocking review on example-org/research-repo#682
+  // (author <reviewer>, terrylica never invited) by resolving a DIFFERENT pull request and then
   // matching author === actor on it. An affirmative allow on a wrong fact is worse than a miss,
   // because the guard reports confidence it has not earned.
 
   it("a wrapper's numeric argument does not hijack the PR number", () => {
     // Measured: resolved 15, queried #15 (self-authored), ALLOWED a block on #682.
-    expect(explicitPrNumber("timeout 15 gh pr review 682 -R Eon-Labs/alpha-forge --request-changes")).toBe(682);
+    expect(explicitPrNumber("timeout 15 gh pr review 682 -R example-org/research-repo --request-changes")).toBe(682);
     expect(explicitPrNumber("nice gh pr review 682 -r")).toBe(682);
   });
 
@@ -93,14 +93,14 @@ describe("P0 regressions: extraction must not use the predicate helper", () => {
   });
 
   it("still skips a number that is genuinely a flag VALUE", () => {
-    expect(explicitPrNumber("gh pr review 682 -R Eon-Labs/alpha-forge -b 42")).toBe(682);
+    expect(explicitPrNumber("gh pr review 682 -R example-org/research-repo -b 42")).toBe(682);
     expect(explicitPrNumber("gh pr review --body-file 12 -r")).toBeNull();
   });
 
   it("a QUOTED -R value is still read, so the cwd repo is not silently substituted", () => {
     // Measured: repo null -> fell back to the cwd's repository -> allowed on ITS facts.
-    expect(blocking('gh pr review 15 -R "Eon-Labs/rangebar" --request-changes')?.repo).toBe("Eon-Labs/rangebar");
-    expect(blocking("gh pr review 15 -R 'Eon-Labs/rangebar' --request-changes")?.repo).toBe("Eon-Labs/rangebar");
+    expect(blocking('gh pr review 15 -R "example-org/rangebar" --request-changes')?.repo).toBe("example-org/rangebar");
+    expect(blocking("gh pr review 15 -R 'example-org/rangebar' --request-changes")?.repo).toBe("example-org/rangebar");
   });
 
   it("a QUOTED event field is still a blocking review, not an unrecognised command", () => {
@@ -181,13 +181,13 @@ describe("tokenizer: defects the three regex-over-mangled-string versions all ha
     // Measured: resolved the cited self-authored PR, matched author===actor, ALLOWED a block on
     // someone else's PR. Citing a related PR in a review body is ordinary practice.
     const target = blocking(
-      'gh pr review 682 --request-changes --body "supersedes https://github.com/Eon-Labs/alpha-forge/pull/679"',
+      'gh pr review 682 --request-changes --body "supersedes https://github.com/example-org/research-repo/pull/679"',
     );
     expect(target?.number).toBe(682);
   });
 
   it("a -R written inside the body does not donate the repository", () => {
-    const target = blocking('gh pr review 682 --request-changes --body "also try -R Eon-Labs/rangebar next"');
+    const target = blocking('gh pr review 682 --request-changes --body "also try -R example-org/rangebar next"');
     expect(target?.repo).toBeNull();
     expect(target?.number).toBe(682);
   });
@@ -213,13 +213,13 @@ describe("tokenizer: defects the three regex-over-mangled-string versions all ha
   });
 
   it("a trailing # comment ends the command, so its flags cannot gate an approval", () => {
-    expect(blocking("gh pr review 682 --approve   # ChenLi0830's fix looks right, grep -r later")).toBeNull();
+    expect(blocking("gh pr review 682 --approve   # <reviewer>'s fix looks right, grep -r later")).toBeNull();
     expect(blocking("gh pr review 682 --approve\ngrep -rn TODO packages/")).toBeNull();
   });
 
   it("reads the documented -R [HOST/]OWNER/REPO form", () => {
-    expect(blocking("gh pr review 682 -R github.com/Eon-Labs/alpha-forge --request-changes")?.repo).toBe(
-      "Eon-Labs/alpha-forge",
+    expect(blocking("gh pr review 682 -R github.com/example-org/research-repo --request-changes")?.repo).toBe(
+      "example-org/research-repo",
     );
   });
 
@@ -278,16 +278,16 @@ describe("porcelain door: what it must NOT catch", () => {
 describe("REST and GraphQL doors", () => {
   it("BYPASS: gh api posts a review with no -X POST, because a field flag implies POST", () => {
     const target = blocking(
-      "gh api repos/Eon-Labs/alpha-forge/pulls/656/reviews -f event=REQUEST_CHANGES -f body=@b.md",
+      "gh api repos/example-org/research-repo/pulls/656/reviews -f event=REQUEST_CHANGES -f body=@b.md",
     );
     expect(target?.door).toBe("rest-reviews");
-    expect(target?.repo).toBe("Eon-Labs/alpha-forge");
+    expect(target?.repo).toBe("example-org/research-repo");
     expect(target?.number).toBe(656);
   });
 
   it("BYPASS: the two-step pending-review submit, via .../reviews/{id}/events", () => {
     const target = blocking(
-      "gh api -X POST repos/Eon-Labs/alpha-forge/pulls/656/reviews/5124984588/events -f event=REQUEST_CHANGES",
+      "gh api -X POST repos/example-org/research-repo/pulls/656/reviews/5124984588/events -f event=REQUEST_CHANGES",
     );
     expect(target?.door).toBe("rest-review-events");
   });
@@ -306,8 +306,8 @@ describe("REST and GraphQL doors", () => {
   });
 
   it("does not fire on a read-only gh api call against the same path", () => {
-    expect(blocking("gh api repos/Eon-Labs/alpha-forge/pulls/656/reviews")).toBeNull();
-    expect(blocking("gh api repos/Eon-Labs/alpha-forge/pulls/656 --jq .user.login")).toBeNull();
+    expect(blocking("gh api repos/example-org/research-repo/pulls/656/reviews")).toBeNull();
+    expect(blocking("gh api repos/example-org/research-repo/pulls/656 --jq .user.login")).toBeNull();
   });
 
   it("does not fire on an APPROVE submitted through the REST door", () => {
@@ -352,7 +352,7 @@ describe("escape hatch", () => {
 describe("decide: every gap resolves to deny", () => {
   const target: BlockingReviewTarget = {
     door: "porcelain",
-    repo: "Eon-Labs/alpha-forge",
+    repo: "example-org/research-repo",
     number: 656,
     opaque: false,
   };
@@ -364,20 +364,20 @@ describe("decide: every gap resolves to deny", () => {
   it("allows a review you were invited to, including round 2+", () => {
     // requested_reviewers is CLEARED by your own first submission, so the invitation fact must be
     // the durable timeline event. This case is 73% of review traffic in this repo.
-    expect(decide(target, { actor: "terrylica", author: "ChenLi0830", invited: true }).decision).toBe("allow");
+    expect(decide(target, { actor: "terrylica", author: "<reviewer>", invited: true }).decision).toBe("allow");
   });
 
   it("denies the uninvited blocking review that motivated the guard", () => {
-    const verdict = decide(target, { actor: "terrylica", author: "ChenLi0830", invited: false });
+    const verdict = decide(target, { actor: "terrylica", author: "<reviewer>", invited: false });
     expect(verdict.decision).toBe("deny");
     if (verdict.decision !== "deny") throw new Error("unreachable");
-    expect(verdict.reason).toContain("ChenLi0830");
+    expect(verdict.reason).toContain("<reviewer>");
     expect(verdict.reason).toContain("--comment");
     expect(verdict.reason).toContain(ESCAPE_TOKEN);
   });
 
   it("denies when the invitation could not be QUERIED, which is not the same as absent", () => {
-    expect(decide(target, { actor: "terrylica", author: "ChenLi0830", invited: null }).decision).toBe("deny");
+    expect(decide(target, { actor: "terrylica", author: "<reviewer>", invited: null }).decision).toBe("deny");
   });
 
   it("denies when the author could not be resolved", () => {
@@ -386,7 +386,7 @@ describe("decide: every gap resolves to deny", () => {
 
   it("denies when the actor could not be resolved", () => {
     // Otherwise author === actor can never match and every review looks like someone else's.
-    expect(decide(target, { actor: null, author: "ChenLi0830", invited: true }).decision).toBe("deny");
+    expect(decide(target, { actor: null, author: "<reviewer>", invited: true }).decision).toBe("deny");
   });
 
   it("denies an opaque command even when the author is you", () => {
@@ -397,7 +397,7 @@ describe("decide: every gap resolves to deny", () => {
   });
 
   it("states its own limits in the denial, rather than implying containment", () => {
-    const verdict = decide(target, { actor: "terrylica", author: "ChenLi0830", invited: false });
+    const verdict = decide(target, { actor: "terrylica", author: "<reviewer>", invited: false });
     if (verdict.decision !== "deny") throw new Error("unreachable");
     expect(verdict.reason).toContain("not a containment boundary");
     expect(verdict.reason).toContain("TIMES OUT");

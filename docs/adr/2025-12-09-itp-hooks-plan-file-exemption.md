@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-09
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [
     Explore Agent (pretooluse-guard analysis),
@@ -165,11 +165,7 @@ graph { label: "⏭️ After: Plan Files Exempted"; flow: south; }
 
 **Chosen option**: ~~"Environment variable with default true + warning when unset"~~ → **Unconditional exemption** (updated 2025-12-12)
 
-~~This provides:~~
-~~- Immediate fix for workflow disruption (defaults to exempt)~~
-~~- Warning message when mise not configured (encourages SSoT setup)~~
-~~- Explicit control via `ITP_HOOKS_EXEMPT_PLANS` variable~~
-~~- Zero breaking changes for existing users~~
+~~This provides:~~ ~~- Immediate fix for workflow disruption (defaults to exempt)~~ ~~- Warning message when mise not configured (encourages SSoT setup)~~ ~~- Explicit control via `ITP_HOOKS_EXEMPT_PLANS` variable~~ ~~- Zero breaking changes for existing users~~
 
 **Simplified approach** (2025-12-12): Unconditional exemption for any `/plans/*.md` path. Rationale:
 

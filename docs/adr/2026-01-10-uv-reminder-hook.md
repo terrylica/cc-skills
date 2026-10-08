@@ -1,7 +1,7 @@
 ---
 status: implemented
 date: 2026-01-10
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [lifecycle-reference.md, posttooluse-hook-visibility ADR]
 research-method: multi-perspective-subagent-analysis
 ---

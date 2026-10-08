@@ -160,7 +160,7 @@ def _extract_rule_id(check_id: str) -> str:
     """Extract clean rule ID from Semgrep's path-based check_id.
 
     Semgrep generates check_ids like:
-    'Users.terryli..claude.skills.code-hardcode-audit.assets.hardcoded-timeframe'
+    'Users.<user>..claude.skills.code-hardcode-audit.assets.hardcoded-timeframe'
 
     This extracts just 'hardcoded-timeframe'.
     """

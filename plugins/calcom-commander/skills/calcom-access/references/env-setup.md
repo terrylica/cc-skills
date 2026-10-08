@@ -7,13 +7,13 @@ Every Cal.com Commander component (CLI, bot, sync, deploy steps) reads plain pro
 | Consumer                       | Source                                                                                                                                                                     |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Interactive CLI / deploy steps | `export` in the current shell, or pass inline (`CALCOM_OP_UUID=<uuid> calcom event-types list`)                                                                            |
-| Bot + sync (launchd)           | `~/gh/vjspc/amonic/.env.launchd` — gitignored, hand-maintained, the SSoT for daemon env in amonic. The launcher scripts in `~/gh/vjspc/amonic/bin/` `source` it before `exec`ing Bun |
+| Bot + sync (launchd)           | `~/gh/<org>/<automation-repo>/.env.launchd` — gitignored, hand-maintained, the SSoT for daemon env in <automation-repo>. The launcher scripts in `~/gh/<org>/<automation-repo>/bin/` `source` it before `exec`ing Bun |
 
 Secrets themselves stay in 1Password. The `*_REF` variables hold `op://` references, resolved with `op read` at the point of use (for example `DATABASE_URL=$(op read "$SUPABASE_DB_URL_REF")`). `.env.launchd` is pre-baked rather than resolved at launch, which keeps launchd free of macOS Automation prompts.
 
 ## Variables
 
-Add these to `~/gh/vjspc/amonic/.env.launchd` (daemons) or export them in your shell (interactive use), in `export KEY='value'` form:
+Add these to `~/gh/<org>/<automation-repo>/.env.launchd` (daemons) or export them in your shell (interactive use), in `export KEY='value'` form:
 
 ```bash
 # Cal.com API
@@ -56,5 +56,5 @@ env | grep -E "CALCOM|TELEGRAM|SUPABASE" | sed -E 's/=.*/=<set>/'
 `.env.launchd` must never be committed:
 
 ```bash
-git -C ~/gh/vjspc/amonic check-ignore -q .env.launchd && echo "ignored" || echo "NOT IGNORED — fix .gitignore"
+git -C ~/gh/<org>/<automation-repo> check-ignore -q .env.launchd && echo "ignored" || echo "NOT IGNORED — fix .gitignore"
 ```

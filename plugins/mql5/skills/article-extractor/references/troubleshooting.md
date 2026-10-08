@@ -1,22 +1,6 @@
 **Skill**: [MQL5 Article Extractor](../SKILL.md)
 
-│ │ ├── copy*ticks_range.md
-│ │ └── symbol_info_tick.md
-│ └── user_articles/ # 9 articles by author
-│ ├── artmedia70/article*[ID]/
-│ ├── lazymesh/article*[ID]/
-│ └── ...
-├── python_integration/ # Topic collections
-│ ├── official_docs/ # 32 MT5 Python API functions
-│ │ ├── mt5initialize_py.md
-│ │ ├── mt5copyticksfrom_py.md
-│ │ └── ...
-│ └── user_articles/ # 15 implementation articles
-│ ├── dmitrievsky/article*[ID]/
-│ ├── koshtenko/article\_[ID]/
-│ └── ...
-├── extraction_summary.json
-└── extraction.log
+│ │ ├── copy*ticks_range.md │ │ └── symbol_info_tick.md │ └── user_articles/ # 9 articles by author │ ├── artmedia70/article*[ID]/ │ ├── lazymesh/article*[ID]/ │ └── ... ├── python_integration/ # Topic collections │ ├── official_docs/ # 32 MT5 Python API functions │ │ ├── mt5initialize_py.md │ │ ├── mt5copyticksfrom_py.md │ │ └── ... │ └── user_articles/ # 15 implementation articles │ ├── dmitrievsky/article*[ID]/ │ ├── koshtenko/article\_[ID]/ │ └── ... ├── extraction_summary.json └── extraction.log
 
 `````
 
@@ -74,26 +58,22 @@ If extraction fails:
 
 ## Input Bounding Rules
 
-**Rule 1: Domain Validation**
-Only accept `mql5.com` URLs. Reject all other domains immediately.
+**Rule 1: Domain Validation** Only accept `mql5.com` URLs. Reject all other domains immediately.
 
-**Rule 2: Input Type Classification**
-Classify user input as:
+**Rule 2: Input Type Classification** Classify user input as:
 
 - URL pattern → single extraction
 - Numeric/username → discovery
 - File path → batch
 - Ambiguous → prompt for clarification
 
-**Rule 3: Scope Enforcement**
-If user mentions keywords like "yahoo", "google", "reuters", "bloomberg" → respond with scope limitation message.
+**Rule 3: Scope Enforcement** If user mentions keywords like "yahoo", "google", "reuters", "bloomberg" → respond with scope limitation message.
 
-**Rule 4: Confirmation for Large Operations**
-If discovery would extract >10 articles, confirm with user before proceeding.
+**Rule 4: Confirmation for Large Operations** If discovery would extract >10 articles, confirm with user before proceeding.
 
 ## Security Notes
 
-- Only executes within `$HOME/eon/mql5-local`
+- Only executes within `$HOME/eon/mt5-local`
 - Uses virtual environment `.venv/bin/python`
 - No network tools allowed (uses Playwright internally)
 - Rate limiting enforced (2s between articles)

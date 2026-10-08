@@ -57,7 +57,7 @@ USAGE:
 
 EXAMPLES:
   # Grant FDA to maccy-backup-runner
-  fda-grant-walkthrough ~/eon/iterm2-scripts/bin/maccy-backup/maccy-backup-runner
+  fda-grant-walkthrough ~/eon/terminal-scripts/bin/maccy-backup/maccy-backup-runner
 
   # Just check whether something is granted (useful in scripts)
   if fda-grant-walkthrough --check /path/to/binary; then

@@ -33,7 +33,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # short-circuits the entire pipeline for non-chezmoi users at ~100x less
 # cost than the prior bail-out path.
 #
-# Speedup measured on m3max bash 5.3.9 (chezmoi NOT installed):
+# Speedup measured on workstation bash 5.3.9 (chezmoi NOT installed):
 #   pre-iter-46 bail-out: ~12 ms (2 jq spawns + path resolve + builtin)
 #   iter-46    bail-out: ~0.1 ms (just the builtin)
 #   speedup factor: ~120x on the no-chezmoi bail-out path
@@ -75,7 +75,7 @@ PAYLOAD=$(cat)
 # Worst case: a false positive bails the hook (no reminder fires) which
 # is the same outcome as the genuine plan-mode case — strictly safe.
 #
-# Speedup measured on m3max bash 5.3.9 (chezmoi installed, NOT plan mode):
+# Speedup measured on workstation bash 5.3.9 (chezmoi installed, NOT plan mode):
 #   pre-iter-47 jq-permission-mode-check: ~5-7 ms
 #   iter-47    bash-case-glob-substring-match: <0.1 ms
 #   speedup factor on this check: ~100x

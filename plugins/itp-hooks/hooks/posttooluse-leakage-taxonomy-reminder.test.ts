@@ -46,7 +46,7 @@ import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-iter93
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
-const DOC = "/Users/terryli/eon/opendeviationbar-patterns/docs/xaubot-audit.md";
+const DOC = "/Users/<you>/eon/research-lab-repo/docs/xaubot-audit.md";
 
 /** A real adjudication: leak-family term + verdict word, one sentence apart. */
 const VERDICT =

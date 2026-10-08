@@ -69,7 +69,7 @@ A "hypothesis" is a **triple**: `(trigger, filter_cascade, management_rule)`. Ea
 
 ## Repository landmarks
 
-In `opendeviationbar-patterns/`:
+In `research-lab-repo/`:
 
 - `findings/methodology/` — original 10 principle files (pre-plugin)
 - `findings/evolution/evolution.jsonl` — ledger of findings (append-only)

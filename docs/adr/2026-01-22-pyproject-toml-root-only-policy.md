@@ -1,7 +1,7 @@
 ---
 status: implemented
 date: 2026-01-22
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [lifecycle-reference.md, uv workspace documentation]
 research-method: multi-perspective-subagent-analysis
 ---
@@ -31,22 +31,19 @@ Claude Code repeatedly ignored PostToolUse hook reminders while editing pyprojec
 
 Implement PreToolUse guard that blocks pyproject.toml outside git root.
 
-**Pros**: Prevents mistake entirely
-**Cons**: No backup if guard has edge case bugs
+**Pros**: Prevents mistake entirely **Cons**: No backup if guard has edge case bugs
 
 ### Option B: PostToolUse Reminder Only (Current State)
 
 Continue with PostToolUse reminders that Claude may ignore.
 
-**Pros**: Non-disruptive
-**Cons**: Doesn't actually prevent mistakes (proven failure mode)
+**Pros**: Non-disruptive **Cons**: Doesn't actually prevent mistakes (proven failure mode)
 
 ### Option C: Both PreToolUse + PostToolUse (Selected)
 
 PreToolUse blocks obvious violations; PostToolUse catches edge cases.
 
-**Pros**: Defense in depth, maximum coverage
-**Cons**: Slightly more complex
+**Pros**: Defense in depth, maximum coverage **Cons**: Slightly more complex
 
 ## Decision Outcome
 

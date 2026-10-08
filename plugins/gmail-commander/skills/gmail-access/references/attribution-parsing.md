@@ -1,23 +1,12 @@
 # Inline-reply attribution — field reference
 
-**What this is for.** Deciding **who wrote which line** in a replied-to email thread. That is a
-different problem from reading the email, it is harder than it looks, and its failure mode is not a
-crash — it is a fluent, confident, wrong answer that nobody catches.
+**What this is for.** Deciding **who wrote which line** in a replied-to email thread. That is a different problem from reading the email, it is harder than it looks, and its failure mode is not a crash — it is a fluent, confident, wrong answer that nobody catches.
 
-**Read the doctrine in [SKILL.md](../SKILL.md) first**; this file is the catalogue behind it. The
-tool that implements it is `scripts/attribution-parse.ts`, with unit tests in
-`scripts/attribution-parse.test.ts` pinning the failure modes marked below.
+**Read the doctrine in [SKILL.md](../SKILL.md) first**; this file is the catalogue behind it. The tool that implements it is `scripts/attribution-parse.ts`, with unit tests in `scripts/attribution-parse.test.ts` pinning the failure modes marked below.
 
-**Provenance.** Assembled 2026-08-25 from a four-lens survey (108 raw conventions, deduplicated)
-covering colour and formatting, typed markers, quote structure, and client artifacts that masquerade
-as authorship signals. Prompted by a real incident in which a scan for css `color:` returned zero on
-a message containing 25 legacy `<font color="#0000ff">` tags, and the zero was read as "the sender
-used no colour". Where an entry says _measured_, it was observed on real mail; the rest is surveyed
-and should be treated as a lead to verify, not as settled fact.
+**Provenance.** Assembled 2026-08-25 from a four-lens survey (108 raw conventions, deduplicated) covering colour and formatting, typed markers, quote structure, and client artifacts that masquerade as authorship signals. Prompted by a real incident in which a scan for css `color:` returned zero on a message containing 25 legacy `<font color="#0000ff">` tags, and the zero was read as "the sender used no colour". Where an entry says _measured_, it was observed on real mail; the rest is surveyed and should be treated as a lead to verify, not as settled fact.
 
-**How to use it.** Do not read start to finish. Find your layer, apply the detection rule, and pay
-attention to the _silent failure_ line — that is the part that decides whether you notice you were
-wrong.
+**How to use it.** Do not read start to finish. Find your layer, apply the detection rule, and pay attention to the _silent failure_ line — that is the part that decides whether you notice you were wrong.
 
 ---
 
@@ -261,9 +250,9 @@ Colour is a SUBSET signal: it exists only in the HTML part, only for some client
 
 Every rule here MUST validate the captured label against thread participants (`From`/`To`/`Cc` display names and their initials) and must run against `m['rest']` after the quote prefix has been split off (1.7). A typed marker alone is never sufficient evidence.
 
-### 3.1 Bracketed name or initials — `[PT]`, `[Ricky Chan]`, `【PT】`
+### 3.1 Bracketed name or initials — `[PT]`, `[Jane Doe]`, `【PT】`
 
-**Looks like:** `<span style='color:#1F497D'>[RC] </span>Yes, 4×/day is the product limit.` in HTML and `[Ricky Chan] Yes, 4×/day is the product limit.` in the text/plain part. Also `[P.T.]`, `[Ricky – confirmed]`, mid-line `...by Friday [PT: no, Monday]`, CJK `【PT】`.
+**Looks like:** `<span style='color:#1F497D'>[RC] </span>Yes, 4×/day is the product limit.` in HTML and `[Jane Doe] Yes, 4×/day is the product limit.` in the text/plain part. Also `[P.T.]`, `[Ricky – confirmed]`, mid-line `...by Friday [PT: no, Monday]`, CJK `【PT】`.
 
 **Detect:** HTML `/^\s*(?:<[^>]+>\s*)*\[([^\]\n]{1,40})\]\s*/` at run start; plaintext `/^\[([^\]\n]{1,40})\]\s/` at line start inside the quoted region; general form `(?<![A-Za-z0-9])[\[［【]\s*(?P<who>[A-Z][A-Za-z.]{0,11}|[A-Z]{2,4})\s*(?P<sep>[:：\-–—]?)\s*(?P<body>[^\]］】]{0,300})[\]］】]`. Accept ONLY when `who` matches a participant's initials or first name.
 

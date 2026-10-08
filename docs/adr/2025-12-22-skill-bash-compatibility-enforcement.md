@@ -8,9 +8,7 @@ date: 2025-12-22
 
 # ADR: Skill Bash Compatibility Enforcement
 
-**Date**: 2025-12-22
-**Status**: Implemented
-**Related**: [Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
+**Date**: 2025-12-22 **Status**: Implemented **Related**: [Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
 
 ## Context
 
@@ -81,7 +79,7 @@ Fixed 194 bash blocks across 62 files in all plugins, including:
 - itp: commands + skills (go, setup, plugin-add, semantic-release, etc.)
 - devops-tools: 10+ skills (asciinema, doppler, mlflow, session-recovery)
 - dotfiles-tools: chezmoi-workflows + references
-- alpha-forge-worktree: worktree-manager skill
+- research-repo-worktree: worktree-manager skill
 - notification-tools: dual-channel-watchexec
 - itp-hooks: hooks-development skill
 - skill-architecture: references (path-patterns, bash-compatibility)

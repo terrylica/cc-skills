@@ -11,5 +11,5 @@
               Address: 41:42:EB:1F:07:C8
               Firmware Version: 0.0.0
               Minor Type: Headphones
-          iPhone TerryLi:
+          iPhone <user>:
               Address: 98:50:2E:A3:61:B5

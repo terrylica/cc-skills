@@ -14,7 +14,7 @@ set -euo pipefail
 OUT="${1:-/tmp/clock-focused.png}"
 PAD=16
 
-FRAME=$(defaults read com.terryli.floating-clock FloatingClockWindowFrame)
+FRAME=$(defaults read com.cc-skills.floating-clock FloatingClockWindowFrame)
 # Frame string format: "{{x, y}, {w, h}}"
 # tr strips braces, awk splits on comma+optional space, then prints 4 numbers.
 read -r X Y W H <<EOF

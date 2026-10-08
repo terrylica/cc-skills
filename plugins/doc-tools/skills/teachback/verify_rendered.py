@@ -20,7 +20,7 @@ invariants — "the shell fills the viewport", "body text is not width-capped", 
 placed" — are properties of the RENDERED page, and asserting them against CSS source text is
 unsound in principle: whitespace and declaration order are insignificant in CSS, so `.shell{display:grid`
 matched while the equivalent `.shell { display: grid; }` sailed past the very check meant to catch it
-(Eon-Labs/alpha-forge#527 review, finding 4). Here the same invariants are read back from getComputedStyle and from
+(example-org/research-repo#527 review, finding 4). Here the same invariants are read back from getComputedStyle and from
 real measured geometry, where formatting cannot affect the answer.
 
 It also checks the three things a static parse can never see: that the symbol role classes survive

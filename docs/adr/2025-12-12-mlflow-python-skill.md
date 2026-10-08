@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-12
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [
     MLflow-Query-Explorer,
@@ -76,7 +76,7 @@ graph { label: "⏭️ After: Python API Unified Read+Write"; flow: east; }
 | Python-API-Researcher | Python API required for metrics/params logging; CLI cannot do this                     | High       |
 | Python-API-Researcher | Python API also supports search_runs() with SQL-like filtering (superior to CLI)       | High       |
 | QuantStats-Comparator | QuantStats has 70+ metrics vs empyrical-reloaded's 50+; includes trade-focused metrics | High       |
-| MLflow-Auth-Prober    | MLflow server at mlflow.eonlabs.com:5000 accessible with Basic Auth; verified via curl | High       |
+| MLflow-Auth-Prober    | MLflow server at mlflow.example.com:5000 accessible with Basic Auth; verified via curl | High       |
 | MLflow-Auth-Prober    | Idiomatic pattern uses separate env vars (MLFLOW_TRACKING_URI + USERNAME/PASSWORD)     | High       |
 
 ## Decision Log

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-11
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [Claude Opus 4.5]
 research-method: single-agent
 clarification-iterations: 3

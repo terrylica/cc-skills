@@ -1,7 +1,7 @@
 ---
 status: superseded
 date: 2026-01-18
-decision-maker: [Terry Li]
+decision-maker: [terrylica]
 consulted:
   [SDK-Integration-Agent, CRA-Compliance-Agent, Hook-Architecture-Agent]
 research-method: single-agent
@@ -16,9 +16,7 @@ superseded-reason: SR&ED commit tracking was abandoned by operator decision — 
 
 **Design Spec**: [Implementation Spec](/docs/design/2026-01-18-sred-dynamic-discovery/spec.md)
 
-> **🔴 SUPERSEDED (2026-07-27)**: This ADR and its implementation are obsolete. The `sred-commit-guard` hook
-> was deleted as unused dead code, and SR&ED commit tracking was abandoned. This document is retained for historical
-> reference only.
+> **🔴 SUPERSEDED (2026-07-27)**: This ADR and its implementation are obsolete. The `sred-commit-guard` hook was deleted as unused dead code, and SR&ED commit tracking was abandoned. This document is retained for historical reference only.
 
 ## Context and Problem Statement
 

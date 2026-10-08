@@ -472,7 +472,7 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
          "• Typography trilogy: FontWeight (7) · LetterSpacing (7) · LineSpacing (7) · 16 progress-bar glyphs · 9 shadow presets · 10 corner styles · 8 density profiles · 9 segment-gap · 11 date formats\n"
          "• Sub-0.1%% idle CPU · ~224 KB signed binary\n\n"
          "Objective-C + NSPanel · build %@\n"
-         "© 2026 Terry Li", build];
+         "© 2026 terrylica", build];
     [alert addButtonWithTitle:@"OK"];
     [alert runModal];
 }

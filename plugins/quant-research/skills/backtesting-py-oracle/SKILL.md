@@ -190,7 +190,7 @@ df = load_range_bars(
 
 backtesting.py generates Bokeh HTML plots via `bt.plot()`. By default, the y-axis is fixed — zooming on the x-axis does NOT rescale the y-axis to fit visible data. This makes it impossible to inspect zoomed-in regions of equity curves that span 4+ orders of magnitude.
 
-**Reference implementation**: `scripts/gen800/plotting.py` in opendeviationbar-patterns.
+**Reference implementation**: `scripts/gen800/plotting.py` in example-org/research-repo.
 
 ### BP-07: NEVER Use LogScale for Equity (CRITICAL)
 

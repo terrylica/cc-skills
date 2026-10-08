@@ -60,7 +60,7 @@ describe("classify — commands that must be GATED", () => {
     ["gh pr ready 613", "pr-ready"],
     ["gh pr create --title x --body-file b.md", "pr-create"],
     ["/opt/homebrew/bin/gh pr ready 613", "pr-ready"],
-    ["GH_ORGS=Eon-Labs gh pr ready 613", "pr-ready"],
+    ["GH_ORGS=example-org gh pr ready 613", "pr-ready"],
     // A QUOTED assignment value containing a space. The inherited COMMAND_POSITION used `\S*` for
     // the value, which stops at the first space, so these did not match a command position at all
     // and the gate silently ALLOWED them — a total bypass available to anyone who quotes an env
@@ -160,10 +160,10 @@ describe("leaving the review queue is observed, not ignored", () => {
     ["gh pr ready --undo my-feature-branch", "my-feature-branch"],
     ["gh pr ready --undo https://github.com/o/r/pull/666", "https://github.com/o/r/pull/666"],
     // -R consumes its value; owner/repo must not be mistaken for the PR.
-    ["gh pr ready -R Eon-Labs/alpha-forge --undo 666", "666"],
-    ["gh pr ready --repo Eon-Labs/alpha-forge --undo 666", "666"],
+    ["gh pr ready -R example-org/research-repo --undo 666", "666"],
+    ["gh pr ready --repo example-org/research-repo --undo 666", "666"],
     // ...but the inline `=` form consumes nothing, so the next token IS the target.
-    ["gh pr ready --repo=Eon-Labs/alpha-forge --undo 666", "666"],
+    ["gh pr ready --repo=example-org/research-repo --undo 666", "666"],
     // The quoted span is the PAYLOAD here, not a flag test — withoutQuotedSpans would empty it.
     ['gh pr ready --undo "my branch"', "my branch"],
     ["gh pr ready --undo 'my branch'", "my branch"],

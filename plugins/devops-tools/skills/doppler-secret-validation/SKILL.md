@@ -48,7 +48,7 @@ doppler secrets set SECRET_NAME="value" --project PROJECT --config CONFIG
 
 ```bash
 doppler secrets set PYPI_TOKEN="pypi-AgEI..." \
-  --project claude-config --config prd
+  --project private-config --config prd
 ```
 
 **Important**: CLI doesn't support `--note`. Add notes via dashboard:
@@ -82,7 +82,7 @@ This validates:
 
 ```bash
 uv run scripts/validate_secret.py \
-  --project claude-config \
+  --project private-config \
   --config prd \
   --secret PYPI_TOKEN
 ```
@@ -104,7 +104,7 @@ CONFIG_EOF
 **Example (PyPI)**:
 
 ```bash
-doppler run --project claude-config --config prd -- \
+doppler run --project private-config --config prd -- \
   uv run scripts/test_api_auth.py \
     --secret PYPI_TOKEN \
     --api-url https://upload.pypi.org/legacy/

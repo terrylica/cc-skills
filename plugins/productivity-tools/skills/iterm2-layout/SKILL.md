@@ -93,7 +93,7 @@ dir = "~/path/to/project"
 **Name field**:
 
 - If omitted, uses directory basename
-- Custom names useful for abbreviations (e.g., "AF" instead of "alpha-forge")
+- Custom names useful for abbreviations (e.g., "AF" instead of "research-repo")
 
 ### Removing a Tab
 
@@ -206,7 +206,6 @@ worktree_pattern = "my-project.worktree-*"
 - [TOML Specification](https://toml.io/)
 - [XDG Base Directory Spec](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
 - [ADR: iTerm2 Layout Config](/docs/adr/2025-12-15-iterm2-layout-config.md)
-
 
 ## Post-Execution Reflection
 

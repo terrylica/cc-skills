@@ -113,8 +113,8 @@ When perspective implies external dependencies, reference related repos in ADR b
 ```markdown
 ## References
 
-- [Upstream: github.com/Eon-Labs/alpha-forge](https://github.com/Eon-Labs/alpha-forge) (UpstreamIntegration)
-- [Consumer: github.com/Eon-Labs/trading-bot](https://github.com/Eon-Labs/trading-bot) (ProviderToOtherComponents)
+- [Upstream: github.com/example-org/research-repo](https://github.com/example-org/research-repo) (UpstreamIntegration)
+- [Consumer: github.com/example-org/trading-bot](https://github.com/example-org/trading-bot) (ProviderToOtherComponents)
 ```
 
 **Always use public GitHub URLs, never local paths.**

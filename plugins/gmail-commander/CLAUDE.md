@@ -10,7 +10,7 @@
 
 ## Where things run
 
-Nothing in this plugin runs as a background job on a workstation any more. The laptop launchd jobs `com.terryli.gmail-commander-bot` and `com.terryli.gmail-commander-digest` were retired on 2026-09-24; do not recreate them, and do not add launchd templates back to this plugin.
+Nothing in this plugin runs as a background job on a workstation any more. The laptop launchd jobs `com.example.gmail-commander-bot` and `com.example.gmail-commander-digest` were retired on 2026-09-24; do not recreate them, and do not add launchd templates back to this plugin.
 
 | Component           | Where it runs                                                                  | Entry point in this plugin                      |
 | ------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------- |

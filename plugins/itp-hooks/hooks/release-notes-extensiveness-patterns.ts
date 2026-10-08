@@ -5,7 +5,7 @@
  * Policy (operator directive 2026-07-21): every semantic-release release — in
  * ANY repo, for ANY version bump — must ship extensive, humanly-readable
  * explanations in BOTH paragraph (narrative "why") AND point form (a bullet
- * summary). Terse commit-dump releases like opendeviationbar-py v13.79.0 (a bare
+ * summary). Terse commit-dump releases like opendeviationbar v13.79.0 (a bare
  * `Bug Fixes` / `Features` one-liner list) are the failure mode this guard
  * blocks.
  *

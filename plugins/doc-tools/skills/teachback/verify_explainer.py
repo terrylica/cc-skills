@@ -17,7 +17,7 @@ rather than borrowing the toolchain of whatever project the page happens to live
 is what makes that true anywhere — plain `uv run`, and even `uv run --script`, walk upward and adopt
 the surrounding uv workspace, so the gate would inherit a project it knows nothing about.
 
-Three design rules, each earned from Eon-Labs/alpha-forge#527 review feedback:
+Three design rules, each earned from example-org/research-repo#527 review feedback:
 
 1. NEVER ASSERT A PER-ITEM CONTRACT WITH A DOCUMENT-WIDE COUNT. An aggregate check cannot see a
    per-item failure, and it fails in the FAVOURABLE direction: extras on one equation mask a total
@@ -804,7 +804,7 @@ def precedes(a: Tag, b: Tag) -> bool:
     `str.find` returns -1 when the needle is absent — so an element bs4 re-serialises differently from
     the source (it normalises `class = "x"` to `class="x"` and a bare `data-x` to `data-x=""`) scored
     -1, and `-1 < pos_b` is True. The check then PASSED for any ordering at all, including the wrong
-    one. Absent data resolving to the favourable answer; the same class as Eon-Labs/alpha-forge#484.
+    one. Absent data resolving to the favourable answer; the same class as example-org/research-repo#484.
 
     `sourceline`/`sourcepos` come from html.parser and are exact. If either is unavailable the answer
     is unknown, and unknown must not read as satisfied.

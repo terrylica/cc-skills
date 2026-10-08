@@ -6,11 +6,11 @@
 
 ```bash
 # Package 1
-doppler run --project claude-config --config dev \
+doppler run --project private-config --config dev \
   --command='uv publish --token "$PYPI_TOKEN"'
 
 # Package 2
-doppler run --project claude-config --config dev \
+doppler run --project private-config --config dev \
   --command='uv publish --token "$PYPI_TOKEN_GCD"'
 ```
 

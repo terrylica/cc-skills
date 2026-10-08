@@ -17,7 +17,10 @@ echo "=== S3 Upload/Download Validation ==="
 
 OP_VAULT="Employee"
 OP_ITEM_ID="${CHRONICLE_OP_ITEM_ID:-<chronicle-item>}"
-S3_BUCKET="eonlabs-findings"
+# Bucket is machine-local (never committed): SESSION_CHRONICLE_S3_BUCKET, or the one-line file
+# ~/.config/cc-skills/session-chronicle-s3-bucket.
+S3_BUCKET="${SESSION_CHRONICLE_S3_BUCKET:-$(cat "$HOME/.config/cc-skills/session-chronicle-s3-bucket" 2>/dev/null || true)}"
+: "${S3_BUCKET:?set SESSION_CHRONICLE_S3_BUCKET or write it to ~/.config/cc-skills/session-chronicle-s3-bucket}"
 S3_TEST_PREFIX="sessions-validation-test"
 TEST_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 

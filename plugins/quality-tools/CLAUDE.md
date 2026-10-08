@@ -6,7 +6,6 @@
 
 ## Skills
 
-- [alpha-forge-preship](./skills/alpha-forge-preship/SKILL.md)
 - [clickhouse-architect](./skills/clickhouse-architect/SKILL.md)
 - [code-clone-assistant](./skills/code-clone-assistant/SKILL.md)
 - [dead-code-detector](./skills/dead-code-detector/SKILL.md)

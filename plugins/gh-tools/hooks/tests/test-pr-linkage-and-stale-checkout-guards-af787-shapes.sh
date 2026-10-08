@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test-pr-linkage-and-stale-checkout-guards-af787-shapes.sh
 #
-# Both hooks under test were written from one incident: Eon-Labs/alpha-forge#787, 2026-09-15.
+# Both hooks under test were written from one incident: example-org/research-repo#787, 2026-09-15.
 #
 #   - The PR silently acquired a promise to close an unrelated issue, because its body contained the
 #     ordinary English sentence "rejected two of the three fixes #788 first proposed". GitHub parsed
@@ -172,7 +172,7 @@ echo
 echo "== linkage hook: the two reporting branches, against a stubbed gh =="
 # The hook's whole value is in what it SAYS, and that depends on a network call. Stubbing `gh` puts
 # both branches under test offline. This is not a convenience: measured against the real repository,
-# 0 of the last 30 merged alpha-forge PRs carry a closing reference, so the branch that matters most
+# 0 of the last 30 merged research-repo PRs carry a closing reference, so the branch that matters most
 # has no live fixture to run against — and a branch with no fixture is a branch nobody has read.
 STUB_DIR="$TMP/stub"
 mkdir -p "$STUB_DIR"
@@ -185,7 +185,7 @@ STUB
   chmod +x "$STUB_DIR/gh"
 }
 
-# Branch A: GitHub reports a closing link. This is the alpha-forge#787 shape — the PR had acquired a
+# Branch A: GitHub reports a closing link. This is the research-repo#787 shape — the PR had acquired a
 # promise to close #788 that nobody wrote on purpose.
 write_gh_stub '{"number":787,"title":"t","labels":[{"name":"documentation"}],"closingIssuesReferences":[{"number":788}]}'
 out="$(PATH="$STUB_DIR:$PATH" feed "$LINKAGE" '{"tool_name":"Bash","tool_input":{"command":"gh pr edit 787"}}')"
@@ -205,7 +205,7 @@ else
   ok "stays quiet about labels when the PR has one"
 fi
 
-# Branch B: no closing link and no labels — the state every recent alpha-forge PR was actually in.
+# Branch B: no closing link and no labels — the state every recent research-repo PR was actually in.
 write_gh_stub '{"number":790,"title":"t","labels":[],"closingIssuesReferences":[]}'
 out="$(PATH="$STUB_DIR:$PATH" feed "$LINKAGE" '{"tool_name":"Bash","tool_input":{"command":"gh pr edit 790"}}')"
 if [[ "$out" == *"NO ISSUE WILL BE CLOSED"* ]]; then

@@ -57,7 +57,7 @@
 # Live config matches
 /usr/bin/env python3 -c "
 import json
-live = json.load(open('/Users/terryli/.config/karabiner/karabiner.json'))
+live = json.load(open('/Users/<you>/.config/karabiner/karabiner.json'))
 for r in live['profiles'][0]['complex_modifications']['rules']:
     if r['description'].startswith('Jieli/Free3-P'):
         print(len(r['manipulators']))

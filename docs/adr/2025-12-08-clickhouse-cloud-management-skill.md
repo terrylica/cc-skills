@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-08
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [Explore-Agent, plugin-dev-skill-development]
 research-method: single-agent
 clarification-iterations: 3

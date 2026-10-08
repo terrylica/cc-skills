@@ -419,7 +419,7 @@ describe("must NOT be reported as hard wraps", () => {
 
   it("a signature block written with explicit two-space hard breaks", () => {
     const text = [
-      "Terry Li, on behalf of the research repository for this venture  ",
+      "terrylica, on behalf of the research repository for this venture  ",
       "Vancouver, British Columbia, Canada, and reachable at the address below  ",
       "Sent because the Ministry's contact page names Advisory Services",
     ].join("\n");

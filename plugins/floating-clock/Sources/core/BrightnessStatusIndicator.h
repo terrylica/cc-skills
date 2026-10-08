@@ -27,7 +27,7 @@
 // no controllable built-in display at all (clamshell on an external monitor)
 // the rail renders "--" and ignores input rather than pretending.
 //
-// NSUserDefaults (domain com.terryli.floating-clock):
+// NSUserDefaults (domain com.cc-skills.floating-clock):
 //   BrightnessBarEnabled  BOOL  YES  master on/off (also in the context menu)
 //   BrightnessBarStep     int   5    −/+ step size, 1..25
 #import <Cocoa/Cocoa.h>

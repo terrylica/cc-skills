@@ -1,9 +1,6 @@
 # statusline-tools
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Skills](https://img.shields.io/badge/Skills-4-blue.svg)
-![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) ![Skills](https://img.shields.io/badge/Skills-4-blue.svg) ![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg) ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Custom Claude Code status line with git status indicators.
 
@@ -62,7 +59,7 @@ Manage global ignore patterns for `lint-relative-paths`. Use this when a reposit
 /statusline-tools:ignore remove my-repo  # Remove pattern
 ```
 
-**Pattern matching**: Substring match - pattern `alpha-forge` matches paths like `/Users/user/eon/alpha-forge.worktree-feature`.
+**Pattern matching**: Substring match - pattern `research-repo` matches paths like `/Users/user/eon/research-repo.worktree-feature`.
 
 **Ignore file location**: `~/.claude/lint-relative-paths-ignore`
 

@@ -3,12 +3,12 @@
 
 Realizes the cross-repo **CLI-first + machine-readable-docs** doctrine
 (``~/.claude/cli-first-machine-readable-docs-CLAUDE.md``) for cc-skills (repo 2 of
-the 4-repo rollout; repo 1 = ccmax-monitor). Emits a single repo-root
+the 4-repo rollout; repo 1 = relay-monitor). Emits a single repo-root
 ``cli_spec.json`` (JSON Schema 2020-12) so an AI coding agent can learn every
 Python skill CLI's flags **without parsing ``--help`` prose**.
 
-This is the same portable, stdlib-only, AST-based pattern shipped in ccmax-monitor
-and opendeviationbar-patterns (the long-term de-dup is the cross-repo-promotion ADR;
+This is the same portable, stdlib-only, AST-based pattern shipped in relay-monitor
+and research-lab-repo (the long-term de-dup is the cross-repo-promotion ADR;
 until then each repo carries a near-identical copy so it stays self-contained):
 
 - **AST-based, zero-import discovery.** cc-skills' skill CLIs build their parser
@@ -19,7 +19,7 @@ until then each repo carries a near-identical copy so it stays self-contained):
   ``plugins/*/skills/*/scripts/`` + the root ``scripts/`` dir); each
   ``.add_argument`` becomes a typed JSON-Schema property.
 - cc-skills has no Go binary, so there is no ``x-go-cli`` pointer (unlike
-  ccmax-monitor). TS/JS CLIs (bun) are a separate emitter, out of scope here.
+  relay-monitor). TS/JS CLIs (bun) are a separate emitter, out of scope here.
 
 The generator is itself a ``--output``/``--check`` CLI (CLI-first dogfooding)::
 

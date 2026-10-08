@@ -6,8 +6,7 @@
 
 ## Architecture
 
-Single function/enum-driven **Bun TypeScript** CLI using **GramJS** (MTProto client),
-run directly with `bun` (no build). Multi-profile support for multiple accounts.
+Single function/enum-driven **Bun TypeScript** CLI using **GramJS** (MTProto client), run directly with `bun` (no build). Multi-profile support for multiple accounts.
 
 | Component   | Path                                      | Purpose                                            |
 | ----------- | ----------------------------------------- | -------------------------------------------------- |
@@ -20,8 +19,8 @@ run directly with `bun` (no build). Multi-profile support for multiple accounts.
 
 | Profile         | Account            | User ID    | 1Password Item UUID          |
 | --------------- | ------------------ | ---------- | ---------------------------- |
-| `eon` (default) | @EonLabsOperations | 90417581   | `iqwxow2iidycaethycub7agfmm` |
-| `missterryli`   | @missterryli       | 2124832490 | `dk456cs3v2fjilppernryoro5a` |
+| `work` (default) | @ExampleOpsAccount | <user-id>   | `<1password-item-id>` |
+| `personal`     | @personal_account  | <user-id>  | `<1password-item-id>` |
 
 ## Skills by area
 
@@ -108,8 +107,7 @@ Fetched from 1Password at runtime via `op item get`. Each profile maps to a diff
 MTProto client library is **GramJS** (`telegram` on npm):
 
 - **Canonical**: <https://github.com/gram-js/gramjs> · docs <https://gram.js.org>
-- Installed as a local dep in `scripts/` (`bun install`); the old Telethon/`uv`
-  toolchain was retired in the 2026-06 TypeScript port.
+- Installed as a local dep in `scripts/` (`bun install`); the old Telethon/`uv` toolchain was retired in the 2026-06 TypeScript port.
 
 ## History
 

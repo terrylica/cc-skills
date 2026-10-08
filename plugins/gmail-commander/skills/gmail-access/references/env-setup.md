@@ -18,7 +18,7 @@ Example output:
 
 ```json
 {
-  "id": "56pehbslb74al3yjyaelly5gx4",
+  "id": "<1password-item-id>",
   "title": "Gmail API - project-f OAuth Client"
 }
 ```

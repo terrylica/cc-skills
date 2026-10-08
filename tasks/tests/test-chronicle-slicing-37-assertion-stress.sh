@@ -312,7 +312,7 @@ parse() {
 [[ "$(parse 'git@github.com:owner/repo.git')"            == "owner/repo" ]]            && ok "standard SSH URL parses"          || fail "standard SSH URL parser broken"
 [[ "$(parse 'git@github.com-alias:owner/repo.git')"      == "owner/repo" ]]            && ok "ssh-aliased host parses"          || fail "ssh-aliased host parser broken"
 [[ "$(parse 'https://github.com/owner/repo.git')"        == "owner/repo" ]]            && ok "https URL parses"                 || fail "https URL parser broken"
-[[ "$(parse 'git@github.com:Eon-Labs/data-provider.git')" == "Eon-Labs/data-provider" ]] && ok "Eon-Labs org URL parses"        || fail "Eon-Labs URL parser broken"
+[[ "$(parse 'git@github.com:example-org/data-provider.git')" == "example-org/data-provider" ]] && ok "example-org org URL parses"        || fail "example-org URL parser broken"
 [[ "$(parse 'https://github.com/owner/repo')"            == "owner/repo" ]]            && ok "URL without .git suffix parses"   || fail "no-.git suffix parser broken"
 
 echo

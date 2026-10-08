@@ -1,6 +1,6 @@
 # Full Research Synthesis (2026-04-25, 18 parallel agents) <!-- SSoT-OK: versions below are research-timestamp evidence, not canonical pins -->
 
-This is the comparative analysis backing the recommendations in `SKILL.md`. Original research lives in the project that triggered it: `~/eon/opendeviationbar-patterns/findings/dashboard/spokes/2026-04-25-postmortem/learn/_research-static-page-stack-2026.md`.
+This is the comparative analysis backing the recommendations in `SKILL.md`. Original research lives in the project that triggered it: `~/eon/research-lab-repo/findings/dashboard/spokes/2026-04-25-postmortem/learn/_research-static-page-stack-2026.md`.
 
 ## Method
 

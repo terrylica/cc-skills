@@ -184,7 +184,7 @@ describe("third-party email detector", () => {
   test("does NOT fire on GitHub noreply or the operator's own addresses", () => {
     expect(
       detectThirdPartyEmailAddresses(
-        "1234+user@users.noreply.github.com amonic@gmail.com rickychanbc@gmail.com",
+        "1234+user@users.noreply.github.com you@example.com alias@example.com",
       ),
     ).toHaveLength(0);
   });

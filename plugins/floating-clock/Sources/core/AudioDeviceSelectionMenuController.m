@@ -126,7 +126,7 @@ static NSMenuItem *FCHeaderItem(NSString *title) {
     // daemon that restores the input after a Bluetooth auto-route) can stand down instead of
     // undoing what the user just picked here. Fire-and-forget; no listener is required.
     [[NSDistributedNotificationCenter defaultCenter]
-        postNotificationName:@"com.terryli.floating-clock.explicit-audio-selection"
+        postNotificationName:@"com.cc-skills.floating-clock.explicit-audio-selection"
                       object:nil
                     userInfo:@{ @"scope": isInput ? @"input" : @"output" }
           deliverImmediately:YES];

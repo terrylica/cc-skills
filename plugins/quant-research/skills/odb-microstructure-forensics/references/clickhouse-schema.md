@@ -2,9 +2,7 @@
 
 ## Table: `opendeviationbar_cache.open_deviation_bars`
 
-**Host**: gpu-host-1 (SSH direct, not tunnel)
-**Rows**: ~139M (as of 2026-04-01)
-**Symbols**: 16 | **Thresholds**: {100, 250, 500, 750} dbps
+**Host**: <gpu-host> (SSH direct, not tunnel) **Rows**: ~139M (as of 2026-04-01) **Symbols**: 16 | **Thresholds**: {100, 250, 500, 750} dbps
 
 ### Key Columns for Forensics
 
@@ -59,7 +57,7 @@ last_agg_trade_id - first_agg_trade_id + 1 AS id_span      -- agg_trade_id span
 
 ### Parquet Tick Cache Schema
 
-**Location**: `/home/tca/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet`
+**Location**: `/home/<user>/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet`
 
 | Column           | Type | Purpose                                    |
 | ---------------- | ---- | ------------------------------------------ |

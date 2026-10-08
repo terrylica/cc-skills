@@ -88,13 +88,13 @@ For each link to convert:
 f"https://github.com/{owner}/{repo}/blob/{branch}/{path}"
 
 # Example
-owner = "Eon-Labs"
-repo = "alpha-forge"
+owner = "example-org"
+repo = "research-repo"
 branch = "feat/2025-12-01-eth-block-metrics"
 path = "docs/adr/2025-12-01-file.md"
 
 # Result
-"https://github.com/Eon-Labs/alpha-forge/blob/feat/2025-12-01-eth-block-metrics/docs/adr/2025-12-01-file.md"
+"https://github.com/example-org/research-repo/blob/feat/2025-12-01-eth-block-metrics/docs/adr/2025-12-01-file.md"
 ```
 
 ### Step 4: Apply Conversions
@@ -108,7 +108,7 @@ Replace all identified links in the PR body:
 
 # After
 
-[Plugin Design](https://github.com/Eon-Labs/alpha-forge/blob/feat/branch/docs/adr/2025-12-01-slug.md)
+[Plugin Design](https://github.com/example-org/research-repo/blob/feat/branch/docs/adr/2025-12-01-slug.md)
 ```
 
 ### Step 5: Validate Result
@@ -172,14 +172,14 @@ See the [ADR](/docs/adr/2025-12-01-eth-block-metrics.md) for details.
 
 **Context:**
 
-- Owner: `Eon-Labs`
-- Repo: `alpha-forge`
+- Owner: `example-org`
+- Repo: `research-repo`
 - Branch: `feat/2025-12-01-eth-block-metrics-data-plugin`
 
 **Output:**
 
 ```markdown
-See the [ADR](https://github.com/Eon-Labs/alpha-forge/blob/feat/2025-12-01-eth-block-metrics-data-plugin/docs/adr/2025-12-01-eth-block-metrics.md) for details.
+See the [ADR](https://github.com/example-org/research-repo/blob/feat/2025-12-01-eth-block-metrics-data-plugin/docs/adr/2025-12-01-eth-block-metrics.md) for details.
 ```
 
 ### Example 2: Multiple Links
@@ -199,8 +199,8 @@ See the [ADR](https://github.com/Eon-Labs/alpha-forge/blob/feat/2025-12-01-eth-b
 ```markdown
 ## References
 
-- [Plugin Design](https://github.com/Eon-Labs/alpha-forge/blob/feat/branch/docs/adr/2025-12-01-slug.md)
-- [Probe Integration](https://github.com/Eon-Labs/alpha-forge/blob/feat/branch/docs/adr/2025-12-02-slug.md)
+- [Plugin Design](https://github.com/example-org/research-repo/blob/feat/branch/docs/adr/2025-12-01-slug.md)
+- [Probe Integration](https://github.com/example-org/research-repo/blob/feat/branch/docs/adr/2025-12-02-slug.md)
 - [External Guide](https://example.com/guide)
 ```
 
@@ -217,7 +217,7 @@ Note: External link unchanged.
 **Output:**
 
 ```markdown
-**See [`.env.clickhouse`](https://github.com/Eon-Labs/alpha-forge/blob/feat/branch/.env.clickhouse)** for credentials.
+**See [`.env.clickhouse`](https://github.com/example-org/research-repo/blob/feat/branch/.env.clickhouse)** for credentials.
 ```
 
 ---
@@ -277,7 +277,6 @@ After modifying this skill:
 | Anchor links broken      | Incorrectly included in scan   | Skip links starting with `#`                      |
 | Wrong repo detected      | Remote not set correctly       | Check `git remote -v` output                      |
 | Conversion duplicated    | Running validator twice        | Check if links already absolute before converting |
-
 
 ## Post-Execution Reflection
 

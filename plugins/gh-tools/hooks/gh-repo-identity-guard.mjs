@@ -187,7 +187,7 @@ if (localAccount && localAccount === repoOwner) {
 }
 
 // Fast-path: GH_ORGS env var (comma-separated org names the user belongs to)
-// e.g. GH_ORGS="Eon-Labs,my-other-org"
+// e.g. GH_ORGS="example-org,my-other-org"
 const ghOrgs = process.env.GH_ORGS;
 if (ghOrgs?.split(",").map(s => s.trim()).includes(repoOwner)) {
   process.exit(0); // Org match — allow immediately (zero API calls)

@@ -10,8 +10,8 @@ MLflow uses **separate environment variables** for credentials:
 
 ```bash
 # .env.local (gitignored)
-MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
-MLFLOW_TRACKING_USERNAME=eonlabs
+MLFLOW_TRACKING_URI=http://mlflow.example.com:5000
+MLFLOW_TRACKING_USERNAME=<user>
 MLFLOW_TRACKING_PASSWORD=<password>
 ```
 
@@ -38,8 +38,8 @@ This pattern:
 Keep all `MLFLOW_*` values in one gitignored `.env.local` and load it per command with `uv run --env-file .env.local scripts/<script>.py`:
 
 ```bash
-MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
-MLFLOW_TRACKING_USERNAME=eonlabs
+MLFLOW_TRACKING_URI=http://mlflow.example.com:5000
+MLFLOW_TRACKING_USERNAME=<user>
 MLFLOW_TRACKING_PASSWORD=your_password_here
 ```
 

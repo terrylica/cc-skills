@@ -69,5 +69,5 @@ Skill-internal links use relative paths: `[X](./references/X.md)`. Cross-plugin 
 
 ## Upstream / Downstream
 
-- **Upstream source** (historical evolution): `~/gh/vjspc/amonic/docs/macro-keyboard/` — the working directory on the development laptop where this skill was built live. The amonic spoke now points here as the canonical reference.
+- **Upstream source** (historical evolution): `~/gh/<org>/<automation-repo>/docs/macro-keyboard/` — the working directory on the development laptop where this skill was built live. The <automation-repo> spoke now points here as the canonical reference.
 - **Downstream**: any future pad (different VID/PID, different keycode firmware) can be added as a new worked example under `configure-macro-keyboard/references/`. Reuse the pattern docs (`03-patterns.md`, `04-anti-patterns.md`) verbatim.

@@ -3,7 +3,7 @@
  * Cal.com Commander Bot — Always-on Telegram daemon (grammY long polling).
  *
  * Provides slash commands for booking management + AI-powered free-text routing.
- * Runs via launchd KeepAlive (com.terryli.calcom-commander-bot).
+ * Runs via launchd KeepAlive (com.cc-skills.calcom-commander-bot).
  *
  * Entry point: bun run scripts/bot.ts
  */

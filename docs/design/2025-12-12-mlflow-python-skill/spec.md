@@ -32,12 +32,12 @@ Create a new `devops-tools:mlflow-python` skill that replaces the existing CLI-b
 
 ```bash
 # .env.local (gitignored)
-MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
-MLFLOW_TRACKING_USERNAME=eonlabs
+MLFLOW_TRACKING_URI=http://mlflow.example.com:5000
+MLFLOW_TRACKING_USERNAME=<user>
 MLFLOW_TRACKING_PASSWORD=<password>
 ```
 
-**Verified**: Server at `mlflow.eonlabs.com:5000` is accessible with Basic Auth (tested via curl).
+**Verified**: Server at `mlflow.example.com:5000` is accessible with Basic Auth (tested via curl).
 
 ## File Structure
 

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-01-02
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [claude-code-guide, Explore]
 research-method: single-agent
 clarification-iterations: 2
@@ -256,14 +256,14 @@ graph { label: "Session Chronicle S3 Architecture"; flow: south; }
 
 **Reason**: Migrated from personal AWS account to company AWS account for team access.
 
-| Change                | Original Value                      | New Value                              |
-| --------------------- | ----------------------------------- | -------------------------------------- |
-| S3 Bucket             | `s3://eon-research-artifacts`       | `s3://eonlabs-findings`                |
-| S3 Prefix             | `session-chronicle/<id>/`           | `sessions/<id>/`                       |
-| 1Password Vault       | `Claude Automation`                 | `Claude Automation`                    |
-| 1Password Item ID     | `<personal-chronicle-item>`        | `<chronicle-item>`           |
-| AWS Account           | Personal (<personal-aws-account-id>)             | Company (<company-aws-account-id>)                 |
-| Local Structure       | `findings/provenance/provenance.jsonl` | `findings/sessions/<id>/iterations.jsonl` |
+| Change            | Original Value                         | New Value                                 |
+| ----------------- | -------------------------------------- | ----------------------------------------- |
+| S3 Bucket         | `s3://<personal-findings-bucket>`          | `s3://example-findings-bucket`                   |
+| S3 Prefix         | `session-chronicle/<id>/`              | `sessions/<id>/`                          |
+| 1Password Vault   | `Claude Automation`                    | `Claude Automation`                       |
+| 1Password Item ID | `<personal-chronicle-item>`            | `<chronicle-item>`                        |
+| AWS Account       | Personal (<personal-aws-account-id>)   | Company (<company-aws-account-id>)        |
+| Local Structure   | `findings/provenance/provenance.jsonl` | `findings/sessions/<id>/iterations.jsonl` |
 
 **Architectural decision unchanged**: The core decision (S3 + 1Password + Brotli) remains valid. This amendment only changes operational details (which bucket, which item).
 

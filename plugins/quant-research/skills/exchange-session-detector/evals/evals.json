@@ -15,7 +15,7 @@
     },
     {
       "id": 2,
-      "prompt": "In our opendeviationbar-py project we have a simple session detection in ouroboros.py that uses zoneinfo with fixed hour ranges (e.g. tokyo start=9 end=15). It works but doesn't handle holidays, lunch breaks, or sub-hour precision (NYSE actually opens at 9:30 not 10:00). What's the upgrade path to make this production-grade? We also need it to work with our ClickHouse pipeline where we use toTimezone() for server-side session columns.",
+      "prompt": "In our opendeviationbar project we have a simple session detection in ouroboros.py that uses zoneinfo with fixed hour ranges (e.g. tokyo start=9 end=15). It works but doesn't handle holidays, lunch breaks, or sub-hour precision (NYSE actually opens at 9:30 not 10:00). What's the upgrade path to make this production-grade? We also need it to work with our ClickHouse pipeline where we use toTimezone() for server-side session columns.",
       "expected_output": "Should outline the 4-step upgrade path: install exchange_calendars, replace fixed-hour dicts with ExchangeConfig registry, replace zoneinfo checks with SessionDetector, update tests. Should explain ClickHouse limitation (toTimezone handles DST but not holidays/lunch breaks — compute in Python and write back). Should reference the validated exness-data-preprocess implementation.",
       "files": []
     }

@@ -107,7 +107,7 @@ Run Unlimited-OCR on every page and inspect the `<|det|>` markers:
 
 ### Example: TimeMixer (ICLR 2024, 28 pages)
 
-**Verified 2026-07-31 on `/Users/terryli/eon/quantml/data/papers/a599/b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d.pdf`:**
+**Verified 2026-07-31 on `/Users/<you>/eon/<project>/data/papers/<hash>.pdf`:**
 
 #### Page 0 — Title page with abstract (route to text extraction)
 
@@ -418,8 +418,7 @@ node references/validate-math.mjs your-file.md --fix
 
 The script is at [references/validate-math.mjs](./references/validate-math.mjs). It runs two layers:
 
-**Layer 1 — KaTeX syntax**: parse errors in `$`, `$$`, ` ```math ``` ` blocks
-**Layer 2 — GFM structural** (issues KaTeX passes but GitHub breaks):
+**Layer 1 — KaTeX syntax**: parse errors in `$`, `$$`, ` ```math ``` ` blocks **Layer 2 — GFM structural** (issues KaTeX passes but GitHub breaks):
 
 | Code | Severity | Issue                                                                                         | Auto-fix                               |
 | ---- | -------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
@@ -517,8 +516,8 @@ For papers with 10+ equations, use this multi-agent pattern:
 
 | Skill                                                                                                           | Relationship                                                      |
 | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [unlimited-ocr-parse-document](../../../unlimited-ocr/skills/unlimited-ocr-parse-document/SKILL.md)                | Extract text/math from PDFs locally (Type A/C PDFs, ~2.4 s/page)  |
-| [unlimited-ocr-segment-figure](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md)                | Crop multi-panel figures (charts, diagrams) for downstream models |
+| [unlimited-ocr-parse-document](../../../unlimited-ocr/skills/unlimited-ocr-parse-document/SKILL.md)             | Extract text/math from PDFs locally (Type A/C PDFs, ~2.4 s/page)  |
+| [unlimited-ocr-segment-figure](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md)             | Crop multi-panel figures (charts, diagrams) for downstream models |
 | [pandoc-pdf-generation](../pandoc-pdf-generation/SKILL.md)                                                      | Opposite direction: markdown → PDF                                |
 | [documentation-standards](../documentation-standards/SKILL.md)                                                  | GFM formatting standards                                          |
 | [quant-research:opendeviation-eval-metrics](../../../quant-research/skills/opendeviation-eval-metrics/SKILL.md) | Worked example: `references/how-to-use-the-sharpe-ratio-2026.md`  |

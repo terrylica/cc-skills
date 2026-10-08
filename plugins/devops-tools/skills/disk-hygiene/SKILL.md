@@ -277,7 +277,7 @@ Then `SKIP` any candidate path under one of those roots, and **print the skip** 
 
 > **🔴 The walk-up finds NOTHING when the job execs a runner shim outside the repo.** Both versions above start at `ProgramArguments.0` and walk _up_ the filesystem. But a launchd runner-shim policy (signed, distinctly-named shims in `~/.local/libexec/` or `~/.claude/tools/launchd-runners/libexec/`) puts the program in a directory that has no ancestor relationship to the repo at all — the walk-up terminates at `$HOME` or, worse, lands on `~/.claude` and reports _that_ as the repo. The guard then emits a confident, entirely wrong exclusion list, and the real repo is deleted.
 >
-> Measured 2026-09-13: the exclusion list named `~/.claude` for 16 jobs and never mentioned `~/code/terminal-scripts`, `~/code/trading-tools`, `~/code/sys-config` — so the cleanup removed all three repos' `.venv`/`node_modules`, killing `com.example.terminal-snapshot` (crash-safety snapshots), `com.example.notify-telemetry` (a Bun/TS daemon) and `com.example.keystroke-helper`. **Grep the shim for repo paths as well as walking up:**
+> Measured 2026-09-13: the exclusion list named `~/.claude` for 16 jobs and never mentioned `~/code/terminal-scripts`, `~/code/trading-tools`, `~/code/private-monorepo` — so the cleanup removed all three repos' `.venv`/`node_modules`, killing `com.example.terminal-snapshot` (crash-safety snapshots), `com.example.notify-telemetry` (a Bun/TS daemon) and `com.example.keystroke-helper`. **Grep the shim for repo paths as well as walking up:**
 >
 > ```bash
 > for p in "$HOME"/Library/LaunchAgents/*.plist; do

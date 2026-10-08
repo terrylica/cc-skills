@@ -145,7 +145,7 @@ describe("allows correct and unrelated commands", () => {
       "pkill -9 -f foo",
       "pkill -KILL -x foo",
       "pgrep -P 123 -l",
-      "pkill -u terryli -f foo",
+      "pkill -u <user> -f foo",
     ]) {
       const r = await runHook(cmd);
       expect(r.decision).toBe("allow");

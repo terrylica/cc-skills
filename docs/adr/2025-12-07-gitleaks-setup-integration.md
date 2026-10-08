@@ -1,7 +1,7 @@
 ---
 status: implemented
 date: 2025-12-07
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [Security-Fundamentals, Plugin-Integration, Tool-Registry]
 research-method: single-agent
 clarification-iterations: 2

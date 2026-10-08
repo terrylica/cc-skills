@@ -11,9 +11,9 @@
  *
  * USAGE
  *   bun ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \
- *     --account amonic-gmail                  # token base name in ~/.claude/tools/gmail-tokens/
+ *     --account <tokenbase>                   # token base name in ~/.claude/tools/gmail-tokens/ (or GMAIL_DRAFT_ACCOUNT)
  *     --body /path/to/body.md                 # the body text (markdown-ish; see conversion rules)
- *     --from 'Ricky Chan <rickychanbc@gmail.com>' \
+ *     --from 'Jane Doe <alias@example.com>' \
  *     [--reply-to <messageId>]                # thread as a reply to this Gmail message id
  *     [--to a@b] [--cc c@d] [--subject '…']   # required unless --reply-to supplies them
  *     [--replace <draftId>]                   # delete this stale draft after creating the new one
@@ -49,10 +49,10 @@ const get = (name: string): string | undefined => {
 };
 
 function parseArgs(): Args {
-  const account = get("account") ?? "amonic-gmail";
+  const account = get("account") ?? process.env.GMAIL_DRAFT_ACCOUNT;
   const body = get("body");
   const from = get("from");
-  if (!body || !from) {
+  if (!account || !body || !from) {
     console.error("usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>]");
     process.exit(1);
   }
@@ -350,7 +350,7 @@ export function encodeHeaderValueAsRfc2047EncodedWordIfNonAscii(headerValue: str
  * Headers whose ENTIRE value is free text and may therefore be encoded wholesale.
  *
  * Address headers (From/To/Cc/Bcc/Reply-To) are deliberately EXCLUDED. RFC 2047 forbids an
- * encoded-word inside an address specification: encoding `Ricky <rickychanbc@gmail.com>` wholesale
+ * encoded-word inside an address specification: encoding `Jane Doe <alias@example.com>` wholesale
  * would produce `=?UTF-8?B?...?=` where a parser expects an addr-spec, and the message would become
  * undeliverable rather than merely ugly. Only the display-name PART of an address may be encoded,
  * which needs a real address parser — out of scope here, and unnecessary while every sender identity

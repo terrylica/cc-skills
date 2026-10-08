@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Machine-readable reference + computation scripts for state-of-the-art metrics evaluating open deviation bar (ODB, brim-to-brim price-based sampling) data.
 
-**Cross-reference**: Project-level experiment catalogue at [signal-archaeology](https://github.com/terrylica/opendeviationbar-patterns) skill in `opendeviationbar-patterns` repo — contains 10 BHR-validated experiments with auditable SQL.
+**Cross-reference**: Project-level experiment catalogue at signal-archaeology skill in the project's research repo — contains 10 BHR-validated experiments with auditable SQL.
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 

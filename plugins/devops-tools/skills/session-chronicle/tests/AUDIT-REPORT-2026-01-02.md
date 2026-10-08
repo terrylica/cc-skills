@@ -1,13 +1,10 @@
 # Post-Implementation Audit Report
 
-**Feature**: Session-Chronicle S3 Artifact Sharing
-**ADR**: [2026-01-02-session-chronicle-s3-sharing](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)
-**Audit Date**: 2026-01-02
-**Audit Type**: Comprehensive post-implementation verification
+**Feature**: Session-Chronicle S3 Artifact Sharing **ADR**: [2026-01-02-session-chronicle-s3-sharing](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md) **Audit Date**: 2026-01-02 **Audit Type**: Comprehensive post-implementation verification
 
 > **Amendment (2026-01-03)**: S3 bucket and 1Password credentials migrated to company resources.
 > - Old: `s3://eon-research-artifacts` + `Claude Automation` vault
-> - New: `s3://eonlabs-findings` + `Employee` vault
+> - New: `s3://example-findings-bucket` + `Employee` vault
 > - See ADR amendment for details.
 
 ---

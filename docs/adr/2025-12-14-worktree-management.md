@@ -1,10 +1,10 @@
 ---
 status: accepted
 date: 2025-12-14
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [
-    Explore Agent (alpha-forge),
+    Explore Agent (research-repo),
     Explore Agent (cc-skills),
     Explore Agent (default-layout),
   ]
@@ -13,13 +13,13 @@ clarification-iterations: 3
 perspectives: [Developer Experience, Automation, Consistency]
 ---
 
-# Alpha-Forge Git Worktree Management System
+# Research-Repo Git Worktree Management System
 
-**Design Spec**: [Implementation Spec](/docs/design/2025-12-14-alpha-forge-worktree-management/spec.md)
+**Design Spec**: retired 2026-10-07 together with the plugin it specified.
 
 ## Context and Problem Statement
 
-Managing multiple concurrent feature branches in alpha-forge requires frequent context switching. Currently, developers must manually:
+Managing multiple concurrent feature branches in research-repo requires frequent context switching. Currently, developers must manually:
 
 1. Create git worktrees with inconsistent naming
 2. Manually add tabs to iTerm2's `default-layout.py`
@@ -65,7 +65,7 @@ graph { label: "Before: Manual Worktree Management"; flow: east; }
 - **Automation**: Minimize manual steps in worktree lifecycle
 - **Discoverability**: iTerm2 tabs should auto-detect worktrees without config changes
 - **Cleanup**: Stale worktrees should be detected and cleanup prompted
-- **Specificity**: Focus on alpha-forge workflow (can extend later)
+- **Specificity**: Focus on research-repo workflow (can extend later)
 
 ## Considered Options
 
@@ -81,7 +81,7 @@ graph { label: "Before: Manual Worktree Management"; flow: east; }
 
 **Good**:
 
-- ADR-style naming enforced automatically (`alpha-forge.worktree-YYYY-MM-DD-slug`)
+- ADR-style naming enforced automatically (`research-repo.worktree-YYYY-MM-DD-slug`)
 - Tab naming via acronym extraction (`AF-ssv` from `sharpe-statistical-validation`)
 - Stale worktree detection with cleanup prompts
 - Zero manual iTerm2 config changes needed
@@ -89,7 +89,7 @@ graph { label: "Before: Manual Worktree Management"; flow: east; }
 **Neutral**:
 
 - Requires plugin installation in cc-skills marketplace
-- Alpha-forge specific (by design, can extend later)
+- Research-repo specific (by design, can extend later)
 
 **Bad**:
 
@@ -100,7 +100,7 @@ graph { label: "Before: Manual Worktree Management"; flow: east; }
 
 The system consists of three components:
 
-1. **Plugin** (`alpha-forge-worktree`): Slash command + skill for worktree creation
+1. **Plugin** (`research-repo-worktree`): Slash command + skill for worktree creation
 2. **Dynamic Detection** (`default-layout.py`): Auto-discovers worktrees at iTerm2 startup
 3. **Lifecycle Management**: Stale detection + cleanup prompts
 
@@ -125,7 +125,7 @@ The system consists of three components:
                          └─────────────────────────┘     └──────────────────┘
 
 ┌───────────────────┐     ┌────────────────────────────────────┐     ┌───────────────────────────────┐     ┌──────────────────────────┐
-│ default-layout.py │ ──> │ glob ~/eon/alpha-forge.worktree-*  │ ──> │ Validate with git worktree list │ ──> │ Generate AF-{acronym} tabs │
+│ default-layout.py │ ──> │ glob ~/eon/research-repo.worktree-*  │ ──> │ Validate with git worktree list │ ──> │ Generate AF-{acronym} tabs │
 └───────────────────┘     └────────────────────────────────────┘     └───────────────────────────────┘     └──────────────────────────┘
 ```
 
@@ -140,21 +140,21 @@ graph { label: "Worktree Management Architecture"; flow: south; }
 [worktree-manager skill] -> [Pre-diagnosis:\nBranch analysis] -> [Name suggestion:\nADR-style] -> [git worktree add]
 [worktree-manager skill] -> [Stale detection] -> [Cleanup prompt]
 
-[default-layout.py] -> [glob ~/eon/alpha-forge.worktree-*] -> [Validate with git worktree list] -> [Generate AF-{acronym} tabs]
+[default-layout.py] -> [glob ~/eon/research-repo.worktree-*] -> [Validate with git worktree list] -> [Generate AF-{acronym} tabs]
 ```
 
 </details>
 
 ### Worktree Naming Convention
 
-**Format**: `alpha-forge.worktree-YYYY-MM-DD-slug`
+**Format**: `research-repo.worktree-YYYY-MM-DD-slug`
 
 **Examples**:
 
-| Branch                                          | Worktree Folder                                                 |
-| ----------------------------------------------- | --------------------------------------------------------------- |
-| `feat/2025-12-14-sharpe-statistical-validation` | `alpha-forge.worktree-2025-12-14-sharpe-statistical-validation` |
-| `feat/2025-12-13-feature-genesis-skills`        | `alpha-forge.worktree-2025-12-13-feature-genesis-skills`        |
+| Branch                                          | Worktree Folder                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
+| `feat/2025-12-14-sharpe-statistical-validation` | `research-repo.worktree-2025-12-14-sharpe-statistical-validation` |
+| `feat/2025-12-13-feature-genesis-skills`        | `research-repo.worktree-2025-12-13-feature-genesis-skills`        |
 
 ### Tab Naming Convention
 
@@ -171,8 +171,8 @@ graph { label: "Worktree Management Architecture"; flow: south; }
 ### Detection Flow
 
 ```
-1. Glob: ~/eon/alpha-forge.worktree-*
-2. Filter: Validate each with `git worktree list` in alpha-forge
+1. Glob: ~/eon/research-repo.worktree-*
+2. Filter: Validate each with `git worktree list` in research-repo
 3. Sort: By creation date (extracted from folder name)
 4. Name: Extract slug → generate acronym → prefix with AF-
 5. Insert: After AF tab, before other tabs
@@ -189,6 +189,6 @@ graph { label: "Worktree Management Architecture"; flow: south; }
 
 ## More Information
 
-- **Plugin location**: `~/eon/cc-skills/plugins/alpha-forge-worktree/`
-- **Primary repo**: `~/eon/alpha-forge` (EonLabs-Spartan/alpha-forge)
+- **Plugin location**: `~/eon/cc-skills/plugins/research-repo-worktree/`
+- **Primary repo**: `~/eon/research-repo` (example-org/research-repo)
 - **Related**: Git worktree documentation, ADR naming conventions

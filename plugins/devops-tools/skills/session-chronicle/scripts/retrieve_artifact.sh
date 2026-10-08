@@ -20,13 +20,13 @@ if [[ -z "$S3_URI" ]]; then
   echo "Usage: $0 <s3_uri> [output_dir]" >&2
   echo "" >&2
   echo "Arguments:" >&2
-  echo "  s3_uri      S3 URI (e.g., s3://eonlabs-findings/sessions/id)" >&2
+  echo "  s3_uri      S3 URI (e.g., s3://example-findings-bucket/sessions/id)" >&2
   echo "  output_dir  Local directory for downloaded artifacts (default: ./artifacts)" >&2
   echo "" >&2
   echo "Required tools: brotli, aws, op (1Password CLI)" >&2
   echo "" >&2
   echo "Example:" >&2
-  echo "  $0 s3://eonlabs-findings/sessions/2026-01-01-multiyear-momentum ./artifacts" >&2
+  echo "  $0 s3://example-findings-bucket/sessions/2026-01-01-multiyear-momentum ./artifacts" >&2
   exit 1
 fi
 

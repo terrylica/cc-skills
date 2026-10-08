@@ -24,7 +24,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # $EPOCHREALTIME for sub-second precision — preflight's shebang pins
 # bash so this is portable to macOS (where the system /bin/bash is 3.2
 # and lacks EPOCHREALTIME, so a bash 5+ must come first on PATH). Iter-73 baseline
-# measurement (2026-05-20, machine: el01 / terryli MacBook Pro M2 Max):
+# measurement (2026-05-20, machine: <host> / MacBook Pro M2 Max):
 # preflight real time was 10.74s (4.34s user + 6.72s sys) — sys > user
 # indicates heavy fork/exec, primarily from the four audit
 # subprocess invocations (Checks 4d/4f/4g/4h/4i/4j). Per-phase data

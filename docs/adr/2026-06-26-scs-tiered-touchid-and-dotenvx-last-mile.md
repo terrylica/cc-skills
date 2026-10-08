@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-06-26
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [WebSearch, Explore, empirical macOS testing]
 research-method: web-search + in-session empirical probes
 perspectives: [ThreatModelVsAgent, SelfCustody, Autonomy]
@@ -9,7 +9,7 @@ perspectives: [ThreatModelVsAgent, SelfCustody, Autonomy]
 
 # ADR: SCS evolution — tiered Touch-ID vault + dotenvx last-mile
 
-> **Amendment (2026-10-04) — the key finding below is wrong for the CryptoKit route.** It holds for keys persisted *in the Keychain* (`SecItem` with an access group), which need the `keychain-access-groups` entitlement. CryptoKit `SecureEnclave.P256` keys are not stored by the system at all: `dataRepresentation` is an enclave-wrapped blob the caller keeps in a plain file, usable only by that Mac's Secure Enclave, with Touch ID enforced by the enclave. `age-plugin-se` (remko) works this way, and an **ad-hoc-signed** build created an `any-biometry` key on macOS 15 and served as a sops recipient — no Developer ID, no entitlement. Unattended, a decrypt waited 20 minutes and released nothing; with the operator present it took one Touch ID. The "master key untouched" deferral is therefore no longer forced: the vault is migrating its master key into the Secure Enclave in stages (additive recipients first, the old silent key retired last), with an offline recovery recipient because enclave keys cannot be exported. Two further lessons from the same audit: the app-level helper's Touch ID check can be bypassed by re-signing a look-alike with the same self-signed identity (which signs silently), and a Touch ID prompt must be written by the authenticator from what it can verify — signing identities of the requesting processes first, claimed command lines last and sanitised — never by the requester.
+> **Amendment (2026-10-04) — the key finding below is wrong for the CryptoKit route.** It holds for keys persisted _in the Keychain_ (`SecItem` with an access group), which need the `keychain-access-groups` entitlement. CryptoKit `SecureEnclave.P256` keys are not stored by the system at all: `dataRepresentation` is an enclave-wrapped blob the caller keeps in a plain file, usable only by that Mac's Secure Enclave, with Touch ID enforced by the enclave. `age-plugin-se` (remko) works this way, and an **ad-hoc-signed** build created an `any-biometry` key on macOS 15 and served as a sops recipient — no Developer ID, no entitlement. Unattended, a decrypt waited 20 minutes and released nothing; with the operator present it took one Touch ID. The "master key untouched" deferral is therefore no longer forced: the vault is migrating its master key into the Secure Enclave in stages (additive recipients first, the old silent key retired last), with an offline recovery recipient because enclave keys cannot be exported. Two further lessons from the same audit: the app-level helper's Touch ID check can be bypassed by re-signing a look-alike with the same self-signed identity (which signs silently), and a Touch ID prompt must be written by the authenticator from what it can verify — signing identities of the requesting processes first, claimed command lines last and sanitised — never by the requester.
 
 > **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
 

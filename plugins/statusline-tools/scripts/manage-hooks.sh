@@ -2,7 +2,7 @@
 # manage-hooks.sh - Install/uninstall statusline-tools Stop hook
 #
 # MIT License
-# Copyright (c) 2025 Terry Li
+# Copyright (c) 2025 terrylica
 #
 # Usage:
 #   manage-hooks.sh install    Add Stop hook to settings.json

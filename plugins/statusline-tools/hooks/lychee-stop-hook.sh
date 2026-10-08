@@ -6,7 +6,7 @@
 # lychee-stop-hook.sh - Simplified Stop hook for link validation
 #
 # MIT License
-# Copyright (c) 2025 Terry Li
+# Copyright (c) 2025 terrylica
 #
 # This hook runs on Claude Code session stop to:
 # 1. Validate markdown links using lychee

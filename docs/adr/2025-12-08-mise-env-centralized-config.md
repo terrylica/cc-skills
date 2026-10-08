@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-08
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [Claude Opus 4.5]
 research-method: single-agent
 clarification-iterations: 3
@@ -114,7 +114,7 @@ graph { label: "🔓 After: mise [env] Centralized Config"; flow: south; }
 Investigation of ITP skills revealed hardcoded values in 4 skills:
 
 1. **code-hardcode-audit**: `timeout=300`, `timeout=120`, `max_workers=4`
-2. **pypi-doppler**: `DOPPLER_PROJECT="claude-config"`, `DOPPLER_CONFIG="prd"`
+2. **pypi-doppler**: `DOPPLER_PROJECT="private-config"`, `DOPPLER_CONFIG="prd"`
 3. **implement-plan-preflight**: `ADR_DIR`, `DESIGN_DIR`, required field lists
 4. **semantic-release**: `docs/adr`, `docs/design` paths
 
@@ -217,7 +217,7 @@ timeout = int(os.environ.get("AUDIT_JSCPD_TIMEOUT", "300"))
 
 ```bash
 # Bash pattern
-DOPPLER_PROJECT="${DOPPLER_PROJECT:-claude-config}"
+DOPPLER_PROJECT="${DOPPLER_PROJECT:?set DOPPLER_PROJECT}"
 ```
 
 ## Validation

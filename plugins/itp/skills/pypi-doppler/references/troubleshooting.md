@@ -8,7 +8,7 @@
 
 ```bash
 # Verify token exists
-doppler secrets --project claude-config --config prd | grep PYPI_TOKEN
+doppler secrets --project private-config --config prd | grep PYPI_TOKEN
 
 # If missing, get new token from PyPI
 # Visit: https://pypi.org/manage/account/token/
@@ -16,7 +16,7 @@ doppler secrets --project claude-config --config prd | grep PYPI_TOKEN
 
 # Store in Doppler
 doppler secrets set PYPI_TOKEN='your-token' \
-  --project claude-config \
+  --project private-config \
   --config prd
 ```
 
@@ -30,7 +30,7 @@ doppler secrets set PYPI_TOKEN='your-token' \
 
 1. Verify 2FA enabled on PyPI account
 2. Create new token: <https://pypi.org/manage/account/token/>
-3. Update Doppler: `doppler secrets set PYPI_TOKEN='new-token' --project claude-config --config prd`
+3. Update Doppler: `doppler secrets set PYPI_TOKEN='new-token' --project private-config --config prd`
 4. Retry publish
 
 ## Issue: "Script blocked with CI detection error"

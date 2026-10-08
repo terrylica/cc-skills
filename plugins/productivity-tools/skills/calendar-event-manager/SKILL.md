@@ -137,7 +137,7 @@ Open with: `open "x-apple.systempreferences:com.apple.Notifications-Settings.ext
 
 | Anti-pattern                         | What happens                                  | Example                      |
 | ------------------------------------ | --------------------------------------------- | ---------------------------- |
-| `date "April 1, 2026 at 6:00:00 PM"` | On 24h systems, "PM" is ignored → 06:00       | 4 failures in amonic session |
+| `date "April 1, 2026 at 6:00:00 PM"` | On 24h systems, "PM" is ignored → 06:00       | 4 failures in personal session |
 | `date "2026-04-01 18:00:00"`         | ISO parsed as individual numbers → year 12169 | 1 failure                    |
 | `set month` before `set day to 1`    | Day 31 + April (30 days) → rolls to May 1     | 1 failure                    |
 

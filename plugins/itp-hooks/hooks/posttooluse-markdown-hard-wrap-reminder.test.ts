@@ -10,7 +10,7 @@ import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-iter93
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
-const MD = "/Users/terryli/eon/cc-skills/docs/some-note.md";
+const MD = "/Users/<you>/eon/cc-skills/docs/some-note.md";
 
 /** Two lines, first breaking mid-sentence at ~86 cols — a real hard wrap. */
 const WRAPPED = [
@@ -320,7 +320,7 @@ describe("escape hatch distinguishes INVOKING from MENTIONING", () => {
   });
 
   it("suppresses through a code span INSIDE the comment, despite an unmatched backtick earlier", async () => {
-    // The shape of ~/eon/ccmax-monitor's PROVENANCE.md: a multi-line escape
+    // The shape of ~/eon/relay-monitor's PROVENANCE.md: a multi-line escape
     // comment whose interior quotes a command in backticks. 19 of this repo's
     // 1,094 tracked .md files carry an odd number of backticks, and any ONE of
     // them upstream of such a comment breaks a whole-file inline-code stripper.

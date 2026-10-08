@@ -4,7 +4,7 @@
  * would otherwise be asserting.
  *
  * WHY THIS EXISTS, AND WHY IT IS UPSTREAM OF THE OTHER GUARD. On 2026-09-06 an agent surveyed every
- * open PR and reported Eon-Labs/alpha-forge#656 as "waiting on my review". No request existed; one
+ * open PR and reported example-org/research-repo#656 as "waiting on my review". No request existed; one
  * arrived 19h29m LATER. That false premise reached the operator's menu as an innocuous-looking
  * option labelled "Review #656", was approved inside a batch, and became a blocking review on the
  * CEO's own pull request.

@@ -4,19 +4,14 @@ Walk-forward GARCH(1,1) and GJR(1,1) volatility forecasting for portfolio constr
 
 ## Campaign Results (honest)
 
-A negative-to-marginal result set — **not** a deployable edge. Independently re-verified ensemble
-net-Sharpe (equal-weight 20 seeds, non-IID PSR); see
-[CAMPAIGN_VERDICT.md](./skills/garch-vol-recipes/references/CAMPAIGN_VERDICT.md).
+A negative-to-marginal result set — **not** a deployable edge. Independently re-verified ensemble net-Sharpe (equal-weight 20 seeds, non-IID PSR); see [CAMPAIGN_VERDICT.md](./skills/garch-vol-recipes/references/CAMPAIGN_VERDICT.md).
 
 | Overlay (ensemble Sharpe) | 2 bps                      | 7 bps               | Verdict                                   |
 | ------------------------- | -------------------------- | ------------------- | ----------------------------------------- |
 | **GJR vol-scaling**       | +0.49→**+1.00** (PSR→0.86) | +0.02, p=0.54, 9/20 | Real @2bps, **cost-fragile — dies @7bps** |
 | **DCC de-weighting**      | +0.49→+0.56 (PSR→0.73)     | −1.64→−1.58         | Economically immaterial                   |
 
-GARCH information does not create a retail-cost-surviving edge here; GJR vol-sizing is a
-low-cost/maker-venue lever only. Per-seed p<0.0001 figures were inflated (deterministic overlay on
-correlated seeds) and are not used. This toolkit's value is the **methodology** (walk-forward fitting
-recipes + leakage traps), not an alpha claim.
+GARCH information does not create a retail-cost-surviving edge here; GJR vol-sizing is a low-cost/maker-venue lever only. Per-seed p<0.0001 figures were inflated (deterministic overlay on correlated seeds) and are not used. This toolkit's value is the **methodology** (walk-forward fitting recipes + leakage traps), not an alpha claim.
 
 ## Quick Links
 
@@ -78,5 +73,5 @@ PolyForm Noncommercial 1.0.0. Free for personal, educational, research use. Comm
 
 ---
 
-**Author**: Terry Li (terrylica)  
+**Author**: terrylica (terrylica)  
 **Last Updated**: 2026-07-20

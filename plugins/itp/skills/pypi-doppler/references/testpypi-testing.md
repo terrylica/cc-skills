@@ -10,7 +10,7 @@ To test the publishing workflow without affecting production:
 
    ```bash
    doppler secrets set TESTPYPI_TOKEN='your-test-token' \
-     --project claude-config \
+     --project private-config \
      --config prd
    ```
 

@@ -2,9 +2,7 @@
 
 ## Doppler Configuration
 
-**Project**: `claude-config`
-**Configs**: `prd` (production), `dev` (development)
-**Secret Name**: `PYPI_TOKEN`
+**Project**: `private-config` **Configs**: `prd` (production), `dev` (development) **Secret Name**: `PYPI_TOKEN`
 
 ## Token Format
 
@@ -36,12 +34,12 @@ Valid PyPI token format:
 
 # 2. Update Doppler
 doppler secrets set PYPI_TOKEN='new-token' \
-  --project claude-config \
+  --project private-config \
   --config prd
 
 # 3. Verify new token works
 doppler secrets get PYPI_TOKEN \
-  --project claude-config \
+  --project private-config \
   --config prd \
   --plain
 

@@ -91,8 +91,8 @@ Or via a gitignored `.env.local`, loaded with `uv run --env-file .env.local`:
 
 ```bash
 # .env.local (gitignored)
-MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
-MLFLOW_TRACKING_USERNAME=eonlabs
+MLFLOW_TRACKING_URI=http://mlflow.example.com:5000
+MLFLOW_TRACKING_USERNAME=<user>
 MLFLOW_TRACKING_PASSWORD=<password>
 ```
 

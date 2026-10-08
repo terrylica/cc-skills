@@ -2,7 +2,7 @@
 status: superseded
 superseded-date: 2026-10-01
 date: 2025-12-27
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [claude-code-guide]
 research-method: documentation-review
 ---

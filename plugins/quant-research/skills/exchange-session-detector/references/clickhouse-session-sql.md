@@ -8,7 +8,7 @@ ClickHouse's `toTimezone()` accepts IANA timezone names and handles DST transiti
 
 ## SQL Pattern: ALTER TABLE UPDATE
 
-Used by `opendeviationbar-py` to backfill session columns on existing data:
+Used by `opendeviationbar` to backfill session columns on existing data:
 
 ```python
 _SESSION_UPDATES = [
@@ -92,4 +92,4 @@ WHERE h.holiday_date IS NULL  -- Not a holiday
 
 ## Source
 
-Canonical: `~/eon/opendeviationbar-py/python/opendeviationbar/clickhouse/migrations.py`
+Canonical: `<project>/python/<package>/clickhouse/migrations.py`

@@ -14,13 +14,7 @@ allowed-tools: Read, Bash
 
 Walk-forward GARCH(1,1) and GJR(1,1) recipes for volatility forecasting and portfolio construction. Tested on 20 seeds, 2025-26 test window, 2bps and 7bps cost regimes.
 
-> **Campaign Results (honest)**: A negative-to-marginal result set, not a deployable edge. GJR
-> inverse vol-sizing helps at LOW cost only (ensemble Sharpe +0.49→+1.00 @2bps) but is COST-FRAGILE —
-> its +35% turnover erases the benefit at retail 7bps (Δ+0.02, p=0.54, coin-flip). DCC de-weighting is
-> economically immaterial (+0.05–0.07). GARCH-as-features is a flat null. Per-seed p<0.0001 figures are
-> inflated by applying a deterministic overlay to correlated seeds — use ensemble PSR instead. See
-> [CAMPAIGN_VERDICT.md](references/CAMPAIGN_VERDICT.md). This skill's value is the METHODOLOGY (fitting
-> recipes + leakage traps), not an alpha claim.
+> **Campaign Results (honest)**: A negative-to-marginal result set, not a deployable edge. GJR inverse vol-sizing helps at LOW cost only (ensemble Sharpe +0.49→+1.00 @2bps) but is COST-FRAGILE — its +35% turnover erases the benefit at retail 7bps (Δ+0.02, p=0.54, coin-flip). DCC de-weighting is economically immaterial (+0.05–0.07). GARCH-as-features is a flat null. Per-seed p<0.0001 figures are inflated by applying a deterministic overlay to correlated seeds — use ensemble PSR instead. See [CAMPAIGN_VERDICT.md](references/CAMPAIGN_VERDICT.md). This skill's value is the METHODOLOGY (fitting recipes + leakage traps), not an alpha claim.
 
 ## Quick Start
 
@@ -145,8 +139,7 @@ def inverse_vol_scale_positions(positions_df, vol_forecast, ref_vol=None):
 
 ## Campaign Verdict
 
-Independently re-verified ensemble net-Sharpe (equal-weight 20 seeds, non-IID PSR), baseline
-reconstruction-gated. See [CAMPAIGN_VERDICT.md](references/CAMPAIGN_VERDICT.md) for full provenance.
+Independently re-verified ensemble net-Sharpe (equal-weight 20 seeds, non-IID PSR), baseline reconstruction-gated. See [CAMPAIGN_VERDICT.md](references/CAMPAIGN_VERDICT.md) for full provenance.
 
 | Overlay (ensemble Sharpe) | 2 bps                               | 7 bps               | Honest verdict                            |
 | ------------------------- | ----------------------------------- | ------------------- | ----------------------------------------- |
@@ -155,15 +148,11 @@ reconstruction-gated. See [CAMPAIGN_VERDICT.md](references/CAMPAIGN_VERDICT.md) 
 
 ### Key findings (honest)
 
-1. **GJR vol-sizing is real at low cost, not at retail**: +0.49→+1.00 ensemble Sharpe @2bps (genuine
-   vol-targeting), but its +35% turnover erases the edge at 7bps (Δ+0.02, coin-flip). Low-cost/maker-venue
-   lever only — NOT ready for live deployment at retail cost.
+1. **GJR vol-sizing is real at low cost, not at retail**: +0.49→+1.00 ensemble Sharpe @2bps (genuine vol-targeting), but its +35% turnover erases the edge at 7bps (Δ+0.02, coin-flip). Low-cost/maker-venue lever only — NOT ready for live deployment at retail cost.
 2. **DCC de-weighting is economically immaterial** (+0.05–0.07), a mild risk overlay, not an edge.
 3. **GARCH-as-features is a flat null** (20-seed paired lift −0.01, CI ±0.6).
-4. **Do NOT trust per-seed paired p-values here**: a deterministic overlay applied to correlated seeds
-   inflates significance. The ensemble PSR is the honest test, and it clears no threshold except C@2bps.
-5. **Two subagent bugs were caught by re-verification** (symbol-mismatch zeroing; turnover-Δ/2 halving
-   costs). The lesson: reconstruction-gate every baseline against a known truth before trusting a lift.
+4. **Do NOT trust per-seed paired p-values here**: a deterministic overlay applied to correlated seeds inflates significance. The ensemble PSR is the honest test, and it clears no threshold except C@2bps.
+5. **Two subagent bugs were caught by re-verification** (symbol-mismatch zeroing; turnover-Δ/2 halving costs). The lesson: reconstruction-gate every baseline against a known truth before trusting a lift.
 
 ## Leakage Traps (Gotchas)
 
@@ -310,5 +299,5 @@ After using a recipe, check before closing: (1) Did the fit reproduce the quoted
 ---
 
 **Last Updated**: 2026-07-20  
-**Author**: Terry Li (terrylica)  
+**Author**: terrylica (terrylica)  
 **License**: PolyForm Noncommercial

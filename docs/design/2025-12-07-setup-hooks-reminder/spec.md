@@ -26,7 +26,7 @@ Add a "Next Steps" section at the end of `/itp:setup` to remind users about the 
 
 ## File to Modify
 
-`/Users/terryli/eon/cc-skills/plugins/itp/commands/setup.md`
+`/Users/<you>/eon/cc-skills/plugins/itp/commands/setup.md`
 
 ## Implementation Tasks
 

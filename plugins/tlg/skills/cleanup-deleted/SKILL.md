@@ -37,10 +37,10 @@ bun "$SCRIPT" --dry-run
 bun "$SCRIPT"
 
 # Clean specific profile
-bun "$SCRIPT" -p eon
+bun "$SCRIPT" -p work
 
 # Clean multiple specific profiles
-bun "$SCRIPT" -p eon missterryli
+bun "$SCRIPT" -p work personal
 EOF
 ```
 

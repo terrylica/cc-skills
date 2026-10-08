@@ -28,7 +28,7 @@
       "description": "Resource-owner login. Omit to use the authenticated user. Set to an org login for org-owned tokens."
     },
     "expiration": {
-      "description": "Token lifetime: 7/30/60/90/366 (days), an ISO date 'YYYY-MM-DD' (custom), or 'none' (no expiration — triggers a confirm modal). 366 is only offered when the resource owner is an ORGANISATION that caps token lifetime, and in that case 'none' is NOT offered at all: an org limit removes the option rather than disabling it (measured 2026-09-04 against doorward-systems, which offers 7/30/60/90/366 + 'Custom between 1 and 366 days'). So a spec targeting an org may not be able to say 'none' however much you want it to.",
+      "description": "Token lifetime: 7/30/60/90/366 (days), an ISO date 'YYYY-MM-DD' (custom), or 'none' (no expiration — triggers a confirm modal). 366 is only offered when the resource owner is an ORGANISATION that caps token lifetime, and in that case 'none' is NOT offered at all: an org limit removes the option rather than disabling it (measured 2026-09-04 against example-org, which offers 7/30/60/90/366 + 'Custom between 1 and 366 days'). So a spec targeting an org may not be able to say 'none' however much you want it to.",
       "default": 30,
       "oneOf": [
         { "type": "integer", "enum": [7, 30, 60, 90, 366] },

@@ -34,7 +34,7 @@ A codified set of **universal research principles** distilled from a successful 
 
 ## Installation (for this project)
 
-This plugin is project-local. It auto-loads when an agent operates in `/Users/terryli/eon/opendeviationbar-patterns/`. The project's root `CLAUDE.md` contains backlinks to it.
+This plugin is project-local. It auto-loads when an agent operates in `/Users/<you>/eon/research-lab-repo/`. The project's root `CLAUDE.md` contains backlinks to it.
 
 To promote to the global marketplace later:
 
@@ -61,7 +61,7 @@ Distilled from session `ca9d7ffa-ef5a-41d0-94c8-56f113a132f2` (2026-04-18 to 202
 
 ## Related
 
-- Project repo: [opendeviationbar-patterns](https://github.com/terrylica/opendeviationbar-patterns)
+- Project repo: [research-lab-repo](https://github.com/terrylica/research-lab-repo)
 - Source methodology files: `findings/methodology/` (the 10 original principles, pre-plugin)
 - Ledger: `findings/evolution/evolution.jsonl` (5-entry supersedes chain for NGRAM3FU-STRADDLE-001)
 

@@ -1,6 +1,6 @@
 ---
 name: tick-collection-ops
-description: Operate and troubleshoot the MT5 tick collection system. HOST MOVED 2026-08-07 - MT5 now runs on the FXView VPS (Windows scheduled tasks, C:\odb-tickrings), NOT gpu-host-1/Linux-Wine/systemd. EA, ring format and gap-detection reasoning unchanged. Covers gap detection, restart recovery, daily ops.
+description: Operate and troubleshoot the MT5 tick collection system. HOST MOVED 2026-08-07 - MT5 now runs on the FXView VPS (Windows scheduled tasks, C:\odb-tickrings), NOT <gpu-host>/Linux-Wine/systemd. EA, ring format and gap-detection reasoning unchanged. Covers gap detection, restart recovery, daily ops.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -10,14 +10,11 @@ allowed-tools: Read, Bash, Grep, Glob
 
 > ## ⚠️ HOST SUPERSEDED — 2026-08-07
 >
-> **MetaTrader 5 no longer runs on gpu-host-1.** It runs **exclusively on the FXView broker VPS**
-> (Tailscale host `fxview-mt5`, `100.126.202.32`, Windows), on **demo account 400364**. The Mac-local
-> Wine bench was deleted 2026-08-06; gpu-host-1's Wine terminal + its `xvfb`/`xfce`/`x11vnc` desktop
-> and `fxview-sidecar` are being decommissioned.
+> **MetaTrader 5 no longer runs on <gpu-host>.** It runs **exclusively on a broker VPS** (Tailscale host `mt5-host`, `<tailscale-ip>`, Windows), on a demo account. The Mac-local Wine bench was deleted 2026-08-06; <gpu-host>'s Wine terminal + its `xvfb`/`xfce`/`x11vnc` desktop and `fxview-sidecar` are being decommissioned.
 >
 > **On the VPS the topology is Windows scheduled tasks, not Linux systemd:**
 >
-> | Concern         | gpu-host-1 (retired)                      | FXView VPS (current)                                             |
+> | Concern         | <gpu-host> (retired)                    | Broker VPS (current)                                             |
 > | --------------- | --------------------------------------- | ---------------------------------------------------------------- |
 > | Terminal        | `mt5.service` under Wine, `DISPLAY=:99` | `terminal64.exe`, native Windows, real session                   |
 > | Tick rings      | `/dev/shm/tick_ring_<SYM>`              | `C:\odb-tickrings\tick_ring_<SYM>`                               |
@@ -27,15 +24,11 @@ allowed-tools: Read, Bash, Grep, Glob
 > | Symbols         | EUR/GBP/XAU/XAG                         | **EUR/GBP/XAU only** (silver excluded per directive 2026-05-26)  |
 > | Service control | `systemctl`                             | `Get-ScheduledTask` / `Start-ScheduledTask`                      |
 >
-> Reach it with `ssh fxview-mt5`. PowerShell over SSH eats `$_` under shell quoting — pass commands
-> base64-encoded via `powershell -NoProfile -EncodedCommand <base64-utf16le>`.
+> Reach it with `ssh <mt5-host>`. PowerShell over SSH eats `$_` under shell quoting — pass commands base64-encoded via `powershell -NoProfile -EncodedCommand <base64-utf16le>`.
 >
-> **Everything below still describes the Linux/Wine deployment.** It is retained because the EA, the
-> `tick_writer.dll` ring format and the gap-detection reasoning are unchanged and still authoritative —
-> only the HOST and the service manager moved. Do not use it to stand up a new Linux MT5.
+> **Everything below still describes the Linux/Wine deployment.** It is retained because the EA, the `tick_writer.dll` ring format and the gap-detection reasoning are unchanged and still authoritative — only the HOST and the service manager moved. Do not use it to stand up a new Linux MT5.
 >
-> Canonical: `opendeviationbar-patterns/docs/adr/2026-08-07-retire-gpu-host-1-as-a-metatrader-host-…md`
-> and `docs/decision-register-metatrader-hosting-and-market-data-source-provenance.md`.
+> Canonical: `<research-repo>/docs/adr/<date>-retire-<host>-as-a-metatrader-host.md` and `docs/decision-register-<topic>.md`.
 
 Operate, monitor, and troubleshoot the zero-gap tick collection system running on Linux via Wine.
 
@@ -43,7 +36,7 @@ Operate, monitor, and troubleshoot the zero-gap tick collection system running o
 
 Use this skill when:
 
-- Deploying or restarting tick collection on gpu-host-1
+- Deploying or restarting tick collection on <gpu-host>
 - Diagnosing tick gaps or missing data
 - Troubleshooting Wine or MT5 issues
 - Understanding systemd service topology
@@ -59,7 +52,7 @@ TickCollector EA (MQL5)  -->  tick_writer.dll (Rust)  -->  Parquet files
      Watermark dedup            Row group flush
 ```
 
-- TickCollector EA runs on MT5 via Wine on headless Linux (gpu-host-1)
+- TickCollector EA runs on MT5 via Wine on headless Linux (<gpu-host>)
 - EA captures every tick via OnTick() callback + OnTimer() fallback (1-second interval)
 - Ticks buffered in EA, flushed to Rust DLL (tick_writer.dll) via C-ABI FFI
 - Rust DLL writes Parquet files with ZSTD level 3 compression
@@ -150,7 +143,7 @@ Use `/mql5:mql5-ship` slash command for full deployment:
 
 - `--ea-only` for EA source changes
 - `--dll-only` for Rust DLL changes
-- Full pipeline: commit -> push -> pull on gpu-host-1 -> compile -> validate
+- Full pipeline: commit -> push -> pull on <gpu-host> -> compile -> validate
 
 Detailed deployment steps (SSH commands, file copies, compilation) are in the `headless-mt5-remote` local skill. Not duplicated here to avoid drift.
 

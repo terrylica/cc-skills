@@ -21,12 +21,12 @@ Systematic methodology for investigating Open Deviation Bar anomalies by tracing
 
 ## Data Sources
 
-| Source             | Location                                                                                | Schema                                                                                    | Access                                                                             |
-| ------------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| ClickHouse cache   | `opendeviationbar_cache.open_deviation_bars` on **gpu-host-1**                            | 76 columns, see [schema reference](./references/clickhouse-schema.md)                     | `ssh gpu-host-1 'curl -s http://localhost:8123/ -d "..."'`                           |
-| Parquet tick cache | `/home/tca/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet` on **gpu-host-1** | `agg_trade_id, price, quantity, first_trade_id, last_trade_id, timestamp, is_buyer_maker` | `ssh gpu-host-1 'cd /home/tca && uv run --python 3.14 python3 -c "..."'` with Polars |
+| Source             | Location                                                                                     | Schema                                                                                    | Access                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| ClickHouse cache   | `opendeviationbar_cache.open_deviation_bars` on **<gpu-host>**                               | 76 columns, see [schema reference](./references/clickhouse-schema.md)                     | `ssh <gpu-host> 'curl -s http://localhost:8123/ -d "..."'`                              |
+| Parquet tick cache | `/home/<user>/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet` on **<gpu-host>** | `agg_trade_id, price, quantity, first_trade_id, last_trade_id, timestamp, is_buyer_maker` | `ssh <gpu-host> 'cd /home/<user> && uv run --python 3.14 python3 -c "..."'` with Polars |
 
-**Access pattern**: Always query gpu-host-1 directly via SSH. The SSH tunnel (`localhost:18123`) is for the Flowsurface app runtime only — forensic queries go direct.
+**Access pattern**: Always query <gpu-host> directly via SSH. The SSH tunnel (`localhost:18123`) is for the Flowsurface app runtime only — forensic queries go direct.
 
 ## Investigation Methodology
 
@@ -86,7 +86,7 @@ Record the `first_agg_trade_id` and `last_agg_trade_id` ranges — these are the
 
 ### Layer 3: Parquet Trade-Level Root Cause
 
-Use Polars on gpu-host-1 to analyze raw trades. Three analyses in sequence:
+Use Polars on <gpu-host> to analyze raw trades. Three analyses in sequence:
 
 #### 3a. Timestamp Burst Detection
 
@@ -95,7 +95,7 @@ Group trades by timestamp to find matching engine batches (hundreds of trades sh
 ```python
 import polars as pl
 
-df = pl.read_parquet("/home/tca/.cache/opendeviationbar/ticks/{SYMBOL}/{DATE}.parquet")
+df = pl.read_parquet("/home/<user>/.cache/opendeviationbar/ticks/{SYMBOL}/{DATE}.parquet")
 
 burst = df.filter(
     (pl.col("agg_trade_id") >= {FIRST_ID}) &
@@ -153,7 +153,7 @@ After completing the 3-layer analysis, classify the finding:
 | **Liquidation cascade** | 95%+ one-sided, 50-100+ BTC, same-µs timestamp, sweeps $200+        | Oracle bit-exact — no fix needed. Document the event.          |
 | **Thin book sweep**     | Fewer trades but large price gaps between levels                    | Oracle bit-exact — book was thin at that moment.               |
 | **Orphan bar**          | `is_orphan = 1` in ClickHouse                                       | Known phenomenon — writer-boundary artifact. Skip in analysis. |
-| **Algorithm bug**       | Trades are normally distributed, no burst, but bar still overshoots | File upstream issue on opendeviationbar-py.                    |
+| **Algorithm bug**       | Trades are normally distributed, no burst, but bar still overshoots | File upstream issue on opendeviationbar.                       |
 | **Data gap**            | `agg_trade_id` discontinuity between adjacent bars                  | Missing Parquet data. Check collection pipeline.               |
 
 ## Threshold Overshoot Mechanics

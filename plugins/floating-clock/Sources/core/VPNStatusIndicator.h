@@ -7,7 +7,7 @@
 // Everything is configured via NSUserDefaults, and it is DISABLED by
 // default, so the public build ships inert until a deployment opts in.
 //
-// Defaults domain (com.terryli.floating-clock):
+// Defaults domain (com.cc-skills.floating-clock):
 //   VPNIndicatorEnabled   BOOL    default NO   — master on/off
 //   VPNIndicatorStateFile string  default ~/.config/floating-clock/vpn-active
 //                                  — the bar shows iff this path exists

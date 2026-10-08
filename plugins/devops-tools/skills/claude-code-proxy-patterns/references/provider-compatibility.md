@@ -72,8 +72,8 @@ pkill -f proxy.py
 python proxy.py &
 
 # Go (port 8082) - via launchd
-sudo launchctl unload -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
-sudo launchctl load -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Failover (port 8083) - via failover wrapper
 cd $HOME/eon/cc-skills/tools/claude-code-failover

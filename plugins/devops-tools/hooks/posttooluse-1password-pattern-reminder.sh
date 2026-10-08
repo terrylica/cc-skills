@@ -50,7 +50,7 @@ PAYLOAD=$(cat)
 # precise leading-executable filtering still happens downstream after jq
 # extraction; this fast-path only catches the trivially-no-op case.
 #
-# Speedup measured on m3max bash 5.3.9:
+# Speedup measured on workstation bash 5.3.9:
 #   pre-iter-40 bail-out:  7-10 ms (jq cold-start dominates)
 #   iter-40    bail-out:   <0.1 ms (case glob, no fork)
 #   speedup on ~95% hot path: 70-200x

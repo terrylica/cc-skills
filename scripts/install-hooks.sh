@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install git hooks for cc-skills development
-# ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned)
+# ADR: /docs/adr/2025-12-14-worktree-management.md (lesson learned)
 #
 # Usage: ./scripts/install-hooks.sh
 #
@@ -29,7 +29,7 @@ echo "Installing cc-skills git hooks..."
 cat > "$HOOKS_DIR/pre-commit" << 'HOOK'
 #!/usr/bin/env bash
 # Pre-commit hook for cc-skills marketplace
-# ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned)
+# ADR: /docs/adr/2025-12-14-worktree-management.md (lesson learned)
 #
 # Validates:
 # 1. No staged content carries a forbidden client identifier (PII guard)

@@ -80,8 +80,8 @@ rm -rf "$TMPDIR/pro.betterdisplay.BetterDisplay" \
 The research called these "user-owned and cleared on reboot" and therefore benign. **That is wrong for one of the two, and the verifier caught it.** `$TMPDIR` (`.../T/`) is periodically purged; `$(getconf DARWIN_USER_CACHE_DIR)` (`.../C/`) is the per-user darwin _cache_ directory and is not. Proof from this machine before I removed it:
 
 ```
-drwxr-xr-x@ 4 terryli staff 128 May  8  2025 .../C/pro.betterdisplay.BetterDisplay
-drwxr-xr-x@ 3 terryli staff  96 Sep 19 18:53 .../T//pro.betterdisplay.BetterDisplay
+drwxr-xr-x@ 4 <user> staff 128 May  8  2025 .../C/pro.betterdisplay.BetterDisplay
+drwxr-xr-x@ 3 <user> staff  96 Sep 19 18:53 .../T//pro.betterdisplay.BetterDisplay
 ```
 
 A May 2025 birthdate — it survived sixteen months of reboots. Explicit removal was required, not optional.
@@ -145,7 +145,7 @@ It is the only actively-maintained FOSS project that genuinely exceeds maximum b
 
 ### The licence obligation, which is the real blocker
 
-`cc-skills` is **MIT** (`LICENSE`: "MIT License / Copyright (c) 2025-2026 Terry Li"; `package.json` `"license": "MIT"`). floating-clock ships inside it. GPL-3.0 is viral across linking, so dropping BrightIntosh-derived code into this binary would relicense the whole app.
+`cc-skills` is **MIT** (`LICENSE`: "MIT License / Copyright (c) 2025-2026 terrylica"; `package.json` `"license": "MIT"`). floating-clock ships inside it. GPL-3.0 is viral across linking, so dropping BrightIntosh-derived code into this binary would relicense the whole app.
 
 This is the single most important thing the EDR-mechanism research missed entirely: it mentions licensing **zero times**, presents its deliverable as a "faithful transliteration", and its only permission analysis is about _entitlements_ — which is the OS sandbox axis, not the copyright axis. Its verifier caught this and is correct.
 

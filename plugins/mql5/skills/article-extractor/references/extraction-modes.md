@@ -4,8 +4,7 @@
 
 ### Mode 1: Single Article
 
-**When**: User provides one article URL
-**Command**:
+**When**: User provides one article URL **Command**:
 
 ```bash
 .venv/bin/python mql5_extract.py single https://www.mql5.com/en/articles/[ID]
@@ -15,8 +14,7 @@
 
 ### Mode 2: Batch from File
 
-**When**: User has URL file or wants multiple specific articles
-**Command**:
+**When**: User has URL file or wants multiple specific articles **Command**:
 
 ```bash
 .venv/bin/python mql5_extract.py batch urls.txt
@@ -26,8 +24,7 @@
 
 ### Mode 3: Auto-Discovery
 
-**When**: User provides MQL5 user ID or username
-**Command**:
+**When**: User provides MQL5 user ID or username **Command**:
 
 ```bash
 .venv/bin/python mql5_extract.py discover-and-extract --user-id [USER_ID]
@@ -46,7 +43,7 @@
 **Command**:
 
 ```bash
-cd $HOME/eon/mql5-local
+cd $HOME/eon/mt5-local
 curl -s "https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py" > page.html
 .venv/bin/python scripts/official_docs_extractor.py page.html "URL"
 ```
@@ -62,7 +59,7 @@ curl -s "https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py" > 
 **Command**:
 
 ```bash
-cd $HOME/eon/mql5-local
+cd $HOME/eon/mt5-local
 ./scripts/extract_all_python_docs.sh
 ```
 

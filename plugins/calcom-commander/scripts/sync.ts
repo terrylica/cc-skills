@@ -2,7 +2,7 @@
 /**
  * Cal.com Commander Sync — Scheduled booking sync + dual-channel notifications.
  *
- * Runs every 6h via launchd StartInterval (com.terryli.calcom-commander-sync).
+ * Runs every 6h via launchd StartInterval (com.cc-skills.calcom-commander-sync).
  * Fetches recent bookings, detects changes, sends notifications to:
  *   - Telegram (HTML format, interactive)
  *   - Pushover (plain text, emergency alerts with custom sound)

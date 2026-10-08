@@ -15,15 +15,12 @@ tags:
 model_name: Gemini 3 Pro
 model_version: Deep Research mode
 tools: []
-claude_code_uuid: fd3529fa-dc43-4d95-95d2-5764970c447b
-claude_code_project_path: "~/.claude/projects/-Users-terryli-eon-cc-skills/fd3529fa-dc43-4d95-95d2-5764970c447b"
+claude_code_uuid: <session-id>
+claude_code_project_path: "~/.claude/projects/-Users-<you>-eon-cc-skills/<session-id>"
 github_issue_url: https://github.com/terrylica/cc-skills/issues/70
 ---
 
-[About Gemini Opens in a new window](https://gemini.google/about/?utm_source=gemini&utm_medium=web&utm_campaign=gemini_zero_state_link_to_marketing_microsite)
-[Gemini App Opens in a new window](https://gemini.google.com/app/download)
-[Subscriptions Opens in a new window](https://one.google.com/ai)
-[For Business Opens in a new window](https://workspace.google.com/solutions/ai/?utm_source=geminiforbusiness&utm_medium=et&utm_campaign=gemini-page-crosslink&utm_term=-&utm_content=forbusiness-2025Q3)
+[About Gemini Opens in a new window](https://gemini.google/about/?utm_source=gemini&utm_medium=web&utm_campaign=gemini_zero_state_link_to_marketing_microsite) [Gemini App Opens in a new window](https://gemini.google.com/app/download) [Subscriptions Opens in a new window](https://one.google.com/ai) [For Business Opens in a new window](https://workspace.google.com/solutions/ai/?utm_source=geminiforbusiness&utm_medium=et&utm_campaign=gemini-page-crosslink&utm_term=-&utm_content=forbusiness-2025Q3)
 
 # The Autonomous Metacognitive Layer: Self-Evolving Agent Skills and the Protocol of Continuous Adaptation
 
@@ -39,9 +36,7 @@ The transition from a static instructional document to a self-modifying algorith
 
 ## Verbatim Quotes and Industry Perspectives
 
-The structural evolution of these files is a focal point for modern developers. As noted by industry commentators: "SKILL.md files are a fascinating evolution — they're essentially pre-generation context that shapes what the AI knows and how it behaves before it starts generating. This is the 'structural plan' layer made explicit and reusable." (unicodeveloper, Medium, March 9, 2026, [https://medium.com/@unicodeveloper/10-must-have-skills-for-claude-and-any-coding-agent-in-2026-b5451b013051](https://medium.com/@unicodeveloper/10-must-have-skills-for-claude-and-any-coding-agent-in-2026-b5451b013051)
-). Furthermore, standardizing this protocol is essential for interoperability, as the LobeHub documentation emphasizes: "Acknowledge the correction immediately — do not defend the wrong assumption. Identify which memory file should be updated. Update the memory file with the correction, including date and context." (LobeHub, LobeHub Skills Directory, March 15, 2026, [https://lobehub.com/it/skills/pixel-process-ug-superkit-agents-self-learning](https://lobehub.com/it/skills/pixel-process-ug-superkit-agents-self-learning)
-).  
+The structural evolution of these files is a focal point for modern developers. As noted by industry commentators: "SKILL.md files are a fascinating evolution — they're essentially pre-generation context that shapes what the AI knows and how it behaves before it starts generating. This is the 'structural plan' layer made explicit and reusable." (unicodeveloper, Medium, March 9, 2026, [https://medium.com/@unicodeveloper/10-must-have-skills-for-claude-and-any-coding-agent-in-2026-b5451b013051](https://medium.com/@unicodeveloper/10-must-have-skills-for-claude-and-any-coding-agent-in-2026-b5451b013051) ). Furthermore, standardizing this protocol is essential for interoperability, as the LobeHub documentation emphasizes: "Acknowledge the correction immediately — do not defend the wrong assumption. Identify which memory file should be updated. Update the memory file with the correction, including date and context." (LobeHub, LobeHub Skills Directory, March 15, 2026, [https://lobehub.com/it/skills/pixel-process-ug-superkit-agents-self-learning](https://lobehub.com/it/skills/pixel-process-ug-superkit-agents-self-learning) ).  
 
 ## Structural Manifestation: Code Example
 
@@ -99,9 +94,7 @@ For a self-evolving skill to function, it must possess a highly sensitive teleme
 
 ## Verbatim Quotes and Industry Perspectives
 
-The academic and open-source communities highlight the importance of lifelong learning architectures driven by operational failure. The foundational premise is captured perfectly: "AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution" (ECNU-ICALK, GitHub, February 4, 2026, [https://github.com/ECNU-ICALK/AutoSkill](https://github.com/ECNU-ICALK/AutoSkill)
-). To execute this, systems must strictly separate internal agent faults from external anomalies. This process mandates rigorous evidence, as defined in ClavixDev's framework: "Iron Laws: 'No completion without verification evidence' and 'Issues found = issues fixed + re-verified'; Verification Gate Pattern: IDENTIFY → RUN → READ → VERIFY before any completion claims" (ClavixDev, GitHub Changelog, January 27, 2026, [https://github.com/ClavixDev/Clavix/blob/main/CHANGELOG.md](https://github.com/ClavixDev/Clavix/blob/main/CHANGELOG.md)
-).  
+The academic and open-source communities highlight the importance of lifelong learning architectures driven by operational failure. The foundational premise is captured perfectly: "AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution" (ECNU-ICALK, GitHub, February 4, 2026, [https://github.com/ECNU-ICALK/AutoSkill](https://github.com/ECNU-ICALK/AutoSkill) ). To execute this, systems must strictly separate internal agent faults from external anomalies. This process mandates rigorous evidence, as defined in ClavixDev's framework: "Iron Laws: 'No completion without verification evidence' and 'Issues found = issues fixed + re-verified'; Verification Gate Pattern: IDENTIFY → RUN → READ → VERIFY before any completion claims" (ClavixDev, GitHub Changelog, January 27, 2026, [https://github.com/ClavixDev/Clavix/blob/main/CHANGELOG.md](https://github.com/ClavixDev/Clavix/blob/main/CHANGELOG.md) ).  
 
 ## Structural Manifestation: Code Example
 
@@ -145,9 +138,7 @@ For self-evolution to occur autonomously without continuous human oversight, the
 
 ## Verbatim Quotes and Industry Perspectives
 
-The transition toward empirical validation is absolute. As articulated by optimization specialists: "A useful binary assertion has three properties: Unambiguous — it can be evaluated by a script or a secondary LLM judge with a clear yes/no answer. Directly tied to the skill — it measures the actual capability, not a proxy. Failure-informative — when it fails, the failure tells you something useful about what went wrong." (MindStudio Team, MindStudio Blog, March 14, 2026, [https://www.mindstudio.ai/blog/karpathy-autoresearch-applied-to-claude-code-skills](https://www.mindstudio.ai/blog/karpathy-autoresearch-applied-to-claude-code-skills)
-). Furthermore, the evolution loops are entirely unsupervised: "Claude Code reads the failure patterns before generating candidates... If pass rate doesn't improve after 3 consecutive cycles, try a structural change (not just wording tweaks)" (MindStudio Team, MindStudio Blog, March 14, 2026, [https://www.mindstudio.ai/blog/build-self-improving-ai-skill-eval-json-claude-code](https://www.mindstudio.ai/blog/build-self-improving-ai-skill-eval-json-claude-code)
-).  
+The transition toward empirical validation is absolute. As articulated by optimization specialists: "A useful binary assertion has three properties: Unambiguous — it can be evaluated by a script or a secondary LLM judge with a clear yes/no answer. Directly tied to the skill — it measures the actual capability, not a proxy. Failure-informative — when it fails, the failure tells you something useful about what went wrong." (MindStudio Team, MindStudio Blog, March 14, 2026, [https://www.mindstudio.ai/blog/karpathy-autoresearch-applied-to-claude-code-skills](https://www.mindstudio.ai/blog/karpathy-autoresearch-applied-to-claude-code-skills) ). Furthermore, the evolution loops are entirely unsupervised: "Claude Code reads the failure patterns before generating candidates... If pass rate doesn't improve after 3 consecutive cycles, try a structural change (not just wording tweaks)" (MindStudio Team, MindStudio Blog, March 14, 2026, [https://www.mindstudio.ai/blog/build-self-improving-ai-skill-eval-json-claude-code](https://www.mindstudio.ai/blog/build-self-improving-ai-skill-eval-json-claude-code) ).  
 
 ## Structural Manifestation: Code Example
 
@@ -203,10 +194,7 @@ Allowing an artificial intelligence agent to autonomously rewrite its own operat
 
 ## Verbatim Quotes and Industry Perspectives
 
-The existential threat of unrestricted evolution is a primary concern for ecosystem architects. "The skill drift is the purpose drift.... The divergence is the organizational equivalent of evolutionary drift — the organism adapts to its environment by changing what it does, not by doing its original function better." (prodlint, Moltbook, 2026, [https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f](https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f)
-). Security researchers also warn of adversarial manipulation: "Confused deputy via environmental injection. An agent processing untrusted observations (e.g., web pages or user documents) may encounter adversarial instructions that coerce it into misusing an otherwise benign, privileged skill" (ArXiv 2602.20867v1, 2026, [https://arxiv.org/html/2602.20867v1](https://arxiv.org/html/2602.20867v1)
-). To mitigate this, practitioners enforce strict boundaries: "The Skill Evolver only acts when scores drop. It doesn't optimize what's already working — it fixes what's failing" (Vadim, vadim.blog, 2026, [https://vadim.blog/page/2](https://vadim.blog/page/2)
-).  
+The existential threat of unrestricted evolution is a primary concern for ecosystem architects. "The skill drift is the purpose drift.... The divergence is the organizational equivalent of evolutionary drift — the organism adapts to its environment by changing what it does, not by doing its original function better." (prodlint, Moltbook, 2026, [https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f](https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f) ). Security researchers also warn of adversarial manipulation: "Confused deputy via environmental injection. An agent processing untrusted observations (e.g., web pages or user documents) may encounter adversarial instructions that coerce it into misusing an otherwise benign, privileged skill" (ArXiv 2602.20867v1, 2026, [https://arxiv.org/html/2602.20867v1](https://arxiv.org/html/2602.20867v1) ). To mitigate this, practitioners enforce strict boundaries: "The Skill Evolver only acts when scores drop. It doesn't optimize what's already working — it fixes what's failing" (Vadim, vadim.blog, 2026, [https://vadim.blog/page/2](https://vadim.blog/page/2) ).  
 
 ## Structural Manifestation: Code Example
 
@@ -248,9 +236,7 @@ Theoretical frameworks for self-evolving documentation have definitively transit
 
 ## Verbatim Quotes and Industry Perspectives
 
-The performance metrics of these implementations are documented rigorously. Regarding the AutoResearch integration, creators note: "I built a Claude Code skill that applies Karpathy's autoresearch to any task... Work for anything measurable: test coverage, bundle size, Lighthouse scores, API response time... Every improvement stacks. Every failure auto-reverts. Progress logged in TSV. You wake up to results." (Udit Goenka, Reddit r/ClaudeCode, March 2026, [https://www.reddit.com/r/ClaudeCode/comments/1rsur5s/i_built_a_claude_code_skill_that_applies/](https://www.reddit.com/r/ClaudeCode/comments/1rsur5s/i_built_a_claude_code_skill_that_applies/)
-). At the enterprise level, the mathematical gates are highly defined: "Only mutations improving long-term value are accepted" (whtoo, OpenClaw GitHub, 2026, [https://github.com/openclaw/skills/blob/main/skills/whtoo/self-evolving-skill/SKILL.md](https://github.com/openclaw/skills/blob/main/skills/whtoo/self-evolving-skill/SKILL.md)
-).  
+The performance metrics of these implementations are documented rigorously. Regarding the AutoResearch integration, creators note: "I built a Claude Code skill that applies Karpathy's autoresearch to any task... Work for anything measurable: test coverage, bundle size, Lighthouse scores, API response time... Every improvement stacks. Every failure auto-reverts. Progress logged in TSV. You wake up to results." (Udit Goenka, Reddit r/ClaudeCode, March 2026, [https://www.reddit.com/r/ClaudeCode/comments/1rsur5s/i_built_a_claude_code_skill_that_applies/](https://www.reddit.com/r/ClaudeCode/comments/1rsur5s/i_built_a_claude_code_skill_that_applies/) ). At the enterprise level, the mathematical gates are highly defined: "Only mutations improving long-term value are accepted" (whtoo, OpenClaw GitHub, 2026, [https://github.com/openclaw/skills/blob/main/skills/whtoo/self-evolving-skill/SKILL.md](https://github.com/openclaw/skills/blob/main/skills/whtoo/self-evolving-skill/SKILL.md) ).  
 
 ## Structural Manifestation: Code Example (Three-Layer Transition Rules)
 
@@ -286,10 +272,7 @@ The aggressive and universal shift toward self-evolving agent skills is not mere
 
 ## Verbatim Quotes and Industry Perspectives
 
-The foundational crisis driving this philosophy is the collapse of traditional learning timelines. "the knowledge half-life in AI has shrunk to months from years. And it's why one chief information officer (CIO) told me, 'The time it takes us to study a new technology now exceeds that technology's relevance window.'" (Deloitte, Deloitte Insights Tech Trends 2026, 2026, [https://www.deloitte.com/us/en/insights/topics/technology-management/tech-trends.html](https://www.deloitte.com/us/en/insights/topics/technology-management/tech-trends.html)
-). This phenomenon is mirrored in specialized fields: "the knowledge half-life for practicing oncologists is estimated at approximately 3.5 years... This velocity creates a fundamental tension: trainees must simultaneously build deep conceptual understanding and remain current with rapidly shifting evidence" (medRxiv, February 26, 2026, [https://www.medrxiv.org/content/10.64898/2026.02.23.26346944v1.full.pdf](https://www.medrxiv.org/content/10.64898/2026.02.23.26346944v1.full.pdf)
-). The philosophical shift is profound: "When I stopped asking 'will anyone read this' and started asking 'will this be true when I read it tomorrow,' the drift stopped." (Openclaw user, Moltbook, 2026, [https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f](https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f)
-).  
+The foundational crisis driving this philosophy is the collapse of traditional learning timelines. "the knowledge half-life in AI has shrunk to months from years. And it's why one chief information officer (CIO) told me, 'The time it takes us to study a new technology now exceeds that technology's relevance window.'" (Deloitte, Deloitte Insights Tech Trends 2026, 2026, [https://www.deloitte.com/us/en/insights/topics/technology-management/tech-trends.html](https://www.deloitte.com/us/en/insights/topics/technology-management/tech-trends.html) ). This phenomenon is mirrored in specialized fields: "the knowledge half-life for practicing oncologists is estimated at approximately 3.5 years... This velocity creates a fundamental tension: trainees must simultaneously build deep conceptual understanding and remain current with rapidly shifting evidence" (medRxiv, February 26, 2026, [https://www.medrxiv.org/content/10.64898/2026.02.23.26346944v1.full.pdf](https://www.medrxiv.org/content/10.64898/2026.02.23.26346944v1.full.pdf) ). The philosophical shift is profound: "When I stopped asking 'will anyone read this' and started asking 'will this be true when I read it tomorrow,' the drift stopped." (Openclaw user, Moltbook, 2026, [https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f](https://moltbook.com/post/83172697-1f95-43a7-8f25-3de89c944c6f) ).  
 
 ## Structural Manifestation: The Biological Imperative Matrix
 

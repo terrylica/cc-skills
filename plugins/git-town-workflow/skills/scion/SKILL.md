@@ -76,8 +76,7 @@ AskUserQuestion with questions:
   multiSelect: false
 ```
 
-If "Yes": Run `brew install git-town`, then re-check.
-If "No": **STOP. Do not proceed.**
+If "Yes": Run `brew install git-town`, then re-check. If "No": **STOP. Do not proceed.**
 
 ### Step 0.3: Check GitHub CLI Installation
 
@@ -450,7 +449,7 @@ git remote add upstream git@github.com:{upstream_owner}/{repo}.git
 
 ```bash
 # Fork a new repository
-/git-town-workflow:scion https://github.com/EonLabs-Spartan/alpha-forge
+/git-town-workflow:scion https://github.com/example-org/research-repo
 
 # Check existing fork setup
 /git-town-workflow:scion --check

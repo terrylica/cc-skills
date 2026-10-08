@@ -1,7 +1,7 @@
 ---
 status: implemented
 date: 2025-12-09
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [
     Compression-Validation-Agent,

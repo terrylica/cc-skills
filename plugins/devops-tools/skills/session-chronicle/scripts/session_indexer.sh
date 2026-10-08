@@ -12,7 +12,7 @@ PROJECT_PATH="${1:-$(pwd)}"
 # 2. Replacing / with -
 # 3. Replacing . with -
 # 4. Prepending -
-# The path /Users/terryli/foo.bar becomes -Users-terryli-foo-bar
+# The path /Users/<you>/foo.bar becomes -Users-<you>-foo-bar
 ENCODED_PATH=$(echo "$PROJECT_PATH" | sed 's|^/||' | tr '/.' '--')
 ENCODED_PATH="-$ENCODED_PATH"
 PROJECT_SESSIONS="$HOME/.claude/projects/$ENCODED_PATH"

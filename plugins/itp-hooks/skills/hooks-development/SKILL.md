@@ -85,20 +85,9 @@ SKILL_SCRIPT_EOF
 
 ## Language choice: shell vs Bun/TypeScript
 
-**Default to shell (bash) for hooks.** A hook fires on every matching event and
-~95% bail out immediately, so **process-startup latency dominates** — not the
-logic. Measured on an m3max: a full bash hook (keyword match + bail) ≈ **7 ms**;
-a _do-nothing_ Bun script ≈ **17 ms**. bash also needs no runtime dependency and
-matches existing hook convention. Keep the hot-path bail-out a bash builtin
-`case` (no `jq`/process spawn) — see the pre-jq-fastpath in the devops-tools SCS
-hooks.
+**Default to shell (bash) for hooks.** A hook fires on every matching event and ~95% bail out immediately, so **process-startup latency dominates** — not the logic. Measured on a workstation: a full bash hook (keyword match + bail) ≈ **7 ms**; a _do-nothing_ Bun script ≈ **17 ms**. bash also needs no runtime dependency and matches existing hook convention. Keep the hot-path bail-out a bash builtin `case` (no `jq`/process spawn) — see the pre-jq-fastpath in the devops-tools SCS hooks.
 
-**Reach for Bun/TypeScript only when a hook does real work** that amortizes the
-~10 ms startup tax: parsing/transforming structured data, calling an API, sharing
-typed modules across many hooks, or maintaining state. For simple
-match-and-emit reminders, shell wins on speed, durability, and convention. (This
-is the language doctrine's "existing convention + SOTA-native ecosystem override
-the Bun-first default" clause in action.)
+**Reach for Bun/TypeScript only when a hook does real work** that amortizes the ~10 ms startup tax: parsing/transforming structured data, calling an API, sharing typed modules across many hooks, or maintaining state. For simple match-and-emit reminders, shell wins on speed, durability, and convention. (This is the language doctrine's "existing convention + SOTA-native ecosystem override the Bun-first default" clause in action.)
 
 ---
 

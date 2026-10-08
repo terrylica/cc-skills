@@ -2,7 +2,7 @@
 # manage-statusline.sh - Install/uninstall statusline-tools status line
 #
 # MIT License
-# Copyright (c) 2025 Terry Li
+# Copyright (c) 2025 terrylica
 #
 # Usage:
 #   manage-statusline.sh install    Install status line to settings.json

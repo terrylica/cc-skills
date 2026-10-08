@@ -161,7 +161,7 @@ echo "JSON report: $REPORT_JSON"
 # iter-40 optimization saves the ~5-7 ms of in-hook jq + grep work; that
 # delta must remain visible.
 #
-# Empirically on m3max bash 5.3.9:
+# Empirically on workstation bash 5.3.9:
 #   - Bash process spawn:    ~5-7 ms
 #   - Pre-iter-40 bail-out:  spawn + jq (~5-7 ms) + grep (~2 ms) = 12-16 ms
 #   - Iter-40    bail-out:   spawn + case-glob (<0.1 ms)         = 5-8 ms

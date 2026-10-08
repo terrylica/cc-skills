@@ -151,17 +151,9 @@ IDENTITY_EOF
 
 **BLOCK if mismatch** — display diagnostic and do NOT continue to any `gh` write operation.
 
-> **Why the organisation branch exists.** The original check was `AUTH_USER != REPO_OWNER → block`.
-> On an organisation repository the owner is the **org**, so that comparison can never match no
-> matter how correct the credential is — it blocked every legitimate archival into a shared repo.
-> Measured 2026-08-20 on `Eon-Labs/alpha-forge`: authenticated `terrylica`, owner `Eon-Labs`,
-> `owner.type = Organization`, `permissions.push = true`. That is the correct identity, and the
-> check called it a mismatch.
+> **Why the organisation branch exists.** The original check was `AUTH_USER != REPO_OWNER → block`. On an organisation repository the owner is the **org**, so that comparison can never match no matter how correct the credential is — it blocked every legitimate archival into a shared repo. Measured 2026-08-20 on `example-org/research-repo`: authenticated `terrylica`, owner `example-org`, `owner.type = Organization`, `permissions.push = true`. That is the correct identity, and the check called it a mismatch.
 >
-> The guard's purpose is to stop writes going to the **wrong account**, and "may this identity write
-> here" is answered by `permissions.push`, not by string equality with the owner. The personal-repo
-> equality path is kept as the fast, offline case; the org path costs one API call and is only
-> reached when equality fails.
+> The guard's purpose is to stop writes going to the **wrong account**, and "may this identity write here" is answered by `permissions.push`, not by string equality with the owner. The personal-repo equality path is kept as the fast, offline case; the org path costs one API call and is only reached when equality fails.
 
 ---
 
@@ -180,14 +172,11 @@ Simple static page
   → Either works. Jina Reader (https://r.jina.ai/{URL}) is one GET and fine here.
 ```
 
-**Default to Firecrawl.** Measured 2026-08-13 on two `chatgpt.com/share/*` links, Jina returned
-**17% and 12%** of Firecrawl's content and truncated mid-sentence; Firecrawl reached the true page
-footer both times. Jina also needs `-H "x-timeout: 30"` or it returns ~321 bytes of login chrome.
+**Default to Firecrawl.** Measured 2026-08-13 on two `chatgpt.com/share/*` links, Jina returned **17% and 12%** of Firecrawl's content and truncated mid-sentence; Firecrawl reached the true page footer both times. Jina also needs `-H "x-timeout: 30"` or it returns ~321 bytes of login chrome.
 
 ### Firecrawl Scrape
 
-No health check, no preflight, no revival. The public API needs no key and has no host to be down —
-handle a failed request per request rather than gating the run on a liveness probe.
+No health check, no preflight, no revival. The public API needs no key and has no host to be down — handle a failed request per request rather than gating the run on a liveness probe.
 
 ```bash
 /usr/bin/env bash << 'SCRAPE_EOF'
@@ -212,16 +201,13 @@ printf '%s\n' "$CONTENT"
 SCRAPE_EOF
 ```
 
-> **Do not reintroduce a self-hosted Firecrawl.** The gpu-host-2 deployment (ports 3002/3003, five
-> containers) was retired 2026-08-13 and reclaimed ~18 GB. It required health checks, container
-> restarts, and WORKER-STALLED triage that the public API makes unnecessary at this volume.
+> **Do not reintroduce a self-hosted Firecrawl.** The gpu-host-2 deployment (ports 3002/3003, five containers) was retired 2026-08-13 and reclaimed ~18 GB. It required health checks, container restarts, and WORKER-STALLED triage that the public API makes unnecessary at this volume.
 
 ---
 
 ## File Saving — TWO artifacts, and never one
 
-An archival produces **two** files. This is the single most important thing on this page, because
-getting it wrong is expensive and the cost is invisible until someone tries to verify the archive.
+An archival produces **two** files. This is the single most important thing on this page, because getting it wrong is expensive and the cost is invisible until someone tries to verify the archive.
 
 ```
 docs/research/raw/YYYY-MM-DD-{slug}-{source_type}.raw-scrape.txt   the scrape, byte-exact, NEVER edited
@@ -233,71 +219,32 @@ docs/research/YYYY-MM-DD-{slug}-{source_type}.md                   editorial + a
 
 ### 🔴 Do NOT paste the transcript into the `.md`
 
-It is the obvious thing to do and it is wrong. **Alpha-forge PR #540 removed a duplicated transcript
-after five successive review rounds**, each of which found a class of meaning-changing edit that the
-equivalence checker certified as identical: structural markers erased (a quotation demoted to the
-author's own assertion), inline delimiters erased (`` `not` `` reading as the English word),
-identifiers and URL paths retargeted through `_` and again through `__`, table cell boundaries moved
-so an outcome attached to the wrong reference, and literal asterisks consumed inside escapes, fenced
-and indented code blocks, and raw HTML attributes.
+It is the obvious thing to do and it is wrong. **Research-repo PR #540 removed a duplicated transcript after five successive review rounds**, each of which found a class of meaning-changing edit that the equivalence checker certified as identical: structural markers erased (a quotation demoted to the author's own assertion), inline delimiters erased (`` `not` `` reading as the English word), identifiers and URL paths retargeted through `_` and again through `__`, table cell boundaries moved so an outcome attached to the wrong reference, and literal asterisks consumed inside escapes, fenced and indented code blocks, and raw HTML attributes.
 
-The last class is a **category error, not a bug**. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/)
-specifies parsing in two phases — _"In the first phase, lines of input are consumed and the block
-structure of the document … is constructed. Text is assigned to these blocks but not parsed. … In the
-second phase, the raw text contents of paragraphs and headings are parsed into sequences of Markdown
-inline elements"_ — so a line-oriented normaliser has **no block phase** and cannot tell a paragraph
-from a fenced code block. No amount of further patching converges.
+The last class is a **category error, not a bug**. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) specifies parsing in two phases — _"In the first phase, lines of input are consumed and the block structure of the document … is constructed. Text is assigned to these blocks but not parsed. … In the second phase, the raw text contents of paragraphs and headings are parsed into sequences of Markdown inline elements"_ — so a line-oriented normaliser has **no block phase** and cannot tell a paragraph from a fenced code block. No amount of further patching converges.
 
-Why the question arises at all: any repository whose tooling reformats markdown (here, the `itp-hooks`
-Stop hook running `prettier --write` and `markdownlint-cli2 --fix`) makes a pasted copy **impossible
-to keep byte-identical**, so "is the copy still saying what the original said?" becomes a question you
-must answer on every commit. **With one copy there is no question.**
+Why the question arises at all: any repository whose tooling reformats markdown (here, the `itp-hooks` Stop hook running `prettier --write` and `markdownlint-cli2 --fix`) makes a pasted copy **impossible to keep byte-identical**, so "is the copy still saying what the original said?" becomes a question you must answer on every commit. **With one copy there is no question.**
 
 ### Enforcing one-copy: MEASURE the duplicate, never pattern-match a marker
 
-The first gate refused re-embedding by looking for the legacy `<!-- RAW-SCRAPE-BODY-BEGINS -->`
-comment. Review defeated it in one move: **append the whole transcript after a plain `---`, omit the
-marker, and the gate returns success** — while the test named `test_re_embedding_the_transcript_is_refused`
-stayed green, because that test built its fixture _using_ the marker. A pattern match presented as a
-structural guarantee, verified on the one input where the bug could not appear.
+The first gate refused re-embedding by looking for the legacy `<!-- RAW-SCRAPE-BODY-BEGINS -->` comment. Review defeated it in one move: **append the whole transcript after a plain `---`, omit the marker, and the gate returns success** — while the test named `test_re_embedding_the_transcript_is_refused` stayed green, because that test built its fixture _using_ the marker. A pattern match presented as a structural guarantee, verified on the one input where the bug could not appear.
 
-Re-embedding is a **near-duplicate detection** problem, so use the standard measure for one:
-_containment_ over w-shingles, from Andrei Z. Broder, "On the resemblance and containment of
-documents", SEQUENCES 1997, `doi:10.1109/SEQUEN.1997.666900` — _"the containment c(A,B) of A in B is
-a number between 0 and 1 that, when close to 1, indicates that A is roughly contained within B"_, over
-_"the bag (multiset) of all shingles of size w contained in D"_.
+Re-embedding is a **near-duplicate detection** problem, so use the standard measure for one: _containment_ over w-shingles, from Andrei Z. Broder, "On the resemblance and containment of documents", SEQUENCES 1997, `doi:10.1109/SEQUEN.1997.666900` — _"the containment c(A,B) of A in B is a number between 0 and 1 that, when close to 1, indicates that A is roughly contained within B"_, over _"the bag (multiset) of all shingles of size w contained in D"_.
 
 Four things make it work in practice:
 
-- **Containment, not resemblance.** The question is directional — how much of the _transcript_
-  reappears — and resemblance is symmetric, so a long editorial section would dilute it and mask a
-  full paste.
-- **Calibrate the threshold; do not choose it.** Measure the real archive and a ladder of partial
-  pastes. Ours: `0.0097` legitimate quoting → `0.1172` a tenth → `1.0000` the whole thing, so a `0.10`
-  limit sits ~10× above quoting and below every meaningful paste. Publish the ladder next to the
-  constant, or the number reads as a guess.
-- **Tokenise lowercased alphanumerics**, so the measure survives the very reformatting that made
-  byte-comparison impossible. A re-embedded transcript must still be caught after `prettier` runs.
-- **Sets, not multisets.** Broder defines a bag; a set answers "how much _distinct_ material was
-  reproduced", so pasting one fragment twenty times counts once — which is the right semantics here.
+- **Containment, not resemblance.** The question is directional — how much of the _transcript_ reappears — and resemblance is symmetric, so a long editorial section would dilute it and mask a full paste.
+- **Calibrate the threshold; do not choose it.** Measure the real archive and a ladder of partial pastes. Ours: `0.0097` legitimate quoting → `0.1172` a tenth → `1.0000` the whole thing, so a `0.10` limit sits ~10× above quoting and below every meaningful paste. Publish the ladder next to the constant, or the number reads as a guess.
+- **Tokenise lowercased alphanumerics**, so the measure survives the very reformatting that made byte-comparison impossible. A re-embedded transcript must still be caught after `prettier` runs.
+- **Sets, not multisets.** Broder defines a bag; a set answers "how much _distinct_ material was reproduced", so pasting one fragment twenty times counts once — which is the right semantics here.
 
-**Scope the invariant to the repository, not to one file.** The second bypass was simply moving the
-copy: a sweep of only the archive that _pins_ the transcript reported success while a sibling `.md`
-held 100% of it. Sweep every markdown file, **and** measure their concatenation — twelve fragments
-each under the limit still reconstruct the transcript.
+**Scope the invariant to the repository, not to one file.** The second bypass was simply moving the copy: a sweep of only the archive that _pins_ the transcript reported success while a sibling `.md` held 100% of it. Sweep every markdown file, **and** measure their concatenation — twelve fragments each under the limit still reconstruct the transcript.
 
-State the two limits rather than claiming them away: **a single quoted line must still pass** (the
-archive itself legitimately quotes at ~1%, so any threshold that refuses one pasted line forbids
-quotation entirely), and **a heavily paraphrased re-embed defeats the measure** — at that point the
-documents genuinely differ and no automatic check can rule on whether meaning survived. That is the
-same undecidability that killed the normaliser; reviewer judgement is the only control.
+State the two limits rather than claiming them away: **a single quoted line must still pass** (the archive itself legitimately quotes at ~1%, so any threshold that refuses one pasted line forbids quotation entirely), and **a heavily paraphrased re-embed defeats the measure** — at that point the documents genuinely differ and no automatic check can rule on whether meaning survived. That is the same undecidability that killed the normaliser; reviewer judgement is the only control.
 
 ### The `.txt` extension is load-bearing
 
-Store the raw scrape as `.txt`, not `.md`. Markdown tooling globs `*.md`; a raw scrape kept as `.md`
-gets rewritten and its hash invalidated **without anyone touching it**. The extension makes the
-artifact immune by construction rather than by configuration — `.prettierignore` and
-`.gitattributes -text` are worth adding as defence in depth, but they are not the mechanism.
+Store the raw scrape as `.txt`, not `.md`. Markdown tooling globs `*.md`; a raw scrape kept as `.md` gets rewritten and its hash invalidated **without anyone touching it**. The extension makes the artifact immune by construction rather than by configuration — `.prettierignore` and `.gitattributes -text` are worth adding as defence in depth, but they are not the mechanism.
 
 ### YAML Frontmatter
 
@@ -319,10 +266,7 @@ github_issue_number: ""
 ---
 ```
 
-`raw_scrape_path` and `raw_scrape_sha256` are a **pair**. Declaring one without the other is worse
-than declaring neither: a hash with no file proves nothing, and a file with no hash is unverified
-while looking pinned. Gates should discover on **either** key so a half-declaration is refused rather
-than silently skipped.
+`raw_scrape_path` and `raw_scrape_sha256` are a **pair**. Declaring one without the other is worse than declaring neither: a hash with no file proves nothing, and a file with no hash is unverified while looking pinned. Gates should discover on **either** key so a half-declaration is refused rather than silently skipped.
 
 Leave `github_issue_url` and `github_issue_number` empty — update after Issue creation.
 
@@ -331,27 +275,15 @@ Leave `github_issue_url` and `github_issue_number` empty — update after Issue 
 Editorial only, and it is worth writing properly because it is the part a human reads:
 
 1. A **provenance warning** stating the transcript is not reproduced here and is untrusted AI output.
-2. An **audit note** — which citations were checked, by what method, and what was found. Distinguish
-   _identity_ checks (the DOI resolves to this title/author/venue) from _content_ checks (the source
-   actually says what the summary claims). They are different, and conflating them is the usual error.
+2. An **audit note** — which citations were checked, by what method, and what was found. Distinguish _identity_ checks (the DOI resolves to this title/author/venue) from _content_ checks (the source actually says what the summary claims). They are different, and conflating them is the usual error.
 3. Any **known errors** in the source, stated where a reader will see them rather than only in the PR.
 4. A **pointer** to the `.txt` with its size and sha256.
 
-Verify citations by **content** via the Crossref API, never by HTTP status — a 403 bot-wall and a 404
-are indistinguishable from the status line. When Crossref carries no abstract, say so and mark the
-claim unverified rather than implying it was checked.
+Verify citations by **content** via the Crossref API, never by HTTP status — a 403 bot-wall and a 404 are indistinguishable from the status line. When Crossref carries no abstract, say so and mark the claim unverified rather than implying it was checked.
 
-**Match every verbatim quotation back against the retrieved document programmatically**, and check the
-extraction before trusting the match. `textutil -convert txt -stdout` on a PDF returned exactly the
-file's byte count — the raw bytes passed straight through, reported as success — against which any
-quote would have "verified" into binary noise. Sanity-check extracted length against page count, then
-compare whitespace-insensitive and ligature-folded, since extraction mangles inter-word spacing.
+**Match every verbatim quotation back against the retrieved document programmatically**, and check the extraction before trusting the match. `textutil -convert txt -stdout` on a PDF returned exactly the file's byte count — the raw bytes passed straight through, reported as success — against which any quote would have "verified" into binary noise. Sanity-check extracted length against page count, then compare whitespace-insensitive and ligature-folded, since extraction mangles inter-word spacing.
 
-When the match fails, **find out which kind of failure it is before editing anything**. Ours failed
-twice: once because the extractor interpolated a page number mid-sentence (the quotation was
-faithful), and once because a `'` had been substituted for the source's `"` _inside_ quotation marks.
-The second is a modification of quoted text however small it looks, and it is the same defect as
-substituting spoken names for glyphs that would not extract.
+When the match fails, **find out which kind of failure it is before editing anything**. Ours failed twice: once because the extractor interpolated a page number mid-sentence (the quotation was faithful), and once because a `'` had been substituted for the source's `"` _inside_ quotation marks. The second is a modification of quoted text however small it looks, and it is the same defect as substituting spoken names for glyphs that would not extract.
 
 ---
 
@@ -416,8 +348,7 @@ After issue creation, update the archived file's frontmatter with the issue URL 
 
 ## Canonical Backlink Comment
 
-Post a comment on the Issue linking back to the archived file. **Metadata goes in a markdown list,
-not as consecutive prose lines:**
+Post a comment on the Issue linking back to the archived file. **Metadata goes in a markdown list, not as consecutive prose lines:**
 
 ```
 **Archived**: `docs/research/YYYY-MM-DD-slug-source_type.md`
@@ -428,25 +359,17 @@ not as consecutive prose lines:**
 - **PR**: #NNN — commit `abcdef12`
 ```
 
-> **Do not restore the bare consecutive-line version.** GitHub renders every newline in a comment as
-> `<br>`, so four stacked `Key: value` lines are indistinguishable from hard-wrapped prose and the
-> `GH-HARD-WRAP-GUARD` PreToolUse hook **rejects the command** (measured 2026-08-20 — the previous
-> template in this file was itself the thing that tripped it). A list expresses "these are separate
-> items" structurally, which is both what is meant and what the guard accepts. Reaching for the
-> `GH-HARD-WRAP-OK` override here would suppress a correct complaint.
+> **Do not restore the bare consecutive-line version.** GitHub renders every newline in a comment as `<br>`, so four stacked `Key: value` lines are indistinguishable from hard-wrapped prose and the `GH-HARD-WRAP-GUARD` PreToolUse hook **rejects the command** (measured 2026-08-20 — the previous template in this file was itself the thing that tripped it). A list expresses "these are separate items" structurally, which is both what is meant and what the guard accepts. Reaching for the `GH-HARD-WRAP-OK` override here would suppress a correct complaint.
 
 ### Every issue/PR body must be authored as unbroken paragraphs
 
-This applies to the Issue body and the PR body too, not just the backlink. Author each **paragraph**
-as ONE long line and let GitHub reflow it; keep breaks only for list items, headings, code blocks and
-blank lines. Editors that soft-wrap make this invisible — check with:
+This applies to the Issue body and the PR body too, not just the backlink. Author each **paragraph** as ONE long line and let GitHub reflow it; keep breaks only for list items, headings, code blocks and blank lines. Editors that soft-wrap make this invisible — check with:
 
 ```bash
 awk '{ if (length($0) > 100 && $0 !~ /^[-*|#> ]/) printf "L%d: %d cols\n", NR, length($0) }' body.md
 ```
 
-Long lines are **expected and correct** for prose paragraphs; the failure mode is many lines of
-~80–100 columns in a row.
+Long lines are **expected and correct** for prose paragraphs; the failure mode is many lines of ~80–100 columns in a row.
 
 ---
 
@@ -472,7 +395,7 @@ After modifying THIS skill:
 | Identity preflight blocks on an org repo                                                              | Owner is the org, so `AUTH_USER != REPO_OWNER` always                                                                                 | Expected — the check now falls through to `owner.type == Organization` + `permissions.push == true`. If it still blocks, you genuinely lack push                                                                                                   |
 | Preflight reports a MISMATCH naming an account you are not using, and `gh` works fine from the prompt | The heredoc is a fresh process with no shell functions, so it called the raw `gh` binary and missed the per-repository `gh.configdir` | `cd` inside the heredoc AND export `GH_CONFIG_DIR` from `git config --get gh.configdir` before the first `gh` call. Confirm with `gh api user --jq .login` run inside vs outside the heredoc — differing answers is this bug, not a bad credential |
 | `gh pr create` says "you must first push the current branch" **after** a successful push              | Run from a linked worktree; `gh` cannot resolve the upstream                                                                          | Pass `--head <branch> --base main` explicitly. Confirm the branch is really remote with `git ls-remote --heads origin <branch>`                                                                                                                    |
-| Wrong account posting | GH_TOKEN mismatch | Run `git remote get-url origin` (expect `git@github.com-<account>:owner/repo`) and `gh api user --jq .login` inside the repo |
+| Wrong account posting                                                                                 | GH_TOKEN mismatch                                                                                                                     | Run `git remote get-url origin` (expect `git@github.com-<account>:owner/repo`) and `gh api user --jq .login` inside the repo                                                                                                                       |
 | Body exceeds 65536 chars                                                                              | GitHub API limit                                                                                                                      | Split across issue body + first comment                                                                                                                                                                                                            |
 | Firecrawl returns no markdown                                                                         | Transient API failure                                                                                                                 | Retry once, then fall back to Jina with `-H "x-timeout: 30"`                                                                                                                                                                                       |
 | Scrape returns the page shell                                                                         | SPA had not rendered yet                                                                                                              | Raise `waitFor` (8000 → 15000) and `timeout` in the request body                                                                                                                                                                                   |

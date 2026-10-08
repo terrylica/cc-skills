@@ -22,7 +22,7 @@
  *
  * WHAT THIS IS FOR
  *
- * Eon-Labs/alpha-forge#785 (2026-09-15) asserted, in a public issue arguing for a change in
+ * example-org/research-repo#785 (2026-09-15) asserted, in a public issue arguing for a change in
  * statistical doctrine, that a particular function existed "only as three copy-pasted implementations
  * inside frozen evidence, with nothing importable from packages/". A reviewer refuted it: a shared
  * implementation had landed days earlier. The claim was true of the local checkout, which was
@@ -93,7 +93,7 @@ Any claim you make about what this repository contains — "X exists only in..."
 
     git fetch --all --prune && git status -sb
 
-A 47-commit-stale checkout is how Eon-Labs/alpha-forge#785 came to assert that a function existed
+A 47-commit-stale checkout is how example-org/research-repo#785 came to assert that a function existed
 only as copy-pasted evidence copies, when a shared implementation had already landed. The grep was
 correct; the tree was old. A reviewer found it.
 

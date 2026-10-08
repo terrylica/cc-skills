@@ -12,8 +12,7 @@ Emit a one-page diagnostic summary.
 
 ## Steps
 
-Run a sequence of read-only checks. Safe to invoke at any time — does
-not modify files, does not touch NSUserDefaults.
+Run a sequence of read-only checks. Safe to invoke at any time — does not modify files, does not touch NSUserDefaults.
 
 ```bash
 PLUGIN_ROOT="$(cc-plugin-root floating-clock)"
@@ -66,7 +65,7 @@ fi
 echo
 
 # Current profile (if defaults exist)
-ACTIVE=$(defaults read com.terryli.floating-clock ActiveProfile 2>/dev/null)
+ACTIVE=$(defaults read com.cc-skills.floating-clock ActiveProfile 2>/dev/null)
 if [ -n "$ACTIVE" ]; then
   echo "[profile]    active: $ACTIVE"
 else

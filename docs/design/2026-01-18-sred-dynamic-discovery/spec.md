@@ -12,8 +12,7 @@ superseded-reason: SR&ED commit tracking was abandoned by operator decision — 
 
 **ADR**: [SR&ED Dynamic Project Discovery ADR](/docs/adr/2026-01-18-sred-dynamic-discovery.md)
 
-> **🔴 SUPERSEDED (2026-07-27)**: This specification is obsolete. The `sred-commit-guard` hook was deleted as unused dead code,
-> and SR&ED commit tracking was abandoned. This document is retained for historical reference only.
+> **🔴 SUPERSEDED (2026-07-27)**: This specification is obsolete. The `sred-commit-guard` hook was deleted as unused dead code, and SR&ED commit tracking was abandoned. This document is retained for historical reference only.
 
 ## CRA Compliance Notes
 
@@ -100,8 +99,7 @@ MAIN SESSION (Opus/Sonnet)
 
 ## Cost Analysis
 
-Uses Claude Code subscription (no per-API-call charges).
-Haiku model selected for speed within hook timeout budget.
+Uses Claude Code subscription (no per-API-call charges). Haiku model selected for speed within hook timeout budget.
 
 ## Safety Mechanisms
 
@@ -222,8 +220,7 @@ Hook blocks commit  →  Claude receives reason  →  Claude uses AskUserQuestio
 - Alternative options
 - Instructions to ask user
 
-**What Claude Does Next**:
-Claude may use AskUserQuestion to present choices to the user. Example Claude behavior:
+**What Claude Does Next**: Claude may use AskUserQuestion to present choices to the user. Example Claude behavior:
 
 ```json
 {
@@ -360,7 +357,7 @@ This design is **universally applicable** - works with any:
 | `~/eon/cc-skills/plugins/itp-hooks/tests/sred-discovery.test.ts` | CREATE (unit tests)               |
 | `~/eon/cc-skills/plugins/itp-hooks/tests/sred-integration.sh`    | CREATE (integration tests)        |
 | `~/eon/cc-skills/package.json`                                   | ADD SDK + Zod dependencies        |
-| `~/eon/sred-analysis/SRED-REGISTRY.md`                           | UPDATE (fix category terminology) |
+| `~/eon/<tax-repo>/SRED-REGISTRY.md`                     | UPDATE (fix category terminology) |
 
 **SRED-REGISTRY.md Changes Required**:
 
@@ -415,8 +412,7 @@ grep -A5 "sred-commit-guard" ~/.claude/settings.json
 
 ## Prerequisites
 
-**Claude Code**: Must be installed and authenticated (no separate API key needed).
-Uses Claude Code subscription for Haiku sessions.
+**Claude Code**: Must be installed and authenticated (no separate API key needed). Uses Claude Code subscription for Haiku sessions.
 
 ## Success Criteria
 

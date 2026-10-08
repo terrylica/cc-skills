@@ -2,8 +2,7 @@
 
 Machine-readable reference for computing risk-adjusted returns on range bar data where bars have variable duration.
 
-**Source**: Alpha Forge AWFES experiments (2025-2026)
-**Validated**: BTCUSDT range bar backtests with threshold 100
+**Source**: Research Repo AWFES experiments (2025-2026) **Validated**: BTCUSDT range bar backtests with threshold 100
 
 ---
 

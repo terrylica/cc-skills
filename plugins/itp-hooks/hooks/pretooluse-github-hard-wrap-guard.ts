@@ -36,14 +36,14 @@
  * long-running process is invisible to it. The documented case:
  * `@semantic-release/github` posts release notes with octokit and never shells
  * out to `gh`, so a repo whose release notes embed hard-wrapped commit bodies
- * publishes them with no hook firing at any point. ~/eon/claude-sys shipped
+ * publishes them with no hook firing at any point. ~/code/example-org/monorepo shipped
  * twelve such releases before anyone noticed, all while this guard was enabled
  * and passing.
  *
  * The fix for that class belongs in the PIPELINE, not here: reflow inside the
  * release config, at the step that generates the notes, so every consumer
  * (CHANGELOG file and GitHub release alike) gets the reflowed text. See
- * ~/eon/claude-sys/scripts/semantic-release-unwrapped-notes.cjs for the
+ * ~/eon/private-monorepo/scripts/semantic-release-unwrapped-notes.cjs for the
  * reference implementation, and `hooks/lib/gfm-unwrap.ts` here for the
  * transform itself.
  *

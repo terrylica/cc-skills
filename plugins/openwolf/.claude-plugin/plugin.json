@@ -2,7 +2,7 @@
   "name": "openwolf",
   "description": "Install, inspect, and cleanly remove the third-party openwolf npm middleware (token-saving project memory for Claude Code) per project.",
   "author": {
-    "name": "Terry Li",
+    "name": "terrylica",
     "url": "https://github.com/terrylica"
   }
 }

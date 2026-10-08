@@ -33,7 +33,7 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 | `findings/sessions/<id>/iterations.jsonl` | YES        | Iteration records (small, append-only)   |
 | `outputs/research_sessions/<id>/`         | NO         | Research artifacts (large, gitignored)   |
 | `tmp/`                                    | NO         | Temporary archives before S3 upload      |
-| S3 `eonlabs-findings/sessions/<id>/`      | N/A        | Permanent team-shared archive            |
+| S3 `example-findings-bucket/sessions/<id>/`      | N/A        | Permanent team-shared archive            |
 
 **Key Principle**: Only `findings/` is committed. Research artifacts go to gitignored `outputs/` and S3.
 
@@ -144,9 +144,7 @@ AskUserQuestion:
       description: "I'll specify which sessions to include"
 ```
 
-**IMPORTANT**: Always default to recording ALL sessions. Subagent sessions (`agent-*`)
-contain critical context from Explore, Plan, and specialized agents. Omitting them
-forces future maintainers to re-run archaeology.
+**IMPORTANT**: Always default to recording ALL sessions. Subagent sessions (`agent-*`) contain critical context from Explore, Plan, and specialized agents. Omitting them forces future maintainers to re-run archaeology.
 
 ### Flow D: Preview Session Contexts Array
 

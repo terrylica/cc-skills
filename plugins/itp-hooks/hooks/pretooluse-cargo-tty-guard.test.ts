@@ -186,7 +186,7 @@ describe("Cargo TTY Guard - Hook IO Format", () => {
       tool_input: {
         command: "cargo bench &",
       },
-      cwd: "/Users/terryli/eon/rangebar-py",
+      cwd: "/Users/<you>/eon/rangebar-py",
     };
 
     expect(input.tool_name).toBe("Bash");

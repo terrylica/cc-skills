@@ -2,8 +2,7 @@
 
 # Design Spec: ITP Workflow Todo Insertion (Not Overwrite)
 
-**Status**: In Progress
-**Target File**: `/Users/terryli/eon/cc-skills/plugins/itp/commands/go.md`
+**Status**: In Progress **Target File**: `/Users/<you>/eon/cc-skills/plugins/itp/commands/go.md`
 
 ## Problem Statement
 

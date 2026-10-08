@@ -54,7 +54,7 @@ const CALL_TIMEOUT_MS = 2500;
 /**
  * Run `gh` with a hard bound, and kill THIS pid rather than pattern-matching.
  *
- * PR #576 in alpha-forge shipped the shell version of this after finding an UNBOUNDED `gh repo
+ * PR #576 in research-repo shipped the shell version of this after finding an UNBOUNDED `gh repo
  * view` inside a PreToolUse hook. The process-storm rules on this machine also forbid `pkill -f`
  * for gh, because the pattern matches processes this hook did not start.
  *

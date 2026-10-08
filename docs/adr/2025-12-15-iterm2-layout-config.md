@@ -1,7 +1,7 @@
 ---
 status: implemented
 date: 2025-12-15
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [CurrentStateAnalysis, IndustryPatterns, RealWorldExamples, Plan]
 research-method: 9-agent-parallel-dctl
 clarification-iterations: 4
@@ -17,7 +17,7 @@ perspectives: [ConfigurationManagement, SeparationOfConcerns, IndustryStandards]
 The `default-layout.py` script in `~/scripts/iterm2/` creates iTerm2 workspace tabs with split panes on startup. Currently, it contains 23+ hardcoded workspace paths that expose:
 
 - **VERY HIGH risk**: Account identifiers (`work`), personal business projects (`jobber`, `insurance`, `netstrata`), legal docs, MetaTrader paths
-- **HIGH risk**: Trading/data projects (`~/eon/alpha-forge`, `gapless-*-clickhouse`)
+- **HIGH risk**: Trading/data projects (`~/eon/research-repo`, `gapless-*-clickhouse`)
 - **MEDIUM risk**: Tool paths (`~/.claude/tools/bin/claude-smart-start`)
 
 **Problem**: The script cannot be published publicly without exposing private project structure and personal information.

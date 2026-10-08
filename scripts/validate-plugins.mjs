@@ -34,7 +34,7 @@
  *   - ajv: JSON Schema validation (industry standard)
  *
  * ADR: /docs/adr/2025-12-05-centralized-version-management.md
- * ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned)
+ * ADR: /docs/adr/2025-12-14-worktree-management.md (lesson learned)
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -124,7 +124,7 @@ function getPluginDirectories() {
 /**
  * Validate marketplace.json entries have required fields and valid paths
  * Uses AJV for JSON Schema validation + custom path existence checks
- * ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned)
+ * ADR: /docs/adr/2025-12-14-worktree-management.md (lesson learned)
  */
 function validateMarketplaceEntries() {
   const data = getMarketplaceData();
@@ -1795,7 +1795,7 @@ console.log(`📁 Plugin directories: ${directories.length}`);
 let hasErrors = false;
 let hasWarnings = false;
 
-// Check for unregistered directories (CRITICAL - this catches the alpha-forge-worktree bug)
+// Check for unregistered directories (CRITICAL - this catches the research-repo-worktree bug)
 if (unregistered.length > 0) {
   console.error(`\n❌ Unregistered plugin directories (${unregistered.length}):`);
   unregistered.forEach(p => { console.error(`   - plugins/${p}/`); });
@@ -1811,7 +1811,7 @@ if (unregistered.length > 0) {
       "version": "1.0.0",
       "source": "./plugins/${p}/",
       "category": "TODO",
-      "author": { "name": "Terry Li", "url": "https://github.com/terrylica" },
+      "author": { "name": "terrylica", "url": "https://github.com/terrylica" },
       "keywords": [],
       "strict": false
     }`);

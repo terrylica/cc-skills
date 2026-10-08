@@ -44,11 +44,11 @@ Use AskUserQuestion with discovered items or guide new API key creation.
 
 ### Step 4: Write the daemon env file
 
-`~/gh/vjspc/amonic/.env.launchd` (gitignored, hand-maintained) is the daemon env SSoT; the launcher scripts source it. For interactive use, `export CALCOM_OP_UUID=<selected-uuid>` in the current shell instead.
+`~/gh/<org>/<automation-repo>/.env.launchd` (gitignored, hand-maintained) is the daemon env SSoT; the launcher scripts source it. For interactive use, `export CALCOM_OP_UUID=<selected-uuid>` in the current shell instead.
 
 ```bash
-# Add to ~/gh/vjspc/amonic/.env.launchd (replace any existing CALCOM_OP_UUID line)
-echo "export CALCOM_OP_UUID='<selected-uuid>'" >> ~/gh/vjspc/amonic/.env.launchd
+# Add to ~/gh/<org>/<automation-repo>/.env.launchd (replace any existing CALCOM_OP_UUID line)
+echo "export CALCOM_OP_UUID='<selected-uuid>'" >> ~/gh/<org>/<automation-repo>/.env.launchd
 ```
 
 ### Step 5: Build Cal.com CLI
@@ -82,8 +82,8 @@ If NOT_SET, guide user through BotFather setup:
 ### Step 2: Add to the daemon env file
 
 ```bash
-# Append bot config to ~/gh/vjspc/amonic/.env.launchd
-cat >> ~/gh/vjspc/amonic/.env.launchd << 'EOF'
+# Append bot config to ~/gh/<org>/<automation-repo>/.env.launchd
+cat >> ~/gh/<org>/<automation-repo>/.env.launchd << 'EOF'
 export TELEGRAM_BOT_TOKEN='<bot-token>'
 export TELEGRAM_CHAT_ID='<chat-id>'
 EOF
@@ -105,7 +105,7 @@ If NOT_SET, guide user through:
 2. Enable APIs: Cloud Run, Artifact Registry, Cloud Build
 3. Link billing account
 4. Supabase project creation via CLI or dashboard
-5. Store all references as `export` lines in `~/gh/vjspc/amonic/.env.launchd` (see [env-setup.md](../calcom-access/references/env-setup.md))
+5. Store all references as `export` lines in `~/gh/<org>/<automation-repo>/.env.launchd` (see [env-setup.md](../calcom-access/references/env-setup.md))
 
 ### Step 2: Generate Cal.com secrets (if needed)
 
@@ -127,29 +127,29 @@ Store in 1Password Claude Automation vault.
 ### Step 1: Create launcher scripts
 
 ```bash
-mkdir -p ~/gh/vjspc/amonic/bin ~/gh/vjspc/amonic/logs
+mkdir -p ~/gh/<org>/<automation-repo>/bin ~/gh/<org>/<automation-repo>/logs
 
 # Bot launcher
-cat > ~/gh/vjspc/amonic/bin/calcom-commander-bot << 'SCRIPT'
+cat > ~/gh/<org>/<automation-repo>/bin/calcom-commander-bot << 'SCRIPT'
 #!/bin/zsh
 set -euo pipefail
 # .env.launchd is hand-maintained and is the SSoT for daemon env.
-source "$HOME/gh/vjspc/amonic/.env.launchd"
-cd "$HOME/gh/vjspc/amonic"
+source "$HOME/gh/<org>/<automation-repo>/.env.launchd"
+cd "$HOME/gh/<org>/<automation-repo>"
 exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/bot.ts"
 SCRIPT
-chmod +x ~/gh/vjspc/amonic/bin/calcom-commander-bot
+chmod +x ~/gh/<org>/<automation-repo>/bin/calcom-commander-bot
 
 # Sync launcher
-cat > ~/gh/vjspc/amonic/bin/calcom-commander-sync << 'SCRIPT'
+cat > ~/gh/<org>/<automation-repo>/bin/calcom-commander-sync << 'SCRIPT'
 #!/bin/zsh
 set -euo pipefail
 # .env.launchd is hand-maintained and is the SSoT for daemon env.
-source "$HOME/gh/vjspc/amonic/.env.launchd"
-cd "$HOME/gh/vjspc/amonic"
+source "$HOME/gh/<org>/<automation-repo>/.env.launchd"
+cd "$HOME/gh/<org>/<automation-repo>"
 exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
 SCRIPT
-chmod +x ~/gh/vjspc/amonic/bin/calcom-commander-sync
+chmod +x ~/gh/<org>/<automation-repo>/bin/calcom-commander-sync
 ```
 
 ### Step 2: Install launchd plists
@@ -158,8 +158,8 @@ Use AskUserQuestion to confirm before installing launchd services.
 
 ```bash
 # Copy plist templates to LaunchAgents
-# launchctl load ~/Library/LaunchAgents/com.terryli.calcom-commander-bot.plist
-# launchctl load ~/Library/LaunchAgents/com.terryli.calcom-commander-sync.plist
+# launchctl load ~/Library/LaunchAgents/com.cc-skills.calcom-commander-bot.plist
+# launchctl load ~/Library/LaunchAgents/com.cc-skills.calcom-commander-sync.plist
 ```
 
 ## Phase 5: Verification

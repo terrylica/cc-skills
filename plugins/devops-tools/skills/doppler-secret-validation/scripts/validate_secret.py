@@ -9,7 +9,7 @@ Usage:
     uv run validate_secret.py --project PROJECT --config CONFIG --secret SECRET_NAME
 
 Example:
-    uv run validate_secret.py --project claude-config --config prd --secret PYPI_TOKEN
+    uv run validate_secret.py --project private-config --config prd --secret PYPI_TOKEN
 """
 import argparse
 import subprocess

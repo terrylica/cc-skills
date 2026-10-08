@@ -26,7 +26,7 @@
 
 #### Why the linkage reminder asks GitHub instead of reading the body
 
-`Fixes #123` is normally **intentional**, so a guard that fires on the keyword is noise if it warns and wrong if it blocks. The failure worth catching is the opposite one: a closing link nobody meant to create. On Eon-Labs/alpha-forge#787 the body contained the ordinary sentence "rejected two of the three fixes #788 first proposed", GitHub parsed the last two words as the keyword, and the PR silently promised to close an unrelated P2 issue. Nothing in the diff, title or review showed it — `closingIssuesReferences` was the only place it was visible, and the same pattern recurred twice more while the first instance was being explained. Reporting GitHub's own parse after the fact has no false-positive class at all: it states what will happen and lets the author decide whether that was the intent.
+`Fixes #123` is normally **intentional**, so a guard that fires on the keyword is noise if it warns and wrong if it blocks. The failure worth catching is the opposite one: a closing link nobody meant to create. On example-org/research-repo#787 the body contained the ordinary sentence "rejected two of the three fixes #788 first proposed", GitHub parsed the last two words as the keyword, and the PR silently promised to close an unrelated P2 issue. Nothing in the diff, title or review showed it — `closingIssuesReferences` was the only place it was visible, and the same pattern recurred twice more while the first instance was being explained. Reporting GitHub's own parse after the fact has no false-positive class at all: it states what will happen and lets the author decide whether that was the intent.
 
 #### Why the stale-checkout guard measures fetch age, not commits behind
 
@@ -40,13 +40,7 @@
 
 ## Fine-grained PAT creation (use the skill, not the UI)
 
-GitHub has **no API** to create fine-grained PATs. When you need a token (release,
-CI, read-only audit, account-scoped, …), use the **`gh-fine-grained-pat` skill**
-([skills/gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md)) — it
-browser-automates the web UI from a declarative JSON spec and stores the value
-straight into the SCS vault. The two hooks above surface this proactively
-(prompt intent) and reactively (manual settings-page open). Prefer it over
-hand-clicking or a broad classic `ghp_*` token.
+GitHub has **no API** to create fine-grained PATs. When you need a token (release, CI, read-only audit, account-scoped, …), use the **`gh-fine-grained-pat` skill** ([skills/gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md)) — it browser-automates the web UI from a declarative JSON spec and stores the value straight into the SCS vault. The two hooks above surface this proactively (prompt intent) and reactively (manual settings-page open). Prefer it over hand-clicking or a broad classic `ghp_*` token.
 
 ## GitHub Issue Title Optimization (2026-02-05)
 
@@ -219,12 +213,12 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 ### When to Post Issue Comments
 
-| Action                   | Safe to Post?                                 | Example                                                     |
-| ------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
-| Repo under a mapped path | Yes — as that path's registered owner         | `~/eon`→`terrylica`, `~/gh/<org>`→`<org>`                   |
-| Your fork                | Always                                        | `terrylica/claude-code` (fork of `anthropics/claude-code`)  |
-| Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `moonrepo/proto`                  |
-| Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab` external-collaborator owners                 |
+| Action                   | Safe to Post?                                 | Example                                                    |
+| ------------------------ | --------------------------------------------- | ---------------------------------------------------------- |
+| Repo under a mapped path | Yes — as that path's registered owner         | `~/eon`→`terrylica`, `~/gh/<org>`→`<org>`                  |
+| Your fork                | Always                                        | `terrylica/claude-code` (fork of `anthropics/claude-code`) |
+| Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `moonrepo/proto`                 |
+| Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab` external-collaborator owners                |
 
 ### Best Practices
 
@@ -253,14 +247,9 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 ## Multi-Account Authentication (host-alias model, ADR 2026-06-21)
 
-This plugin respects the **host-alias single-source-of-truth**: a repo's `origin`
-remote (`git@github.com-<account>:owner/repo.git`) names its account and drives the
-SSH key, commit identity (`includeIf hasconfig:remote.*.url`), and gh account. The
-neutral `gh` wrapper in `~/.zshrc` derives the account from that alias, sets
-`GH_CONFIG_DIR=~/.config/gh-<account>`, and strips any ambient `GH_TOKEN`.
+This plugin respects the **host-alias single-source-of-truth**: a repo's `origin` remote (`git@github.com-<account>:owner/repo.git`) names its account and drives the SSH key, commit identity (`includeIf hasconfig:remote.*.url`), and gh account. The neutral `gh` wrapper in `~/.zshrc` derives the account from that alias, sets `GH_CONFIG_DIR=~/.config/gh-<account>`, and strips any ambient `GH_TOKEN`.
 
-**Tokens are never injected by an env manager and never ambient.** When a token is needed
-(e.g. release scripts), resolve it fresh:
+**Tokens are never injected by an env manager and never ambient.** When a token is needed (e.g. release scripts), resolve it fresh:
 
 ```bash
 GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"   # account = origin alias → that gh profile
@@ -270,10 +259,7 @@ GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"   # account = origin alias →
 
 ## Environment Variables
 
-`gh` itself needs no env vars here — it resolves the account from the repo's remote
-alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in any env config or the shell;
-a stale ambient `GH_TOKEN` outranks the isolated profile and 401s after a rotation.
-For an explicit token in a script, use `gh-token-for-repo` (above).
+`gh` itself needs no env vars here — it resolves the account from the repo's remote alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in any env config or the shell; a stale ambient `GH_TOKEN` outranks the isolated profile and 401s after a rotation. For an explicit token in a script, use `gh-token-for-repo` (above).
 | `GH_ORGS` | No | Comma-separated list of orgs the current account may write to (identity guard allowlist) |
 
 ## Process Safety

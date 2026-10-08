@@ -47,7 +47,7 @@ Create `plugins/$PLUGIN_NAME/plugin.json`:
   "version": "$MARKETPLACE_VERSION",
   "description": "TODO: Add description",
   "author": {
-    "name": "Terry Li",
+    "name": "terrylica",
     "url": "https://github.com/terrylica"
   }
 }

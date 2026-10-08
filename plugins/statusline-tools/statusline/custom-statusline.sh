@@ -4,7 +4,7 @@
 # Receives Claude Code status JSON via stdin, outputs formatted status line
 #
 # MIT License
-# Copyright (c) 2025 Terry Li
+# Copyright (c) 2025 terrylica
 #
 # Original concept inspired by: https://github.com/sirmalloc/ccstatusline (MIT)
 # This is a custom implementation with git status, link validation, and path linting.
@@ -1526,7 +1526,7 @@ fi
 # ── ✦ ultracode badge RETIRED 2026-06-11 (lived one day) ────────────────────
 # The 2026-06-10 heuristic (effort=="xhigh" AND thinking AND NOT fast_mode)
 # was REFUTED by live counterexamples within 24h: sessions ea782bfd (project-e)
-# and a9861cbf (claude-sys) rendered xhigh with ZERO ultracode activation in
+# and another session rendered xhigh with ZERO ultracode activation in
 # their transcripts — the operator saw "✦ ultracode" while it was OFF. Root
 # cause of the bad heuristic: effort levels persist (saved default / carried
 # state) while ultracode itself is session-only in-memory appState

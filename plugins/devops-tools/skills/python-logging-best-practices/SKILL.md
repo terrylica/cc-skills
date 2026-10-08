@@ -46,7 +46,7 @@ Is it < 5 services on a single machine, < 1 event/sec?
 
 ## Preferred: Lightweight Pattern (Zero Dependencies)
 
-**For: < 5 systemd services, single server, single operator. Battle-tested in production by [ccmax-monitor](https://github.com/terrylica/ccmax-monitor).**
+**For: < 5 systemd services, single server, single operator. Battle-tested in production by [relay-monitor](https://github.com/terrylica/relay-monitor).**
 
 This pattern uses a **two-channel architecture**:
 

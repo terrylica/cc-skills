@@ -2,7 +2,7 @@
 /**
  * Pure core of the review-round gate: command classification and artifact validation.
  *
- * WHY THIS GATE EXISTS, IN NUMBERS. On Eon-Labs/alpha-forge, across 22 reviewed PRs from one
+ * WHY THIS GATE EXISTS, IN NUMBERS. On example-org/research-repo, across 22 reviewed PRs from one
  * author, review submissions by the reviewer split like this:
  *
  *     PRs <= 400 changed lines   n=11   mean 1.36 review rounds   15 events total
@@ -248,7 +248,7 @@ export function undraftTarget(command: string): string | null {
  * WHY THE GATE NEEDS IT. The gate read the repository and HEAD from the session's cwd. A PR opened
  * from a worktree names its branch with `--head` while the session stands in the main checkout on
  * `main`, so the gate measured `main` (zero changed files, no record) and denied a branch whose
- * self-review WAS recorded in its worktree (2026-09-28, doorward-systems/ccmax-monitor#133: the
+ * self-review WAS recorded in its worktree (2026-09-28, example-org/relay-monitor#133: the
  * record existed at the pushed commit and only the override got the PR open). Inside the worktree,
  * the harness's worktree isolation can refuse git outright, so "cd there first" is not a remedy.
  *

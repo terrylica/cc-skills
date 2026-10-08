@@ -99,9 +99,9 @@ fi
 # Test #02: Bash SSH remote command is NOT wrapped (skip)
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test #02: Bash 'ssh bigblack uptime' → SSH skip (bare allow) ==="
+echo "=== Test #02: Bash 'ssh gpu-host uptime' → SSH skip (bare allow) ==="
 run_hook_capture_stdout_and_stderr_separately \
-  '{"tool_name":"Bash","tool_input":{"command":"ssh bigblack uptime"}}' \
+  '{"tool_name":"Bash","tool_input":{"command":"ssh gpu-host uptime"}}' \
   STDOUT_02 STDERR_02
 
 if grep -q '"permissionDecision":"allow"' <<<"$STDOUT_02" && \

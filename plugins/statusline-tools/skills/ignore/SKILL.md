@@ -16,9 +16,7 @@ Manage global ignore patterns for the `lint-relative-paths` linter.
 
 ## Purpose
 
-Some repositories intentionally use relative paths in markdown (e.g., `../docs/file.md`)
-instead of repo-root paths (e.g., `/docs/file.md`). This command manages a global ignore
-file that skips path validation for matching workspaces.
+Some repositories intentionally use relative paths in markdown (e.g., `../docs/file.md`) instead of repo-root paths (e.g., `/docs/file.md`). This command manages a global ignore file that skips path validation for matching workspaces.
 
 ## Actions
 
@@ -32,11 +30,11 @@ file that skips path validation for matching workspaces.
 
 Patterns use **substring matching**. A pattern matches if the workspace path contains the pattern.
 
-**Example**: Pattern `alpha-forge` matches:
+**Example**: Pattern `my-project` matches:
 
-- `/Users/user/projects/alpha-forge`
-- `/Users/user/eon/alpha-forge.worktree-feature-x`
-- `/home/user/code/alpha-forge-v2`
+- `/Users/user/projects/research-repo`
+- `/Users/user/eon/research-repo.worktree-feature-x`
+- `/home/user/code/research-repo-v2`
 
 ## Ignore File Location
 
@@ -79,7 +77,7 @@ For "Add pattern":
 
 ```
 Question: "Enter the repository pattern to ignore"
-Note: Patterns use substring matching. Example: 'alpha-forge' matches any path containing 'alpha-forge'.
+Note: Patterns use substring matching. Example: 'research-repo' matches any path containing 'research-repo'.
 ```
 
 ### Direct Execution (With Arguments)
@@ -107,12 +105,12 @@ echo "my-repo-pattern" >> ~/.claude/lint-relative-paths-ignore
 
 ## Troubleshooting
 
-| Issue                 | Cause                     | Solution                                             |
-| --------------------- | ------------------------- | ---------------------------------------------------- |
-| Pattern not matching  | Substring match is strict | Use broader pattern (e.g., `forge` vs `alpha-forge`) |
-| Ignore file not found | ~/.claude doesn't exist   | Create with `mkdir -p ~/.claude`                     |
-| Permission denied     | File not writable         | Check file permissions with `ls -la`                 |
-| Script not found      | Plugin not installed      | Reinstall plugin from marketplace                    |
+| Issue                 | Cause                     | Solution                                               |
+| --------------------- | ------------------------- | ------------------------------------------------------ |
+| Pattern not matching  | Substring match is strict | Use broader pattern (e.g., `forge` vs `research-repo`) |
+| Ignore file not found | ~/.claude doesn't exist   | Create with `mkdir -p ~/.claude`                       |
+| Permission denied     | File not writable         | Check file permissions with `ls -la`                   |
+| Script not found      | Plugin not installed      | Reinstall plugin from marketplace                      |
 
 ## Post-Execution Reflection
 

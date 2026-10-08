@@ -6,7 +6,7 @@
 """The teachback coverage audit must find EVERY `.check(...)` call, however its label is built.
 
 The audit exists to list checks that no mutation exercises. Its first implementation — written in
-Eon-Labs/alpha-forge#527, where this skill was originally built before being promoted to this
+example-org/research-repo#527, where this skill was originally built before being promoted to this
 marketplace repo — discovered them with a regex that accepted only a literal double-quoted first
 argument, so nine call sites whose label is an f-string were missing from the numerator, the
 denominator and the "no mutation" list at once — an instrument built to find silently-omitted

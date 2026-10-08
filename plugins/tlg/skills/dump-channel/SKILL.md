@@ -33,7 +33,7 @@ bun "$SCRIPT" dump @ChannelName ./output/ChannelName --no-media
 bun "$SCRIPT" dump -1001234567890 ./output/MyChannel
 
 # Use a different profile
-bun "$SCRIPT" -p missterryli dump @ChannelName ./output/ChannelName
+bun "$SCRIPT" -p personal dump @ChannelName ./output/ChannelName
 EOF
 ```
 

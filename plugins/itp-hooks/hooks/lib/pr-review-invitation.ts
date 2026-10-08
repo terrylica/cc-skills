@@ -7,7 +7,7 @@
  * the actor entitled to submit one?
  *
  * WHY THIS GATE EXISTS, AND WHY IT IS NARROW. On 2026-09-06 an agent posted CHANGES_REQUESTED on
- * Eon-Labs/alpha-forge#656 -- authored by the CEO -- on the strength of a premise it had invented
+ * example-org/research-repo#656 -- authored by another person -- on the strength of a premise it had invented
  * ("waiting on my review"). No request existed; one arrived 19h29m LATER. The review's CONTENT was
  * substantive and largely adopted. The defect was its FORM and its PREMISE, not its findings.
  *
@@ -21,7 +21,7 @@
  *
  * WHAT IT DELIBERATELY LEAVES ALONE:
  *   --approve   17 of these on other authors' PRs, 10 since 2026-08-21. The `main` ruleset requires
- *               1 approving review and GitHub forbids self-approval, so terrylica<->ChenLi0830 is a
+ *               1 approving review and GitHub forbids self-approval, so terrylica<-><reviewer> is a
  *               reciprocal approval pair and it is the ONLY way anything merges there. Gating it
  *               would deadlock the repository, which is worse than the harm this gate prevents.
  *   --comment   Carries identical findings without gating. The honest description of this guard's

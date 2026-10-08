@@ -8,11 +8,9 @@ Safe and unsafe patterns for referencing bundled scripts and files in Claude Cod
 
 ## Known Limitations
 
-> **Known Limitation**: `${CLAUDE_PLUGIN_ROOT}` is NOT a shell environment variable and should not be used
-> in `SKILL.md` bodies. Use `cc-plugin-root <plugin>` instead to resolve the live plugin install path.
+> **Known Limitation**: `${CLAUDE_PLUGIN_ROOT}` is NOT a shell environment variable and should not be used in `SKILL.md` bodies. Use `cc-plugin-root <plugin>` instead to resolve the live plugin install path.
 >
-> **Reference**: [Binary Analysis (2026-08-05)](./advanced-topics.md#part-5-agent-skill-composition--limitations) and the
-> [`cc-plugin-root` resolver](https://github.com/terrylica/cc-skills/blob/main/scripts/cc-plugin-root)
+> **Reference**: [Binary Analysis (2026-08-05)](./advanced-topics.md#part-5-agent-skill-composition--limitations) and the [`cc-plugin-root` resolver](https://github.com/terrylica/cc-skills/blob/main/scripts/cc-plugin-root)
 
 ---
 
@@ -127,7 +125,7 @@ bash ~/.claude/plugins/itp/scripts/my-script.sh
 
 ```bash
 # ❌ BREAKS on other machines
-find /Users/terryli/.claude/skills -name "SKILL.md"
+find /Users/<you>/.claude/skills -name "SKILL.md"
 cd /home/alice/projects
 ```
 

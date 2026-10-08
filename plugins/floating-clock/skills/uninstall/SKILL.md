@@ -33,7 +33,7 @@ Remove FloatingClock completely: terminate it, remove it from `/Applications/`, 
    ```bash
    pkill -f "FloatingClock.app/Contents/MacOS/floating-clock" 2>/dev/null || true
    rm -rf /Applications/FloatingClock.app
-   defaults delete com.terryli.floating-clock 2>/dev/null || true
+   defaults delete com.cc-skills.floating-clock 2>/dev/null || true
    echo "FloatingClock uninstalled. (The plugin itself remains — remove it separately via 'claude plugin marketplace remove' if desired.)"
    ```
 

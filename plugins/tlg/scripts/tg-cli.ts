@@ -76,11 +76,24 @@ enum EnvVar {
 
 // ── Constants ─────────────────────────────────────────────
 
-export const PROFILES: Record<string, string> = {
-  eon: "iqwxow2iidycaethycub7agfmm",
-  missterryli: "dk456cs3v2fjilppernryoro5a",
-};
-const DEFAULT_PROFILE = "eon";
+/**
+ * Profile name -> 1Password item ID. Machine-local, never committed (both the profile names and
+ * the item IDs identify accounts): ~/.config/cc-skills/tlg-profiles.json, shaped
+ *   { "default": "<profile>", "profiles": { "<profile>": "<1password-item-id>" } }
+ * TELETHON_OP_UUID still overrides the item for one run.
+ */
+function loadProfiles(): { profiles: Record<string, string>; defaultProfile: string } {
+  try {
+    const raw = JSON.parse(readFileSync(join(homedir(), ".config/cc-skills/tlg-profiles.json"), "utf8"));
+    const profiles: Record<string, string> = raw.profiles ?? {};
+    return { profiles, defaultProfile: raw.default ?? Object.keys(profiles)[0] ?? "default" };
+  } catch {
+    return { profiles: {}, defaultProfile: "default" };
+  }
+}
+const LOADED_PROFILES = loadProfiles();
+export const PROFILES: Record<string, string> = LOADED_PROFILES.profiles;
+const DEFAULT_PROFILE = LOADED_PROFILES.defaultProfile;
 const SESSION_DIR = join(homedir(), ".local/share/gramjs");
 const DEFAULT_OP_VAULT = "Claude Automation";
 

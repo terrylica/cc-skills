@@ -24,7 +24,7 @@
 #                   Pairs with the /html-showcase:setup skill.
 #   --hook          Also install a pre-push git hook that regenerates the
 #                   sitemap + Pagefind search index and rsyncs every
-#                   tracked site dir to bigblack on `git push main`.
+#                   tracked site dir to gpu-host on `git push main`.
 #                   Wires <repo>/.githooks/ via `git config
 #                   core.hooksPath .githooks`. Non-blocking; failure
 #                   never blocks the push.
@@ -32,7 +32,7 @@
 # After install, the workflow is:
 #   scripts/site.sh nav   <site-dir>   # regenerate sitemap + auto-nav
 #   scripts/site.sh check <site-dir>   # nav + lychee + orphan-page
-#   scripts/site.sh push  <site-dir>   # nav + check + rsync to bigblack
+#   scripts/site.sh push  <site-dir>   # nav + check + rsync to gpu-host
 
 set -euo pipefail
 
@@ -377,7 +377,7 @@ Next steps:
        scripts/site.sh nav <site-dir>
   4. Validate locally:
        scripts/site.sh check <site-dir>
-  5. Publish to bigblack via Tailscale:
+  5. Publish to gpu-host via Tailscale:
        scripts/site.sh push <site-dir>
 
 Skill: html-showcase:page-template (cc-skills marketplace)

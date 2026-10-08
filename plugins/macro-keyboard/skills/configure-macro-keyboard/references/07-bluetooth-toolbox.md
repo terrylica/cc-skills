@@ -9,7 +9,7 @@ Research-plus-spike evaluation of FOSS tools for controlling, inspecting, and au
 | `blueutil`       | ✅ Homebrew                        | Working. 6 paired devices visible, BT power on. Run `brew info blueutil` for exact version                                                    |
 | `sleepwatcher`   | ✅ Homebrew                        | **Running as daemon** (launchd label `homebrew.mxcl.sleepwatcher`). `~/.wakeup` script exists (used for SSH tunnel restart) — can be extended |
 | `Hammerspoon`    | ✅ `/Applications`                 | Installed but NOT running (used only for audio monitoring via `~/.hammerspoon/init.lua`, 100 lines)                                           |
-| `bleak` (Python) | ✅ works via `uv run --with bleak` | Verified: scanned 10 nearby BLE peripherals including "iPhone TerryLi", "ESP32", Samsung TVs                                                  |
+| `bleak` (Python) | ✅ works via `uv run --with bleak` | Verified: scanned 10 nearby BLE peripherals including "iPhone <user>", "ESP32", Samsung TVs                                                  |
 | `LightBlue`      | ⬜ not installed                   | Free in Mac App Store — install when ready for GUI inspection                                                                                 |
 | `PacketLogger`   | ⬜ not installed                   | In Apple's _Additional Tools for Xcode_ (requires Apple Developer login)                                                                      |
 | `Bluetility`     | ⬜ not installed                   | FOSS alternative to LightBlue; install if you want a native-Mac open-source equivalent                                                        |

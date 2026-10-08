@@ -78,7 +78,7 @@ async function main() {
   //      isolation check parses the command it will actually run (after this
   //      hook's updatedInput), cannot verify git inside a subshell with a
   //      redirect, and refuses with "names git in a form too complex to verify
-  //      that it stays inside the worktree". Measured in a ccmax-monitor
+  //      that it stays inside the worktree". Measured in a relay-monitor
   //      worktree session on Claude Code 2.1.283: bare `git status` refused;
   //      `git status < /dev/null` (which this hook leaves alone) ran;
   //      `{ …; } < /dev/null` refused; `exec < /dev/null; git …` ran.

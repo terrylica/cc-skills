@@ -68,7 +68,7 @@ test("LAYER 4: a MIME message with non-ASCII Subject round-trips correctly", () 
   // Simulate the exact headers buildMime would create with a non-ASCII subject.
   const testSubject = "Charting update — privacy matter, Mallampati fix";
   const headers: Record<string, string> = {
-    From: "Ricky Chan <rickychanbc@gmail.com>",
+    From: "Jane Doe <alias@example.com>",
     To: "alex@example.com",
     Subject: testSubject,
   };

@@ -38,32 +38,27 @@ If user requests non-mql5.com extraction, respond: "This skill extracts articles
 
 ## Repository Location
 
-Working directory: `$HOME/eon/mql5-local` (adjust path for your environment)
+Working directory: `$HOME/code/<mt5-project>` (adjust path for your environment)
 
 Always execute commands from this directory:
 
 ```bash
-cd "$HOME/eon/mql5-local"
+cd "$HOME/code/mt5-local"
 ```
 
 ## Valid Input Types
 
 ### 1. Article URL (Most Specific)
 
-**Format**: `https://www.mql5.com/en/articles/[ID]`
-**Example**: `https://www.mql5.com/en/articles/19625`
-**Action**: Extract single article
+**Format**: `https://www.mql5.com/en/articles/[ID]` **Example**: `https://www.mql5.com/en/articles/19625` **Action**: Extract single article
 
 ### 2. User ID (Numeric or Username)
 
-**Format**: Numeric (e.g., `29210372`) or username (e.g., `jslopes`)
-**Source**: From mql5.com profile URL
-**Action**: Auto-discover and extract all user's articles
+**Format**: Numeric (e.g., `29210372`) or username (e.g., `jslopes`) **Source**: From mql5.com profile URL **Action**: Auto-discover and extract all user's articles
 
 ### 3. URL List File
 
-**Format**: Text file with one URL per line
-**Action**: Batch process multiple articles
+**Format**: Text file with one URL per line **Action**: Batch process multiple articles
 
 ### 4. Vague Request
 
@@ -94,11 +89,10 @@ For detailed information, see:
 | Article not found      | Invalid article ID or removed | Verify URL exists by visiting in browser          |
 | User ID not recognized | Wrong user ID format          | Use numeric ID from profile URL or exact username |
 | Empty extraction       | Rate limiting or site change  | Wait and retry, check for site structure changes  |
-| Permission denied      | Working directory mismatch    | Run from $HOME/eon/mql5-local directory                 |
+| Permission denied      | Working directory mismatch    | Run from $HOME/eon/mt5-local directory            |
 | Batch too large        | Too many articles requested   | Limit batch size, use URL list file               |
 | Missing dependencies   | Required tools not installed  | Install curl, jq for extraction                   |
 | Output encoding issues | Unicode in article content    | Ensure UTF-8 output handling                      |
-
 
 ## Post-Execution Reflection
 

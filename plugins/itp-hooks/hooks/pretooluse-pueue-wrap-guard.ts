@@ -75,7 +75,7 @@ const LONG_RUNNING_PATTERNS = [
   // Reason: SSH commands already run remotely — local pueue wrapping adds no value
   // but creates quoting hell (zsh → pueue add → SSH → remote bash = 4 quote layers).
   // The PostToolUse pueue-reminder still suggests pueue for SSH long-running commands.
-  // Evidence: opendeviationbar-py session 3774932e — 3 consecutive failures from
+  // Evidence: opendeviationbar session 3774932e — 3 consecutive failures from
   // quote mangling when auto-wrapping `ssh <remote-host> 'for sym in ...; do curl ...; done'`.
 ];
 

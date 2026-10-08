@@ -11,7 +11,7 @@ description: Interactive helper for granting macOS Full Disk Access (FDA) to a l
 
 ## Why this exists
 
-Discovered iter 21 (2026-05-19) after the iter-20 fleet heartbeat finally surfaced a **32-day-old chronic failure** in `com.terryli.maccy-backup`. The launchd job had been failing daily with `"Maccy DB unreadable"` since 2026-04-17. Root cause: the spawn binary `~/eon/iterm2-scripts/bin/maccy-backup/maccy-backup-runner` was not in the FDA allowlist. Interactive shells (iTerm2, Warp, Terminal, mise binaries) all WERE — that's why running the script manually from a terminal succeeds, hiding the problem from casual debugging.
+Discovered iter 21 (2026-05-19) after the iter-20 fleet heartbeat finally surfaced a **32-day-old chronic failure** in `com.example.maccy-backup`. The launchd job had been failing daily with `"Maccy DB unreadable"` since 2026-04-17. Root cause: the spawn binary `~/eon/terminal-scripts/bin/maccy-backup/maccy-backup-runner` was not in the FDA allowlist. Interactive shells (iTerm2, Warp, Terminal, mise binaries) all WERE — that's why running the script manually from a terminal succeeds, hiding the problem from casual debugging.
 
 Without this helper, the click-path is buried four levels deep in System Settings, and the absolute binary path has to be typed by hand. The helper makes it a 30-second manual operation instead of "10 minutes of fumbling, abandoned, fails for another week."
 
@@ -32,7 +32,7 @@ After the grant, `--check` mode confirms the new state without opening any UI.
 
 ```bash
 # Full walkthrough — opens UI, copies path
-fda-grant-walkthrough ~/eon/iterm2-scripts/bin/maccy-backup/maccy-backup-runner
+fda-grant-walkthrough ~/eon/terminal-scripts/bin/maccy-backup/maccy-backup-runner
 
 # Check-only — useful in scripts / CI / heartbeat-class probes
 if fda-grant-walkthrough --check /path/to/binary; then
@@ -61,19 +61,19 @@ ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills
 
 ```bash
 # 1. Run the walkthrough (System Settings opens; path on clipboard)
-fda-grant-walkthrough ~/eon/iterm2-scripts/bin/maccy-backup/maccy-backup-runner
+fda-grant-walkthrough ~/eon/terminal-scripts/bin/maccy-backup/maccy-backup-runner
 
 # 2. In Settings: + → Cmd+Shift+G → Cmd+V → Enter → toggle ON → Touch ID
 
 # 3. Verify the grant landed
-fda-grant-walkthrough --check ~/eon/iterm2-scripts/bin/maccy-backup/maccy-backup-runner
+fda-grant-walkthrough --check ~/eon/terminal-scripts/bin/maccy-backup/maccy-backup-runner
 
 # 4. Restart the failing launchd job and watch for green
-launchctl kickstart -p gui/$(id -u)/com.terryli.maccy-backup
+launchctl kickstart -p gui/$(id -u)/com.example.maccy-backup
 tail -f ~/.local/state/maccy-backup/logs/backup-$(date +%Y%m%d).log
 
 # 5. Tomorrow morning, fleet heartbeat (iter 20) should drop from WARN to INFO
-#    because failed_services no longer includes com.terryli.maccy-backup=1
+#    because failed_services no longer includes com.example.maccy-backup=1
 ```
 
 ## Why we can't fully automate the grant

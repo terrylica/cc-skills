@@ -9,8 +9,7 @@ disable-model-invocation: false
 
 Canonical reference lives in THIS skill:
 
-→ **See**: [references/bootstrap-monorepo.md](references/bootstrap-monorepo.md)
-→ **Cross-language boundaries**: [references/cross-language-interop.md](references/cross-language-interop.md) — boundary decision ladder + verified tool status (research-verified 2026-06)
+→ **See**: [references/bootstrap-monorepo.md](references/bootstrap-monorepo.md) → **Cross-language boundaries**: [references/cross-language-interop.md](references/cross-language-interop.md) — boundary decision ladder + verified tool status (research-verified 2026-06)
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
@@ -93,11 +92,7 @@ Pre-2026-06 repos on **Pants + mise** (mise is retired; no mise-era reference re
 Two cases (full recipes in [references/bootstrap-monorepo.md](references/bootstrap-monorepo.md) Phase 9):
 
 - **One releasable unit** → stock `semantic-release`, one `.releaserc.yml`, tag `v${version}`.
-- **Multiple independently-versioned projects** (the monorepo standard) → per-project **namespaced tags**
-  (`<project>/v${version}`) via **`@rimac-technology/semantic-release-monorepo`** (stock semantic-release ignores
-  `commitPaths` — upstream #1279/#1212), selected by a `RELEASE_PROFILE`-keyed `.releaserc.cjs` dispatcher that
-  derives each stream's `processCommits` from its `commitPaths`, plus a repo-wide umbrella on stock semantic-release.
-  Install the fork with `npm i -D --ignore-scripts`. Reference impl: `claude-sys`.
+- **Multiple independently-versioned projects** (the monorepo standard) → per-project **namespaced tags** (`<project>/v${version}`) via **`@rimac-technology/semantic-release-monorepo`** (stock semantic-release ignores `commitPaths` — upstream #1279/#1212), selected by a `RELEASE_PROFILE`-keyed `.releaserc.cjs` dispatcher that derives each stream's `processCommits` from its `commitPaths`, plus a repo-wide umbrella on stock semantic-release. Install the fork with `npm i -D --ignore-scripts`. Reference impl: `example-org/monorepo`.
 
 ## Related Skills
 

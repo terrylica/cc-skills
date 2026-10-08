@@ -25,7 +25,7 @@ describe("temp-path detector — static temp roots", () => {
 
 describe("temp-path detector — real project files are NOT temporary", () => {
   test.each([
-    "/Users/terryli/eon/cc-skills/plugins/itp-hooks/hooks/foo.ts",
+    "/Users/<you>/eon/cc-skills/plugins/itp-hooks/hooks/foo.ts",
     "/home/user/project/main.py",
     "/repo/tmpl/template.ts", // dir merely starts with "tmp" — must NOT match
     "/var/foldersX/not-temp.py", // boundary: not /var/folders

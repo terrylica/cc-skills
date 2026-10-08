@@ -4,11 +4,11 @@
 
 ## Migration note (2026-06-22)
 
-Ported from Telethon (Python, `uv run`) to GramJS (Bun TS). The MTProto engine changed, so the **session format changed**: sessions now live at `~/.local/share/gramjs/<profile>.session` as GramJS StringSessions — the old `~/.local/share/telethon/*.session` files are not reused. Each account logs in once more via the non-interactive flow (`send-code` → `sign-in`); see [setup](../skills/setup/SKILL.md). The Telegram API id/hash (1Password) are unchanged. `eon` was re-authenticated and verified; `missterryli` re-login pending.
+Ported from Telethon (Python, `uv run`) to GramJS (Bun TS). The MTProto engine changed, so the **session format changed**: sessions now live at `~/.local/share/gramjs/<profile>.session` as GramJS StringSessions — the old `~/.local/share/telethon/*.session` files are not reused. Each account logs in once more via the non-interactive flow (`send-code` → `sign-in`); see [setup](../skills/setup/SKILL.md). The Telegram API id/hash (1Password) are unchanged. `work` was re-authenticated and verified; `personal` re-login pending.
 
 ## Validation Results (2026-03-17)
 
-All 17 subcommands empirically tested bi-directionally between `eon` and `missterryli`:
+All 17 subcommands empirically tested bi-directionally between `work` and `personal`:
 
 | Test                               | Status         |
 | ---------------------------------- | -------------- |

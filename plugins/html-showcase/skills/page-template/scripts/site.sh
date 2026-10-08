@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # site.sh — publish a static HTML directory to a remote host over SSH.
-# Modeled on scripts/blob.sh from opendeviationbar-patterns. Adapt freely
+# Modeled on scripts/blob.sh from research-lab-repo. Adapt freely
 # into other repos: copy this file, copy tasks/site.toml, copy
 # scripts/check-orphan-pages.py, and you're done.
 #

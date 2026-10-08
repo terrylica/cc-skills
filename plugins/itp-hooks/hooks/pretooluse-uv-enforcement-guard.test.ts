@@ -246,7 +246,7 @@ describe("ALLOW: SSH remote commands bypass local guards", () => {
   it("should allow pip install inside SSH to a remote host (remote bypass directive)", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "ssh bigblack 'cd ~/project && pip install requests'" },
+      tool_input: { command: "ssh gpu-host 'cd ~/project && pip install requests'" },
     });
     expectAllow(result);
   });

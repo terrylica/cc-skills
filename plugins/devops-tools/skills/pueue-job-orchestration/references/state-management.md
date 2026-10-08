@@ -180,7 +180,7 @@ macOS (local)
   moon run gen:submit-all -> rsync + queue M pueue units
   moon run gen:collect    -> scp + validate JSONL
 
-gpu-host-1 (remote)
+<gpu-host> (remote)
   pueue group p1 (parallel=1)   <- sequential units (avoid log contention)
     |-- Unit 1: submit_unit.sh pattern1 BTCUSDT 750
     |     \-- xargs -P16 -> K queries (direct clickhouse-client, no pueue add)

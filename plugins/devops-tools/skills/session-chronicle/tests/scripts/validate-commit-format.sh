@@ -32,7 +32,7 @@ cat > "$TEMP_DIR/manifest.json" << 'MANIFEST'
   "last_timestamp": "2026-01-02T00:00:00Z",
   "project_path": "/test/project",
   "created_at": "2026-01-02T12:00:00Z",
-  "s3_location": "s3://eonlabs-findings/sessions/test-123"
+  "s3_location": "s3://example-findings-bucket/sessions/test-123"
 }
 MANIFEST
 
@@ -42,7 +42,7 @@ COMMIT_MSG=$(bash "$GEN_SCRIPT" "$TEMP_DIR" "Test provenance finding" 2>&1 || tr
 # Validate required elements
 VALIDATIONS=(
   "Session-Chronicle Provenance"
-  "s3://eonlabs-findings"
+  "s3://example-findings-bucket"
   "sessions"
   "op read"
   "aws s3"

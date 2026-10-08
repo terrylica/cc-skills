@@ -150,8 +150,8 @@ STATUS_EOF
 ║  RUNNING PROCESSES                                             ║
 ╠────────────────────────────────────────────────────────────────╣
 ║  Active asciinema rec: 2 process(es)                           ║
-║    PID 41749  alpha-forge-research_2025.cast            12G    ║
-║    PID 49655  alpha-forge_2025-12-23.cast              4.5G    ║
+║    PID 41749  research-repo-research_2025.cast            12G    ║
+║    PID 49655  research-repo_2025-12-23.cast              4.5G    ║
 ╠════════════════════════════════════════════════════════════════╣
 ║  CHUNKER DAEMON                                                ║
 ╠────────────────────────────────────────────────────────────────╣
@@ -164,8 +164,8 @@ STATUS_EOF
 ║  UNHANDLED .CAST FILES (not on orphan branch)                  ║
 ╠────────────────────────────────────────────────────────────────╣
 ║  Found: 3 file(s) need attention                               ║
-║    alpha-forge-research.cast                 12G   2025-12-30  ║
-║    alpha-forge_session.cast                 4.5G   2025-12-26  ║
+║    research-repo-research.cast                 12G   2025-12-30  ║
+║    research-repo_session.cast                 4.5G   2025-12-26  ║
 ║    debug-session.cast                       234M   2025-12-28  ║
 ║                                                                ║
 ║  → Run /asciinema-tools:finalize to process these files        ║

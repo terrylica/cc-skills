@@ -23,7 +23,7 @@ Neither process runs on a workstation. Both run in a **private Restate tenant on
 
 **Starting, stopping, restarting, deploying, reading logs, rotating secrets and OAuth re-consent are all done through that repository's runbook.** This public skill intentionally carries no host names, deploy commands or credential paths for it. If you do not have access to that repository, stop and ask the operator.
 
-The laptop launchd jobs `com.terryli.gmail-commander-bot` and `com.terryli.gmail-commander-digest` were **retired on 2026-09-24**. Do not recreate their plists, launcher scripts or env files.
+The laptop launchd jobs `com.example.gmail-commander-bot` and `com.example.gmail-commander-digest` were **retired on 2026-09-24**. Do not recreate their plists, launcher scripts or env files.
 
 ## Mandatory Preflight
 

@@ -1,8 +1,6 @@
 # quant-research
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-![Skills](https://img.shields.io/badge/Skills-8-blue.svg)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE) ![Skills](https://img.shields.io/badge/Skills-8-blue.svg) ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Quantitative research skills for financial data analysis and ML model evaluation: SOTA metrics for range bars, Sharpe ratios, ML prediction quality, WFO epoch selection, and evolutionary multi-metric ranking.
 
@@ -89,19 +87,18 @@ Multi-objective evolutionary optimization for per-metric percentile ranking:
 
 ## Dependencies
 
-| Component | Required | Installation            |
-| --------- | -------- | ----------------------- |
+| Component | Required | Installation             |
+| --------- | -------- | ------------------------ |
 | Python    | Yes      | `uv python install 3.14` |
-| Polars    | Yes      | `uv pip install polars` |
-| NumPy     | Yes      | `uv pip install numpy`  |
-| SciPy     | Optional | `uv pip install scipy`  |
-| Optuna    | Optional | `uv pip install optuna` |
+| Polars    | Yes      | `uv pip install polars`  |
+| NumPy     | Yes      | `uv pip install numpy`   |
+| SciPy     | Optional | `uv pip install scipy`   |
+| Optuna    | Optional | `uv pip install optuna`  |
 
 ## Related Plugins
 
 - `devops-tools`: MLflow integration for experiment tracking
 - `itp`: Workflow automation for research experiments
-- `alpha-forge-worktree`: Git worktree management for parallel experiments
 
 ## Troubleshooting
 

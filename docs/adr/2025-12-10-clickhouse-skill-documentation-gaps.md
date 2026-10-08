@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-10
-decision-makers: terryli
+decision-makers: <user>
 consulted: claude-code
 informed: cc-skills-users
 ---

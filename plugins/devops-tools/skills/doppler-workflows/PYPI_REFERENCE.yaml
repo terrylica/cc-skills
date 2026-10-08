@@ -51,7 +51,7 @@ components:
               example: "Doppler"
             project:
               type: string
-              example: "claude-config"
+              example: "private-config"
             config:
               type: string
               example: "dev"
@@ -132,11 +132,11 @@ components:
               properties:
                 atr_adaptive_laguerre:
                   type: string
-                  example: "doppler run --project claude-config --config dev --command='uv publish --token \"$PYPI_TOKEN\"'"
+                  example: "doppler run --project private-config --config dev --command='uv publish --token \"$PYPI_TOKEN\"'"
                   description: "Publish atr-adaptive-laguerre using PYPI_TOKEN (--command is idiomatic)"
                 gapless_crypto_clickhouse:
                   type: string
-                  example: "doppler run --project claude-config --config dev --command='uv publish --token \"$PYPI_TOKEN_GCD\"'"
+                  example: "doppler run --project private-config --config dev --command='uv publish --token \"$PYPI_TOKEN_GCD\"'"
                   description: "Publish gapless-crypto-clickhouse using PYPI_TOKEN_GCD (--command is idiomatic)"
 
             method_comparison:
@@ -199,15 +199,15 @@ components:
               properties:
                 add_token:
                   type: string
-                  example: "echo -n 'pypi-...' | doppler secrets set PYPI_TOKEN_XXX --project claude-config --config dev"
+                  example: "echo -n 'pypi-...' | doppler secrets set PYPI_TOKEN_XXX --project private-config --config dev"
                   description: "Use stdin to avoid shell escaping issues"
                 verify_storage:
                   type: string
-                  example: "doppler secrets get PYPI_TOKEN_XXX --project claude-config --config dev --plain | head -c 50"
+                  example: "doppler secrets get PYPI_TOKEN_XXX --project private-config --config dev --plain | head -c 50"
                   description: "Check token stored correctly (starts with pypi-AgEI...)"
                 test_injection:
                   type: string
-                  example: "doppler run --project claude-config --config dev --command='echo ${#PYPI_TOKEN_XXX}'"
+                  example: "doppler run --project private-config --config dev --command='echo ${#PYPI_TOKEN_XXX}'"
                   description: "Verify injection works (should show 221-224) using --command flag"
 
         troubleshooting:
@@ -224,7 +224,7 @@ components:
                   example: "When you run 'doppler secrets get PYPI_TOKEN --plain', it shows a trailing newline (0x0a). This is ONLY for display formatting. The actual value stored in Doppler and passed via 'doppler run' does NOT have the newline."
                 test_command:
                   type: string
-                  example: "doppler run --project claude-config --config dev -- bash -c 'printf \"%s\" \"$PYPI_TOKEN\" | wc -c'"
+                  example: "doppler run --project private-config --config dev -- bash -c 'printf \"%s\" \"$PYPI_TOKEN\" | wc -c'"
                 expected_result:
                   type: string
                   example: "224 (no trailing newline)"
@@ -240,7 +240,7 @@ components:
                   example: "PyPI tokens can be revoked or expire. Check PyPI web interface for token status."
                 solution:
                   type: string
-                  example: "Create new project-scoped token on PyPI, copy exact value, update Doppler with: echo -n 'pypi-...' | doppler secrets set PYPI_TOKEN --project claude-config --config dev"
+                  example: "Create new project-scoped token on PyPI, copy exact value, update Doppler with: echo -n 'pypi-...' | doppler secrets set PYPI_TOKEN --project private-config --config dev"
 
             verification_workflow:
               type: array
@@ -253,15 +253,15 @@ components:
                   verify: "Token shows 'Last used: recently' or create new token"
                 - step: 2
                   action: "Verify token in Doppler"
-                  command: "doppler secrets get PYPI_TOKEN --project claude-config --config dev --plain | head -c 50"
+                  command: "doppler secrets get PYPI_TOKEN --project private-config --config dev --plain | head -c 50"
                   verify: "Starts with 'pypi-AgEIcHlwaS5vcmcC...'"
                 - step: 3
                   action: "Test credential injection"
-                  command: "doppler run --project claude-config --config dev --command='echo Token length: ${#PYPI_TOKEN}'"
+                  command: "doppler run --project private-config --config dev --command='echo Token length: ${#PYPI_TOKEN}'"
                   verify: "Shows 224 (or similar length for valid token)"
                 - step: 4
                   action: "Test publish with Doppler"
-                  command: "doppler run --project claude-config --config dev --command='uv publish --token \"$PYPI_TOKEN\" dist/*.whl'"
+                  command: "doppler run --project private-config --config dev --command='uv publish --token \"$PYPI_TOKEN\" dist/*.whl'"
                   verify: "Gets 200 OK (or 400 if file already exists, which is fine)"
 
         best_practices:
@@ -424,7 +424,7 @@ components:
               example: "$HOME/.pypirc (DO NOT USE)"
             migration:
               type: string
-              example: "Token already migrated to Doppler (claude-config/dev/PYPI_TOKEN)"
+              example: "Token already migrated to Doppler (private-config/dev/PYPI_TOKEN)"
 
         trusted_publishing:
           type: object

@@ -12,7 +12,10 @@ ARTIFACT_DIR="${1:-}"
 FINDING_ID="${2:-$(date +%Y%m%d-%H%M%S)}"
 
 # S3 configuration
-S3_BUCKET="eonlabs-findings"
+# Bucket is machine-local (never committed): SESSION_CHRONICLE_S3_BUCKET, or the one-line file
+# ~/.config/cc-skills/session-chronicle-s3-bucket.
+S3_BUCKET="${SESSION_CHRONICLE_S3_BUCKET:-$(cat "$HOME/.config/cc-skills/session-chronicle-s3-bucket" 2>/dev/null || true)}"
+: "${S3_BUCKET:?set SESSION_CHRONICLE_S3_BUCKET or write it to ~/.config/cc-skills/session-chronicle-s3-bucket}"
 S3_PREFIX="sessions"
 AWS_REGION="us-west-2"
 OP_VAULT="Claude Automation"

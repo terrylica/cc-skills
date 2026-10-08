@@ -1,9 +1,6 @@
 # Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap (moon + proto + Bun, Nx-convergent)
 
-> **Role**: You are a Principal Software Architect specializing in AI-native monorepo design.
-> **Mission**: Construct a production-grade polyglot monorepo from scratch, optimized for agentic workflows with Claude Code.
-> **Constraint**: The human will not touch any code. You execute everything autonomously, verifying at each phase.
-> **Supersedes**: the retired Pants + mise bootstrap. This document is the canonical greenfield path as of 2026-06.
+> **Role**: You are a Principal Software Architect specializing in AI-native monorepo design. **Mission**: Construct a production-grade polyglot monorepo from scratch, optimized for agentic workflows with Claude Code. **Constraint**: The human will not touch any code. You execute everything autonomously, verifying at each phase. **Supersedes**: the retired Pants + mise bootstrap. This document is the canonical greenfield path as of 2026-06.
 
 ## Table of Contents
 
@@ -254,9 +251,7 @@ vcs:
 }
 ```
 
-> The last three devDeps power **per-project** releases (Phase 9 case B). Install the fork with
-> `npm i -D --ignore-scripts @rimac-technology/semantic-release-monorepo` — its `husky` prepare-script
-> errors on a non-workspace root otherwise. Drop them for a single-releasable-unit repo (case A).
+> The last three devDeps power **per-project** releases (Phase 9 case B). Install the fork with `npm i -D --ignore-scripts @rimac-technology/semantic-release-monorepo` — its `husky` prepare-script errors on a non-workspace root otherwise. Drop them for a single-releasable-unit repo (case A).
 
 ### Per-project moon.yml exemplars
 
@@ -429,63 +424,42 @@ cd crates/core_rs && cargo init --lib
 
 When the crate is a PyO3 extension module, hard-won rules:
 
-- **Test binaries cannot link libpython** under `extension-module`: keep logic in pure-Rust
-  core functions; the `#[pyfunction]` is a thin wrapper. Unit tests call the core.
-- **Cross-arch float determinism**: `.cargo/config.toml` with `target-feature=-fma` +
-  `target-cpu=generic` when bit-parity across machines is a requirement.
-- **Remote installs**: build a wheel (`maturin build --release -i <python>`) and
-  `uv pip install <wheel> --force-reinstall` — never `maturin develop` on remote hosts.
+- **Test binaries cannot link libpython** under `extension-module`: keep logic in pure-Rust core functions; the `#[pyfunction]` is a thin wrapper. Unit tests call the core.
+- **Cross-arch float determinism**: `.cargo/config.toml` with `target-feature=-fma` + `target-cpu=generic` when bit-parity across machines is a requirement.
+- **Remote installs**: build a wheel (`maturin build --release -i <python>`) and `uv pip install <wheel> --force-reinstall` — never `maturin develop` on remote hosts.
 
 ### Buildless browser assets (if the repo ships any)
 
-A zero-build, `file://`-compatible asset (classic IIFE + window global) is a **first-class
-moon project too**: its own `moon.yml` with guard tasks, vendored third-party libs under
-`lib/vendor/` with **sha256 sidecar pins** + a fail-loud `vendor-pin` task, and a JSON-Schema
-data contract with a contract-check task. Never let a reusable lib depend on a content dir.
+A zero-build, `file://`-compatible asset (classic IIFE + window global) is a **first-class moon project too**: its own `moon.yml` with guard tasks, vendored third-party libs under `lib/vendor/` with **sha256 sidecar pins** + a fail-loud `vendor-pin` task, and a JSON-Schema data contract with a contract-check task. Never let a reusable lib depend on a content dir.
 
 ## Phase 6: Cross-Language Contracts (the polyglot kernel doctrine)
 
-**A hot or shared kernel's SSoT is language-neutral — NEVER a host-language file.** Python is
-orchestration/consumer, not kernel. Choose the pattern by the 8-float-op test (`+ − × ÷ √ fma neg abs`):
+**A hot or shared kernel's SSoT is language-neutral — NEVER a host-language file.** Python is orchestration/consumer, not kernel. Choose the pattern by the 8-float-op test (`+ − × ÷ √ fma neg abs`):
 
 | Pattern                      | When                                                       | Mechanism                                                                                                                                           |
 | ---------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **A — conformance vectors**  | kernel math fits the 8 ops deterministically               | one reference impl per language + shared test-vector files (JSON/CSV with expected outputs, sha256-pinned); every language must reproduce bit-exact |
 | **B — one WASM/native core** | anything beyond the 8 ops (transcendentals, stateful FSMs) | ONE compiled core (Rust → wasm/cdylib/PyO3) + thin per-language bindings; bindings are glue-only                                                    |
 
-**Pattern B mechanism gate** (verified 2026-06): if the kernel needs threads or host-grade
-throughput → native core (cdylib + PyO3/napi-rs bindings), NOT WASM — WASI threading is still
-roadmapped with no ship date (WASI 0.3, Feb 2026, added async only). For the full boundary
-decision ladder (process → RPC → Arrow data-plane → FFI → WASM component) and verified tool
-status, see [cross-language-interop.md](./cross-language-interop.md).
+**Pattern B mechanism gate** (verified 2026-06): if the kernel needs threads or host-grade throughput → native core (cdylib + PyO3/napi-rs bindings), NOT WASM — WASI threading is still roadmapped with no ship date (WASI 0.3, Feb 2026, added async only). For the full boundary decision ladder (process → RPC → Arrow data-plane → FFI → WASM component) and verified tool status, see [cross-language-interop.md](./cross-language-interop.md).
 
 Contract types:
 
 - `schemas/*.json` (JSON Schema 2020-12) or `schemas/*.proto` are the SSoT.
 - Generated per-language types live in committed `gen/` dirs.
-- Every `gen/` dir gets a **drift gate**: a task that regenerates into a temp dir and
-  byte-diffs against the committed copy (`moon run contracts:check`).
-- Bindings carry **parity tests** against the core (count them: "140/140 bit parity" is a
-  task output, not a vibe).
-- Proto SSoT: gate with `buf breaking` and **pick the category deliberately** — `FILE`
-  (source-level, strictest) vs `PACKAGE` vs `WIRE_JSON` vs `WIRE` (binary only). A field
-  rename passes `WIRE` yet breaks every generated SDK.
-- JSON Schema SSoT: it's a constraint language, not a type spec — codegen is lossy. Keep
-  codegen-bound schemas in the constructive subset (objects + `required`, enums, arrays,
-  scalars); avoid `not` / `multipleOf` / heavy `allOf`. Rust side: typify (Rust-only,
-  `x-rust-type` round-trip).
+- Every `gen/` dir gets a **drift gate**: a task that regenerates into a temp dir and byte-diffs against the committed copy (`moon run contracts:check`).
+- Bindings carry **parity tests** against the core (count them: "140/140 bit parity" is a task output, not a vibe).
+- Proto SSoT: gate with `buf breaking` and **pick the category deliberately** — `FILE` (source-level, strictest) vs `PACKAGE` vs `WIRE_JSON` vs `WIRE` (binary only). A field rename passes `WIRE` yet breaks every generated SDK.
+- JSON Schema SSoT: it's a constraint language, not a type spec — codegen is lossy. Keep codegen-bound schemas in the constructive subset (objects + `required`, enums, arrays, scalars); avoid `not` / `multipleOf` / heavy `allOf`. Rust side: typify (Rust-only, `x-rust-type` round-trip).
 
 ## Phase 7: CLI-First Machine-Readable Surface
 
-Anything tunable is a CLI flag; the flag/command set is the machine-readable SSoT that AI
-agents introspect — not `--help` prose.
+Anything tunable is a CLI flag; the flag/command set is the machine-readable SSoT that AI agents introspect — not `--help` prose.
 
-- The repo console (`packages/cli`) drives BOTH its dispatcher AND its emitted
-  `cli_spec.json` (JSON Schema 2020-12) from ONE in-code `COMMANDS` table — they cannot drift.
+- The repo console (`packages/cli`) drives BOTH its dispatcher AND its emitted `cli_spec.json` (JSON Schema 2020-12) from ONE in-code `COMMANDS` table — they cannot drift.
 - `moon run cli:spec-check` is the drift gate (regenerate → byte-diff).
 - Errors: RFC 9457 problem+json shape where the CLI returns structured errors.
-- `moon query tasks` JSON is the second machine-readable surface; together they make the
-  repo agent-navigable without reading prose.
+- `moon query tasks` JSON is the second machine-readable surface; together they make the repo agent-navigable without reading prose.
 
 ## Phase 8: GitHub Repository Setup
 
@@ -500,25 +474,18 @@ gh label create "type:bug" --color "D73A4A" --description "Something isn't worki
 # … (repeat per project/type)
 ```
 
-LICENSE (MIT unless told otherwise), README with badges + quick start + project table,
-git-town for branch workflow (`git config git-town.main-branch main`,
-`git config git-town.sync-feature-strategy rebase`).
+LICENSE (MIT unless told otherwise), README with badges + quick start + project table, git-town for branch workflow (`git config git-town.main-branch main`, `git config git-town.sync-feature-strategy rebase`).
 
 ## Phase 9: Release Workflow (local-first)
 
 **Local-first CI/CD is doctrine**: quality gates run locally via `moon ci` / `moon run
 <project>:check` — NEVER in GitHub Actions. Actions are reserved for: semantic-release,
-CodeQL, Dependabot, deployment. Releases run **locally** (`--no-ci`); private repos publish
-**tags + CHANGELOG + GitHub Release only** (NO `@semantic-release/npm`).
+CodeQL, Dependabot, deployment. Releases run **locally** (`--no-ci`); private repos publish **tags + CHANGELOG + GitHub Release only** (NO `@semantic-release/npm`).
 
 **Pick your case first:**
 
-- **Case A — one releasable unit** (the repo ships as a single version): stock `semantic-release`, one
-  `.releaserc.yml`, tag `v${version}`. Use this for single-package repos.
-- **Case B — multiple independently-versioned projects** (a real monorepo): **per-project namespaced tags**
-  (`<project>/v${version}`) via **`@rimac-technology/semantic-release-monorepo`**, driven by a cosmiconfig
-  **dispatcher** `.releaserc.cjs`, plus one repo-wide **umbrella** stream on stock `semantic-release`. This is
-  the **operator monorepo standard** — verified in `claude-sys` (6 streams). Details below.
+- **Case A — one releasable unit** (the repo ships as a single version): stock `semantic-release`, one `.releaserc.yml`, tag `v${version}`. Use this for single-package repos.
+- **Case B — multiple independently-versioned projects** (a real monorepo): **per-project namespaced tags** (`<project>/v${version}`) via **`@rimac-technology/semantic-release-monorepo`**, driven by a cosmiconfig **dispatcher** `.releaserc.cjs`, plus one repo-wide **umbrella** stream on stock `semantic-release`. This is the **operator monorepo standard** — verified in a private monorepo (6 streams). Details below.
 
 ### Case A — single releasable unit
 
@@ -557,24 +524,13 @@ release-full:
   options: { cache: false, runFromWorkspaceRoot: true }
 ```
 
-> The `@semantic-release/exec` plugin uses Lodash templates — avoid bash `${VAR:-default}`
-> syntax inside exec commands.
+> The `@semantic-release/exec` plugin uses Lodash templates — avoid bash `${VAR:-default}` syntax inside exec commands.
 
 #### Extensive release notes (surface the commit BODY, not just the subject)
 
-**Doctrine**: every release must carry extensive, human-readable notes — a narrative
-paragraph (the _why_) **and** a point-form list (the _what_). SSoT:
-`~/.claude/release-notes-doctrine-CLAUDE.md`; enforced globally by the `itp-hooks`
-release-notes-extensiveness-guard (hard-blocks thin `gh release` / `git tag` /
-semantic-release commands).
+**Doctrine**: every release must carry extensive, human-readable notes — a narrative paragraph (the _why_) **and** a point-form list (the _what_). SSoT: `~/.claude/release-notes-doctrine-CLAUDE.md`; enforced globally by the `itp-hooks` release-notes-extensiveness-guard (hard-blocks thin `gh release` / `git tag` / semantic-release commands).
 
-**Gotcha**: the default `@semantic-release/release-notes-generator` (Angular preset)
-renders **only each commit's subject line** — its `writerOpts.transform` drops the
-body. So rich multi-paragraph Conventional-Commit bodies never reach the published
-notes. To surface them you need a JS `writerOpts` (a function YAML cannot hold), so use
-a **`release.config.cjs`** instead of `.releaserc.yml` (delete the YAML — cosmiconfig
-finds `.releaserc.{yaml,yml}` **before** `release.config.cjs`, so a leftover YAML shadows
-the JS config):
+**Gotcha**: the default `@semantic-release/release-notes-generator` (Angular preset) renders **only each commit's subject line** — its `writerOpts.transform` drops the body. So rich multi-paragraph Conventional-Commit bodies never reach the published notes. To surface them you need a JS `writerOpts` (a function YAML cannot hold), so use a **`release.config.cjs`** instead of `.releaserc.yml` (delete the YAML — cosmiconfig finds `.releaserc.{yaml,yml}` **before** `release.config.cjs`, so a leftover YAML shadows the JS config):
 
 ```js
 // release.config.cjs — body-preserving notes. The writer merges { ...commit, ...patch },
@@ -602,29 +558,15 @@ module.exports = {
 };
 ```
 
-> **Reference implementation** (copy this, don't re-derive): `cc-skills`
-> `release.config.cjs` — the full verbatim commit template, the faithful
-> body-preserving transform, and the lodash-`${nextRelease.version}`-placeholder
-> handling, pinned by `test/release-config-body-surfacing.test.ts`. For the manual /
-> per-release path (or repos that skip the JS config), cc-skills' `bash tasks/release/augment
+> **Reference implementation** (copy this, don't re-derive): `cc-skills` `release.config.cjs` — the full verbatim commit template, the faithful body-preserving transform, and the lodash-`${nextRelease.version}`-placeholder handling, pinned by `test/release-config-body-surfacing.test.ts`. For the manual / per-release path (or repos that skip the JS config), cc-skills' `bash tasks/release/augment
 --tag <tag> --notes-file <path>` edits the GitHub Release through the same
 > extensiveness gate (`scripts/augment-release-notes.mjs`).
 
 ### Case B — per-project monorepo releases (the standard)
 
-**Why a fork.** Stock semantic-release has **no path filter** — its `commitPaths` option is silently
-**ignored** (upstream semantic-release#1279 / #1212), so a naive per-project config computes its version off
-the **whole repo**. `@rimac-technology/semantic-release-monorepo` fixes this: its `modifyContextCommits` tags
-each commit with a `filePaths` array (from `git diff-tree`) and then calls a **`processCommits(commits)`** hook
-from your config — keep only the commits that touched this project's folder, and the version is scoped correctly.
-(It also auto-detects npm/yarn workspaces via `npm query .workspace`, but that returns null on a non-workspace
-repo — so we drive scoping **entirely** through `processCommits`, which works from the repo root with no
-workspaces.)
+**Why a fork.** Stock semantic-release has **no path filter** — its `commitPaths` option is silently **ignored** (upstream semantic-release#1279 / #1212), so a naive per-project config computes its version off the **whole repo**. `@rimac-technology/semantic-release-monorepo` fixes this: its `modifyContextCommits` tags each commit with a `filePaths` array (from `git diff-tree`) and then calls a **`processCommits(commits)`** hook from your config — keep only the commits that touched this project's folder, and the version is scoped correctly. (It also auto-detects npm/yarn workspaces via `npm query .workspace`, but that returns null on a non-workspace repo — so we drive scoping **entirely** through `processCommits`, which works from the repo root with no workspaces.)
 
-**Why a dispatcher.** semantic-release v25's `--extends <file.yml>` cannot load a YAML path (it `require()`s it,
-and require has no YAML loader). So keep **one YAML per stream** (`.releaserc-<profile>.yml`) and select it with a
-`RELEASE_PROFILE` env var from a cosmiconfig-discovered `.releaserc.cjs`, which also **derives `processCommits`
-from each profile's `commitPaths`** (DRY: the same `commitPaths` list documents intent AND enforces scope):
+**Why a dispatcher.** semantic-release v25's `--extends <file.yml>` cannot load a YAML path (it `require()`s it, and require has no YAML loader). So keep **one YAML per stream** (`.releaserc-<profile>.yml`) and select it with a `RELEASE_PROFILE` env var from a cosmiconfig-discovered `.releaserc.cjs`, which also **derives `processCommits` from each profile's `commitPaths`** (DRY: the same `commitPaths` list documents intent AND enforces scope):
 
 ```js
 // .releaserc.cjs — cosmiconfig dispatcher. RELEASE_PROFILE selects the stream.
@@ -657,8 +599,7 @@ if (Array.isArray(config.commitPaths) && config.commitPaths.length > 0) {
 module.exports = config;
 ```
 
-**Per-project stream** `.releaserc-<project>.yml` (slash tag + `commitPaths` + exec preflight/push; `github`
-assets optional):
+**Per-project stream** `.releaserc-<project>.yml` (slash tag + `commitPaths` + exec preflight/push; `github` assets optional):
 
 ```yaml
 tagFormat: "<project>/v${version}" # namespaced → no collision with sibling projects or the umbrella
@@ -686,9 +627,7 @@ plugins:
   - ["@semantic-release/github", { assets: [] }]
 ```
 
-The **umbrella** `.releaserc-repo.yml` is the same minus `commitPaths` + `tagFormat: "v${version}"` — it runs the
-**stock** `semantic-release` bin over the whole repo (so config/doc commits that touch no project still cut a repo
-release). A `fix(x):` under a project advances BOTH that project's tag and the umbrella — correct, the repo did change.
+The **umbrella** `.releaserc-repo.yml` is the same minus `commitPaths` + `tagFormat: "v${version}"` — it runs the **stock** `semantic-release` bin over the whole repo (so config/doc commits that touch no project still cut a repo release). A `fix(x):` under a project advances BOTH that project's tag and the umbrella — correct, the repo did change.
 
 **moon tasks** — umbrella uses `semantic-release`; every per-project stream uses `semantic-release-monorepo`:
 
@@ -730,14 +669,10 @@ release:
 **Gotchas (all verified):**
 
 - **Install the fork with `npm i -D --ignore-scripts`** — its `husky` prepare-script errors on a non-workspace root.
-- **Fork CLI builds `tty.WriteStream(1)`** → run it to a **terminal, pipe, or `| tee`**; a direct `> file.log`
-  redirect throws `ERR_TTY_INIT_FAILED` (harmless — `moon run` and bare terminal runs are unaffected).
-- **Always `*:release-dry` first.** A correct dry-run shows a project ignoring commits outside its `commitPaths`
-  (e.g. hundreds of repo commits since a `<project>/v*` tag → "no relevant changes" when none touched the folder).
-- **Namespaced tags need a baseline.** Seed the first `<project>/v<x>` tag (or let the first release start at the
-  fork's default) so `Found N commits since last release` counts from the right point.
-- Preflight sources the GitHub token from the environment (never argv/log); mint a **dedicated fine-grained PAT**
-  (`gh-tools:gh-fine-grained-pat`) scoped to Contents+Releases and store it in the vault, not `gh auth`.
+- **Fork CLI builds `tty.WriteStream(1)`** → run it to a **terminal, pipe, or `| tee`**; a direct `> file.log` redirect throws `ERR_TTY_INIT_FAILED` (harmless — `moon run` and bare terminal runs are unaffected).
+- **Always `*:release-dry` first.** A correct dry-run shows a project ignoring commits outside its `commitPaths` (e.g. hundreds of repo commits since a `<project>/v*` tag → "no relevant changes" when none touched the folder).
+- **Namespaced tags need a baseline.** Seed the first `<project>/v<x>` tag (or let the first release start at the fork's default) so `Found N commits since last release` counts from the right point.
+- Preflight sources the GitHub token from the environment (never argv/log); mint a **dedicated fine-grained PAT** (`gh-tools:gh-fine-grained-pat`) scoped to Contents+Releases and store it in the vault, not `gh auth`.
 
 ## Testing Patterns by Language
 
@@ -751,18 +686,12 @@ release:
 
 ## Doctrine Appendix (hard-won, cross-repo)
 
-1. **Process-storm prevention**: no `exec()`-style subprocess templating in any env layer;
-   PID-specific kills (never `pkill -f`); shims PATH in `~/.zshenv` only.
-2. **Hub-and-spoke CLAUDE.md**: root = link farm; every directory with behavior gets a
-   spoke; update spokes, not the hub.
-3. **Append-only research/docs discipline** (if the repo hosts findings): corrections are
-   new sibling files, never retro-edits; sha256 sidecars on canonical artifacts.
-4. **Vendored third-party assets**: pinned copy in a `vendor/` dir + sha256 sidecar +
-   fail-loud verify task. No CDN loads in committed pages.
-5. **Version strings live in manifests only** (Cargo.toml / pyproject.toml / package.json);
-   docs use `<version>` placeholders or an `SSoT-OK` escape hatch.
-6. **Inline suppressions** (`# noqa`, `# type: ignore`, `// biome-ignore`) require codes +
-   justification, or use config-level overrides; bare suppressions are banned by hooks.
+1. **Process-storm prevention**: no `exec()`-style subprocess templating in any env layer; PID-specific kills (never `pkill -f`); shims PATH in `~/.zshenv` only.
+2. **Hub-and-spoke CLAUDE.md**: root = link farm; every directory with behavior gets a spoke; update spokes, not the hub.
+3. **Append-only research/docs discipline** (if the repo hosts findings): corrections are new sibling files, never retro-edits; sha256 sidecars on canonical artifacts.
+4. **Vendored third-party assets**: pinned copy in a `vendor/` dir + sha256 sidecar + fail-loud verify task. No CDN loads in committed pages.
+5. **Version strings live in manifests only** (Cargo.toml / pyproject.toml / package.json); docs use `<version>` placeholders or an `SSoT-OK` escape hatch.
+6. **Inline suppressions** (`# noqa`, `# type: ignore`, `// biome-ignore`) require codes + justification, or use config-level overrides; bare suppressions are banned by hooks.
 
 ## Success Criteria
 
@@ -775,8 +704,7 @@ release:
 - [ ] `cli_spec.json` emitted + `spec-check` green
 - [ ] Root CLAUDE.md hub + one spoke per project, all links valid
 - [ ] GitHub repo decorated (description, topics, labels, LICENSE, README)
-- [ ] Release wired: case A → `moon run repo:release-full`; case B → per-project `<project>:release-dry` scopes to
-      its own `commitPaths` (a dry-run ignores commits outside the folder) + the umbrella covers the whole repo
+- [ ] Release wired: case A → `moon run repo:release-full`; case B → per-project `<project>:release-dry` scopes to its own `commitPaths` (a dry-run ignores commits outside the folder) + the umbrella covers the whole repo
 - [ ] Nx-convergence rules honored (explicit projects, uniform task names, tags, declared outputs, orchestrator-free scripts)
 
 ## Related Resources
@@ -784,6 +712,5 @@ release:
 - [moonrepo docs](https://moonrepo.dev/docs) · [proto docs](https://moonrepo.dev/docs/proto) · [Bun docs](https://bun.sh/docs)
 - [Nx docs](https://nx.dev/) — the convergence target; revisit when repo > ~30 projects or remote caching/distributed execution pays
 - `itp:semantic-release` skill — release automation deep dive (single-unit case A)
-- Per-project monorepo releases (case B): Phase 9 above — `@rimac-technology/semantic-release-monorepo` + the
-  `.releaserc.cjs` dispatcher. Reference implementation: `claude-sys` (6 streams, verified).
+- Per-project monorepo releases (case B): Phase 9 above — `@rimac-technology/semantic-release-monorepo` + the `.releaserc.cjs` dispatcher. Reference implementation: a private monorepo (6 streams, verified).
 - JSON Schema 2020-12 · RFC 9457 problem+json · Conventional Commits

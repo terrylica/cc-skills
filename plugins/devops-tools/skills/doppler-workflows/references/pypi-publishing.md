@@ -6,7 +6,7 @@
 
 ```bash
 # Publish package
-doppler run --project claude-config --config dev \
+doppler run --project private-config --config dev \
   --command='uv publish --token "$PYPI_TOKEN"'
 ```
 
@@ -14,7 +14,7 @@ doppler run --project claude-config --config dev \
 
 **Doppler Storage:**
 
-- Project: `claude-config`
+- Project: `private-config`
 - Config: `dev`
 - Secret naming: `PYPI_TOKEN` (primary), `PYPI_TOKEN_{ABBREV}` (additional packages)
 
@@ -28,15 +28,15 @@ doppler run --project claude-config --config dev \
 
 # Step 2: Store in Doppler (use stdin to avoid escaping)
 echo -n 'pypi-AgEI...' | doppler secrets set PYPI_TOKEN_XXX \
-  --project claude-config --config dev
+  --project private-config --config dev
 
 # Step 3: Verify injection
-doppler run --project claude-config --config dev \
+doppler run --project private-config --config dev \
   --command='echo "Length: ${#PYPI_TOKEN_XXX}"'
 # Should show: 220-224 (valid token length)
 
 # Step 4: Test publish
-doppler run --project claude-config --config dev \
+doppler run --project private-config --config dev \
   --command='uv publish --token "$PYPI_TOKEN_XXX"'
 VALIDATE_EOF
 ```

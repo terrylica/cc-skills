@@ -13,4 +13,4 @@
 - Apple Silicon AC bypass mode at charge limit means battery is electrically disconnected — zero performance impact
 - USB kernel assertions (`pmset -g assertions | grep USB`) show device enumeration timestamps — useful for pinpointing when a device was last re-enumerated vs. originally discovered at boot
 
-**Implementation**: `AudioDeviceMonitorRunner.swift` enhanced from v1 (priority enforcer only) to v2 (device guardian). Lives in `~/own/amonic/bin/swift/`. Build requires `-framework IOKit` in addition to `-framework CoreAudio`.
+**Implementation**: `AudioDeviceMonitorRunner.swift` enhanced from v1 (priority enforcer only) to v2 (device guardian). Lives in `~/<automation-repo>/bin/swift/`. Build requires `-framework IOKit` in addition to `-framework CoreAudio`.

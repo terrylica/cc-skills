@@ -18,7 +18,7 @@
  * guard that blocks it is wrong.
  *
  * The failure this exists to catch is the opposite one — a closing link nobody meant to create. It
- * was found on Eon-Labs/alpha-forge#787 (2026-09-15), whose body contained the sentence:
+ * was found on example-org/research-repo#787 (2026-09-15), whose body contained the sentence:
  *
  *     rejected two of the three fixes #788 first proposed
  *

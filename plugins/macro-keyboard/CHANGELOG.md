@@ -90,7 +90,7 @@ Applied to `~/.config/karabiner/karabiner.json` on 2026-04-24 (backup at `~/.con
 
 ### Added — Initial Release
 
-Plugin migrated from the amonic personal automation repo (`~/own/amonic/docs/macro-keyboard/`) into the cc-skills marketplace as the canonical reusable reference for cheap 3-key USB-C/Bluetooth macro pads on macOS.
+Plugin migrated from the operator's personal automation repo (`~/<automation-repo>/docs/macro-keyboard/`) into the cc-skills marketplace as the canonical reusable reference for cheap 3-key USB-C/Bluetooth macro pads on macOS.
 
 - **Three skills** covering the full workflow:
   - `configure-macro-keyboard` — end-to-end: identify device → write Karabiner rule → scope via `device_if` → handle USB + Bluetooth in one rule
@@ -132,4 +132,4 @@ After initial commit, a 9-reviewer consensus pass surfaced:
 
 ### Upstream provenance
 
-All reusable patterns originated from hands-on work on a Jieli AC69xx-based Free3-P pad (2026-02 to 2026-04). The original repo (`~/own/amonic/docs/macro-keyboard/`) now serves as a device-specific config journal for the development laptop; this plugin is the canonical reusable reference for any cheap 3-key HID pad on macOS.
+All reusable patterns originated from hands-on work on a Jieli AC69xx-based Free3-P pad (2026-02 to 2026-04). The original repo (`~/<automation-repo>/docs/macro-keyboard/`) now serves as a device-specific config journal for the development laptop; this plugin is the canonical reusable reference for any cheap 3-key HID pad on macOS.

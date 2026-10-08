@@ -9,7 +9,7 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
 - Runs as root (needed for port 80/443 if ever needed)
 - Resource limits can be enforced
 
-**Plist Location**: `/Library/LaunchDaemons/com.terryli.claude-proxy.plist`
+**Plist Location**: `/Library/LaunchDaemons/com.example.claude-proxy.plist`
 
 ## Full Configuration
 
@@ -19,7 +19,7 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
 <plist version="1.0">
 <dict>
     <!-- Unique identifier -->
-    <key>Label</key><string>com.terryli.claude-proxy</string>
+    <key>Label</key><string>com.example.claude-proxy</string>
 
     <!-- Program to run -->
     <key>ProgramArguments</key>
@@ -56,42 +56,42 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
     </dict>
 
     <!-- Log output -->
-    <key>StandardOutPath</key><string>/Users/terryli/.claude/logs/proxy-stdout.log</string>
-    <key>StandardErrorPath</key><string>/Users/terryli/.claude/logs/proxy-stderr.log</string>
+    <key>StandardOutPath</key><string>/Users/<you>/.claude/logs/proxy-stdout.log</string>
+    <key>StandardErrorPath</key><string>/Users/<you>/.claude/logs/proxy-stderr.log</string>
 </dict>
 </plist>
 ```
 
 ## Key launchd Properties
 
-| Key                                | Purpose            | Value for Proxy                                |
-| ---------------------------------- | ------------------ | ---------------------------------------------- |
-| `Label`                            | Unique identifier  | `com.terryli.claude-proxy`                     |
-| `ProgramArguments`                 | Command + args     | `["/usr/local/bin/claude-proxy"]`              |
-| `RunAtLoad`                        | Start at boot      | `true`                                         |
-| `KeepAlive/SuccessfulExit`         | Restart on crash   | `false` (always restart)                       |
-| `EnvironmentVariables`             | Env vars for proxy | PORT, API keys, etc.                           |
-| `SoftResourceLimits/NumberOfFiles` | FD limit           | `65536`                                        |
-| `StandardOutPath`                  | stdout log         | `/Users/terryli/.claude/logs/proxy-stdout.log` |
-| `StandardErrorPath`                | stderr log         | `/Users/terryli/.claude/logs/proxy-stderr.log` |
+| Key                                | Purpose            | Value for Proxy                              |
+| ---------------------------------- | ------------------ | -------------------------------------------- |
+| `Label`                            | Unique identifier  | `com.example.claude-proxy`                   |
+| `ProgramArguments`                 | Command + args     | `["/usr/local/bin/claude-proxy"]`            |
+| `RunAtLoad`                        | Start at boot      | `true`                                       |
+| `KeepAlive/SuccessfulExit`         | Restart on crash   | `false` (always restart)                     |
+| `EnvironmentVariables`             | Env vars for proxy | PORT, API keys, etc.                         |
+| `SoftResourceLimits/NumberOfFiles` | FD limit           | `65536`                                      |
+| `StandardOutPath`                  | stdout log         | `/Users/<you>/.claude/logs/proxy-stdout.log` |
+| `StandardErrorPath`                | stderr log         | `/Users/<you>/.claude/logs/proxy-stderr.log` |
 
 ## Commands
 
 ```bash
 # Install plist (one-time)
-sudo cp /path/to/com.terryli.claude-proxy.plist /Library/LaunchDaemons/
-sudo chown root:wheel /Library/LaunchDaemons/com.terryli.claude-proxy.plist
-sudo chmod 644 /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+sudo cp /path/to/com.example.claude-proxy.plist /Library/LaunchDaemons/
+sudo chown root:wheel /Library/LaunchDaemons/com.example.claude-proxy.plist
+sudo chmod 644 /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Start (load)
-sudo launchctl load -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Stop (unload)
-sudo launchctl unload -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Restart
-sudo launchctl unload -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
-sudo launchctl load -w /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+sudo launchctl unload -w /Library/LaunchDaemons/com.example.claude-proxy.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # Check status
 sudo launchctl list | grep claude-proxy
@@ -100,8 +100,8 @@ sudo launchctl list | grep claude-proxy
 ps aux | grep claude-proxy
 
 # View logs
-tail -f /Users/terryli/.claude/logs/proxy-stdout.log
-tail -f /Users/terryli/.claude/logs/proxy-stderr.log
+tail -f /Users/<you>/.claude/logs/proxy-stdout.log
+tail -f /Users/<you>/.claude/logs/proxy-stderr.log
 
 # Test health
 curl -s http://127.0.0.1:8082/health | jq .
@@ -111,7 +111,7 @@ curl -s http://127.0.0.1:8082/health | jq .
 
 ```bash
 # 1. Plist exists
-ls -la /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+ls -la /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # 2. Loaded in launchd
 sudo launchctl list | grep claude-proxy
@@ -130,11 +130,11 @@ curl -s http://127.0.0.1:8082/health | jq .
 
 ```bash
 # Check if plist is valid
-plutil -lint /Library/LaunchDaemons/com.terryli.claude-proxy.plist
+plutil -lint /Library/LaunchDaemons/com.example.claude-proxy.plist
 
 # View full launchd logs
 log show --predicate 'process == "claude-proxy"' --last 5m
 
 # Check stderr for errors
-tail -50 /Users/terryli/.claude/logs/proxy-stderr.log
+tail -50 /Users/<you>/.claude/logs/proxy-stderr.log
 ```

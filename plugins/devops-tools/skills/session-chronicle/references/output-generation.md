@@ -96,7 +96,7 @@ total_entries: <total>
 Artifacts:
 - findings/registry.jsonl
 - findings/sessions/<id>/iterations.jsonl
-- S3: s3://eonlabs-findings/sessions/<id>/
+- S3: s3://example-findings-bucket/sessions/<id>/
 
 ## S3 Artifact Retrieval
 
@@ -104,7 +104,7 @@ Artifacts:
 export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/<chronicle-item>/access key id")
 export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
-aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
+aws s3 sync s3://example-findings-bucket/sessions/<id>/ ./artifacts/
 for f in ./artifacts/*.br; do brotli -d "$f"; done
 
 Co-authored-by: Claude <noreply@anthropic.com>

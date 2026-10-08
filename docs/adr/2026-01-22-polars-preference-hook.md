@@ -2,7 +2,7 @@
 status: superseded
 date: 2026-01-22
 superseded-date: 2026-01-31
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [lifecycle-reference.md, ml-data-pipeline-architecture SKILL]
 research-method: multi-perspective-subagent-analysis
 ---
@@ -74,22 +74,19 @@ NumPy ndarray → Tensor # ML framework input
 
 Add Polars reminder to existing posttooluse-reminder.ts.
 
-**Pros**: Simple, non-disruptive
-**Cons**: Tool already executed, Claude may ignore
+**Pros**: Simple, non-disruptive **Cons**: Tool already executed, Claude may ignore
 
 ### Option B: PreToolUse Hard Block
 
 Block all Pandas without user override.
 
-**Pros**: Strong enforcement
-**Cons**: Breaks legitimate use cases (MLflow, pandas-ta)
+**Pros**: Strong enforcement **Cons**: Breaks legitimate use cases (MLflow, pandas-ta)
 
 ### Option C: PreToolUse Ask + PostToolUse Backup (Selected)
 
 PreToolUse shows dialog; PostToolUse catches edge cases.
 
-**Pros**: User choice + defense in depth
-**Cons**: Two hooks to maintain
+**Pros**: User choice + defense in depth **Cons**: Two hooks to maintain
 
 ## Decision Outcome
 

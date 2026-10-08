@@ -19,7 +19,7 @@ How Gmail Commander sorts recent email into what needs attention, and where each
 
 The scheduled digest runs in a **private Restate tenant on an always-on Mac mini** and does not import this plugin's triage code. Its schedule, prompt, alerting and failures are operated through that deployment's own repository runbook.
 
-This plugin no longer ships a scheduled digest entry point: the laptop launchd job `com.terryli.gmail-commander-digest` was retired on 2026-09-24, and its `scripts/digest.ts` (with the Kokoro podcast-style voice briefing in `scripts/lib/tts-client.ts`) was removed on 2026-09-26 once nothing imported it. Do not recreate either.
+This plugin no longer ships a scheduled digest entry point: the laptop launchd job `com.example.gmail-commander-digest` was retired on 2026-09-24, and its `scripts/digest.ts` (with the Kokoro podcast-style voice briefing in `scripts/lib/tts-client.ts`) was removed on 2026-09-26 once nothing imported it. Do not recreate either.
 
 ## Mandatory Preflight
 

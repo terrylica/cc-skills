@@ -122,8 +122,7 @@ The script automatically finds all sessions for the **current project** (derived
 3. For each session, follows parent chains (continuation sessions) for full context
 4. Sorts chronologically (oldest first) for coherent narrative
 
-The project key is the absolute path with `/` replaced by `-`. For example:
-`/Users/terryli/eon/cc-skills` → `-Users-terryli-eon-cc-skills`
+The project key is the absolute path with `/` replaced by `-`. For example: `/Users/<you>/eon/cc-skills` → `-Users-<you>-eon-cc-skills`
 
 ---
 

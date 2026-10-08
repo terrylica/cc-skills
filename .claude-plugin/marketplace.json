@@ -3,7 +3,7 @@
   "version": "33.9.0",
   "description": "Claude Code Skills Marketplace",
   "owner": {
-    "name": "Terry Li",
+    "name": "terrylica",
     "url": "https://github.com/terrylica"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "source": "./plugins/agent-reach",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -44,7 +44,7 @@
       "source": "./plugins/arxiv-source-first",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -68,7 +68,7 @@
       "source": "./plugins/asciinema-tools",
       "category": "utilities",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -93,7 +93,7 @@
       "source": "./plugins/calcom-commander",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -120,7 +120,7 @@
       "source": "./plugins/chrome-profiles",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -144,7 +144,7 @@
       "source": "./plugins/cli-anything",
       "category": "development",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -168,7 +168,7 @@
       "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
       "version": "33.9.0",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -191,7 +191,7 @@
       "source": "./plugins/devops-tools",
       "category": "devops",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -225,7 +225,7 @@
       "source": "./plugins/doc-tools",
       "category": "documents",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -255,7 +255,7 @@
       "source": "./plugins/dotfiles-tools",
       "category": "utilities",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -274,7 +274,7 @@
       "source": "./plugins/floating-clock",
       "category": "utilities",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -296,7 +296,7 @@
       "source": "./plugins/garch-volatility-toolkit",
       "category": "trading",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -318,7 +318,7 @@
       "source": "./plugins/gemini-deep-research",
       "category": "ai",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -342,7 +342,7 @@
       "source": "./plugins/gh-tools",
       "category": "development",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -366,7 +366,7 @@
       "source": "./plugins/git-town-workflow",
       "category": "devops",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -389,7 +389,7 @@
       "source": "./plugins/gmail-commander",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -413,7 +413,7 @@
       "source": "./plugins/html-showcase",
       "category": "documents",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -437,7 +437,7 @@
       "source": "./plugins/itp",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -459,7 +459,7 @@
       "source": "./plugins/itp-hooks",
       "category": "enforcement",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -481,7 +481,7 @@
       "source": "./plugins/link-tools",
       "category": "quality",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -503,7 +503,7 @@
       "source": "./plugins/macos-font-defaults",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -525,7 +525,7 @@
       "source": "./plugins/macos-permissions",
       "category": "utilities",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -551,7 +551,7 @@
       "source": "./plugins/macro-keyboard",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -599,7 +599,7 @@
       "source": "./plugins/media-tools",
       "category": "utilities",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -620,7 +620,7 @@
       "source": "./plugins/mql5",
       "category": "trading",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -642,7 +642,7 @@
       "source": "./plugins/notes-commander",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -667,7 +667,7 @@
       "source": "./plugins/openwolf",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -690,7 +690,7 @@
       "source": "./plugins/plugin-dev",
       "category": "development",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -713,7 +713,7 @@
       "source": "./plugins/productivity-tools",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -737,7 +737,7 @@
       "source": "./plugins/pushover-commander",
       "category": "devops",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -768,7 +768,7 @@
       "source": "./plugins/quality-tools",
       "category": "quality",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -790,7 +790,7 @@
       "source": "./plugins/quant-research",
       "category": "trading",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -816,7 +816,7 @@
       "source": "./plugins/rust-tools",
       "category": "development",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -842,10 +842,10 @@
     },
     {
       "name": "ssh-tunnel-companion",
-      "description": "SSH tunnel persistence for bigblack ClickHouse via launchd + sleepwatcher",
+      "description": "SSH tunnel persistence for gpu-host ClickHouse via launchd + sleepwatcher",
       "version": "33.9.0",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -865,7 +865,7 @@
       "source": "./plugins/statusline-tools",
       "category": "utilities",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -882,7 +882,7 @@
       "source": "./plugins/tlg",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -902,7 +902,7 @@
       "source": "./plugins/unlimited-ocr",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -929,7 +929,7 @@
       "source": "./plugins/web-forge",
       "category": "devops",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
@@ -958,7 +958,7 @@
       "source": "./plugins/whatsapp-commander",
       "category": "productivity",
       "author": {
-        "name": "Terry Li",
+        "name": "terrylica",
         "url": "https://github.com/terrylica"
       },
       "keywords": [

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-09
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [DBeaver-Research-Agent, DataGrip-Research-Agent, CC-Skills-Naming-Agent]
 research-method: multi-agent-parallel

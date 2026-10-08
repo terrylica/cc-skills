@@ -185,7 +185,7 @@ export async function isAuthedViaRequest(ctx) {
  * fine-grained tokens)" — a TRUE statement about work's empty token list,
  * read as a fact about terrylica's. A `create` would have minted the token on
  * work, and setOwner()'s catch-all would have swallowed the missing
- * `doorward-systems` resource-owner option, yielding a silently wrong token.
+ * `example-org` resource-owner option, yielding a silently wrong token.
  *
  * null is INCOMPLETE, never "matches" — callers must refuse, not proceed.
  */

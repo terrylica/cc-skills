@@ -35,7 +35,7 @@ describe("classifyQuotaSpend", () => {
   });
 
   it("meters a push carrying an env prefix, which is how this repo pushes", () => {
-    expect(classifyQuotaSpend('GH_ORGS="Eon-Labs" git push')?.kind).toBe("push");
+    expect(classifyQuotaSpend('GH_ORGS="example-org" git push')?.kind).toBe("push");
   });
 
   it("METERS A DRAFT PR CREATE, which the sibling gate deliberately exempts", () => {
@@ -74,7 +74,7 @@ describe("classifyQuotaSpend", () => {
   it("prefilters cheaply without missing anything it later meters", () => {
     for (const command of [
       "git push",
-      'GH_ORGS="Eon-Labs" git push',
+      'GH_ORGS="example-org" git push',
       "gh pr create --draft",
       "gh pr reopen 1",
       "gh pr update-branch 1",

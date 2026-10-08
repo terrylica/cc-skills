@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-13
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [
     Explore Agent (hook detection logic),

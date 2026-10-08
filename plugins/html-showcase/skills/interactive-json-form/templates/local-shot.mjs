@@ -1,4 +1,4 @@
-import pw from '/Users/terryli/.claude/tools/lark-automation/node_modules/playwright-core/index.js';
+import pw from 'playwright-core';
 const { chromium } = pw;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
@@ -11,7 +11,7 @@ await page.waitForTimeout(400);
 const json = await page.evaluate(() => {
   const set = (sel, v) => { const e = document.querySelector(sel); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
   const pick = (sel) => { const r = document.querySelector(sel); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); };
-  set('#respondent', 'Chen Li'); set('#role', 'CEO');
+  set('#respondent', 'Jane Doe'); set('#role', 'CEO');
   pick('.opt[data-id="1"] input[value="fire"]');
   pick('.opt[data-id="3"] input[value="up"]');
   set('.opt[data-id="1"] .rank', '1');

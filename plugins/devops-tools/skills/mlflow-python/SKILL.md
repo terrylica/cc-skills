@@ -41,13 +41,13 @@ MLflow uses separate environment variables for credentials (NOT embedded in URI)
 # Option 1: .env.local + uv --env-file (recommended)
 # Create .env.local (gitignored) in the skill directory with the lines below,
 # then run scripts as: uv run --env-file .env.local scripts/<script>.py
-MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
-MLFLOW_TRACKING_USERNAME=eonlabs
+MLFLOW_TRACKING_URI=http://mlflow.example.com:5000
+MLFLOW_TRACKING_USERNAME=<user>
 MLFLOW_TRACKING_PASSWORD=<password>
 
 # Option 2: Direct environment variables
-export MLFLOW_TRACKING_URI="http://mlflow.eonlabs.com:5000"
-export MLFLOW_TRACKING_USERNAME="eonlabs"
+export MLFLOW_TRACKING_URI="http://mlflow.example.com:5000"
+export MLFLOW_TRACKING_USERNAME="<user>"
 export MLFLOW_TRACKING_PASSWORD="<password>"
 ```
 
@@ -137,8 +137,8 @@ See [quantstats-metrics.md](./references/quantstats-metrics.md) for full list.
 Configuration comes from `MLFLOW_*` environment variables. Create `.env.local` (gitignored) for credentials and load it per command with `uv run --env-file .env.local scripts/<script>.py`:
 
 ```bash
-MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
-MLFLOW_TRACKING_USERNAME=eonlabs
+MLFLOW_TRACKING_URI=http://mlflow.example.com:5000
+MLFLOW_TRACKING_USERNAME=<user>
 MLFLOW_TRACKING_PASSWORD=<password>
 ```
 

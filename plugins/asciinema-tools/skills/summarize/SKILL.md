@@ -208,7 +208,7 @@ permission|approve|reject|block
 ## Example Output
 
 ```markdown
-# Session Summary: alpha-forge-research_20251226
+# Session Summary: research-repo-research_20251226
 
 ## Overview
 

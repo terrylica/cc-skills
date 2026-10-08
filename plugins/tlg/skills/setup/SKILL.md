@@ -5,14 +5,10 @@ allowed-tools: Bash, Read, Write, AskUserQuestion
 disable-model-invocation: false
 ---
 
-> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
-> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
-> `/itp:setup` (its first step installs it), or link it directly:
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>` (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run `/itp:setup` (its first step installs it), or link it directly:
 >
-> ```bash
-> mkdir -p ~/.local/bin && ln -sfn \
->   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
-> ```
+> ```bash mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root ```
 
 # Telegram CLI Setup
 
@@ -22,11 +18,7 @@ One-time (or re-)authentication of a personal Telegram account for the GramJS CL
 
 ## Engine + session model (read first)
 
-The CLI uses **GramJS** (MTProto). Each profile's login is a **GramJS StringSession**
-stored at `~/.local/share/gramjs/<profile>.session`. The Telegram API id/hash come
-from 1Password at runtime. (Historical note: this replaced the Telethon/`uv`
-implementation in 2026-06; old `~/.local/share/telethon/*.session` files are not
-reused — accounts log in once more here.)
+The CLI uses **GramJS** (MTProto). Each profile's login is a **GramJS StringSession** stored at `~/.local/share/gramjs/<profile>.session`. The Telegram API id/hash come from 1Password at runtime. (Historical note: this replaced the Telethon/`uv` implementation in 2026-06; old `~/.local/share/telethon/*.session` files are not reused — accounts log in once more here.)
 
 ```bash
 ROOT="$(cc-plugin-root tlg)"
@@ -37,8 +29,8 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 | Profile       | 1Password Item                   | Item UUID                    | Phone        |
 | ------------- | -------------------------------- | ---------------------------- | ------------ |
-| `eon`         | Telegram API - EonLabsOperations | `iqwxow2iidycaethycub7agfmm` | +15559876543 |
-| `missterryli` | Telegram API - missterryli (CN)  | `dk456cs3v2fjilppernryoro5a` | +86 (CN)     |
+| `work`         | Telegram API - ExampleOpsAccount | `<1password-item-id>` | +15559876543 |
+| `personal`    | Telegram API - personal account  | `<1password-item-id>` | <phone>      |
 
 ## Prerequisites
 
@@ -47,9 +39,7 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 ## Auth is non-interactive (3 steps)
 
-The Bash tool has no stdin, so the CLI never prompts. Authentication is split into
-`send-code` (requests the code) and `sign-in` (submits it). Get the code from the
-user with **AskUserQuestion** between the two steps.
+The Bash tool has no stdin, so the CLI never prompts. Authentication is split into `send-code` (requests the code) and `sign-in` (submits it). Get the code from the user with **AskUserQuestion** between the two steps.
 
 ### Step 0 — check current state (no SMS sent)
 
@@ -66,13 +56,11 @@ bun "$SCRIPT" send-code eon
 # → JSON: { "status": "code_sent", "phone": "...", "phone_code_hash": "<HASH>", ... }
 ```
 
-Telegram delivers the code to the account's **Telegram app first**, then SMS. The
-code **expires within a couple of minutes** — move straight to Step 2.
+Telegram delivers the code to the account's **Telegram app first**, then SMS. The code **expires within a couple of minutes** — move straight to Step 2.
 
 ### Step 2 — get the code from the user (AskUserQuestion)
 
-Ask the user for the digits (they type them in the "Other" box). Also ask whether
-they have two-factor (cloud password) enabled.
+Ask the user for the digits (they type them in the "Other" box). Also ask whether they have two-factor (cloud password) enabled.
 
 ### Step 3 — sign in with the code
 
@@ -82,13 +70,12 @@ bun "$SCRIPT" sign-in eon --code <CODE> --hash <HASH>
 # → JSON: { "authorized": true, "user_id": ..., "username": ..., "session_file": ... }
 ```
 
-Run `sign-in` **once** per code — a failed/duplicate attempt invalidates the code
-(`PHONE_CODE_EXPIRED`); if that happens, redo Step 1 for a fresh code.
+Run `sign-in` **once** per code — a failed/duplicate attempt invalidates the code (`PHONE_CODE_EXPIRED`); if that happens, redo Step 1 for a fresh code.
 
 ### Step 4 — verify
 
 ```bash
-bun "$SCRIPT" whoami -p eon
+bun "$SCRIPT" whoami -p work
 ```
 
 ## Anti-Patterns (NEVER DO)
@@ -105,18 +92,14 @@ bun "$SCRIPT" whoami -p eon
 
 | File                                        | Purpose                         |
 | ------------------------------------------- | ------------------------------- |
-| `~/.local/share/gramjs/eon.session`         | EonLabsOperations StringSession |
-| `~/.local/share/gramjs/missterryli.session` | missterryli StringSession       |
+| `~/.local/share/gramjs/work.session`         | ExampleOpsAccount StringSession |
+| `~/.local/share/gramjs/personal.session` | personal StringSession       |
 
-Sessions expire when revoked in Telegram → Settings → Devices, or after prolonged
-inactivity. When expired, `check-auth` reports `authorized: false`; rerun the 3-step flow.
+Sessions expire when revoked in Telegram → Settings → Devices, or after prolonged inactivity. When expired, `check-auth` reports `authorized: false`; rerun the 3-step flow.
 
 ## Adding New Profiles
 
-Add the profile to the `PROFILES` map in `scripts/tg-cli.ts` and store credentials in
-the `Claude Automation` 1Password vault with fields `App ID`, `App API Hash`, and
-`Phone Number`. (Override per-invocation with `TELEGRAM_API_ID`/`TELEGRAM_API_HASH`
-env vars to skip 1Password.)
+Add the profile to `~/.config/cc-skills/tlg-profiles.json` (`{"default": "<profile>", "profiles": {"<profile>": "<1password-item-id>"}}`; machine-local, never committed) and store credentials in the `Claude Automation` 1Password vault with fields `App ID`, `App API Hash`, and `Phone Number`. (Override per-invocation with `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` env vars to skip 1Password.)
 
 ## Post-Execution Reflection
 

@@ -42,7 +42,7 @@ doppler run --project <project> --config <config> --command='<command>'
 ### PyPI Publishing
 
 ```bash
-doppler run --project claude-config --config dev \
+doppler run --project private-config --config dev \
   --command='uv publish --token "$PYPI_TOKEN"'
 ```
 
@@ -88,7 +88,7 @@ For detailed information, see:
 For local development, bind the project directory to its Doppler project/config once, then scope each command with `doppler run`:
 
 ```bash
-cd ~/project && doppler setup --project claude-config --config prd --no-interactive
+cd ~/project && doppler setup --project private-config --config prd --no-interactive
 doppler run -- COMMAND   # secrets such as PYPI_TOKEN exist for this command only
 ```
 
@@ -110,16 +110,16 @@ For PyPI publishing, see [`pypi-doppler` skill](../../../itp/skills/pypi-doppler
 
 ## Troubleshooting
 
-| Issue                      | Cause                            | Solution                                              |
-| -------------------------- | -------------------------------- | ----------------------------------------------------- |
-| 403 on PyPI publish        | Token expired or wrong scope     | Regenerate project-scoped token, update in Doppler    |
-| InvalidClientTokenId (AWS) | Access key rotated or deleted    | Run AWS key rotation workflow, update Doppler         |
-| Variable expands empty     | Using `$VAR` without --command   | Always use `--command='...$VAR...'` pattern           |
-| Doppler CLI not found      | Not installed                    | `brew install dopplerhq/cli/doppler`                  |
-| Wrong config selected      | Ambiguous project/config         | Specify both `--project` and `--config` explicitly    |
-| Wrong project picked up    | Directory not bound or bound wrongly | `doppler configure` to inspect; re-run `doppler setup` |
-| Secret retrieval slow      | One `doppler secrets get` per call | Fetch once per shell with `export VAR="$(doppler secrets get VAR --plain)"` |
-| Token length mismatch      | Copied with extra whitespace     | Trim token: `echo -n 'secret' \| doppler secrets set` |
+| Issue                      | Cause                                | Solution                                                                    |
+| -------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| 403 on PyPI publish        | Token expired or wrong scope         | Regenerate project-scoped token, update in Doppler                          |
+| InvalidClientTokenId (AWS) | Access key rotated or deleted        | Run AWS key rotation workflow, update Doppler                               |
+| Variable expands empty     | Using `$VAR` without --command       | Always use `--command='...$VAR...'` pattern                                 |
+| Doppler CLI not found      | Not installed                        | `brew install dopplerhq/cli/doppler`                                        |
+| Wrong config selected      | Ambiguous project/config             | Specify both `--project` and `--config` explicitly                          |
+| Wrong project picked up    | Directory not bound or bound wrongly | `doppler configure` to inspect; re-run `doppler setup`                      |
+| Secret retrieval slow      | One `doppler secrets get` per call   | Fetch once per shell with `export VAR="$(doppler secrets get VAR --plain)"` |
+| Token length mismatch      | Copied with extra whitespace         | Trim token: `echo -n 'secret' \| doppler secrets set`                       |
 
 ## Post-Execution Reflection
 

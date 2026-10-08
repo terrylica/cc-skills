@@ -98,7 +98,7 @@ Four changes shipped together after a read-only recon pass. All verified against
 
 **Downstream note**: `language` may now be `text`. Consumers filtering `language == "mql5"` will see a smaller, more accurate set; consumers wanting "all source" should filter `language != "text"`.
 
-**Files affected**: `lib/extractor.py` (in `terrylica/mql5-local`).
+**Files affected**: `lib/extractor.py` (in `example-org/mt5-local`).
 
 ---
 

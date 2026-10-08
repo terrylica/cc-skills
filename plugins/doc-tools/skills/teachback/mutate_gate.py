@@ -8,13 +8,13 @@
     TB="$(cc-plugin-root doc-tools)/skills/teachback"
     uv run --no-project --script "$TB/mutate_gate.py" <page.html>
 
-Every mutation encodes one defect a reviewer of Eon-Labs/alpha-forge#527 showed the previous gate
+Every mutation encodes one defect a reviewer of example-org/research-repo#527 showed the previous gate
 could not see. A check that has never been observed to fail is not a check, so each mutation must
 turn the gate RED.
 
 The baseline is asserted clean FIRST. Without that step every "kill" is uninterpretable: a harness
 that always reports non-zero looks identical to a harness that works. That failure has happened in
-Eon-Labs/alpha-forge before — a run reported 18/18 killed where every kill was fabricated, because a
+example-org/research-repo before — a run reported 18/18 killed where every kill was fabricated, because a
 bad flag made every invocation exit non-zero.
 
 A mutation that changes nothing, or that cannot find its target, is reported as BROKEN rather than
@@ -895,7 +895,7 @@ MUTATIONS: list[Mutation] = [
         ),
     ),
     # The batch below came from auditing which checks NO mutation exercised. 56 of 71 had none, and
-    # every vacuous check found in the Eon-Labs/alpha-forge#527 review so far had been in that set —
+    # every vacuous check found in the example-org/research-repo#527 review so far had been in that set —
     # so that is where the remaining ones were. Six of the seven probes below turned up a real defect.
     (
         "notation: remove ONE of two chips sharing a role, leaving the role covered",

@@ -327,20 +327,15 @@ pueue reset                     # ⚠️ Dangerous: clears all tasks
 
 ## FAQ
 
-**Q: Does PUEUE affect benchmark results?**
-A: No. Benchmarks run in PUEUE with same environment and compile flags as direct execution.
+**Q: Does PUEUE affect benchmark results?** A: No. Benchmarks run in PUEUE with same environment and compile flags as direct execution.
 
-**Q: Can I disable the hook globally?**
-A: Yes, but not recommended. Per-command override via `# CARGO-TTY-SKIP` is safer.
+**Q: Can I disable the hook globally?** A: Yes, but not recommended. Per-command override via `# CARGO-TTY-SKIP` is safer.
 
-**Q: What if I accidentally kill the PUEUE daemon?**
-A: Hook automatically falls back to `nohup` wrapper. Commands continue working.
+**Q: What if I accidentally kill the PUEUE daemon?** A: Hook automatically falls back to `nohup` wrapper. Commands continue working.
 
-**Q: Can I use this with other long-running commands?**
-A: Hook is cargo-specific. For other commands, use the general `pretooluse-pueue-wrap-guard.ts`.
+**Q: Can I use this with other long-running commands?** A: Hook is cargo-specific. For other commands, use the general `pretooluse-pueue-wrap-guard.ts`.
 
-**Q: Does this work in non-interactive Claude Code?**
-A: Not applicable — suspension only occurs in interactive shell mode.
+**Q: Does this work in non-interactive Claude Code?** A: Not applicable — suspension only occurs in interactive shell mode.
 
 ## Architecture Diagram
 
@@ -395,9 +390,10 @@ A patched entrypoint (`~/.claude/bin/mcp-shell-server-patched.py`) intercepts `a
     "args": [
       "--from",
       "mcp-shell-server",
-      "--python", "3.14",
+      "--python",
+      "3.14",
       "python",
-      "/Users/terryli/.claude/bin/mcp-shell-server-patched.py"
+      "/Users/<you>/.claude/bin/mcp-shell-server-patched.py"
     ],
     "env": {
       "ALLOW_COMMANDS": "git,cargo,uv,..."

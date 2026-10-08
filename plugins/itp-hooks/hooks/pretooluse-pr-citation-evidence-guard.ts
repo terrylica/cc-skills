@@ -248,7 +248,7 @@ function buildReminder(findings: readonly CitationFinding[]): string {
     "",
     "Verify the quotes are real before publishing:",
     // The verify-citations.ts helper lives in the operator's PRIVATE
-    // claude-config repo (~/.claude/skills/pr-evidence-standard/), not in this
+    // private-config repo (~/.claude/skills/pr-evidence-standard/), not in this
     // plugin. cc-skills is PUBLIC, so naming it unconditionally handed every
     // third-party installer an instruction they cannot follow — the guard told
     // them to run a file that does not exist on their machine and never would.

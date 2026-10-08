@@ -16,7 +16,7 @@ Usage:
     uv run test_api_auth.py --secret SECRET_NAME --api-url API_URL --token TOKEN
 
 Example (PyPI):
-    doppler run --project claude-config --config prd -- \
+    doppler run --project private-config --config prd -- \
         uv run test_api_auth.py --secret PYPI_TOKEN --api-url https://upload.pypi.org/legacy/
 """
 import argparse

@@ -1,6 +1,6 @@
 APP_NAME := FloatingClock
 BIN_NAME := floating-clock
-BUNDLE_ID := com.terryli.floating-clock
+BUNDLE_ID := com.cc-skills.floating-clock
 VERSION := 1.0.0
 
 BUILD := build

@@ -2,7 +2,7 @@
 status: superseded
 superseded-date: 2026-09-05
 date: 2025-12-07
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted: [claude-code-guide, general-purpose, Explore]
 research-method: multi-agent
 clarification-iterations: 1

@@ -27,7 +27,7 @@ notion auth status
 If not authenticated, retrieve the token from Doppler and authenticate:
 
 ```bash
-doppler secrets get NOTION_API_TOKEN --project claude-config --config prd --plain | notion auth login --with-token
+doppler secrets get NOTION_API_TOKEN --project private-config --config prd --plain | notion auth login --with-token
 ```
 
 Fallback: prompt the user for their integration token.
@@ -178,10 +178,10 @@ notion block list <page-id> --depth 10 --format md
 
 ## Credential Storage
 
-| Store   | Location                             | Purpose          |
-| ------- | ------------------------------------ | ---------------- |
-| Doppler | `claude-config/prd:NOTION_API_TOKEN` | SSoT for token   |
-| CLI     | `~/.config/notion/credentials.json`  | Local auth cache |
+| Store   | Location                              | Purpose          |
+| ------- | ------------------------------------- | ---------------- |
+| Doppler | `private-config/prd:NOTION_API_TOKEN` | SSoT for token   |
+| CLI     | `~/.config/notion/credentials.json`   | Local auth cache |
 
 Token format: `ntn_*` (Notion internal integration token).
 

@@ -102,7 +102,7 @@ Each repository maintains its own orphan branch for recordings:
 │                                                                             │
 │  Repository                    Orphan Branch              Local Clone       │
 │  ─────────────────────────────────────────────────────────────────────────  │
-│  terrylica/alpha-forge     →  asciinema-recordings  →  ~/asciinema_recordings/alpha-forge/  │
+│  terrylica/research-repo     →  asciinema-recordings  →  ~/asciinema_recordings/research-repo/  │
 │  terrylica/cc-skills       →  asciinema-recordings  →  ~/asciinema_recordings/cc-skills/    │
 │  work/private-project    →  asciinema-recordings  →  ~/asciinema_recordings/private-project/ │
 │                                                                             │

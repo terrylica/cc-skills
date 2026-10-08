@@ -172,7 +172,7 @@
 
 - (void)recordProfileActivationInCCMemory:(NSString *)profileName {
     NSString *memDir = [NSHomeDirectory() stringByAppendingPathComponent:
-        @".claude/projects/-Users-terryli-eon-cc-skills/memory"];
+        @".claude/projects/-Users-<you>-eon-cc-skills/memory"];
     NSFileManager *fm = [NSFileManager defaultManager];
     BOOL isDir = NO;
     if (![fm fileExistsAtPath:memDir isDirectory:&isDir] || !isDir) return;

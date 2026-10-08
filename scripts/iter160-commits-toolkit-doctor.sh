@@ -53,7 +53,7 @@ set -euo pipefail
 # repository, every derived path misses, and the doctor reports
 # `verdict=TOOLKIT_BROKEN, critical_failed=13` about a toolkit that is perfectly
 # healthy. Measured 2026-09-05: 604 consecutive invocations from
-# `~/eon/ccmax-monitor` all reported TOOLKIT_BROKEN; the same binary from
+# `~/code/example-repo` all reported TOOLKIT_BROKEN; the same binary from
 # anywhere inside cc-skills reported TOOLKIT_HEALTHY 1,480/1,480 times.
 #
 # That is a false CRITICAL, and it is the single most expensive kind for this

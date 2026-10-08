@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-08
-decision-maker: Terry Li
+decision-maker: terrylica
 consulted:
   [
     Explore-Agent-1,

@@ -98,7 +98,7 @@ describe("Bash: venv activation detection", () => {
   it("should detect SSH with venv activation", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "ssh bigblack 'cd ~/project && source ~/.venv/bin/activate && python test.py'" },
+      tool_input: { command: "ssh gpu-host 'cd ~/project && source ~/.venv/bin/activate && python test.py'" },
     });
     expect(result.parsed).not.toBeNull();
     expect((result.parsed as any).reason).toContain("[UV-REMINDER]");
@@ -535,11 +535,11 @@ describe("Bash: Pueue long-running task detection", () => {
   it("should detect SSH with long-running commands", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "ssh bigblack 'cd ~/rangebar-py && uv run python scripts/populate_full_cache.py --phase 1'" },
+      tool_input: { command: "ssh gpu-host 'cd ~/rangebar-py && uv run python scripts/populate_full_cache.py --phase 1'" },
     });
     expect(result.parsed).not.toBeNull();
     expect((result.parsed as any).reason).toContain("[PUEUE-REMINDER]");
-    expect((result.parsed as any).reason).toContain("ssh bigblack");
+    expect((result.parsed as any).reason).toContain("ssh gpu-host");
   });
 
   it("should detect shell for loops with long-running inner commands", () => {
@@ -621,7 +621,7 @@ describe("Bash: Pueue long-running task detection", () => {
   it("should NOT trigger on pueue management scripts (pueue-populate.sh)", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "ssh bigblack 'bash -c \"cd /home/tca/opendeviationbar-py && ./scripts/pueue-populate.sh setup\"'" },
+      tool_input: { command: "ssh gpu-host 'bash -c \"cd /home/<user>/opendeviationbar && ./scripts/pueue-populate.sh setup\"'" },
     });
     expect(result.stdout).toBe("");
   });
@@ -629,7 +629,7 @@ describe("Bash: Pueue long-running task detection", () => {
   it("should NOT trigger on pueue-populate.sh backfill via heredoc", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "ssh bigblack 'bash -c \"cd /home/tca/opendeviationbar-py && ./scripts/pueue-populate.sh backfill\"'" },
+      tool_input: { command: "ssh gpu-host 'bash -c \"cd /home/<user>/opendeviationbar && ./scripts/pueue-populate.sh backfill\"'" },
     });
     expect(result.stdout).toBe("");
   });

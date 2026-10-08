@@ -10,7 +10,7 @@ Refactor `default-layout.py` to load configuration from `~/.config/iterm2/layout
 
 ### Phase 1: Add Configuration Loading
 
-**File**: `/Users/terryli/scripts/iterm2/default-layout.py`
+**File**: `/Users/<you>/scripts/iterm2/default-layout.py`
 
 Add after imports:
 
@@ -95,18 +95,18 @@ async def main(connection):
 
 ### Phase 4: Replace Hardcoded Values
 
-| Current             | Replace With                              |
-| ------------------- | ----------------------------------------- |
-| `TABS = [...]`      | `config["tabs"]`                          |
-| `LEFT_COMMAND`      | `config["commands"]["left"]`              |
-| `RIGHT_COMMAND`     | `config["commands"]["right"]`             |
-| `SETTLE_TIME`       | `config["layout"]["settle_time"]`         |
-| `LEFT_PANE_RATIO`   | `config["layout"]["left_pane_ratio"]`     |
-| `~/eon/alpha-forge` | `config["worktrees"]["alpha_forge_root"]` |
+| Current               | Replace With                              |
+| --------------------- | ----------------------------------------- |
+| `TABS = [...]`        | `config["tabs"]`                          |
+| `LEFT_COMMAND`        | `config["commands"]["left"]`              |
+| `RIGHT_COMMAND`       | `config["commands"]["right"]`             |
+| `SETTLE_TIME`         | `config["layout"]["settle_time"]`         |
+| `LEFT_PANE_RATIO`     | `config["layout"]["left_pane_ratio"]`     |
+| `~/eon/research-repo` | `config["worktrees"]["alpha_forge_root"]` |
 
 ### Phase 5: Create Template
 
-**File**: `/Users/terryli/scripts/iterm2/layout.example.toml`
+**File**: `/Users/<you>/scripts/iterm2/layout.example.toml`
 
 ```toml
 # iTerm2 Layout Configuration

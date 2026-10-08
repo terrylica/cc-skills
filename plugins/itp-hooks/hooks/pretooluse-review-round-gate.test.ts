@@ -146,9 +146,9 @@ describe("gh pr ready --undo unmarks the branch it NAMES", () => {
 
   test("-R's value is not mistaken for the target", async () => {
     // `-R owner/name` consumes the next word. Reading it as the PR would send the resolver looking
-    // for a branch called `Eon-Labs/alpha-forge`, which fails, and beta would keep its mark.
+    // for a branch called `example-org/research-repo`, which fails, and beta would keep its mark.
     const dir = twoMarkedBranches("repo-flag");
-    const decision = await runHook("gh pr ready -R Eon-Labs/alpha-forge --undo beta", dir);
+    const decision = await runHook("gh pr ready -R example-org/research-repo --undo beta", dir);
 
     expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
     expect(reviewableOn(dir, "alpha")).toBe(true);
@@ -183,7 +183,7 @@ function reviewedBranchInAWorktree(prefix: string): { main: string; worktree: st
 }
 
 describe("gh pr create --head measures the named branch's worktree, not cwd", () => {
-  // 2026-09-28, doorward-systems/ccmax-monitor#133: the record existed at the pushed commit in the
+  // 2026-09-28, example-org/relay-monitor#133: the record existed at the pushed commit in the
   // worktree, the session stood in the main checkout on `main`, and the gate denied because it
   // measured `main`. Each case below has its control, because an allow alone would also pass on a
   // gate that simply stopped checking.

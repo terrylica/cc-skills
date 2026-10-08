@@ -88,7 +88,7 @@ AskUserQuestion:
   header: "Recording Directory"
   options:
     - label: "~/asciinema_recordings/${RESOLVED_REPO_NAME} (Recommended)"
-      description: "Example: ~/asciinema_recordings/alpha-forge"
+      description: "Example: ~/asciinema_recordings/research-repo"
     - label: "Custom path"
       description: "Enter a different directory path"
 ```

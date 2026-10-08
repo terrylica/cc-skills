@@ -91,7 +91,7 @@ function validateSpec(s) {
   const exp = s.expiration ?? 30;
   // 366 is the lifetime cap an ORGANISATION resource owner can impose; when it
   // does, GitHub removes "No expiration" from the menu entirely (measured
-  // 2026-09-04 against doorward-systems), so org-owned specs need this value.
+  // 2026-09-04 against example-org), so org-owned specs need this value.
   const okExp = exp === "none" || [7, 30, 60, 90, 366].includes(exp) || /^\d{4}-\d{2}-\d{2}$/.test(exp);
   if (!okExp) die(`spec.expiration must be 7|30|60|90|366 | "YYYY-MM-DD" | "none" (got ${JSON.stringify(exp)})`);
   const ra = s.repositoryAccess;

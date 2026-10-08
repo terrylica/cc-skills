@@ -87,7 +87,7 @@ description: Does X when user mentions Y (specific triggers)
 
 ## Plugin Manifest Validation
 
-<!-- ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned) -->
+<!-- ADR: /docs/adr/2025-12-14-worktree-management.md (lesson learned) -->
 
 When creating **plugins** (not just skills), additional validation is required for marketplace discovery.
 
