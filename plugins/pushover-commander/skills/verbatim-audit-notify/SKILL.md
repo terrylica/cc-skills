@@ -19,16 +19,16 @@ The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the devic
 
 ## Five scripts + three launchd templates
 
-| Asset                                            | Role                                                                                            |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `scripts/pushover-notify.sh`                     | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID            |
-| `scripts/pushover-lookup.sh`                     | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry                      |
-| `scripts/pushover-prune.sh`                      | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)             |
-| `scripts/pushover-quota.sh`                      | Quota monitor: hits Pushover /apps/limits.json, persists JSON, alerts when low (iter 12b)       |
-| `scripts/pushover-heartbeat.sh`                  | Daily fleet status summary — Pushover quota, disk, failed launchd services (iter 20) |
-| `templates/com.example.pushover-prune.plist`     | launchd timer — daily at 04:15, 90-day retention (iter 8)                                       |
-| `templates/com.example.pushover-quota.plist`     | launchd timer — daily at 03:30, alerts when remaining <20% (iter 12b)                           |
-| `templates/com.example.pushover-heartbeat.plist` | launchd timer — daily at 09:03, INFO heartbeat (auto-promotes to WARN on failure) (iter 20)     |
+| Asset                                                       | Role                                                                                        |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `scripts/pushover-notify.sh`                                | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID        |
+| `scripts/pushover-lookup.sh`                                | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry                  |
+| `scripts/pushover-prune.sh`                                 | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)         |
+| `scripts/pushover-quota.sh`                                 | Quota monitor: hits Pushover /apps/limits.json, persists JSON, alerts when low (iter 12b)   |
+| `scripts/pushover-heartbeat.sh`                             | Daily fleet status summary — Pushover quota, disk, failed launchd services (iter 20)        |
+| `templates/com.pushover-commander.pushover-prune.plist`     | launchd timer — daily at 04:15, 90-day retention (iter 8)                                   |
+| `templates/com.pushover-commander.pushover-quota.plist`     | launchd timer — daily at 03:30, alerts when remaining <20% (iter 12b)                       |
+| `templates/com.pushover-commander.pushover-heartbeat.plist` | launchd timer — daily at 09:03, INFO heartbeat (auto-promotes to WARN on failure) (iter 20) |
 
 Add the scripts to your PATH:
 
@@ -61,19 +61,19 @@ Install the launchd timers (retention + quota monitor — see each template head
 
 ```bash
 # Retention (daily 04:15, 90-day window)
-cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.example.pushover-prune.plist" ~/Library/LaunchAgents/
+sed "s|__HOME__|$HOME|g" "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.pushover-commander.pushover-prune.plist" > ~/Library/LaunchAgents/com.pushover-commander.pushover-prune.plist
 mkdir -p ~/.local/state/launchd-logs/pushover-prune
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.pushover-prune.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-prune.plist
 
 # Quota monitor (daily 03:30, alert at <20% remaining)
-cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.example.pushover-quota.plist" ~/Library/LaunchAgents/
+sed "s|__HOME__|$HOME|g" "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.pushover-commander.pushover-quota.plist" > ~/Library/LaunchAgents/com.pushover-commander.pushover-quota.plist
 mkdir -p ~/.local/state/launchd-logs/pushover-quota
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.pushover-quota.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-quota.plist
 
 # Daily fleet heartbeat (09:03, INFO; auto-promotes to WARN on failure)
-cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.example.pushover-heartbeat.plist" ~/Library/LaunchAgents/
+sed "s|__HOME__|$HOME|g" "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.pushover-commander.pushover-heartbeat.plist" > ~/Library/LaunchAgents/com.pushover-commander.pushover-heartbeat.plist
 mkdir -p ~/.local/state/launchd-logs/pushover-heartbeat
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.pushover-heartbeat.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-heartbeat.plist
 ```
 
 ### Heartbeat sample output (iter 20)
@@ -158,7 +158,7 @@ Each line in `~/.local/state/pushover/audit-YYYYMMDD.jsonl` is one event:
 {
   "run_id": "3f8c2d9e-4a1b-4c5d-8e7f-1a2b3c4d5e6f",
   "ts": "2026-05-19T07:23:01.123Z",
-  "host": "terryli-mbp",
+  "host": "<user>-mbp",
   "service": "maccy-backup",
   "actor": "launchd",
   "target": "Storage.sqlite",
