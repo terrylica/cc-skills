@@ -4,12 +4,12 @@
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
 #   Layer 1: SSH keepalive     — ~/.ssh/config (Host $(TUNNEL_HOST))
-#   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
+#   Layer 2: launchd           — ~/Library/LaunchAgents/com.cc-skills.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher      — ~/.wakeup (kills stale SSH on wake)
 #   Control: SwiftBar          — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
 #   Source:  THIS repo         — <repo>/plugins/ssh-tunnel-companion/
 
-LABEL := com.terryli.ssh-tunnel-companion
+LABEL := com.cc-skills.ssh-tunnel-companion
 
 # Target host from config, never baked in (this plugin ships publicly).
 # See libexec/ssh-tunnel-companion-runner for the rationale.

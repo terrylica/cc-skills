@@ -1,7 +1,7 @@
 /**
  * Rate limiting for a SHARED human review queue.
  *
- * WHY THIS EXISTS, measured on Eon-Labs/alpha-forge on 2026-09-08. The reviewer `ChenLi0830` is not
+ * WHY THIS EXISTS, measured on a private repository on 2026-09-08. The reviewer `<reviewer>` is not
  * a private resource: other people's work queues behind the same reviewer, so a burst from one
  * author jumps every other queue. The CEO's instruction was "at most 2 reviews per hour".
  *
@@ -65,8 +65,25 @@ export const WINDOW_MS = 60 * 60 * 1000;
  * Deliberately an allowlist rather than "everywhere". On a solo repository nobody is waiting behind
  * you, so blocking a push there is friction with no beneficiary. Slugs are lowercase `owner/repo`,
  * matching `identifyRepo().slug`.
+ *
+ * The list is machine-local, never committed (which repositories a person reviews in is private):
+ * one slug per line in `~/.config/cc-skills/metered-repos.txt` (`#` comments allowed), or the
+ * comma-separated `CC_SKILLS_METERED_REPOS` env var. Absent both, nothing is metered.
  */
-export const METERED_REPOS: ReadonlySet<string> = new Set(["eon-labs/alpha-forge"]);
+function loadMeteredRepos(): ReadonlySet<string> {
+  const fromEnv = process.env.CC_SKILLS_METERED_REPOS;
+  let lines: string[] = [];
+  if (fromEnv !== undefined) lines = fromEnv.split(",");
+  else {
+    try {
+      lines = readFileSync(join(homedir(), ".config/cc-skills/metered-repos.txt"), "utf8").split("\n");
+    } catch {
+      lines = []; // absent file: nothing metered
+    }
+  }
+  return new Set(lines.map((l) => l.replace(/#.*/, "").trim().toLowerCase()).filter(Boolean));
+}
+export const METERED_REPOS: ReadonlySet<string> = loadMeteredRepos();
 
 export type QuotaKind = "pr-create" | "pr-reopen" | "pr-ready" | "pr-update-branch" | "push";
 

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 /**
  * Shared detector for CREDENTIAL and THIRD-PARTY-PII exposure in edited text.
  *
@@ -302,16 +305,19 @@ const NON_REAL_EMAIL_DOMAIN_PATTERN =
   /^(?:example\.(?:com|org|net)|example|test|invalid|localhost|localdomain|[^.]+\.(?:example|test|invalid|local|localhost)|users\.noreply\.github\.com|noreply\.github\.com|email\.com|domain\.com|mail\.com|yourdomain\.com|company\.com)$/i;
 
 /**
- * The operator's OWN addresses. Publishing these is a deliberate, standing
- * choice (they are in the public marketplace metadata already), so flagging
- * them would be pure noise on every plugin manifest edit.
+ * Addresses the operator has chosen to publish, so flagging them would be noise. Machine-local,
+ * never committed (the list itself would disclose the addresses): one address per line in
+ * `~/.config/cc-skills/own-email-addresses.txt` (`#` comments allowed). Absent, every real-looking
+ * address is reported.
  */
-const OPERATOR_OWN_EMAIL_ADDRESSES: ReadonlySet<string> = new Set([
-  "amonic@gmail.com",
-  "rickychanbc@gmail.com",
-  "terry@eonlabs.com",
-  "terryli@eonlabs.com",
-]);
+const OPERATOR_OWN_EMAIL_ADDRESSES: ReadonlySet<string> = (() => {
+  try {
+    const text = readFileSync(join(homedir(), ".config/cc-skills/own-email-addresses.txt"), "utf8");
+    return new Set(text.split("\n").map((l) => l.replace(/#.*/, "").trim().toLowerCase()).filter(Boolean));
+  } catch {
+    return new Set<string>();
+  }
+})();
 
 /** Role addresses are organizational, not personal — out of scope for a PII reminder. */
 const ROLE_LOCAL_PART_PATTERN =

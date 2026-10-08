@@ -7,30 +7,30 @@
   and fires a WARN-level Pushover alert when remaining < 20% of monthly cap.
 
   Install:
-    cp templates/com.terryli.pushover-quota.plist ~/Library/LaunchAgents/
+    sed "s|__HOME__|$HOME|g" templates/com.pushover-commander.pushover-quota.plist > ~/Library/LaunchAgents/$(basename templates/com.pushover-commander.pushover-quota.plist)
     mkdir -p ~/.local/state/launchd-logs/pushover-quota
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-quota.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-quota.plist
 
   Verify:
-    launchctl kickstart -p gui/$(id -u)/com.terryli.pushover-quota
+    launchctl kickstart -p gui/$(id -u)/com.pushover-commander.pushover-quota
     tail -1 ~/.local/state/launchd-logs/pushover-quota/stdout.log
     cat ~/.local/state/pushover/quota.json
 
   Uninstall:
-    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-quota.plist
-    rm ~/Library/LaunchAgents/com.terryli.pushover-quota.plist
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-quota.plist
+    rm ~/Library/LaunchAgents/com.pushover-commander.pushover-quota.plist
 
   Tune alert threshold: edit --alert-threshold (0.20 = alert at 20% remaining).
 -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.terryli.pushover-quota</string>
+    <string>com.pushover-commander.pushover-quota</string>
     <key>Program</key>
-    <string>/Users/terryli/.local/bin/pushover-quota</string>
+    <string>__HOME__/.local/bin/pushover-quota</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/terryli/.local/bin/pushover-quota</string>
+        <string>__HOME__/.local/bin/pushover-quota</string>
         <string>--alert-threshold</string>
         <string>0.20</string>
     </array>
@@ -42,9 +42,9 @@
         <integer>30</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/terryli/.local/state/launchd-logs/pushover-quota/stdout.log</string>
+    <string>__HOME__/.local/state/launchd-logs/pushover-quota/stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/terryli/.local/state/launchd-logs/pushover-quota/stderr.log</string>
+    <string>__HOME__/.local/state/launchd-logs/pushover-quota/stderr.log</string>
     <key>ProcessType</key>
     <string>Background</string>
     <key>Nice</key>
@@ -52,9 +52,9 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>HOME</key>
-        <string>/Users/terryli</string>
+        <string>__HOME__</string>
         <key>PATH</key>
-        <string>/Users/terryli/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 </dict>
 </plist>

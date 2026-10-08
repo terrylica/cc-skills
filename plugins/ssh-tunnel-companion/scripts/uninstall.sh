@@ -3,13 +3,13 @@
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
 #   Layer 1: SSH keepalive     — ~/.ssh/config (NOT removed — shared config)
-#   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
+#   Layer 2: launchd           — ~/Library/LaunchAgents/com.cc-skills.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher      — ~/.wakeup tunnel hook section
 #   Control: SwiftBar          — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
 
 set -e
 
-LABEL="com.terryli.ssh-tunnel-companion"
+LABEL="com.cc-skills.ssh-tunnel-companion"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 SWIFTBAR="$HOME/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh"
 

@@ -12,7 +12,7 @@
   3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
     Layer 1: SSH keepalive     — ~/.ssh/config (Host $TUNNEL_HOST, ServerAliveInterval=30)
                                  Detects dead connections within 90s, SSH exits cleanly.
-    Layer 2: launchd (THIS)    — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
+    Layer 2: launchd (THIS)    — ~/Library/LaunchAgents/com.cc-skills.ssh-tunnel-companion.plist
                                  Restarts SSH on exit. No autossh needed.
     Layer 3: sleepwatcher      — ~/.wakeup (kills stale SSH on macOS wake)
                                  Instant recovery instead of waiting 90s for keepalive timeout.
@@ -64,7 +64,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.terryli.ssh-tunnel-companion</string>
+	<string>com.cc-skills.ssh-tunnel-companion</string>
 
 	<key>Program</key>
 	<string>__RUNNER_PATH__</string>

@@ -119,7 +119,7 @@ A configurable tool that reads `~/.sleep` and `~/.wakeup` scripts (sleepwatcher-
 
 1. Add `Package.swift` with a single executable target
 2. Write `main.swift` using `NSWorkspace.shared.notificationCenter` for `didWakeNotification`
-3. Create `launchd/com.terryli.ssh-tunnel-wake.plist` (or merge into existing plist as an additional `WatchPaths` trigger)
+3. Create `launchd/com.example.ssh-tunnel-wake.plist` (or merge into existing plist as an additional `WatchPaths` trigger)
 4. Update `scripts/install.sh` to build + deploy the Swift binary
 5. Remove sleepwatcher dependency from install script
 6. Update all self-referencing headers

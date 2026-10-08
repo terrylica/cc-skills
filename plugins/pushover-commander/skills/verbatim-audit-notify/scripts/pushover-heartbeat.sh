@@ -72,9 +72,11 @@ LOGS_SIZE_BYTES=${LOGS_SIZE_BYTES:-0}
 LOGS_SIZE_MB=$(( LOGS_SIZE_BYTES / 1024 / 1024 ))
 AUDIT_DAYS=$(/bin/ls "$HOME/.local/state/pushover"/audit-*.jsonl 2>/dev/null | /usr/bin/wc -l | /usr/bin/tr -d ' ')
 
-# Failed launchd services — any com.terryli.* with last_exit != 0
+# Failed launchd services — any of this account's own agents (label prefix com.<account>., overridable
+# via PUSHOVER_HEARTBEAT_LABEL_PREFIX) with last_exit != 0. Derived at runtime, never hard-coded.
+LABEL_PREFIX="${PUSHOVER_HEARTBEAT_LABEL_PREFIX:-com.$(/usr/bin/id -un).}"
 FAILED_SERVICES=""
-for s in $(/bin/launchctl list 2>/dev/null | /usr/bin/awk '/com\.terryli\./{print $NF}'); do
+for s in $(/bin/launchctl list 2>/dev/null | /usr/bin/awk -v p="$LABEL_PREFIX" 'index($NF, p) == 1 {print $NF}'); do
     exit_code=$(/bin/launchctl print "gui/$(/usr/bin/id -u)/$s" 2>/dev/null | /usr/bin/awk '/last exit code/{print $NF; exit}')
     case "$exit_code" in
         ""|0|-|exited\)) ;;

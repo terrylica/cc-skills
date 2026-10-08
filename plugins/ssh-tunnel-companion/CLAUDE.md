@@ -14,11 +14,11 @@ The launchd tunnel host alias in `~/.ssh/config` resolves to the Tailscale FQDN 
 
 ## 3-Layer Resilience System
 
-| Layer | What              | Where                                                           | Role                                                    |
-| ----- | ----------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| 1     | SSH keepalive     | `~/.ssh/config` (Host $TUNNEL_HOST)                             | Detects dead connections (90s), SSH exits cleanly       |
-| 2     | launchd KeepAlive | `~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist` | Restarts SSH on exit — replaces autossh                 |
-| 3     | sleepwatcher      | `~/.wakeup` hook                                                | Kills stale SSH immediately on wake — instant reconnect |
+| Layer | What              | Where                                                             | Role                                                    |
+| ----- | ----------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
+| 1     | SSH keepalive     | `~/.ssh/config` (Host $TUNNEL_HOST)                               | Detects dead connections (90s), SSH exits cleanly       |
+| 2     | launchd KeepAlive | `~/Library/LaunchAgents/com.cc-skills.ssh-tunnel-companion.plist` | Restarts SSH on exit — replaces autossh                 |
+| 3     | sleepwatcher      | `~/.wakeup` hook                                                  | Kills stale SSH immediately on wake — instant reconnect |
 
 **Control plane**: SwiftBar plugin (`ssh-tunnel.5s.sh`) — menu bar status + start/stop/restart actions.
 
@@ -29,7 +29,7 @@ ssh-tunnel-companion/
 ├── CLAUDE.md                  ← You are here
 ├── Makefile                   ← install/uninstall/start/stop/restart/status/logs/ping
 ├── launchd/
-│   └── com.terryli.ssh-tunnel-companion.plist   ← Layer 2
+│   └── com.cc-skills.ssh-tunnel-companion.plist   ← Layer 2
 ├── swiftbar/
 │   └── ssh-tunnel.5s.sh       ← Menu bar plugin (symlinked to SwiftBar plugins dir)
 └── scripts/

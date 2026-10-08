@@ -8,7 +8,7 @@
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
 #   Layer 1: SSH keepalive     — ~/.ssh/config (Host $TUNNEL_HOST)
-#   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
+#   Layer 2: launchd           — ~/Library/LaunchAgents/com.cc-skills.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher (THIS runs on wake) — ~/.wakeup → this script
 #   Control: SwiftBar          — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
 #   Source:  <repo>/plugins/ssh-tunnel-companion/

@@ -14,29 +14,29 @@
   (per Anthropic's prompt-cache best practice).
 
   Install:
-    cp templates/com.terryli.pushover-heartbeat.plist ~/Library/LaunchAgents/
+    sed "s|__HOME__|$HOME|g" templates/com.pushover-commander.pushover-heartbeat.plist > ~/Library/LaunchAgents/$(basename templates/com.pushover-commander.pushover-heartbeat.plist)
     mkdir -p ~/.local/state/launchd-logs/pushover-heartbeat
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-heartbeat.plist
 
   Verify:
-    launchctl kickstart -p gui/$(id -u)/com.terryli.pushover-heartbeat
+    launchctl kickstart -p gui/$(id -u)/com.pushover-commander.pushover-heartbeat
     cat ~/.local/state/launchd-logs/pushover-heartbeat/stdout.log
 
   Uninstall:
-    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
-    rm ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.pushover-commander.pushover-heartbeat.plist
+    rm ~/Library/LaunchAgents/com.pushover-commander.pushover-heartbeat.plist
 
   Cost: 1 Pushover msg/day = 30/month = 0.3% of the 10k monthly cap.
 -->
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.terryli.pushover-heartbeat</string>
+    <string>com.pushover-commander.pushover-heartbeat</string>
     <key>Program</key>
-    <string>/Users/terryli/.local/bin/pushover-heartbeat</string>
+    <string>__HOME__/.local/bin/pushover-heartbeat</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/terryli/.local/bin/pushover-heartbeat</string>
+        <string>__HOME__/.local/bin/pushover-heartbeat</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
@@ -46,9 +46,9 @@
         <integer>3</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/terryli/.local/state/launchd-logs/pushover-heartbeat/stdout.log</string>
+    <string>__HOME__/.local/state/launchd-logs/pushover-heartbeat/stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/terryli/.local/state/launchd-logs/pushover-heartbeat/stderr.log</string>
+    <string>__HOME__/.local/state/launchd-logs/pushover-heartbeat/stderr.log</string>
     <key>ProcessType</key>
     <string>Background</string>
     <key>Nice</key>
@@ -56,9 +56,9 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>HOME</key>
-        <string>/Users/terryli</string>
+        <string>__HOME__</string>
         <key>PATH</key>
-        <string>/Users/terryli/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 </dict>
 </plist>

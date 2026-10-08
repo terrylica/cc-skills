@@ -3,7 +3,7 @@
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
 #   Layer 1: SSH keepalive     — ~/.ssh/config (Host $TUNNEL_HOST, ServerAliveInterval=30)
-#   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
+#   Layer 2: launchd           — ~/Library/LaunchAgents/com.cc-skills.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher      — ~/.wakeup (kills stale SSH on wake for instant reconnect)
 #   Control: SwiftBar          — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
 #   Source:  THIS repo         — <repo>/plugins/ssh-tunnel-companion/
@@ -11,7 +11,7 @@
 set -e
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LABEL="com.terryli.ssh-tunnel-companion"
+LABEL="com.cc-skills.ssh-tunnel-companion"
 
 # Target host comes from config, never from a baked-in default — see
 # libexec/ssh-tunnel-companion-runner for the rationale.
@@ -51,6 +51,15 @@ fi
 echo ""
 echo "[2/6] Installing launchd plist (Layer 2)..."
 launchctl unload "$PLIST_DST" 2>/dev/null || true
+# Retire an agent installed under an older label (any *.ssh-tunnel-companion other than $LABEL),
+# so a reinstall after a label change never leaves two tunnels fighting over the same port.
+for legacy in "$HOME"/Library/LaunchAgents/*.ssh-tunnel-companion.plist; do
+  [ -e "$legacy" ] || continue
+  [ "$legacy" = "$PLIST_DST" ] && continue
+  echo "  removing legacy agent: $(basename "$legacy")"
+  launchctl bootout "gui/$(id -u)" "$legacy" 2>/dev/null || true
+  rm -f -- "$legacy"
+done
 # The tracked plist carries __RUNNER_PATH__ rather than an absolute path, so the
 # public repo does not ship one maintainer's home directory (and so this actually
 # works for anyone who checks the repo out somewhere else). Substitute it here.

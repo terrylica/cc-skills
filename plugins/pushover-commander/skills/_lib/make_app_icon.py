@@ -7,6 +7,7 @@ Monogram-based (offline, reliable) — no color-emoji font dependency.
 Usage:
   make_app_icon.py --out icon.png --mono ODB --label runtime --color "#3b82f6" [--size 256]
 """
+import os
 import argparse
 
 from PIL import Image, ImageDraw, ImageFont
@@ -17,7 +18,7 @@ def load_font(size: int) -> ImageFont.FreeTypeFont:
         "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
         "/System/Library/Fonts/HelveticaNeue.ttc",
         "/System/Library/Fonts/Helvetica.ttc",
-        "/Users/terryli/Library/Fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
+        os.path.expanduser("~/Library/Fonts/JetBrainsMonoNerdFontMono-Regular.ttf"),
     ):
         try:
             return ImageFont.truetype(path, size)

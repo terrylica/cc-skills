@@ -7,7 +7,7 @@
 # Prerequisites:
 #   - Doppler CLI installed (brew install dopplerhq/cli/doppler)
 #   - uv package manager installed (curl -LsSf https://astral.sh/uv/install.sh | sh)
-#   - PYPI_TOKEN stored in Doppler (project: claude-config, config: prd)
+#   - PYPI_TOKEN stored in Doppler (project: $DOPPLER_PROJECT, config: prd)
 #   - pyproject.toml with name and version fields
 #
 # Usage:
@@ -24,7 +24,10 @@ set -euo pipefail
 # ============================================================================
 # Environment variables with defaults for backward compatibility.
 # These can be pre-set in the environment (e.g. a moon task's `env:`) or exported manually.
-DOPPLER_PROJECT="${DOPPLER_PROJECT:-claude-config}"
+# DOPPLER_PROJECT has no committed default (a project name is private): set it in the environment,
+# or put it in ~/.config/cc-skills/doppler-project (machine-local, one line).
+DOPPLER_PROJECT="${DOPPLER_PROJECT:-$(cat "$HOME/.config/cc-skills/doppler-project" 2>/dev/null || true)}"
+: "${DOPPLER_PROJECT:?set DOPPLER_PROJECT or write it to ~/.config/cc-skills/doppler-project}"
 DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
 DOPPLER_PYPI_SECRET="${DOPPLER_PYPI_SECRET:-PYPI_TOKEN}"
 PYPI_VERIFY_DELAY="${PYPI_VERIFY_DELAY:-3}"
