@@ -14,6 +14,8 @@ curl -s "https://r.jina.ai/https://example.com/article"
 
 **适用场景**: 大多数网页可以直接用 Jina Reader 读取。
 
+> **Warning / 警告**: Jina truncates SPAs and AI chat shares (`chatgpt.com/share`, Gemini, `claude.ai` shares) silently — HTTP 200, no error, only part of the page (measured 2026-10-08: 3 of 13 user turns on a ChatGPT share). Use Firecrawl for those: `Skill(devops-tools:firecrawl-research-patterns)`.
+
 ## Web Reader (MCP)
 
 ```bash
@@ -70,6 +72,7 @@ for e in feedparser.parse('FEED_URL').entries[:5]:
 | 场景              | 推荐工具                              |
 | ----------------- | ------------------------------------- |
 | 通用网页          | Jina Reader (`curl r.jina.ai`)        |
+| SPA / AI 聊天分享 | Firecrawl (不要用 Jina，会静默截断)   |
 | 需要图片/格式控制 | web-reader MCP                        |
 | 微信公众号        | Exa (搜索+阅读) / Camoufox (可选阅读) |
 | RSS 订阅          | feedparser                            |
