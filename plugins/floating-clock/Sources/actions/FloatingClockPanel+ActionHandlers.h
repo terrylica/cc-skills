@@ -56,6 +56,7 @@ NS_ASSUME_NONNULL_BEGIN
 // builder. Do not copy it.
 - (void)toggleShowNetworkBar:(NSMenuItem *)sender;      // network picker bar
 - (void)toggleShowBrightnessBar:(NSMenuItem *)sender;   // 2026-09-19 brightness rail
+- (void)toggleShowTTSBar:(NSMenuItem *)sender;          // 2026-10-08 TTS-rate rail
 - (void)copyStateToClipboard:(id)sender;
 - (void)setDensity:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;

@@ -6,6 +6,7 @@
 #import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
 #import "NetworkStatusIndicator.h" // network picker bar sync
 #import "BrightnessStatusIndicator.h" // 0-140% brightness rail sync (2026-09-19)
+#import "TTSRateStatusIndicator.h"
 #import "LocationProvider.h"     // hourly staleness re-kick (2026-06-11)
 #import "../rendering/SolarOutlinedTextRenderingView.h" // solar outlined text (2026-06-11)
 #import "../data/ThemeCatalog.h"
@@ -80,6 +81,7 @@ static uint64_t nsUntilNextSecond(void) {
     // the audio bar already does per second, so 1 Hz needs no decimation.
     // Same hard rule as the network bar: never a subprocess on the tick.
     [_brightnessStatusIndicator refresh];
+    [_ttsRateStatusIndicator refresh];
     // Solar canvas (2026-06-11): evolve the compact modes' background with
     // the live solar elevation. Quantized internally — usually a no-op.
     [self refreshSolarCanvasForced:NO];

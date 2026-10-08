@@ -141,6 +141,17 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     return noErr;
 }
 
+// Transparent top layer of the banner: the whole rail is one click target.
+// The label is an NSTextField, which would otherwise take the click itself.
+@interface FCMicBannerClickView : NSView
+@property (nonatomic, copy, nullable) void (^onClick)(void);
+@end
+@implementation FCMicBannerClickView
+- (NSView *)hitTest:(NSPoint)point { return [super hitTest:point] ? self : nil; }
+- (BOOL)acceptsFirstMouse:(NSEvent *)event { (void)event; return YES; }
+- (void)mouseDown:(NSEvent *)event { (void)event; if (self.onClick) self.onClick(); }
+@end
+
 @implementation FCMicMuteIndicator {
     __weak NSPanel *_clock;
     NSString       *_deviceName;
@@ -148,6 +159,8 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     NSTextField    *_bannerLabel;
     AudioObjectID   _device;             // kAudioObjectUnknown when absent
     BOOL            _muted;
+    BOOL            _propMuted;          // the CoreAudio mute FLAG is set (clickable fix)
+    NSString       *_labelKey;           // last banner text, so the 1 Hz tick does not re-set it
     AudioObjectPropertyListenerBlock _muteBlock;        // retained to remove later
     AudioObjectPropertyListenerBlock _devicesBlock;     // hotplug listener
     AudioObjectPropertyListenerBlock _defaultInputBlock; // default-input-change listener
@@ -201,7 +214,8 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 
 - (void)buildBanner {
     NSRect r = NSMakeRect(0, 0, 160, kBannerHeight);
-    _banner = FCCreateOverlayPanel(_clock, r.size, YES);   // detection-only
+    // Interactive since 2026-10-08: a click clears the mute FLAG (see -unmuteFromBanner).
+    _banner = FCCreateOverlayPanel(_clock, r.size, NO);
 
     NSView *bg = [[NSView alloc] initWithFrame:r];
     bg.wantsLayer            = YES;
@@ -214,6 +228,11 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     NSTextField *label = FCCreateBannerLabel(kBannerHeight, r.size.width, @"⊘ MIC MUTED");
     [bg addSubview:label];
     _bannerLabel = label;
+    FCMicBannerClickView *click = [[FCMicBannerClickView alloc] initWithFrame:r];
+    click.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    __weak typeof(self) ws = self;
+    click.onClick = ^{ [ws unmuteFromBanner]; };
+    [bg addSubview:click];   // added last = topmost
 
     [_banner orderOut:nil];   // hidden until muted
 }
@@ -296,7 +315,39 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                  FCDeviceHogPID(_device), def, FCDeviceName(def),
                  (propMuted || audioMuted));
     }
+    _propMuted = propMuted;
+    // Say WHY and HOW TO UNDO (2026-10-08). A mute FLAG is shown nowhere else
+    // in macOS: System Settings has no input-mute indicator (its slider clears
+    // the flag only as a side effect), so the banner must carry the remedy.
+    // Silence alone means a mute outside the Mac's control.
+    NSString *text = propMuted
+        ? @"⊘ MIC MUTED · click to unmute"
+        : @"⊘ MIC SILENT · check the mic's own mute";
+    if (![text isEqualToString:_labelKey]) { _labelKey = text; _bannerLabel.stringValue = text; }
+    _bannerLabel.toolTip = propMuted
+        ? @"The default input's CoreAudio mute flag is set, by a mute shortcut or another app. System Settings does not show it. Click to clear it."
+        : @"No mute flag is set, but the input has been digital silence: an analog mute button on the mic, or a muted transmitter.";
     [self applyMuted:(propMuted || audioMuted)];
+}
+
+// Clear the input mute FLAG on every element of the bound device that has one
+// set (mic-mute sets the main element; a channel element may also carry one).
+// Only acts on the flag: a silence-only banner has nothing here to clear.
+- (void)unmuteFromBanner {
+    if (_device == kAudioObjectUnknown || !_propMuted) return;
+    for (UInt32 el = 0; el <= 8; el++) {
+        AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
+                                         kAudioObjectPropertyScopeInput, el };
+        if (!AudioObjectHasProperty(_device, &a)) continue;
+        UInt32 v = 0, sz = sizeof(v);
+        if (AudioObjectGetPropertyData(_device, &a, 0, NULL, &sz, &v) != noErr || v == 0) continue;
+        Boolean settable = false;
+        if (AudioObjectIsPropertySettable(_device, &a, &settable) != noErr || !settable) continue;
+        UInt32 zero = 0;
+        OSStatus st = AudioObjectSetPropertyData(_device, &a, 0, NULL, sizeof(zero), &zero);
+        NSLog(@"[mic-mute] banner click: %@ element %u mute 1 -> 0 (%d)", FCDeviceName(_device), el, (int)st);
+    }
+    [self readMuteState];
 }
 
 #pragma mark - Device binding

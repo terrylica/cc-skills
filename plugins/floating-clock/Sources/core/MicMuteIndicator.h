@@ -5,8 +5,14 @@
 // mute button, whose position CoreAudio cannot observe) — and shows a red
 // "MIC MUTED" banner pinned just above the floating clock whenever the
 // ACTIVE mic is muted. Flips to just-below when the clock sits at the
-// screen's top edge. Detection-only — no controls. Hidden entirely when
-// unmuted.
+// screen's top edge. Hidden entirely when unmuted.
+//
+// 2026-10-08: the banner names the cause and is clickable, because the mute
+// flag is shown nowhere else in macOS. A set mute FLAG reads "click to unmute"
+// and a click clears it; silence alone reads
+// "check the mic's own mute" and a click does nothing. The flag is invisible in
+// System Settings (no input-mute indicator; dragging its slider clears the flag
+// as a side effect), so this banner is the only place it shows.
 //
 // Why: on the pinned USB mic the inline button and macOS share the same
 // UAC mute register (verified 2026-06-01), but there's no always-visible
