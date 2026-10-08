@@ -569,7 +569,7 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 ### devops-tools
 
-**Doppler credentials, Firecrawl self-hosted, ML pipelines, MLflow queries, notifications, and session recovery.**
+**Doppler credentials, Firecrawl (public API), ML pipelines, MLflow queries, notifications, and session recovery.**
 
 17 bundled skills: clickhouse-cloud-management, clickhouse-pydantic-config, claude-code-proxy-patterns, disk-hygiene, distributed-job-safety, doppler-workflows, doppler-secret-validation, dual-channel-watchexec, firecrawl-research-patterns, ml-data-pipeline-architecture, ml-failfast-validation, mlflow-python, project-directory-migration, pueue-job-orchestration, python-logging-best-practices, session-chronicle, session-recovery
 

@@ -24,11 +24,11 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 
 AI chat share URLs (`chatgpt.com/share/*`, `chat.openai.com/share/*`, `gemini.google.com/share/*`, `g.co/gemini/share/*`, `claude.ai/share/*`, `claude.ai/chat/*`) can be processed by **either** this skill or `Skill(gh-tools:research-archival)`. Pick by **intent**, not URL pattern:
 
-| Your intent                                                                        | Skill                                | Output                                                                         |
-| ---------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
-| One-off read / extract conversation text for analysis                              | **This skill** — public API (Sec. 1) | Markdown file on Caddy; no frontmatter, no Issue, no provenance.               |
-| Long-term archive with identity verification, frontmatter, GitHub Issue cross-link | `Skill(gh-tools:research-archival)`  | `docs/research/YYYY-MM-DD-{slug}-{type}.md` + issue with Discovery Provenance. |
-| Already have the file, just need to scrape extra content into the same corpus file | **This skill**                       | Append-mode workflow under your control.                                       |
+| Your intent                                                                        | Skill                                | Output                                                                                              |
+| ---------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| One-off read / extract conversation text for analysis                              | **This skill** — public API (Sec. 1) | Markdown returned in `data.markdown`; persist it yourself. No frontmatter, no Issue, no provenance. |
+| Long-term archive with identity verification, frontmatter, GitHub Issue cross-link | `Skill(gh-tools:research-archival)`  | `docs/research/YYYY-MM-DD-{slug}-{type}.md` + issue with Discovery Provenance.                      |
+| Already have the file, just need to scrape extra content into the same corpus file | **This skill**                       | Append-mode workflow under your control.                                                            |
 
 > **Both paths share the same Firecrawl backend.** `research-archival` calls Firecrawl too — it adds an archival layer on top. There is no scraping capability gap between the two; the difference is what happens to the bytes after they come back.
 
