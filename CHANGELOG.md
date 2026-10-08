@@ -1,3 +1,20 @@
+# [33.10.0](https://github.com/terrylica/cc-skills/compare/v33.9.0...v33.10.0) (2026-10-08)
+
+
+### Bug Fixes
+
+* **itp-hooks:** pueue reminder no longer silenced by any argument containing -h ([d1ad5fa](https://github.com/terrylica/cc-skills/commit/d1ad5fa1aff7882705103a61c89be0ee16028e39))
+
+The quick-command exception tested a bare substring, so an argument such as a hyphenated host name ("gpu-host") matched "-h" and disabled the reminder for that command. It now matches whole flags only. Found when a test fixture's host name gained a hyphen.
+
+
+
+### Features
+
+* **chrome-profiles:** register browser MCP servers on demand when ~/.claude/mcp-browser.json exists ([b11aad8](https://github.com/terrylica/cc-skills/commit/b11aad87e4e99e75104fb3274b7edc6a100ea7a4))
+
+Claude Code starts a private copy of every user-scope MCP server in every session; measured on one Mac, browser servers held 7.8 of 12.3 GB across 9 sessions. When an on-demand file exists (default ~/.claude/mcp-browser.json, or CHROME_PROFILES_MCP_CONFIG), setup and setup-main write the server there instead, remove a same-named user-scope entry, and say to load it with --mcp-config. Without the file, registration is unchanged. doctor now reads both places, labels each server, and flags duplicates and browser servers still starting in every session. Tests: scripts/test-register-mcp-on-demand.sh (throwaway HOME).
+
 # [33.9.0](https://github.com/terrylica/cc-skills/compare/v33.8.2...v33.9.0) (2026-10-07)
 
 ### Bug Fixes
