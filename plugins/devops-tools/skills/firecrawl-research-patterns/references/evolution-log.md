@@ -8,9 +8,9 @@
 
 **Trigger**: The operator asked to prioritize Firecrawl's official public "website to markdown" service for a small, occasional conversion volume, and to retire the self-hosted instances as no longer active.
 
-**Correction to the stated premise**: gpu-host-2's Firecrawl was **not** dead. It answered HTTP 200 in 21 ms with five containers up five weeks. gpu-host-1 was already clean. The instance was therefore retired deliberately, not reaped — worth recording, because "assume it's already gone" would have left a live service running.
+**Correction to the stated premise**: gpu-host-2's Firecrawl was **not** dead. It answered HTTP 200 in 21 ms with five containers up five weeks. <gpu-host> was already clean. The instance was therefore retired deliberately, not reaped — worth recording, because "assume it's already gone" would have left a live service running.
 
-**What was removed** (gpu-host-2, user `yca`): containers `firecrawl-{api-1,nuq-postgres-1,rabbitmq-1,redis-1,playwright-service-1}`; images `firecrawl-api`, `firecrawl-playwright-service`, `firecrawl-nuq-postgres`, `rabbitmq:3-management`, `redis:alpine`; plus volume and build-cache prune. **~18 GB reclaimed (61.99 → 44.04 GB).** Port 3002 refuses connections. The compose directory `/home/<user>/firecrawl` was permission-denied, so removal was done by container name rather than `docker compose down`. sub2api (3 containers) and clickhouse-server were explicitly preserved.
+**What was removed** (gpu-host-2, user `<user>`): containers `firecrawl-{api-1,nuq-postgres-1,rabbitmq-1,redis-1,playwright-service-1}`; images `firecrawl-api`, `firecrawl-playwright-service`, `firecrawl-nuq-postgres`, `rabbitmq:3-management`, `redis:alpine`; plus volume and build-cache prune. **~18 GB reclaimed (61.99 → 44.04 GB).** Port 3002 refuses connections. The compose directory `/home/<user>/firecrawl` was permission-denied, so removal was done by container name rather than `docker compose down`. sub2api (3 containers) and clickhouse-server were explicitly preserved.
 
 **Validation that justified the switch** — public Firecrawl v2 vs Jina Reader on two `chatgpt.com/share/*` links:
 

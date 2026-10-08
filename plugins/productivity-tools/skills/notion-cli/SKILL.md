@@ -178,10 +178,10 @@ notion block list <page-id> --depth 10 --format md
 
 ## Credential Storage
 
-| Store   | Location                             | Purpose          |
-| ------- | ------------------------------------ | ---------------- |
+| Store   | Location                              | Purpose          |
+| ------- | ------------------------------------- | ---------------- |
 | Doppler | `private-config/prd:NOTION_API_TOKEN` | SSoT for token   |
-| CLI     | `~/.config/notion/credentials.json`  | Local auth cache |
+| CLI     | `~/.config/notion/credentials.json`   | Local auth cache |
 
 Token format: `ntn_*` (Notion internal integration token).
 

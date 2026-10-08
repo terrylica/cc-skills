@@ -12,7 +12,7 @@ Edit `.claude-plugin/marketplace.json` to add the new plugin entry:
   "source": "./plugins/$PLUGIN_NAME/",
   "category": "$PLUGIN_CATEGORY",
   "author": {
-    "name": "<user>ca",
+    "name": "terrylica",
     "url": "https://github.com/terrylica"
   },
   "keywords": [],

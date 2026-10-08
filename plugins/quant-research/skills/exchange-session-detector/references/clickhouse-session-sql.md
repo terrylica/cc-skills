@@ -92,4 +92,4 @@ WHERE h.holiday_date IS NULL  -- Not a holiday
 
 ## Source
 
-Canonical: `~/eon/opendeviationbar/python/opendeviationbar/clickhouse/migrations.py`
+Canonical: `<project>/python/<package>/clickhouse/migrations.py`

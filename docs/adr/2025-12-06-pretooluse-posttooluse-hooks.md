@@ -1,7 +1,7 @@
 ---
 status: partially-reversed
 date: 2025-12-06
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted: [claude-code-guide, Explore-Agent]
 research-method: multi-agent
 ---

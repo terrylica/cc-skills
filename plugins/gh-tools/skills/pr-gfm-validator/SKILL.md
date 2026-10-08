@@ -278,7 +278,6 @@ After modifying this skill:
 | Wrong repo detected      | Remote not set correctly       | Check `git remote -v` output                      |
 | Conversion duplicated    | Running validator twice        | Check if links already absolute before converting |
 
-
 ## Post-Execution Reflection
 
 After this skill completes, reflect before closing the task:

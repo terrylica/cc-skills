@@ -36,7 +36,7 @@
  * long-running process is invisible to it. The documented case:
  * `@semantic-release/github` posts release notes with octokit and never shells
  * out to `gh`, so a repo whose release notes embed hard-wrapped commit bodies
- * publishes them with no hook firing at any point. ~/eon/private-monorepo shipped
+ * publishes them with no hook firing at any point. ~/code/example-org/monorepo shipped
  * twelve such releases before anyone noticed, all while this guard was enabled
  * and passing.
  *

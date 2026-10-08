@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2026-06-25
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted: [Explore, general-purpose]
 research-method: multi-agent
 clarification-iterations: 2

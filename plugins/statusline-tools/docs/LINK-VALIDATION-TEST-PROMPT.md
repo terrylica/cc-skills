@@ -1,9 +1,8 @@
 # Link Validation Hook Test - Meta-Prompt
 
-**Version**: 8.1.8+
-**Purpose**: Test lychee-stop-hook in non-marketplace repositories
+**Version**: 8.1.8+ **Purpose**: Test lychee-stop-hook in non-marketplace repositories
 
-Copy this prompt to Claude Code when working in a **non-marketplace repo** (e.g., `~/eon/research-repo`):
+Copy this prompt to Claude Code when working in a **non-marketplace repo** (e.g., `~/code/research-repo`):
 
 ---
 

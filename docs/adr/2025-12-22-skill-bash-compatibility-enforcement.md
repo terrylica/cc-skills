@@ -8,9 +8,7 @@ date: 2025-12-22
 
 # ADR: Skill Bash Compatibility Enforcement
 
-**Date**: 2025-12-22
-**Status**: Implemented
-**Related**: [Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
+**Date**: 2025-12-22 **Status**: Implemented **Related**: [Shell Command Portability](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
 
 ## Context
 

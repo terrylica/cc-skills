@@ -45,7 +45,8 @@ doppler secrets set SECRET_NAME="value" --project PROJECT --config CONFIG
 ```
 
 **Note**: Doppler CLI doesn't support `--note` flag. Add notes via dashboard:
-1. Go to https://dashboard.doppler.com
+
+1. Go to <https://dashboard.doppler.com>
 2. Navigate: PROJECT → CONFIG → SECRET_NAME
 3. Click "Edit" → Add note
 
@@ -219,6 +220,7 @@ project/
 ### API Tokens
 
 **Format**: Usually `prefix-base64string`
+
 - PyPI: `pypi-AgEI...` (179 chars)
 - GitHub: `ghp_...` (40+ chars)
 - Quarto: `qpa_...` (variable length)
@@ -228,6 +230,7 @@ project/
 ### Service Credentials
 
 **Format**: Username/password pairs or JSON keys
+
 - Store as separate secrets: `SERVICE_USER`, `SERVICE_PASS`
 - Or as single JSON: `SERVICE_CREDENTIALS`
 
@@ -262,6 +265,6 @@ timeout 30 doppler secrets get TOKEN --project foo --config bar --plain
 
 ## Reference
 
-- Official docs: https://docs.doppler.com/docs
-- CLI reference: https://docs.doppler.com/docs/cli
+- Official docs: <https://docs.doppler.com/docs>
+- CLI reference: <https://docs.doppler.com/docs/cli>
 - Install: `brew install dopplerhq/cli/doppler`

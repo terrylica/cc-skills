@@ -77,12 +77,12 @@ The terminology sync hook uses `SCAN_PATHS` to discover project CLAUDE.md files.
 
 Every term in GLOSSARY.md follows this 5-column format:
 
-| Column         | Required | Description                     | Example                        |
-| -------------- | -------- | ------------------------------- | ------------------------------ |
-| **Term**       | Yes      | Bold term name (`**Term**`)     | `**Time-Weighted Sharpe**`     |
-| **Acronym**    | Yes      | Abbreviation (or `-` if none)   | `TWSR`                         |
-| **Definition** | Yes      | Clear, concise definition       | `Sharpe ratio for range bars`  |
-| **Unit/Range** | Yes      | Measurement unit or valid range | `ratio`, `[0, 1]`, `-`         |
+| Column         | Required | Description                     | Example                          |
+| -------------- | -------- | ------------------------------- | -------------------------------- |
+| **Term**       | Yes      | Bold term name (`**Term**`)     | `**Time-Weighted Sharpe**`       |
+| **Acronym**    | Yes      | Abbreviation (or `-` if none)   | `TWSR`                           |
+| **Definition** | Yes      | Clear, concise definition       | `Sharpe ratio for range bars`    |
+| **Unit/Range** | Yes      | Measurement unit or valid range | `ratio`, `[0, 1]`, `-`           |
 | **Projects**   | Yes      | Comma-separated project names   | `research-repo, trading-fitness` |
 
 **Example row**:
@@ -139,8 +139,8 @@ head -25 ~/.claude/docs/GLOSSARY.md
 **Expected format**:
 
 ```markdown
-| Term                     | Acronym | Definition                  | Unit/Range | Projects    |
-| ------------------------ | ------- | --------------------------- | ---------- | ----------- |
+| Term                     | Acronym | Definition                  | Unit/Range | Projects      |
+| ------------------------ | ------- | --------------------------- | ---------- | ------------- |
 | **Time-Weighted Sharpe** | TWSR    | Sharpe ratio for range bars | ratio      | research-repo |
 ```
 
@@ -269,7 +269,6 @@ rm -rf ~/.claude/.vale/styles/Vocab/
 - [Vale Documentation](https://vale.sh/docs/)
 - GLOSSARY.md: `~/.claude/docs/GLOSSARY.md` (local file)
 - [itp-hooks CLAUDE.md](/plugins/itp-hooks/CLAUDE.md)
-
 
 ## Post-Execution Reflection
 

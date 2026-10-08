@@ -170,7 +170,7 @@ async function setOwner(page, spec, opts = {}) {
   // completely silent, leaving the form on the authenticated USER with
   // repository access at "Public Repositories (read-only)". That mints a token
   // which looks repo-scoped in the spec and is account-scoped in reality:
-  // measured 2026-09-04, sha256 0bc5d79ed5c1 saw 251 public repos, ZERO
+  // measured 2026-09-04, sha256 <sha-prefix> saw 251 public repos, ZERO
   // private, and GET /repos/example-org/relay-monitor returned 404 while
   // git receive-pack answered 403. Read the owner control back instead.
   //
@@ -195,7 +195,7 @@ async function setOwner(page, spec, opts = {}) {
     throw new Error(
       `resource owner NOT set: the control still reads '${self}', not '${spec.owner}'. ` +
         `Minting now would produce an account-scoped token that silently cannot write to ` +
-        `${spec.repositoryAccess?.repos?.[0] ?? "the selected repo"} (this is exactly how sha256 0bc5d79ed5c1 ` +
+        `${spec.repositoryAccess?.repos?.[0] ?? "the selected repo"} (this is exactly how sha256 <sha-prefix> ` +
         `was produced). Refusing. Screenshot: ${DEBUG_DIR}/owner-mismatch.png`,
     );
   }

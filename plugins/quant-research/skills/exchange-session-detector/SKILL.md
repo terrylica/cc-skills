@@ -174,7 +174,7 @@ The `exchange_calendars` library is ~10MB installed and has no heavy dependencie
 
 Validated implementation: `~/eon/exness-data-preprocess/src/exness_data_preprocess/session_detector.py` + `exchanges.py`
 
-Simplified predecessor: `~/eon/opendeviationbar/python/opendeviationbar/ouroboros.py` (Tier 1 only)
+Simplified predecessor: `<project>/python/<package>/ouroboros.py` (Tier 1 only)
 
 ## Post-Execution Reflection
 

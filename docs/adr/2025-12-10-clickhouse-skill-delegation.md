@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-10
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted:
   [
     Explore-SkillContent,

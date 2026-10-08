@@ -9,7 +9,7 @@
 
 ## Why it exists
 
-On 2026-09-06 an agent posted `CHANGES_REQUESTED` on example-org/research-repo#656 — authored by the CEO — on the strength of a premise it had invented: it reported the PR as "waiting on my review". No request existed. One arrived at 2026-09-07T05:22:34Z, **19 h 29 m later**.
+On 2026-09-06 an agent posted `CHANGES_REQUESTED` on example-org/research-repo#656 — authored by another person — on the strength of a premise it had invented: it reported the PR as "waiting on my review". No request existed. One arrived at 2026-09-07T05:22:34Z, **19 h 29 m later**.
 
 The review's _content_ was substantive and largely adopted: the merged head commit is titled `Terry's review: make the erratum reachable from the ledger, and link the brain retraction`, and the corrected script's docstring cites `(#656 review)`. The defect was its **form** and its **premise**, not its findings.
 

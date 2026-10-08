@@ -145,7 +145,7 @@ It is the only actively-maintained FOSS project that genuinely exceeds maximum b
 
 ### The licence obligation, which is the real blocker
 
-`cc-skills` is **MIT** (`LICENSE`: "MIT License / Copyright (c) 2025-2026 <user>ca"; `package.json` `"license": "MIT"`). floating-clock ships inside it. GPL-3.0 is viral across linking, so dropping BrightIntosh-derived code into this binary would relicense the whole app.
+`cc-skills` is **MIT** (`LICENSE`: "MIT License / Copyright (c) 2025-2026 terrylica"; `package.json` `"license": "MIT"`). floating-clock ships inside it. GPL-3.0 is viral across linking, so dropping BrightIntosh-derived code into this binary would relicense the whole app.
 
 This is the single most important thing the EDR-mechanism research missed entirely: it mentions licensing **zero times**, presents its deliverable as a "faithful transliteration", and its only permission analysis is about _entitlements_ — which is the OS sandbox axis, not the copyright axis. Its verifier caught this and is correct.
 

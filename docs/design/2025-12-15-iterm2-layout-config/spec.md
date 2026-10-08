@@ -95,13 +95,13 @@ async def main(connection):
 
 ### Phase 4: Replace Hardcoded Values
 
-| Current             | Replace With                              |
-| ------------------- | ----------------------------------------- |
-| `TABS = [...]`      | `config["tabs"]`                          |
-| `LEFT_COMMAND`      | `config["commands"]["left"]`              |
-| `RIGHT_COMMAND`     | `config["commands"]["right"]`             |
-| `SETTLE_TIME`       | `config["layout"]["settle_time"]`         |
-| `LEFT_PANE_RATIO`   | `config["layout"]["left_pane_ratio"]`     |
+| Current               | Replace With                              |
+| --------------------- | ----------------------------------------- |
+| `TABS = [...]`        | `config["tabs"]`                          |
+| `LEFT_COMMAND`        | `config["commands"]["left"]`              |
+| `RIGHT_COMMAND`       | `config["commands"]["right"]`             |
+| `SETTLE_TIME`         | `config["layout"]["settle_time"]`         |
+| `LEFT_PANE_RATIO`     | `config["layout"]["left_pane_ratio"]`     |
 | `~/eon/research-repo` | `config["worktrees"]["alpha_forge_root"]` |
 
 ### Phase 5: Create Template

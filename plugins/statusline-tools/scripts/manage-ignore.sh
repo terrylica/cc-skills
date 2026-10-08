@@ -2,7 +2,7 @@
 # manage-ignore.sh - Manage global ignore patterns for lint-relative-paths
 #
 # MIT License
-# Copyright (c) 2025 <user>ca
+# Copyright (c) 2025 terrylica
 #
 # Usage:
 #   manage-ignore.sh add <pattern>    Add a pattern to the ignore file

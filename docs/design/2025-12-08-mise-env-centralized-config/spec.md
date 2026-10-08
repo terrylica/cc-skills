@@ -163,7 +163,7 @@ run = "bash scripts/publish-to-pypi.sh"
 
 ```bash
 # Replace hardcoded values (around line 293-294)
-DOPPLER_PROJECT="${DOPPLER_PROJECT:-private-config}"
+DOPPLER_PROJECT="${DOPPLER_PROJECT:?set DOPPLER_PROJECT}"
 DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
 DOPPLER_PYPI_SECRET="${DOPPLER_PYPI_SECRET:-PYPI_TOKEN}"
 PYPI_VERIFY_DELAY="${PYPI_VERIFY_DELAY:-3}"

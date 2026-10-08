@@ -22,7 +22,7 @@
 // preserving the clock's sub-0.1% idle CPU budget. User-initiated changes
 // re-read immediately for instant feedback.
 //
-// NSUserDefaults (domain com.example.floating-clock):
+// NSUserDefaults (domain com.cc-skills.floating-clock):
 //   AudioBarEnabled  BOOL  YES   master on/off (always visible by default)
 //   AudioBarStep     int   5     ± click step in percent (clamped 1–25)
 //

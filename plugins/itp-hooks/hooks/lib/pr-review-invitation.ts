@@ -7,7 +7,7 @@
  * the actor entitled to submit one?
  *
  * WHY THIS GATE EXISTS, AND WHY IT IS NARROW. On 2026-09-06 an agent posted CHANGES_REQUESTED on
- * example-org/research-repo#656 -- authored by the CEO -- on the strength of a premise it had invented
+ * example-org/research-repo#656 -- authored by another person -- on the strength of a premise it had invented
  * ("waiting on my review"). No request existed; one arrived 19h29m LATER. The review's CONTENT was
  * substantive and largely adopted. The defect was its FORM and its PREMISE, not its findings.
  *

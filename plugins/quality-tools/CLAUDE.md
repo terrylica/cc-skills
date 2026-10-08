@@ -6,7 +6,6 @@
 
 ## Skills
 
-- [research-repo-preship](./skills/research-repo-preship/SKILL.md)
 - [clickhouse-architect](./skills/clickhouse-architect/SKILL.md)
 - [code-clone-assistant](./skills/code-clone-assistant/SKILL.md)
 - [dead-code-detector](./skills/dead-code-detector/SKILL.md)

@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-08
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted: [Claude Opus 4.5]
 research-method: single-agent
 clarification-iterations: 3
@@ -217,7 +217,7 @@ timeout = int(os.environ.get("AUDIT_JSCPD_TIMEOUT", "300"))
 
 ```bash
 # Bash pattern
-DOPPLER_PROJECT="${DOPPLER_PROJECT:-private-config}"
+DOPPLER_PROJECT="${DOPPLER_PROJECT:?set DOPPLER_PROJECT}"
 ```
 
 ## Validation

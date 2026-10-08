@@ -61,16 +61,9 @@ $GMAIL_CLI list -n 1 2>&1 | head -5
 - If the wrong account is shown, re-run with the right UUID passed inline (`GMAIL_OP_UUID=<uuid> $GMAIL_CLI ...`); nothing selects the account from the working directory
 - If mismatch, inform user and do NOT proceed
 
-**Multi-account disambiguation (when `GMAIL_OP_UUID` is NOT_SET but tokens exist).**
-There is no `whoami` subcommand; map each cached token UUID to its mailbox by
-probing, then pick the one that fits the project:
+**Multi-account disambiguation (when `GMAIL_OP_UUID` is NOT_SET but tokens exist).** There is no `whoami` subcommand; map each cached token UUID to its mailbox by probing, then pick the one that fits the project:
 
-🔴 **Do NOT identify a mailbox from `list -n 1 --json | jq '.[0].to'`.** That reads the
-**recipient of the newest message**, not the mailbox owner. When the newest item is an
-outgoing draft or a sent message, it reports the person you wrote TO. Measured 2026-08-18:
-the `wc6vl…` token probed as an external correspondent's address while the mailbox is in
-fact `you@example.com` — a confident wrong answer in the one step whose entire job is to
-stop you acting on the wrong account.
+🔴 **Do NOT identify a mailbox from `list -n 1 --json | jq '.[0].to'`.** That reads the **recipient of the newest message**, not the mailbox owner. When the newest item is an outgoing draft or a sent message, it reports the person you wrote TO. Measured 2026-08-18: the `<token-uuid-prefix>` token probed as an external correspondent's address while the mailbox is in fact `you@example.com` — a confident wrong answer in the one step whose entire job is to stop you acting on the wrong account.
 
 Ask Gmail who it is instead. `users/me/profile` is authoritative:
 
@@ -93,9 +86,7 @@ for f in ~/.claude/tools/gmail-tokens/*.json; do
 done
 ```
 
-The same endpoint answers "which aliases may I send as", which you need before any
-`--from`. `verificationStatus` must be `accepted`, and note which alias is `isDefault` —
-if the default is not the one you want, `--from` is mandatory, not optional:
+The same endpoint answers "which aliases may I send as", which you need before any `--from`. `verificationStatus` must be `accepted`, and note which alias is `isDefault` — if the default is not the one you want, `--from` is mandatory, not optional:
 
 ```bash
 curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
@@ -103,11 +94,7 @@ curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
   | jq -r '.sendAs[] | "\(.sendAsEmail)\t\(.verificationStatus)\t\(if .isDefault then "DEFAULT" else "" end)"'
 ```
 
-A probe that returns `invalid_grant` means that account's refresh token is dead
-(see "Diagnosing `invalid_grant`"). Pick the working UUID whose mailbox matches
-the project and pass it inline as `GMAIL_OP_UUID=<uuid>` on each command. A child
-project often needs a DIFFERENT account than its parent — verify, never assume
-the parent's UUID.
+A probe that returns `invalid_grant` means that account's refresh token is dead (see "Diagnosing `invalid_grant`"). Pick the working UUID whose mailbox matches the project and pass it inline as `GMAIL_OP_UUID=<uuid>` on each command. A child project often needs a DIFFERENT account than its parent — verify, never assume the parent's UUID.
 
 ### Step 3: Verify Token Health
 
@@ -119,8 +106,7 @@ echo "Token file: $([ -f "$TOKEN_FILE" ] && echo "EXISTS" || echo "MISSING")"
 echo "App credentials: $([ -f "$APP_CREDS" ] && echo "CACHED" || echo "MISSING — will need 1Password on first run")"
 ```
 
-**If token file is MISSING**: First run will open a browser for OAuth consent. This is expected.
-**If app credentials are MISSING**: 1Password will be called once to cache `client_id`/`client_secret`, then never again.
+**If token file is MISSING**: First run will open a browser for OAuth consent. This is expected. **If app credentials are MISSING**: 1Password will be called once to cache `client_id`/`client_secret`, then never again.
 
 ---
 
@@ -302,9 +288,7 @@ $GMAIL_CLI draft-update <draft_id> --to "user@example.com" --from "me@example.co
 
 ### `drafts --json` field names
 
-The identifier field is **`draftId`**, not `id`. A `.id` selector silently yields
-`null` for every row rather than erroring, so a jq pipeline built on it looks like
-it worked and hands you nothing:
+The identifier field is **`draftId`**, not `id`. A `.id` selector silently yields `null` for every row rather than erroring, so a jq pipeline built on it looks like it worked and hands you nothing:
 
 ```bash
 # WRONG — .id does not exist; prints "null" per draft and fails silently
@@ -314,14 +298,9 @@ $GMAIL_CLI drafts -n 10 --json | jq -r '.[] | "\(.id)\t\(.subject)"'
 $GMAIL_CLI drafts -n 10 --json | jq -r '.[] | "\(.draftId)\t\(.subject)"'
 ```
 
-Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`,
-`threadId`, `to`. Note the two distinct identifiers — **`draftId`** is what
-`draft-update` and `draft-delete` take; **`messageId`** is what `read` takes.
-Passing one where the other belongs fails or returns the wrong record.
+Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`, `threadId`, `to`. Note the two distinct identifiers — **`draftId`** is what `draft-update` and `draft-delete` take; **`messageId`** is what `read` takes. Passing one where the other belongs fails or returns the wrong record.
 
-**`draft-update` returns a NEW `draftId`** (it deletes and recreates). Any ID you
-noted earlier is dead the moment you update — re-list before a second update, and
-never cache a draft ID across edits.
+**`draft-update` returns a NEW `draftId`** (it deletes and recreates). Any ID you noted earlier is dead the moment you update — re-list before a second update, and never cache a draft ID across edits.
 
 ## 🔴 ATTRIBUTION DOCTRINE — run this before you ever write "they said X"
 
@@ -480,9 +459,7 @@ When inline images contain **handwritten annotations** (circles, arrows, written
 
 ## File Attachment Extraction
 
-Real file attachments (PDF, docx, csv, …) are surfaced in `attachments[]` and
-downloaded with `--save-attachments` / `--attachment-dir`. Same fetch path as
-inline images, different metadata field.
+Real file attachments (PDF, docx, csv, …) are surfaced in `attachments[]` and downloaded with `--save-attachments` / `--attachment-dir`. Same fetch path as inline images, different metadata field.
 
 ```bash
 # See what a message carries (no download) — both metadata blocks print
@@ -499,29 +476,20 @@ $GMAIL_CLI search "from:sender@example.com has:attachment" -n 20 --json | \
   done
 ```
 
-**Why this matters for archival**: in client/legal/operational mail the
-attached PDF (a protocol, a vendor form, a signed consent) is often the most
-important payload. A body-only export silently loses it. Always check
-`attachments[]` when archiving a correspondence thread.
+**Why this matters for archival**: in client/legal/operational mail the attached PDF (a protocol, a vendor form, a signed consent) is often the most important payload. A body-only export silently loses it. Always check `attachments[]` when archiving a correspondence thread.
 
 ## Bulk Retrieval & Thread Archival
 
-The canonical pattern for archiving a whole correspondence (verified on a
-27-message, 15-thread client corpus):
+The canonical pattern for archiving a whole correspondence (verified on a 27-message, 15-thread client corpus):
 
-1. **Scope with high-signal queries, not generic keywords.** A bare keyword
-   (`"Acme"`) returns mostly newsletter noise. Prefer:
+1. **Scope with high-signal queries, not generic keywords.** A bare keyword (`"Acme"`) returns mostly newsletter noise. Prefer:
    - **domain**: `vendor-domain.com` (matches from/to/cc on the org)
    - **participant**: `from:someone@example.com OR to:…`
    - **project code**: any internal tag the sender uses (e.g. `1233V`)
-2. **Collect message IDs** from `search --json` (snippet-only) and curate the
-   in-scope set out of the noise.
+2. **Collect message IDs** from `search --json` (snippet-only) and curate the in-scope set out of the noise.
 3. **Fetch full bodies** with a `read --json` loop (one file per message).
-4. **Group by `threadId`** client-side — Gmail's list/search APIs return
-   individual messages, _not_ threads; you reconstruct threads yourself.
-5. **Sort within a thread by parsed `Date`** and **strip quoted history**
-   (drop `>`-prefixed lines and everything after `On … wrote:`) to expose each
-   message's new content.
+4. **Group by `threadId`** client-side — Gmail's list/search APIs return individual messages, _not_ threads; you reconstruct threads yourself.
+5. **Sort within a thread by parsed `Date`** and **strip quoted history** (drop `>`-prefixed lines and everything after `On … wrote:`) to expose each message's new content.
 6. **Pull attachments** for any message whose `attachments[]` is non-empty.
 
 ```bash
@@ -534,13 +502,7 @@ done
 
 ### `export` is the one-call shortcut (fixed)
 
-`gmail export -q "<query>" -o out.json -n N` writes one JSON array with full
-body + `inlineImages[]` + `attachments[]` per message — the batch-fetch
-shortcut when a single query captures your set. (Historical note: before the
-fix, `export` printed `"Exported N emails to <path>"` but **wrote no file** —
-`outputPath` was an unused parameter. If you see that symptom, the binary is
-stale; rebuild it.) `export` does **not** download attachment bytes — it only
-carries the metadata; use `read --save-attachments` per message for the files.
+`gmail export -q "<query>" -o out.json -n N` writes one JSON array with full body + `inlineImages[]` + `attachments[]` per message — the batch-fetch shortcut when a single query captures your set. (Historical note: before the fix, `export` printed `"Exported N emails to <path>"` but **wrote no file** — `outputPath` was an unused parameter. If you see that symptom, the binary is stale; rebuild it.) `export` does **not** download attachment bytes — it only carries the metadata; use `read --save-attachments` per message for the files.
 
 ## Creating Draft Emails
 
@@ -574,14 +536,13 @@ From: you@example.com (auto-detected from original email)
 
 **Do not trust that line to be the identity you want.** Auto-detection resolves to the _underlying account_ rather than the alias even when the original was addressed to the alias. Measured 2026-08-25: a message addressed to `Jane Doe <alias@example.com>` produced `From: you@example.com`, silently, with no warning — and `alias@example.com` is an `accepted` send-as alias on that very account. The draft looked successful.
 
-This matters because the alias IS the identity, not a cosmetic label. Where a correspondence policy says which name to sign as, the account and the alias are different signatories, and getting it wrong sends the whole message as the wrong person. Note also that the _default_ alias on this account is `you@company.example`, which policy forbids for non-example-org mail — so an omitted or mis-detected `--from` can reach for an identity that is not merely wrong but prohibited.
+This matters because the alias IS the identity, not a cosmetic label. Where a correspondence policy says which name to sign as, the account and the alias are different signatories, and getting it wrong sends the whole message as the wrong person. Note also that the _default_ alias on this account is `you@company.example`, which policy forbids for non-work mail — so an omitted or mis-detected `--from` can reach for an identity that is not merely wrong but prohibited.
 
 **So: always pass `--from` explicitly, on replies as well as new mail, and read the confirmation line back before trusting it.** If a draft was already created without it, `draft-update <draftId> --from …` recreates it correctly — it does not patch in place, so re-supply every other flag too.
 
 **There is no `--cc` flag.** A reply draft therefore carries only `To`, even when the thread it replies into copied other people. Threading is preserved (`In-Reply-To`/`References` are set), but the copies are not. On a thread with a client and several vendors copied, this silently drops all of them from a reply sent on that client's behalf. Either restore the copies in the Gmail compose window before sending, or state plainly in your handoff that the CC list needs restoring — never let a draft go out assumed to be a reply-all.
 
-**Rule 2 - New emails (no --reply-to):**
-When drafting a brand new email (not a reply), you MUST use AskUserQuestion to confirm which sender alias to use BEFORE creating the draft. Never assume the default.
+**Rule 2 - New emails (no --reply-to):** When drafting a brand new email (not a reply), you MUST use AskUserQuestion to confirm which sender alias to use BEFORE creating the draft. Never assume the default.
 
 ```
 AskUserQuestion({
@@ -604,8 +565,7 @@ Then pass the selected address via `--from`:
 $GMAIL_CLI draft --to "recipient@example.com" --from "you@example.com" --subject "Hello" --body "Message"
 ```
 
-**Rule 3 - Always verify in output:**
-After draft creation, confirm the From address is shown in the output. If it's missing or wrong, delete the draft and recreate.
+**Rule 3 - Always verify in output:** After draft creation, confirm the From address is shown in the output. If it's missing or wrong, delete the draft and recreate.
 
 ### MANDATORY Post-Draft Step (NON-NEGOTIABLE)
 
@@ -763,22 +723,12 @@ $GMAIL_CLI list -n 1
 rm ~/.claude/tools/gmail-tokens/<uuid>.json.expired
 ```
 
-**Durable fix (stop the weekly death — "keep everything re-auth")**: publish the
-OAuth app to Production so refresh tokens stop expiring on the 7-day clock.
+**Durable fix (stop the weekly death — "keep everything re-auth")**: publish the OAuth app to Production so refresh tokens stop expiring on the 7-day clock.
 
-1. If an account survives indefinitely while another dies weekly, they use
-   **different OAuth apps** (check `accounts.json` `vault` per uuid). Only the
-   dying one is stuck in Testing.
-2. Google Cloud Console → the project owning that OAuth client (the
-   `client_id` prefix is the project number; the CLI prints the full
-   `client_id` in the consent URL during re-auth).
-3. **APIs & Services → OAuth consent screen → Publishing status → Publish app
-   → confirm "In production".** (External + Production with Gmail scopes may
-   warn "unverified" for _new_ users, but already-consented accounts get
-   long-lived refresh tokens; full Google verification is only needed for
-   public/>100-user apps.)
-4. Re-consent once more after publishing; the hourly refresher then keeps the
-   access token fresh indefinitely with no weekly re-auth.
+1. If an account survives indefinitely while another dies weekly, they use **different OAuth apps** (check `accounts.json` `vault` per uuid). Only the dying one is stuck in Testing.
+2. Google Cloud Console → the project owning that OAuth client (the `client_id` prefix is the project number; the CLI prints the full `client_id` in the consent URL during re-auth).
+3. **APIs & Services → OAuth consent screen → Publishing status → Publish app → confirm "In production".** (External + Production with Gmail scopes may warn "unverified" for _new_ users, but already-consented accounts get long-lived refresh tokens; full Google verification is only needed for public/>100-user apps.)
+4. Re-consent once more after publishing; the hourly refresher then keeps the access token fresh indefinitely with no weekly re-auth.
 
 ### Multi-Account Token Status
 
@@ -841,10 +791,10 @@ done
 
 - **2026-08-18 — the account-verification probe reported the WRONG mailbox, and `GMAIL_OP_UUID` means two different things.**
   - _Trigger_: drafting client correspondence that must go out as a specific send-as alias. Step 2.5 exists precisely to stop you acting on the wrong account, and it gave a confident wrong answer.
-  - _Defect 1_: the disambiguation snippet read `list -n 1 --json | jq '.[0].to'` — the **recipient of the newest message**, not the mailbox owner. The newest item was an outgoing draft, so the `wc6vl…` token reported an external correspondent's address when the mailbox is `you@example.com`. Anyone trusting it would have concluded they were authenticated as the counterparty.
+  - _Defect 1_: the disambiguation snippet read `list -n 1 --json | jq '.[0].to'` — the **recipient of the newest message**, not the mailbox owner. The newest item was an outgoing draft, so the `<token-id>` token reported an external correspondent's address when the mailbox is `you@example.com`. Anyone trusting it would have concluded they were authenticated as the counterparty.
   - _Fix 1_: replaced with `users/me/profile` → `.emailAddress`, which is authoritative, plus a `settings/sendAs` probe so aliases and the DEFAULT alias are known before `--from` is chosen. That default matters: on this account it is `you@company.example`, which correspondence policy forbids for client mail — so an omitted `--from` sends as the forbidden identity.
-  - _Defect 2, NOT yet fixed_: `GMAIL_OP_UUID` is overloaded. A project's env may set it to the 1Password item **title** (e.g. `"amonic-gmail"`), while `gmail-access-token.sh` and the token cache key off the item **UUID** (`wc6vl….json`). Passing the title fails with `no token file`. Whether the compiled `gmail` CLI resolves titles via 1Password was **not** tested, because a wrong guess triggers a fresh OAuth browser consent. **Verify before "fixing" either side.**
-  - _Evidence_: `users/me/profile` → `you@example.com`; `settings/sendAs` → `alias@example.com` `verificationStatus=accepted`, `you@company.example` `isDefault=true`. Draft `r6501695713107519416` created with an explicit `--from` and read back with the alias correct and no `terry` in the header.
+  - _Defect 2, NOT yet fixed_: `GMAIL_OP_UUID` is overloaded. A project's env may set it to the 1Password item **title** (e.g. `"<account>-gmail"`), while `gmail-access-token.sh` and the token cache key off the item **UUID** (`<token-id>.json`). Passing the title fails with `no token file`. Whether the compiled `gmail` CLI resolves titles via 1Password was **not** tested, because a wrong guess triggers a fresh OAuth browser consent. **Verify before "fixing" either side.**
+  - _Evidence_: `users/me/profile` → `you@example.com`; `settings/sendAs` → `alias@example.com` `verificationStatus=accepted`, `you@company.example` `isDefault=true`. Draft `r6501695713107519416` created with an explicit `--from` and read back with the alias correct and no real-name token in the header.
 
 - **2026-08-18 — the body guard does NOT cover `scripts/gmail-draft.ts`, and markdown reached a real draft through that hole.**
   - _Trigger_: an ad-hoc Gmail drafts-API write was correctly BLOCKED by `gmail-draft-guard.sh`, which redirected to `scripts/gmail-draft.ts`. That script accepts a markdown `--body` file and **is not covered by `pretooluse-gmail-body-guard.ts`**, which matches on `gmail draft` / `draft-update`. A client draft was authored through it with markdown and passed.

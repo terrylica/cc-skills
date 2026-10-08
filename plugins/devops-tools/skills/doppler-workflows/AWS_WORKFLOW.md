@@ -19,8 +19,7 @@ This workflow manages AWS IAM credentials using Doppler for secure storage, rota
 
 ## Doppler Project Structure
 
-**Project**: `aws-credentials`
-**Config**: `dev` (or `staging`, `production`)
+**Project**: `aws-credentials` **Config**: `dev` (or `staging`, `production`)
 
 **Secrets**:
 
@@ -279,7 +278,7 @@ Last comprehensive audit date.
 **Current Setup:**
 
 - **IAM User**: `<user>`
-- **Account ID**: `<company-aws-account-id>` (example-org)
+- **Account ID**: `<company-aws-account-id>`
 - **Group**: `fullstack-eng`
 - **Region**: `us-west-2`
 

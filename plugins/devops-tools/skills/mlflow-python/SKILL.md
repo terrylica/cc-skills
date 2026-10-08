@@ -47,7 +47,7 @@ MLFLOW_TRACKING_PASSWORD=<password>
 
 # Option 2: Direct environment variables
 export MLFLOW_TRACKING_URI="http://mlflow.example.com:5000"
-export MLFLOW_TRACKING_USERNAME="example-org"
+export MLFLOW_TRACKING_USERNAME="<user>"
 export MLFLOW_TRACKING_PASSWORD="<password>"
 ```
 

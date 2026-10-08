@@ -2,9 +2,7 @@
 
 ## Doppler Configuration
 
-**Project**: `private-config`
-**Configs**: `prd` (production), `dev` (development)
-**Secret Name**: `PYPI_TOKEN`
+**Project**: `private-config` **Configs**: `prd` (production), `dev` (development) **Secret Name**: `PYPI_TOKEN`
 
 ## Token Format
 

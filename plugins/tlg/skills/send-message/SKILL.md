@@ -158,8 +158,8 @@ Emojis are supported but user may prefer decorations without emojis — use `<pr
 
 | Profile         | Account            | User ID    |
 | --------------- | ------------------ | ---------- |
-| `eon` (default) | @ExampleOpsAccount | 90417581   |
-| `personal`   | @personal       | 2124832490 |
+| `work` (default) | @ExampleOpsAccount | <user-id>   |
+| `personal`   | @personal_account | <user-id> |
 
 ## Known Group Chat IDs
 
@@ -180,7 +180,7 @@ To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_me
 | Onboarding & Access        | 4           | Repo access, SSH/Tailscale, tool provisioning          |
 | Policy & Standards         | 5           | cc-skills carve-out, conventions, discipline           |
 | Bug Reports & Incidents    | 6           | Merge conflicts, hook bugs, pipeline breaks            |
-| Tool Setup & Config        | 7           | relay-monitor, FlowSurface, chronicle pipeline         |
+| Tool Setup & Config        | 7           | example-service, example-app, example-pipeline         |
 | Knowledge Base & Learning  | 8           | KB pages, research material, skill references          |
 | HR & Scheduling            | 9           | Shift hours, Bruntwork coordination                    |
 | Session Monitor            | 185         | Real-time Claude Code session summaries (CC Nasim Bot) |
@@ -197,7 +197,7 @@ To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_me
 
 | Error                     | Cause                   | Fix                                                         |
 | ------------------------- | ----------------------- | ----------------------------------------------------------- |
-| `Unknown profile`         | Invalid `-p` value      | Use `eon` or `personal`                                  |
+| `Unknown profile`         | Invalid `-p` value      | Use `work` or `personal`                                  |
 | `Cannot find any entity`  | Bad username/ID         | Verify with `dialogs` command or use `find-user` to resolve |
 | `message cannot be empty` | Empty string passed     | Provide message text                                        |
 | `Session expired`         | Session no longer valid | Run `/tlg:setup` to re-authenticate non-interactively       |

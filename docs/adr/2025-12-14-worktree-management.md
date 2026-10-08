@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-14
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted:
   [
     Explore Agent (research-repo),
@@ -13,9 +13,9 @@ clarification-iterations: 3
 perspectives: [Developer Experience, Automation, Consistency]
 ---
 
-# research-repo Git Worktree Management System
+# Research-Repo Git Worktree Management System
 
-**Design Spec**: [Implementation Spec](/docs/design/2025-12-14-research-repo-worktree-management/spec.md)
+**Design Spec**: retired 2026-10-07 together with the plugin it specified.
 
 ## Context and Problem Statement
 
@@ -89,7 +89,7 @@ graph { label: "Before: Manual Worktree Management"; flow: east; }
 **Neutral**:
 
 - Requires plugin installation in cc-skills marketplace
-- research-repo specific (by design, can extend later)
+- Research-repo specific (by design, can extend later)
 
 **Bad**:
 
@@ -151,8 +151,8 @@ graph { label: "Worktree Management Architecture"; flow: south; }
 
 **Examples**:
 
-| Branch                                          | Worktree Folder                                                 |
-| ----------------------------------------------- | --------------------------------------------------------------- |
+| Branch                                          | Worktree Folder                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------- |
 | `feat/2025-12-14-sharpe-statistical-validation` | `research-repo.worktree-2025-12-14-sharpe-statistical-validation` |
 | `feat/2025-12-13-feature-genesis-skills`        | `research-repo.worktree-2025-12-13-feature-genesis-skills`        |
 
@@ -190,5 +190,5 @@ graph { label: "Worktree Management Architecture"; flow: south; }
 ## More Information
 
 - **Plugin location**: `~/eon/cc-skills/plugins/research-repo-worktree/`
-- **Primary repo**: `~/eon/research-repo` (example-org-legacy/research-repo)
+- **Primary repo**: `~/eon/research-repo` (example-org/research-repo)
 - **Related**: Git worktree documentation, ADR naming conventions

@@ -2,7 +2,7 @@
 status: superseded
 superseded-date: 2026-09-05
 date: 2025-12-07
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted: [Claude Code]
 research-method: single-agent
 clarification-iterations: 2

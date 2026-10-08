@@ -47,8 +47,8 @@ bootstrapper, page-template is the authoring guide.
 | --------- | ------------------------ | ------------------------------------------------- |
 | `python3` | `build-nav.py`           | macOS ships 3.9+; this plugin works on **3.10+**  |
 | `lychee`  | link validation          | `brew install lychee` (or `cargo install lychee`) |
-| `rsync`   | publishing to gpu-host-1 | preinstalled on macOS                             |
-| `ssh`     | publishing to gpu-host-1 | preinstalled on macOS                             |
+| `rsync`   | publishing to <gpu-host> | preinstalled on macOS                             |
+| `ssh`     | publishing to <gpu-host> | preinstalled on macOS                             |
 | `git`     | repo detection           | preinstalled on macOS                             |
 
 The scripts use **only Python stdlib** — no `pip install` step. Lychee is the
@@ -173,7 +173,7 @@ re-read the principle, not to work around it.
                                     ┌───────────────────────────────┐
                                     │  site.sh check / push         │
                                     │  → lychee + orphan-check      │
-                                    │  → rsync to gpu-host-1 via      │
+                                    │  → rsync to <gpu-host> via      │
                                     │    Tailscale (optional)       │
                                     └───────────────────────────────┘
 ```
@@ -196,7 +196,7 @@ plugins/html-showcase/
         │   ├── principles.md      The WHY — 5 + 1 principles
         │   ├── sitemap.md         Filesystem-as-sitemap contract
         │   ├── contributing.md    The HOW — 4 contributor stances
-        │   └── publishing.md      The WHERE — gpu-host-1 tailnet setup
+        │   └── publishing.md      The WHERE — <gpu-host> tailnet setup
         ├── scripts/
         │   ├── build-nav.py       Universal sitemap + auto-nav builder
         │   ├── check-orphan-pages.py   Pure-stdlib orphan detector
@@ -225,5 +225,5 @@ plugins/html-showcase/
 - [Skill SKILL.md](./skills/page-template/SKILL.md) — full skill instructions
 - [principles.md](./skills/page-template/references/principles.md) — design rationale
 - [sitemap.md](./skills/page-template/references/sitemap.md) — auto-nav contract
-- [publishing.md](./skills/page-template/references/publishing.md) — gpu-host-1 tailnet setup
+- [publishing.md](./skills/page-template/references/publishing.md) — <gpu-host> tailnet setup
 - [contributing.md](./skills/page-template/references/contributing.md) — four contributor stances

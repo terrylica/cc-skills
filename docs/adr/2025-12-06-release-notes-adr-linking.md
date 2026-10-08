@@ -1,7 +1,7 @@
 ---
 status: accepted
 date: 2025-12-06
-decision-maker: <user>ca
+decision-maker: terrylica
 consulted: [Plan-Agent]
 research-method: single-agent
 clarification-iterations: 4

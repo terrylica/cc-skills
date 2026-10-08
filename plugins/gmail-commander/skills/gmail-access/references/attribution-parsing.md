@@ -1,23 +1,12 @@
 # Inline-reply attribution — field reference
 
-**What this is for.** Deciding **who wrote which line** in a replied-to email thread. That is a
-different problem from reading the email, it is harder than it looks, and its failure mode is not a
-crash — it is a fluent, confident, wrong answer that nobody catches.
+**What this is for.** Deciding **who wrote which line** in a replied-to email thread. That is a different problem from reading the email, it is harder than it looks, and its failure mode is not a crash — it is a fluent, confident, wrong answer that nobody catches.
 
-**Read the doctrine in [SKILL.md](../SKILL.md) first**; this file is the catalogue behind it. The
-tool that implements it is `scripts/attribution-parse.ts`, with unit tests in
-`scripts/attribution-parse.test.ts` pinning the failure modes marked below.
+**Read the doctrine in [SKILL.md](../SKILL.md) first**; this file is the catalogue behind it. The tool that implements it is `scripts/attribution-parse.ts`, with unit tests in `scripts/attribution-parse.test.ts` pinning the failure modes marked below.
 
-**Provenance.** Assembled 2026-08-25 from a four-lens survey (108 raw conventions, deduplicated)
-covering colour and formatting, typed markers, quote structure, and client artifacts that masquerade
-as authorship signals. Prompted by a real incident in which a scan for css `color:` returned zero on
-a message containing 25 legacy `<font color="#0000ff">` tags, and the zero was read as "the sender
-used no colour". Where an entry says _measured_, it was observed on real mail; the rest is surveyed
-and should be treated as a lead to verify, not as settled fact.
+**Provenance.** Assembled 2026-08-25 from a four-lens survey (108 raw conventions, deduplicated) covering colour and formatting, typed markers, quote structure, and client artifacts that masquerade as authorship signals. Prompted by a real incident in which a scan for css `color:` returned zero on a message containing 25 legacy `<font color="#0000ff">` tags, and the zero was read as "the sender used no colour". Where an entry says _measured_, it was observed on real mail; the rest is surveyed and should be treated as a lead to verify, not as settled fact.
 
-**How to use it.** Do not read start to finish. Find your layer, apply the detection rule, and pay
-attention to the _silent failure_ line — that is the part that decides whether you notice you were
-wrong.
+**How to use it.** Do not read start to finish. Find your layer, apply the detection rule, and pay attention to the _silent failure_ line — that is the part that decides whether you notice you were wrong.
 
 ---
 

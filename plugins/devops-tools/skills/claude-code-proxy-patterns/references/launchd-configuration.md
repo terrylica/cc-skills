@@ -64,14 +64,14 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
 
 ## Key launchd Properties
 
-| Key                                | Purpose            | Value for Proxy                                |
-| ---------------------------------- | ------------------ | ---------------------------------------------- |
-| `Label`                            | Unique identifier  | `com.example.claude-proxy`                     |
-| `ProgramArguments`                 | Command + args     | `["/usr/local/bin/claude-proxy"]`              |
-| `RunAtLoad`                        | Start at boot      | `true`                                         |
-| `KeepAlive/SuccessfulExit`         | Restart on crash   | `false` (always restart)                       |
-| `EnvironmentVariables`             | Env vars for proxy | PORT, API keys, etc.                           |
-| `SoftResourceLimits/NumberOfFiles` | FD limit           | `65536`                                        |
+| Key                                | Purpose            | Value for Proxy                              |
+| ---------------------------------- | ------------------ | -------------------------------------------- |
+| `Label`                            | Unique identifier  | `com.example.claude-proxy`                   |
+| `ProgramArguments`                 | Command + args     | `["/usr/local/bin/claude-proxy"]`            |
+| `RunAtLoad`                        | Start at boot      | `true`                                       |
+| `KeepAlive/SuccessfulExit`         | Restart on crash   | `false` (always restart)                     |
+| `EnvironmentVariables`             | Env vars for proxy | PORT, API keys, etc.                         |
+| `SoftResourceLimits/NumberOfFiles` | FD limit           | `65536`                                      |
 | `StandardOutPath`                  | stdout log         | `/Users/<you>/.claude/logs/proxy-stdout.log` |
 | `StandardErrorPath`                | stderr log         | `/Users/<you>/.claude/logs/proxy-stderr.log` |
 

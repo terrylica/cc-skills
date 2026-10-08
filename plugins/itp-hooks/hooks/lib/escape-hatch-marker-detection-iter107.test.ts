@@ -33,7 +33,7 @@ describe("invoking the hatch", () => {
   });
 
   test("a multi-line comment with the marker on its own line", () => {
-    // The shape of ~/own/<automation-repo>'s ADR: `<!--` alone, marker on line 2.
+    // The shape of ~/<automation-repo>'s ADR: `<!--` alone, marker on line 2.
     expect(invoked(["<!--", `${MARKER}: house convention for ADRs in this dir.`, "-->", "", "body"].join("\n"))).toBe(
       true,
     );

@@ -71,8 +71,7 @@ The proxy reads the `model` field from each `/v1/messages` request body. If it m
 
 Read OAuth tokens from macOS Keychain where Claude Code stores them.
 
-**Service**: `"Claude Code-credentials"` (note the space before the hyphen)
-**Account**: Current username via `getpass.getuser()`
+**Service**: `"Claude Code-credentials"` (note the space before the hyphen) **Account**: Current username via `getpass.getuser()`
 
 ```python
 import subprocess, json, getpass
@@ -172,9 +171,9 @@ The `/v1/messages/count_tokens` endpoint needs the same auth as `/v1/messages`. 
 
 Third-party providers that support the Anthropic `/v1/messages` API format.
 
-| Provider          | Base URL                           | Notes                                             |
-| ----------------- | ---------------------------------- | ------------------------------------------------- |
-| (your provider)   | `https://<provider-host>/anthropic` | Check: model echo, extra content blocks, cache_control, count_tokens |
+| Provider        | Base URL                            | Notes                                                                |
+| --------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| (your provider) | `https://<provider-host>/anthropic` | Check: model echo, extra content blocks, cache_control, count_tokens |
 
 See [references/provider-compatibility.md](./references/provider-compatibility.md) for the full matrix.
 
@@ -303,18 +302,18 @@ After modifying this skill:
 
 ## Troubleshooting
 
-| Issue                                  | Cause                                          | Solution                                         |
-| -------------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
-| Claude Code ignores ANTHROPIC_BASE_URL | Missing ANTHROPIC_API_KEY (CCP-01)             | Set `ANTHROPIC_API_KEY=proxy-managed` in .zshenv |
-| 401 Unauthorized from Anthropic        | Missing anthropic-beta header (CCP-02)         | Ensure proxy appends `oauth-2025-04-20`          |
-| Keychain read returns empty            | Wrong service name (CCP-04)                    | Use `"Claude Code-credentials"` (with space)     |
-| Proxy forwards real API key            | ANTHROPIC_API_KEY set to real key (CCP-10)     | Use `proxy-managed` sentinel value               |
-| count_tokens auth failure              | Missing endpoint handler (CCP-11)              | Proxy must handle `/v1/messages/count_tokens`    |
-| Proxy accessible from network          | Bound to 0.0.0.0 (CCP-12)                      | Bind to 127.0.0.1 only                           |
-| Process storms on enable               | gh auth token in hooks (CCP-07)                | Never call gh CLI from hooks/credential helpers  |
-| Token expired after 5 min              | Cache TTL (WP-05)                              | Normal behavior; proxy re-reads from Keychain    |
-| Auth conflict warning in Claude Code   | ANTHROPIC_API_KEY set (CCP-08)                 | Unset ANTHROPIC_API_KEY in .zshenv               |
-| cache_control.ephemeral.scope error    | Provider lacks cache_control (CCP-09)          | Remove cache_control from allowedParams          |
+| Issue                                  | Cause                                      | Solution                                         |
+| -------------------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| Claude Code ignores ANTHROPIC_BASE_URL | Missing ANTHROPIC_API_KEY (CCP-01)         | Set `ANTHROPIC_API_KEY=proxy-managed` in .zshenv |
+| 401 Unauthorized from Anthropic        | Missing anthropic-beta header (CCP-02)     | Ensure proxy appends `oauth-2025-04-20`          |
+| Keychain read returns empty            | Wrong service name (CCP-04)                | Use `"Claude Code-credentials"` (with space)     |
+| Proxy forwards real API key            | ANTHROPIC_API_KEY set to real key (CCP-10) | Use `proxy-managed` sentinel value               |
+| count_tokens auth failure              | Missing endpoint handler (CCP-11)          | Proxy must handle `/v1/messages/count_tokens`    |
+| Proxy accessible from network          | Bound to 0.0.0.0 (CCP-12)                  | Bind to 127.0.0.1 only                           |
+| Process storms on enable               | gh auth token in hooks (CCP-07)            | Never call gh CLI from hooks/credential helpers  |
+| Token expired after 5 min              | Cache TTL (WP-05)                          | Normal behavior; proxy re-reads from Keychain    |
+| Auth conflict warning in Claude Code   | ANTHROPIC_API_KEY set (CCP-08)             | Unset ANTHROPIC_API_KEY in .zshenv               |
+| cache_control.ephemeral.scope error    | Provider lacks cache_control (CCP-09)      | Remove cache_control from allowedParams          |
 
 ## Post-Execution Reflection
 

@@ -210,7 +210,7 @@ CONFIG_EOF
 | Credential Management | [Doppler & Token Management](./references/credential-management.md) |
 | Troubleshooting       | [Troubleshooting Guide](./references/troubleshooting.md)            |
 | TestPyPI Testing      | [TestPyPI Testing](./references/testpypi-testing.md)                |
-| Task Dependency       | [Task Dependency](./references/task-dependency.md)                    |
+| Task Dependency       | [Task Dependency](./references/task-dependency.md)                  |
 
 ---
 
@@ -233,9 +233,7 @@ CONFIG_EOF
 
 ---
 
-**Last Updated**: 2025-12-03
-**Policy**: Workspace-wide local-only PyPI publishing (ADR-0027)
-**Supersedes**: None (created with ADR-0027 compliance from start)
+**Last Updated**: 2025-12-03 **Policy**: Workspace-wide local-only PyPI publishing (ADR-0027) **Supersedes**: None (created with ADR-0027 compliance from start)
 
 ## Post-Execution Reflection
 

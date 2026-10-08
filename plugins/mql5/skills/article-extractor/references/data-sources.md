@@ -41,8 +41,7 @@ When user makes vague request:
 
 ### Example 1: Vague → Specific (Guided)
 
-**User**: "Extract some trading articles"
-**Skill**: "This extracts from mql5.com only. Please specify:
+**User**: "Extract some trading articles" **Skill**: "This extracts from mql5.com only. Please specify:
 
 1. Article URL (`https://www.mql5.com/en/articles/{ID}`)
 1. MQL5 user ID (e.g., 29210372)
@@ -50,8 +49,7 @@ When user makes vague request:
 
 Which do you have?"
 
-**User**: "User 29210372"
-**Skill**:
+**User**: "User 29210372" **Skill**:
 
 ```bash
 cd $HOME/eon/mt5-local
@@ -60,8 +58,7 @@ cd $HOME/eon/mt5-local
 
 ### Example 2: URL Provided (Direct)
 
-**User**: "Extract <https://www.mql5.com/en/articles/19625>"
-**Skill**:
+**User**: "Extract <https://www.mql5.com/en/articles/19625>" **Skill**:
 
 ```bash
 cd $HOME/eon/mt5-local
@@ -70,13 +67,11 @@ cd $HOME/eon/mt5-local
 
 ### Example 3: Out of Scope (Reject)
 
-**User**: "Extract articles from reuters.com"
-**Skill**: "This skill extracts from mql5.com ONLY. Reuters is not supported. Use general web scraping tools instead."
+**User**: "Extract articles from reuters.com" **Skill**: "This skill extracts from mql5.com ONLY. Reuters is not supported. Use general web scraping tools instead."
 
 ### Example 4: Testing (Limited)
 
-**User**: "Test with 5 articles from user jslopes"
-**Skill**:
+**User**: "Test with 5 articles from user jslopes" **Skill**:
 
 ```bash
 cd $HOME/eon/mt5-local
