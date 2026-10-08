@@ -1,6 +1,6 @@
 # API Endpoint Reference
 
-Firecrawl self-hosted API contracts for the two endpoints used in research workflows, plus health check.
+Public Firecrawl API (`api.firecrawl.dev`) contracts for `/v2/search` and `/v2/scrape`; there is no health endpoint.
 
 **Base URL**: `https://api.firecrawl.dev` (public API, no key needed)
 
