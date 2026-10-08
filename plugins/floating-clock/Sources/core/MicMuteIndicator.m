@@ -27,6 +27,8 @@ static const double kSilenceHoldSecs = 0.4;      // sustain before flagging mute
 typedef struct {
     volatile int32_t silent;          // 1 when sustained digital silence
     double           silentRunFrames;  // consecutive silent frames
+    volatile int32_t noSignal;        // 1 when every sample has been EXACTLY 0.0 for the hold window
+    double           zeroRunFrames;    // consecutive all-zero frames
     double           sampleRate;
     volatile double  lastRMS;         // DEBUG: most recent RMS from the IOProc
     volatile int64_t cbCount;         // DEBUG: total IOProc callbacks (liveness)
@@ -110,6 +112,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     if (!m || !inInputData || inInputData->mNumberBuffers == 0) return noErr;
 
     double sumSq = 0.0;
+    BOOL   allZero = YES;   // exact 0.0: no source at all (unlinked wireless receiver, transmitter off)
     UInt32 totalSamples = 0;
     UInt32 frames = 0;
     for (UInt32 b = 0; b < inInputData->mNumberBuffers; b++) {
@@ -117,7 +120,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         const float *s = (const float *)buf->mData;
         if (!s) continue;
         UInt32 samples = buf->mDataByteSize / (UInt32)sizeof(float);
-        for (UInt32 i = 0; i < samples; i++) { double v = s[i]; sumSq += v * v; }
+        for (UInt32 i = 0; i < samples; i++) { double v = s[i]; sumSq += v * v; if (v != 0.0) allZero = NO; }
         totalSamples += samples;
         UInt32 ch = buf->mNumberChannels ? buf->mNumberChannels : 1;
         UInt32 f = samples / ch;
@@ -131,6 +134,16 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     m->lastFrames = frames;
     m->cbCount   += 1;
 
+    // Exact zeros vs a quiet floor (measured): an unlinked wireless
+    // receiver still streams frames, but every sample is exactly 0.0; an analog
+    // mute button leaves a faint floor (RMS ~2.8e-5). The two need different fixes.
+    if (allZero) {
+        m->zeroRunFrames += frames;
+        if (m->zeroRunFrames >= m->sampleRate * kSilenceHoldSecs) m->noSignal = 1;
+    } else {
+        m->zeroRunFrames = 0;
+        m->noSignal = 0;
+    }
     if (rms < kSilenceRMS) {
         m->silentRunFrames += frames;
         if (m->silentRunFrames >= m->sampleRate * kSilenceHoldSecs) m->silent = 1;
@@ -320,13 +333,16 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // in macOS: System Settings has no input-mute indicator (its slider clears
     // the flag only as a side effect), so the banner must carry the remedy.
     // Silence alone means a mute outside the Mac's control.
-    NSString *text = propMuted
-        ? @"⊘ MIC MUTED · click to unmute"
-        : @"⊘ MIC SILENT · check the mic's own mute";
+    BOOL noSignal = (_micAuthorized && _meteringStarted && _meter.noSignal != 0);
+    NSString *text = propMuted ? @"⊘ MIC MUTED · click to unmute"
+                   : noSignal  ? @"⊘ MIC NO SIGNAL · mic off or unlinked?"
+                               : @"⊘ MIC SILENT · check the mic's own mute";
     if (![text isEqualToString:_labelKey]) { _labelKey = text; _bannerLabel.stringValue = text; }
     _bannerLabel.toolTip = propMuted
         ? @"The default input's CoreAudio mute flag is set, by a mute shortcut or another app. System Settings does not show it. Click to clear it."
-        : @"No mute flag is set, but the input has been digital silence: an analog mute button on the mic, or a muted transmitter.";
+        : noSignal
+        ? @"The input streams nothing but exact zeros: no source at all. A wireless receiver whose transmitter is off, out of range or unlinked does this. Re-link or power the transmitter; nothing on the Mac can fix it."
+        : @"No mute flag is set, but the input has been near-silent: usually an analog mute button on the mic itself.";
     [self applyMuted:(propMuted || audioMuted)];
 }
 
@@ -532,6 +548,8 @@ static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
     _meter.sampleRate      = (sr > 0) ? sr : 48000.0;
     _meter.silent          = 0;
     _meter.silentRunFrames = 0;
+    _meter.zeroRunFrames   = 0;
+    _meter.noSignal        = 0;
 
     if (AudioDeviceCreateIOProcID(_device, FCMeterIOProc, &_meter, &_ioProc) == noErr && _ioProc) {
         if (AudioDeviceStart(_device, _ioProc) == noErr) {
@@ -552,6 +570,8 @@ static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
     _meteringStarted = NO;
     _meter.silent    = 0;
     _meter.silentRunFrames = 0;
+    _meter.zeroRunFrames   = 0;
+    _meter.noSignal        = 0;
 }
 
 @end
