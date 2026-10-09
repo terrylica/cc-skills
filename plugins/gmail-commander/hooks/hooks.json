@@ -17,6 +17,17 @@
             "description": "LAYER 2: Detect UTF-8-read-as-Latin-1 mojibake in draft Subject/body (regression 2026-07-29). Blocks when Subject or body file contains byte sequences like E2 80 94 that, when misinterpreted, produce corrupted text. Escape hatch: GMAIL_MOJIBAKE_OK=1 (for deliberately quoted mojibake). Complements Layer 1 (RFC 2047 encoding in the builder) and Layer 3 (canonical text sources)."
           }
         ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/gmail-send-guard.ts",
+            "timeout": 10,
+            "description": "Deny direct Gmail SENDS and raw reads of the cached OAuth tokens (incident 2026-10-08: a script read a token file and POSTed to the send endpoint with no From line, so Gmail used each account's default send-as identity, which was the wrong one). Send: REST messages/send or drafts/send, or client messages.send / drafts.send, with a Gmail context marker, in the Bash command, in a script the command executes, or in a code file written by Write/Edit/MultiEdit (prose files exempt). Tokens: Read/Grep inside gmail-tokens/, and Bash content readers (cat, jq, python, bun -e, cp, ...) aimed at it directly or via cd / a for loop; metadata ops (ls, stat, test -f, mv, rm) pass, and the plugin's own scripts are the sanctioned readers (scripts/gmail-accounts.ts shows mailbox, send-as aliases and DEFAULT). Escape: GMAIL-SEND-OK: <10+ char reason> in the command, written content, or executed script; none for Read/Grep. Fail-open. Spoke: docs/gmail-send-guard.md."
+          }
+        ]
       }
     ]
   }
