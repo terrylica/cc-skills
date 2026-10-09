@@ -118,8 +118,13 @@ probe_direct() {
 # never hit, and the release age never rendered. GNU is tried FIRST because BSD
 # `stat -c` is a hard error (clean fall-through), whereas GNU `stat -f` succeeds
 # with the wrong output. Each prints one integer; 0 / empty on any failure.
-file_mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
-file_size()  { stat -c %s "$1" 2>/dev/null || stat -f %z "$1" 2>/dev/null || echo 0; }
+# On macOS, /usr/bin/stat is always the BSD one, so call it by path and skip the
+# failed GNU attempt (one process per call, not two; perf 2026-10-08). A GNU stat
+# earlier on PATH (Homebrew gnubin) cannot shadow it. Elsewhere: unchanged.
+# The helpers stay one-liners at column 0: the bats suite extracts them by range.
+case "${OSTYPE:-}" in darwin*) _SL_BSD_STAT=/usr/bin/stat ;; *) _SL_BSD_STAT="" ;; esac
+file_mtime() { if [ -n "${_SL_BSD_STAT:-}" ]; then "$_SL_BSD_STAT" -f %m "$1" 2>/dev/null || echo 0; else stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; fi; }
+file_size()  { if [ -n "${_SL_BSD_STAT:-}" ]; then "$_SL_BSD_STAT" -f %z "$1" 2>/dev/null || echo 0; else stat -c %s "$1" 2>/dev/null || stat -f %z "$1" 2>/dev/null || echo 0; fi; }
 iso_utc_to_epoch() {
     TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$1" "+%s" 2>/dev/null \
         || date -u -d "$1" "+%s" 2>/dev/null \
@@ -129,10 +134,17 @@ iso_utc_to_epoch() {
 # Get path display with ~ substitution
 # Shows: ~/eon/cc-skills or ~/eon/cc-skills/plugins/itp-hooks
 get_repo_path() {
-    pwd | sed "s|$HOME|~|"
+    # Same substitution as the old `pwd | sed "s|$HOME|~|"`, without two forks.
+    local tilde='~'
+    printf '%s\n' "${PWD/"$HOME"/$tilde}"
 }
 
 repo_path=$(get_repo_path)
+
+# The render's clock, read once (perf 2026-10-08: this was 13 separate `date +%s`
+# processes per render). A render takes well under a second, so every cache-age
+# and timestamp below may share it.
+NOW_EPOCH=$(date +%s)
 
 # Read JSON from stdin
 input=$(cat)
@@ -142,7 +154,7 @@ input=$(cat)
 # Consumed by: scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py
 # (L2 telemetry surface) and an external analytics package —
 # intentional cross-repo infrastructure, NOT dead code.
-echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
+echo "{\"ts\":${NOW_EPOCH},\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
 
 # Extract fields.
 #
@@ -226,12 +238,55 @@ fi
 
 # Git info - try JSON first, fallback to direct git commands.
 # (git_branch already TSV-batched above in iter-30 input-payload decode.)
+# ONE git process for branch, upstream, ahead/behind and every file state
+# (perf 2026-10-08). `git status --porcelain=v2 --branch -uall` reports all of
+# them; this section used to spawn ~11 git processes plus a wc|tr pipeline per
+# count, every render. Parsed in-shell below, bash-3.2 safe, no forks.
+# Equivalences kept from the per-command version it replaces:
+#   modified  = worktree-side M, plus unmerged paths
+#                                 (was: git diff --name-only --diff-filter=M)
+#   deleted   = worktree-side D   (was: git diff --name-only --diff-filter=D)
+#   staged    = any index change, unmerged paths included
+#                                 (was: git diff --cached --name-only)
+#   untracked = every untracked file, -uall
+#                                 (was: git ls-files --others --exclude-standard)
+#   conflicts = unmerged paths    (was: git diff --name-only --diff-filter=U)
+#   upstream  = a "# branch.ab" line, which git prints only when @{u} resolves
+#                                 (was: git rev-parse --abbrev-ref '@{u}')
+#   ahead/behind from that line   (was: two git rev-list --count calls)
+git_status_v2=$(git status --porcelain=v2 --branch --untracked-files=all 2>/dev/null)
+git_status_head="" git_has_upstream=0
+modified=0 deleted=0 staged=0 untracked=0 conflicts=0 ahead=0 behind=0
+while IFS= read -r _gs_line; do
+    case "$_gs_line" in
+        '# branch.head '*) git_status_head=${_gs_line#'# branch.head '} ;;
+        '# branch.ab '*)
+            git_has_upstream=1
+            _gs_ab=${_gs_line#'# branch.ab '}
+            ahead=${_gs_ab%% *}; ahead=${ahead#+}
+            behind=${_gs_ab##* }; behind=${behind#-}
+            ;;
+        '1 '*|'2 '*)
+            _gs_x=${_gs_line:2:1}; _gs_y=${_gs_line:3:1}
+            [ "$_gs_x" != "." ] && staged=$((staged + 1))
+            [ "$_gs_y" = "M" ] && modified=$((modified + 1))
+            [ "$_gs_y" = "D" ] && deleted=$((deleted + 1))
+            ;;
+        # An unmerged path also counted as modified in the old `git diff
+        # --diff-filter=M` (its worktree, conflict markers included, differs
+        # from "ours"), and as staged in `git diff --cached`. Kept both.
+        'u '*) conflicts=$((conflicts + 1)); staged=$((staged + 1)); modified=$((modified + 1)) ;;
+        '? '*) untracked=$((untracked + 1)) ;;
+    esac
+done <<< "$git_status_v2"
+[ "$git_status_head" = "(detached)" ] && git_status_head=""
+
 if [ -z "$git_branch" ]; then
     # Fallback: read git directly. OFFICIAL-VALUES-ONLY (2026-06-11): the
-    # invented "no-branch" label is gone — on detached HEAD (show-current
-    # empty) surface the official short SHA; outside a git repo stay empty.
-    git_branch=$(git branch --show-current 2>/dev/null)
-    if [ -z "$git_branch" ]; then
+    # invented "no-branch" label is gone — on detached HEAD (no branch name)
+    # surface the official short SHA; outside a git repo stay empty.
+    git_branch=$git_status_head
+    if [ -z "$git_branch" ] && [ -n "$git_status_v2" ]; then
         git_branch=$(git rev-parse --short HEAD 2>/dev/null)
     fi
 fi
@@ -259,34 +314,16 @@ if [ -n "$session_id" ]; then
     fi
 fi
 
-# Get file status counts (consistent with Telegram bot format)
-# Using --diff-filter to separate change types accurately:
+# File status counts (consistent with Telegram bot format) come from the
+# single porcelain=v2 read above:
 #   M = Modified (content changed, unstaged)
 #   D = Deleted (removed from working tree, unstaged)
 #   S = Staged (any change staged for commit)
 #   U = Untracked (new files not in git)
-git_status_output=$(git status --porcelain 2>/dev/null)
-if [ -n "$git_status_output" ]; then
-    modified=$(git diff --name-only --diff-filter=M 2>/dev/null | wc -l | tr -d ' ')
-    deleted=$(git diff --name-only --diff-filter=D 2>/dev/null | wc -l | tr -d ' ')
-    staged=$(git diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
-    untracked=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
-else
-    modified=0
-    deleted=0
-    staged=0
-    untracked=0
-fi
 
 # Ahead/Behind remote tracking
 # ↑n = commits ahead (need to push), ↓n = commits behind (need to pull)
-ahead=0
-behind=0
-if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-    # Get counts from local tracking ref (fast, may be stale after external push)
-    ahead=$(git rev-list '@{u}..HEAD' --count 2>/dev/null || echo 0)
-    behind=$(git rev-list 'HEAD..@{u}' --count 2>/dev/null || echo 0)
-
+if [ "$git_has_upstream" = 1 ]; then
     # Quick staleness check: if ahead > 0, verify with remote (cached for 30s)
     # This catches the case where external tools pushed but local refs are stale
     if [ "$ahead" -gt 0 ]; then
@@ -296,14 +333,14 @@ if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
         cache_age=9999
 
         if [ -f "$cache_file" ]; then
-            cache_age=$(($(date +%s) - $(file_mtime "$cache_file")))
+            cache_age=$((${NOW_EPOCH} - $(file_mtime "$cache_file")))
         fi
 
         # Only query remote every 30 seconds to avoid network overhead
         if [ "$cache_age" -gt 30 ]; then
             local_head=$(git rev-parse HEAD 2>/dev/null)
-            remote_name=$(git config "branch.$(git branch --show-current).remote" 2>/dev/null || echo "origin")
-            remote_head=$(git ls-remote --heads "$remote_name" "$(git branch --show-current)" 2>/dev/null | cut -f1)
+            remote_name=$(git config "branch.${git_status_head}.remote" 2>/dev/null || echo "origin")
+            remote_head=$(git ls-remote --heads "$remote_name" "$git_status_head" 2>/dev/null | cut -f1)
             echo "${local_head}:${remote_head}" > "$cache_file" 2>/dev/null
         else
             # Read from cache
@@ -319,10 +356,12 @@ if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
 fi
 
 # Stash count - easy to forget stashed changes!
-stash_count=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
+# One process, no pipe: the stash reflog's length IS the stash list's length.
+# No refs/stash (never stashed) is an error, which means zero.
+stash_count=$(git rev-list --walk-reflogs --count refs/stash 2>/dev/null) || stash_count=0
+[ -n "$stash_count" ] || stash_count=0
 
-# Merge conflicts (unmerged files) - critical during rebase/merge
-conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null | wc -l | tr -d ' ')
+# Merge conflicts (unmerged files) were counted in the porcelain=v2 read above.
 
 # Build git status display with conditional coloring
 # Format: M:n D:n S:n U:n | ↑:n ↓:n | ≡:n | ⚠:n
@@ -333,32 +372,32 @@ conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null | wc -l | tr -d ' '
 #   Non-zero values: yellow (YELLOW)
 #   Conflicts non-zero: red (RED)
 
-# Helper function: colorize stat based on value
-colorize_stat() {
-    local label="$1"
-    local value="$2"
-    local highlight_color="${3:-$YELLOW}"
-
-    if [ "$value" -eq 0 ]; then
-        echo "${BRIGHT_BLACK}${label}:${value}${RESET}"
-    else
-        echo "${highlight_color}${label}:${value}${RESET}"
-    fi
+# Helper: append one colored stat to git_changes. printf -v instead of $(...)
+# so the seven stats cost no subshells (bash 3.1+, so macOS /bin/bash is fine).
+append_stat() {
+    local label="$1" value="$2" highlight_color="${3:-$YELLOW}" color
+    if [ "$value" -eq 0 ]; then color=$BRIGHT_BLACK; else color=$highlight_color; fi
+    printf -v git_changes '%s%s%s%s:%s%s' "$git_changes" "${git_changes:+ }" "$color" "$label" "$value" "$RESET"
 }
 
 # File changes group (each stat colored independently)
-git_changes="$(colorize_stat M "$modified") $(colorize_stat D "$deleted") $(colorize_stat S "$staged") $(colorize_stat U "$untracked")"
+git_changes=""
+append_stat M "$modified"
+append_stat D "$deleted"
+append_stat S "$staged"
+append_stat U "$untracked"
 
 # Remote tracking (always show if tracking remote)
-if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-    git_changes="${git_changes} $(colorize_stat ↑ "$ahead") $(colorize_stat ↓ "$behind")"
+if [ "$git_has_upstream" = 1 ]; then
+    append_stat ↑ "$ahead"
+    append_stat ↓ "$behind"
 fi
 
 # Stash count (always show)
-git_changes="${git_changes} $(colorize_stat ≡ "$stash_count")"
+append_stat ≡ "$stash_count"
 
 # Conflict indicator (RED when non-zero)
-git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
+append_stat ⚠ "$conflicts" "$RED"
 
 # === Version Tag + Release Age ===
 # Show latest git tag after git indicators, separated by |
@@ -369,7 +408,7 @@ git_changes="${git_changes} $(colorize_stat ⚠ "$conflicts" "$RED")"
 
 # Compact relative time: epoch → "3s", "5m", "2h", "3d", "2w", "4mo", "1y"
 reltime() {
-    local diff=$(( $(date +%s) - $1 ))
+    local diff=$(( ${NOW_EPOCH} - $1 ))
     if   (( diff < 60 ));       then printf '%ds ago'  "$diff"
     elif (( diff < 3600 ));     then printf '%dm ago'  "$(( diff / 60 ))"
     elif (( diff < 86400 ));    then printf '%dh ago'  "$(( diff / 3600 ))"
@@ -444,7 +483,7 @@ if [ -n "$owner_repo" ]; then
     release_cache_dir=$(git rev-parse --git-dir 2>/dev/null)
     release_cache_file="${release_cache_dir:-/tmp}/ccstatusline-gh-release-cache"
     release_cache_age=9999
-    [ -f "$release_cache_file" ] && release_cache_age=$(($(date +%s) - $(file_mtime "$release_cache_file")))
+    [ -f "$release_cache_file" ] && release_cache_age=$((${NOW_EPOCH} - $(file_mtime "$release_cache_file")))
     if [ "$release_cache_age" -lt 300 ]; then
         release_out=$(cat "$release_cache_file")
         release_exit=0
@@ -577,7 +616,7 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
     vis_cache_dir=$(git rev-parse --git-dir 2>/dev/null)
     vis_cache_file="${vis_cache_dir:-/tmp}/ccstatusline-gh-visibility-cache"
     vis_cache_age=9999
-    [ -f "$vis_cache_file" ] && vis_cache_age=$(($(date +%s) - $(file_mtime "$vis_cache_file")))
+    [ -f "$vis_cache_file" ] && vis_cache_age=$((${NOW_EPOCH} - $(file_mtime "$vis_cache_file")))
     vis_err=""
     if [ "$vis_cache_age" -lt 3600 ]; then
         vis_out=$(cat "$vis_cache_file")
@@ -640,18 +679,14 @@ fi
 # "06:38 UTC | 06:38 UTC"). Resolving the symlink is display-only; the
 # claude process's privacy posture (TZ=UTC on the wire) is unchanged.
 # Fallback: inherited TZ when the symlink is unreadable (hardened boxes).
-system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||')
+system_tz=$(readlink /etc/localtime 2>/dev/null)
+system_tz=${system_tz##*/zoneinfo/}   # same as the old `| sed 's|.*/zoneinfo/||'`, one fork fewer
 [ -z "$system_tz" ] && system_tz="${TZ:-UTC}"
 
-utc_date=$(date -u +"%a %d %b %Y")
-utc_hm=$(date -u +"%H:%M")
-utc_month=$(date -u +"%b")
-utc_year=$(date -u +"%Y")
-local_date=$(TZ="$system_tz" date +"%a %d %b %Y")
-local_hm=$(TZ="$system_tz" date +"%H:%M")
-local_tz=$(TZ="$system_tz" date +"%Z")
-local_month=$(TZ="$system_tz" date +"%b")
-local_year=$(TZ="$system_tz" date +"%Y")
+# One `date` for all four fields (was four), from the render's clock.
+IFS='|' read -r utc_date utc_hm utc_month utc_year <<< "$(date -u -r "$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%b|%Y' 2>/dev/null || date -u -d "@$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%b|%Y')"
+# Same for the local clock: one `date` (was five, plus one more below).
+IFS='|' read -r local_date local_hm local_tz local_month local_year local_dd <<< "$(TZ="$system_tz" date -r "$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%Z|%b|%Y|%a %d' 2>/dev/null || TZ="$system_tz" date -d "@$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%Z|%b|%Y|%a %d')"
 
 if [ "$utc_date" = "$local_date" ]; then
     # Same date: show date once with UTC, local time-only
@@ -659,11 +694,11 @@ if [ "$utc_date" = "$local_date" ]; then
 else
     # Different date: build minimal local date showing only what differs
     # Always show day-of-week + day number; add month if different; add year if different
-    local_short=$(TZ="$system_tz" date +"%a %d")
+    local_short=$local_dd
     if [ "$utc_year" != "$local_year" ]; then
-        local_short="$(TZ="$system_tz" date +"%a %d %b %Y")"
+        local_short=$local_date
     elif [ "$utc_month" != "$local_month" ]; then
-        local_short="$(TZ="$system_tz" date +"%a %d %b")"
+        local_short="$local_dd $local_month"
     fi
     datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${YELLOW}${local_short}${BRIGHT_BLACK} ${local_hm} ${local_tz}${RESET}"
 fi
@@ -954,7 +989,7 @@ if [ -f "$GATEWAY_FLOOR_CACHE" ]; then
         floor_cache_ttl="$GATEWAY_FLOOR_NEGATIVE_TTL"
     fi
     floor_cache_mtime=$(file_mtime "$GATEWAY_FLOOR_CACHE")
-    floor_cache_age=$(( $(date +%s) - floor_cache_mtime ))
+    floor_cache_age=$(( ${NOW_EPOCH} - floor_cache_mtime ))
     if [ "$floor_cache_age" -lt "$floor_cache_ttl" ]; then
         floor_cache_fresh=1
         GATEWAY_MIN_WRAPPER_VERSION="$floor_last_good"
@@ -1001,7 +1036,7 @@ gateway_needs_fetch=0
 [ "$GATEWAY_CONFIGURED" -eq 1 ] && gateway_needs_fetch=1
 if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -f "$GATEWAY_CACHE" ]; then
     gateway_cache_mtime=$(file_mtime "$GATEWAY_CACHE")
-    gateway_cache_age=$(( $(date +%s) - gateway_cache_mtime ))
+    gateway_cache_age=$(( ${NOW_EPOCH} - gateway_cache_mtime ))
     [ "$gateway_cache_age" -lt "$GATEWAY_CACHE_TTL" ] && gateway_needs_fetch=0
 fi
 if [ "$gateway_needs_fetch" -eq 1 ]; then
@@ -1425,7 +1460,7 @@ if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -n "${ANTHROPIC_BASE_URL:-}" ] \
     case "$_rt_env_authority" in
         127.0.0.1:*|localhost:*|"$_rt_gw_authority")
             transcript_mtime=$(file_mtime "$transcript_file")
-            transcript_age=$(( $(date +%s) - transcript_mtime ))
+            transcript_age=$(( ${NOW_EPOCH} - transcript_mtime ))
             [ "$transcript_age" -lt 60 ] && real_traffic_recent=1
             ;;
     esac
@@ -2074,7 +2109,7 @@ gateway_real_traffic_damper_engaged_boolean_serialized="false"
 
 gateway_state_jsonl_log_record_for_this_render="{\
 \"schema_version\":3,\
-\"wall_clock_unix_seconds\":$(date +%s),\
+\"wall_clock_unix_seconds\":${NOW_EPOCH},\
 \"gateway_gateway_legacy_binary_gate_status\":\"${gateway_status}\",\
 \"gateway_pool_schedulable_active_accounts_count\":${pool_schedulable},\
 \"gateway_pool_rotation_working_set_size\":${pool_rotation_size},\
@@ -2274,7 +2309,7 @@ fi
 # See also: Layer 2 (stop-cron-gc.ts), Layer 3 (TTL in cron-tracker.ts).
 if [ "$cron_count" -gt 0 ]; then
     crontab_snapshot=$(crontab -l 2>/dev/null || true)
-    now_epoch=$(date +%s)
+    now_epoch=${NOW_EPOCH}
     session_stale_threshold=7200  # 2 hours in seconds
     stale_ids=""
     while IFS= read -r entry; do
