@@ -68,31 +68,13 @@ $GMAIL_CLI list -n 1 2>&1 | head -5
 Ask Gmail who it is instead. `users/me/profile` is authoritative:
 
 ```bash
-# Which accounts are cached, and which mailbox does each ACTUALLY own?
-for f in ~/.claude/tools/gmail-tokens/*.json; do
-  case "$(basename "$f")" in *.app-credentials.json|*.bak|*.expired-*|*.dead-*|'*.json') continue ;; esac
-  uuid=$(basename "$f" .json)
-  # The cached token file already holds a fresh access_token while the hourly refresher runs.
-  # A project-local minting helper (GMAIL_TOKEN_SCRIPT) is only needed when it does not.
-  if [ -n "${GMAIL_TOKEN_SCRIPT:-}" ]; then
-    tok=$(bash "$GMAIL_TOKEN_SCRIPT" "$uuid" 2>/dev/null | tail -1)
-  else
-    tok=$(jq -r '.access_token // empty' "$f")
-  fi
-  if [ -z "$tok" ]; then echo "$uuid → token mint failed"; continue; fi
-  who=$(curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
-          https://gmail.googleapis.com/gmail/v1/users/me/profile | jq -r .emailAddress)
-  echo "$uuid → $who"
-done
+# Which accounts are cached, which mailbox does each ACTUALLY own, and which alias is its DEFAULT?
+bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-accounts.ts"
+# one account, machine-readable:
+bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-accounts.ts" --account <uuid> --json
 ```
 
-The same endpoint answers "which aliases may I send as", which you need before any `--from`. `verificationStatus` must be `accepted`, and note which alias is `isDefault` — if the default is not the one you want, `--from` is mandatory, not optional:
-
-```bash
-curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
-  https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs \
-  | jq -r '.sendAs[] | "\(.sendAsEmail)\t\(.verificationStatus)\t\(if .isDefault then "DEFAULT" else "" end)"'
-```
+It asks `users/me/profile` and `settings/sendAs` with each cached token and never prints a token. Do not read the token files yourself (`jq .access_token`, `cat`, `python3`): `gmail-send-guard` denies it, because they are bearer credentials for whole mailboxes. You need the send-as list before any `--from`: `verificationStatus` must be `accepted`, and if the alias marked `DEFAULT` is not the one you want, `--from` is mandatory, not optional. A message that reaches Gmail with no From line goes out under the DEFAULT alias.
 
 A probe that returns `invalid_grant` means that account's refresh token is dead (see "Diagnosing `invalid_grant`"). Pick the working UUID whose mailbox matches the project and pass it inline as `GMAIL_OP_UUID=<uuid>` on each command. A child project often needs a DIFFERENT account than its parent — verify, never assume the parent's UUID.
 
@@ -733,20 +715,8 @@ rm ~/.claude/tools/gmail-tokens/<uuid>.json.expired
 ### Multi-Account Token Status
 
 ```bash
-# Check all accounts at once
-for f in ~/.claude/tools/gmail-tokens/*.json; do
-  [ "$(basename "$f")" = "*.json" ] && continue
-  case "$(basename "$f")" in *.app-credentials.json) continue ;; esac
-  UUID=$(basename "$f" .json)
-  python3 -c "
-import json, datetime
-t = json.load(open('$f'))
-exp = datetime.datetime.fromtimestamp(t.get('expiry_date',0)/1000)
-delta = (exp - datetime.datetime.now()).total_seconds()
-status = 'VALID' if delta > 0 else 'EXPIRED'
-print(f'  {\"$UUID\"}: {status} (expires in {int(delta/60)}m)' if delta > 0 else f'  {\"$UUID\"}: EXPIRED ({int(-delta/3600)}h ago)')
-" 2>/dev/null
-done
+# Check all accounts at once: mailbox, access-token expiry, scopes, send-as aliases
+bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-accounts.ts"
 ```
 
 ## References
@@ -762,6 +732,10 @@ done
 - [ ] References exist and are linked
 
 ## Evolution Log
+
+- **2026-10-08 — a raw send went out under the account's default identity; token reads now go through one script.**
+  - _Trigger_: an agent wrote a script that read a cached token file and POSTed to the Gmail send endpoint with no From line. Gmail used each account's default send-as alias, which was the wrong identity on both accounts. The messages reached only the operator's own test address.
+  - _Fix_: `hooks/gmail-send-guard.ts` denies direct sends and raw reads of `~/.claude/tools/gmail-tokens/` (see `docs/gmail-send-guard.md`). The identity probe and the multi-account status check, which read `.access_token` and `expiry_date` straight from the token files, are replaced by `scripts/gmail-accounts.ts`, which reports the mailbox, the expiry and every send-as alias with its DEFAULT marked, and never prints a token.
 
 - **2026-09-26 — setup could still configure the retired laptop bot and digest.**
   - _Trigger_: the Telegram bot and scheduled digest moved to a private Restate deployment, and the laptop launchd jobs they replaced were retired on 2026-09-24. Setup Step 4 still offered "The launchd daemons" as a place to write `GMAIL_OP_UUID`, and the Step 2.5 preflight still grepped that daemon env file.

@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 38 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 39 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (31; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (32; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -28,6 +28,7 @@ Jump directly to any of the 38 registered markers below. Markers are listed alph
 - [`FILE-SIZE-OK`](#file-size-ok)
 - [`GH-HARD-WRAP-OK`](#gh-hard-wrap-ok)
 - [`GMAIL-BODY-OK`](#gmail-body-ok)
+- [`GMAIL-SEND-OK`](#gmail-send-ok)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
@@ -74,7 +75,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (31 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (32 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -297,6 +298,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # GMAIL-BODY-OK
+```
+
+## `GMAIL-SEND-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/gmail-commander/hooks/gmail-send-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Allow a direct call to the Gmail send endpoints (REST `messages/send` / `drafts/send`, or client-library `messages.send` / `drafts.send`) in a Bash command, in a script that command executes, or in a code file written with Write/Edit, and allow a Bash command that reads the cached OAuth tokens in `~/.claude/tools/gmail-tokens/`. The guard exists because a raw send without a From line goes out under the account's DEFAULT send-as identity (incident 2026-10-08). Place `GMAIL-SEND-OK: <reason of 10+ characters>` in the command, the written content, or the executed script. There is no escape for the Read and Grep tools on the token directory.
+
+**Example usage**:
+
+```
+# GMAIL-SEND-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `INIT-MONOLITH-OK`

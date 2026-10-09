@@ -122,14 +122,27 @@ bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts
 # stdout: {"draftId":"…","threadId":"…","account":"…"}
 ```
 
+## Nothing here sends mail: send guard and the token directory
+
+**No tool in this plugin sends Gmail, and none may be written ad hoc.** A human sends every draft from Gmail, where the From line is visible. `hooks/gmail-send-guard.ts` denies direct calls to the send endpoints and raw reads of the cached OAuth tokens in `~/.claude/tools/gmail-tokens/`, on Bash, Write, Edit, MultiEdit, Read and Grep. A message sent without a From header goes out under the account's **default** send-as identity, and on 2026-10-08 that was the wrong identity on both accounts a raw send used.
+
+To see which mailbox each cached token owns, its send-as aliases and which one is the default, run the sanctioned reader (it never prints a token):
+
+```bash
+bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-accounts.ts [--account <tokenbase>] [--json]
+```
+
+What the guard catches, what it allows, its escape token and its known gaps: [`docs/gmail-send-guard.md`](./docs/gmail-send-guard.md).
+
 Gotcha the builder also absorbs: Gmail's `drafts.update` rejects with `400 Message not a draft` on threaded drafts — the tool always creates-then-deletes (`--replace`) instead of updating.
 
 ## Hooks
 
-| Hook                         | Event             | Purpose                                                             |
-| ---------------------------- | ----------------- | ------------------------------------------------------------------- |
-| `gmail-draft-guard.sh`       | PreToolUse (Bash) | Blocks ad-hoc drafts-API writes; drafts go through `gmail-draft.ts` |
-| `gmail-mojibake-detector.sh` | PreToolUse (Bash) | Blocks drafts whose Subject or body carries UTF-8-as-Latin-1 bytes  |
+| Hook                         | Event                                                 | Purpose                                                             |
+| ---------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `gmail-draft-guard.sh`       | PreToolUse (Bash)                                     | Blocks ad-hoc drafts-API writes; drafts go through `gmail-draft.ts` |
+| `gmail-mojibake-detector.sh` | PreToolUse (Bash)                                     | Blocks drafts whose Subject or body carries UTF-8-as-Latin-1 bytes  |
+| `gmail-send-guard.ts`        | PreToolUse (Bash, Write, Edit, MultiEdit, Read, Grep) | Denies direct Gmail sends and raw reads of the cached OAuth tokens  |
 
 ## Conventions
 

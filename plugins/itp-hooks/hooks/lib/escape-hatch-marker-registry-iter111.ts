@@ -473,6 +473,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a `gmail draft` / `draft-update` command whose body text contains hard-wraps at a fixed column width or raw markdown constructs. The gmail CLI turns every newline into an HTML `<br>` and HTML-escapes the body (does not render markdown), so prose wrapped at ~100 columns becomes columns of short mid-sentence lines, and `**bold**`, `` `code` ``, `[text](url)`, `#` headings, and `|tables|` render literally. The guard detects hard-wraps and literal markdown in --body and --body-file arguments. Add GMAIL-BODY-OK to the command when the wrapped/markdown format is intentional (e.g., an intentional ASCII table body).",
     },
+    {
+      markerNameTokenIncludingSuffix: "GMAIL-SEND-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/gmail-commander/hooks/gmail-send-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a direct call to the Gmail send endpoints (REST `messages/send` / `drafts/send`, or client-library `messages.send` / `drafts.send`) in a Bash command, in a script that command executes, or in a code file written with Write/Edit, and allow a Bash command that reads the cached OAuth tokens in `~/.claude/tools/gmail-tokens/`. The guard exists because a raw send without a From line goes out under the account's DEFAULT send-as identity (incident 2026-10-08). Place `GMAIL-SEND-OK: <reason of 10+ characters>` in the command, the written content, or the executed script. There is no escape for the Read and Grep tools on the token directory.",
+    },
   ] as const;
 
 /**
