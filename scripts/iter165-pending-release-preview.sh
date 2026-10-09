@@ -91,15 +91,15 @@
 #     commits since tag:     3
 #
 #     per-commit breakdown (oldest → newest):
-#       9fdf68edf64b62f74ca2fb2a5192b90d883dffb9  feat(release): iter-164 next-version preview     → MINOR
-#       5cc12ad1d0961cef27017103a7cb1f3a12ed5633  fix(release): iter-163 test parallel-safe        → PATCH
+#       98a96e8fdfa8da94c3e4ef9cd7ca49a70fc52dd2  feat(release): iter-164 next-version preview     → MINOR
+#       ecf742a16f95a07ca33dec1766671d35a49d9f47  fix(release): iter-163 test parallel-safe        → PATCH
 #       abc12345  docs: clarify statusline semantics                → PATCH
 #
 #     bump histogram:        MAJOR=0  MINOR=1  PATCH=2  NONE=0
 #     aggregate bump:        MINOR (max precedence: MAJOR > MINOR > PATCH > NONE)
 #     next release version:  v21.72.0 → v21.73.0
 #
-#     triggered by:          9fdf68edf64b62f74ca2fb2a5192b90d883dffb9 feat(release): iter-164 next-version preview
+#     triggered by:          98a96e8fdfa8da94c3e4ef9cd7ca49a70fc52dd2 feat(release): iter-164 next-version preview
 #   ═════════════════════════════════════════════════════════════════
 #
 # OUTPUT FORMAT (--json):
@@ -115,7 +115,7 @@
 #     "bump_histogram": { "MAJOR": 0, "MINOR": 1, "PATCH": 2, "NONE": 0 },
 #     "aggregate_bump_label_per_semver_precedence": "MINOR",
 #     "aggregate_bump_rationale": "...",
-#     "triggering_commit_short_sha_at_highest_precedence": "9fdf68edf64b62f74ca2fb2a5192b90d883dffb9",
+#     "triggering_commit_short_sha_at_highest_precedence": "98a96e8fdfa8da94c3e4ef9cd7ca49a70fc52dd2",
 #     "iter164_next_version_preview": {
 #       "iter164_schema_version": 1,
 #       "current_git_tag": "v21.72.0",
