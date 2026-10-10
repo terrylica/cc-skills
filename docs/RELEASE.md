@@ -162,7 +162,7 @@ semantic-release pushes with `--tags`, which sends **every local tag**. The 2026
 Check with `git ls-remote --tags origin` against `git tag | wc -l`. Either remove the stale local tags (destructive to local bookmarks — the clone owner's call), or release from a fresh clone:
 
 ```bash
-git clone git@github.com-terrylica:terrylica/cc-skills.git ../cc-skills-release && cd ../cc-skills-release
+git clone "$(git remote get-url origin)" ../cc-skills-release && cd ../cc-skills-release   # run from the old clone
 git tag vX.Y.Z <sha of the last "chore(release): X.Y.Z" commit>   # only if that tag is missing on origin
 bash scripts/install-hooks.sh && moon run repo:commits-install-hook && bun install --frozen-lockfile
 moon run repo:release-full
