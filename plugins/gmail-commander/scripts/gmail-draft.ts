@@ -21,7 +21,9 @@
  * BODY CONVERSION (deliberately minimal + predictable, not a full markdown renderer):
  *   - Blank-line-separated blocks become paragraphs; single newlines INSIDE a block are unwrapped
  *     to spaces (this is what defeats formatter-wrapped sources).
- *   - HTML部分: paragraphs → <p>; http(s) URLs auto-linked; everything entity-escaped first.
+ *   - HTML part: paragraphs → <p>; lists → <ul>; http(s) URLs auto-linked; **bold**, *italic* or _italic_, and `code`
+ *     → real rich text (identifier-safe, see renderInlineEmphasis); everything entity-escaped first.
+ *   - text/plain part: the same text with the emphasis markers dropped.
  *   - text/plain part: the same unwrapped paragraphs (long lines — Gmail may fold THAT part, but
  *     Gmail's editor uses the HTML part, so the visible draft reflows correctly).
  *
@@ -165,6 +167,7 @@ function paragraphs(md: string): string[] {
 export function blocksToPlainText(blocks: BodyBlock[]): string {
   return `${blocks
     .map((b) => (b.kind === "prose" ? b.text : [b.leadIn, ...b.items].filter(Boolean).join("\n")))
+    .map(stripInlineEmphasis)
     .join("\n\n")}\n`;
 }
 
@@ -206,6 +209,38 @@ function splitUrlFromTrailingProse(raw: string): { url: string; tail: string } {
 }
 
 /**
+ * Inline markdown emphasis on ALREADY-ESCAPED prose: `**bold**` → <b>, `*italic*` / `_italic_` → <i>,
+ * `` `code` `` → <code>.
+ *
+ * WHY: recipients read the HTML part, so the author's emphasis must arrive as real rich text rather
+ * than as literal asterisks.
+ *
+ * Anchoring keeps technical prose literal: an identifier can never open or close emphasis, so
+ * `snake_case_name`, `2*3*4` and `a * b` survive; code spans are lifted out first so markers inside
+ * backticks stay verbatim. Same rules as notes-commander's renderMarkup.
+ */
+export function renderInlineEmphasis(escaped: string): string {
+  const codes: string[] = [];
+  let s = escaped.replace(/`([^`\n]+)`/g, (_m, c: string) => {
+    codes.push(c);
+    return `\uE000${codes.length - 1}\uE000`;
+  });
+  s = s.replace(/(^|[^\w*])\*\*(?=\S)([^*]+?)(?<=\S)\*\*(?![\w*])/g, "$1<b>$2</b>");
+  s = s.replace(/(^|[^\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])/g, "$1<i>$2</i>");
+  s = s.replace(/(^|[^\w])_(?=\S)([^_]+?)(?<=\S)_(?!\w)/g, "$1<i>$2</i>");
+  return s.replace(/\uE000(\d+)\uE000/g, (_m, i: string) => `<code>${codes[Number(i)]}</code>`);
+}
+
+/** The text/plain twin of renderInlineEmphasis: the markers are dropped, the words kept. */
+export function stripInlineEmphasis(text: string): string {
+  return text
+    .replace(/`([^`\n]+)`/g, "$1")
+    .replace(/(^|[^\w*])\*\*(?=\S)([^*]+?)(?<=\S)\*\*(?![\w*])/g, "$1$2")
+    .replace(/(^|[^\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])/g, "$1$2")
+    .replace(/(^|[^\w])_(?=\S)([^_]+?)(?<=\S)_(?!\w)/g, "$1$2");
+}
+
+/**
  * Escape text and linkify bare URLs in ONE pass over the RAW string.
  *
  * Escaping first and linkifying after runs the matcher over "&amp;" and "&gt;", so a URL written
@@ -217,7 +252,7 @@ export function escapeAndLinkify(text: string): string {
   return text
     .split(URL_SPLIT_PATTERN)
     .map((part, index) => {
-      if (index % 2 === 0) return escapeHtml(part);
+      if (index % 2 === 0) return renderInlineEmphasis(escapeHtml(part));
       const { url, tail } = splitUrlFromTrailingProse(part);
       if (!url) return escapeHtml(part);
       const safe = escapeHtml(url);

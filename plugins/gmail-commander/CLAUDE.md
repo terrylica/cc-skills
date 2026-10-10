@@ -112,6 +112,8 @@ In the deployment these are injected from its own secret store at deploy time. N
 
 **Why:** Gmail hard-folds ingested `text/plain` at about 72 columns, so ad-hoc drafts show mid-paragraph breaks. The builder sends `multipart/alternative` with a `text/html` part, so the draft reflows like one composed in Gmail.
 
+**Write emphasis in Markdown; it arrives as rich text.** In the body file, `**bold**`, `*italic*` or `_italic_`, and `` `code` `` become real bold, italic and code in the HTML part, and the plain-text part drops the markers. Identifiers stay literal (`snake_case_name`, `2*3*4`). Never hand-write HTML or leave asterisks for the recipient to read.
+
 ```bash
 bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \
   --account <tokenbase>            # token base name in ~/.claude/tools/gmail-tokens/
