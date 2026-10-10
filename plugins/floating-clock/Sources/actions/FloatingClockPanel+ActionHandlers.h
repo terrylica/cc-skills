@@ -58,6 +58,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)toggleShowBrightnessBar:(NSMenuItem *)sender;   // 2026-09-19 brightness rail
 - (void)toggleShowTTSBar:(NSMenuItem *)sender;          // 2026-10-08 TTS-rate rail
 - (void)copyStateToClipboard:(id)sender;
+// Whole-clock hide/unhide (2026-10-10). The item is built per menu so every
+// right-click surface offers it; its title carries the active hotkey.
+- (void)toggleClockVisibility:(id)sender;
+- (NSMenuItem *)hideClockMenuItem;
 - (void)setDensity:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;
 - (void)applyTheme:(const ClockTheme *)theme

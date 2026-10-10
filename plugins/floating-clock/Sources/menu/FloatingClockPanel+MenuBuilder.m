@@ -18,6 +18,7 @@
 #import "FloatingClockPanel+MenuHelpers.h"
 #import "FloatingClockPanel+ProfileMenu.h"  // 2026-06-12 split
 #import "../core/DateFormatPrefix.h"  // FCDateFormatMenuPairs (DRY 2026-06-12)
+#import "../actions/FloatingClockPanel+ActionHandlers.h"  // hideClockMenuItem
 
 @implementation FloatingClockPanel (MenuBuilder)
 
@@ -43,6 +44,11 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     //   WINDOW    — position reset + about + quit
     NSMenu *m = [[NSMenu alloc] init];
     m.delegate = (ClockContentView *)self.contentView;
+
+    // Whole-clock hide (2026-10-10) — first, because it is the one action
+    // that answers "get this out of my way".
+    [m addItem:[self hideClockMenuItem]];
+    [m addItem:[NSMenuItem separatorItem]];
 
     // === DISPLAY ===
     NSMutableArray *displayItems = [NSMutableArray array];

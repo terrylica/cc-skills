@@ -1,4 +1,5 @@
 #import "NetworkStatusIndicator.h"
+#import "ClockVisibilityToggle.h"   // FCClockUserHidden(): whole-clock hide (2026-10-10)
 #import "NetworkBarZoneView.h"
 #import "NetworkServiceCatalog.h"
 #import "NetworkTelemetry.h"
@@ -297,7 +298,7 @@ static void FCAppend(NSMutableAttributedString *s, NSString *text, NSColor *colo
 #pragma mark Refresh (1 Hz tick driver)
 
 - (void)refresh {
-    if (![self enabled]) {
+    if (![self enabled] || FCClockUserHidden()) {
         FCHideOverlay(_bar);
         // Stop widening the stack while hidden, or the other rails would stay
         // padded to a width nothing is using.
@@ -363,7 +364,7 @@ static void FCAppend(NSMutableAttributedString *s, NSString *text, NSColor *colo
 #pragma mark Positioning
 
 - (void)syncPosition {
-    if (!_clock || ![self enabled]) return;
+    if (!_clock || ![self enabled] || FCClockUserHidden()) return;
     NSRect c    = _clock.frame;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;

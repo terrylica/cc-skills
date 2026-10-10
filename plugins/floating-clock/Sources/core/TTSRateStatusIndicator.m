@@ -1,4 +1,5 @@
 #import "TTSRateStatusIndicator.h"
+#import "ClockVisibilityToggle.h"   // FCClockUserHidden(): whole-clock hide (2026-10-10)
 #import "TTSRateBarZoneView.h"
 #import "TTSRateHelpers.h"
 #import "OverlayPanelFactory.h"
@@ -91,7 +92,7 @@ static const CGFloat kMinBarW      = 160.0;
 }
 
 - (void)refresh {
-    if (![self enabled]) {
+    if (![self enabled] || FCClockUserHidden()) {
         FCHideOverlay(_bar);
         [[FCOverlayWidthConsensus shared] clearOverlay:NSStringFromClass(self.class)];
         return;
@@ -114,7 +115,7 @@ static const CGFloat kMinBarW      = 160.0;
 #pragma mark Positioning
 
 - (void)syncPosition {
-    if (!_clock || ![self enabled]) return;
+    if (!_clock || ![self enabled] || FCClockUserHidden()) return;
     NSRect c    = _clock.frame;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;

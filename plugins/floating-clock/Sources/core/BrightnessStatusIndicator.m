@@ -1,4 +1,5 @@
 #import "BrightnessStatusIndicator.h"
+#import "ClockVisibilityToggle.h"   // FCClockUserHidden(): whole-clock hide (2026-10-10)
 #import "BrightnessBarZoneView.h"
 #import "FCXDRBrightness.h"
 #import "DisplayBrightnessHelpers.h"
@@ -96,7 +97,7 @@ static const NSTimeInterval kBoostIdleTimeout = 30.0 * 60.0;
 #pragma mark Refresh
 
 - (void)refresh {
-    if (![self enabled]) {
+    if (![self enabled] || FCClockUserHidden()) {
         FCHideOverlay(_bar);
         // Stop widening the stack while hidden, or the other rails stay
         // padded to a width nothing is using.
@@ -156,7 +157,7 @@ static const NSTimeInterval kBoostIdleTimeout = 30.0 * 60.0;
 #pragma mark Positioning
 
 - (void)syncPosition {
-    if (!_clock || ![self enabled]) return;
+    if (!_clock || ![self enabled] || FCClockUserHidden()) return;
     NSRect c    = _clock.frame;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;

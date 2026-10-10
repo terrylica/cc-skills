@@ -1,4 +1,5 @@
 #import "AudioStatusIndicator.h"
+#import "ClockVisibilityToggle.h"   // FCClockUserHidden(): whole-clock hide (2026-10-10)
 #import "AudioDeviceSelectionMenuController.h"  // pull-out menus (2026-06-11)
 #import "AudioBarZoneView.h"                    // zone halves (2026-06-12 split)
 #import "CoreAudioDeviceHALHelpers.h"           // HAL reads/writes (2026-06-12 split)
@@ -171,7 +172,7 @@ static const CGFloat kMinZoneW = 92.0;
 #pragma mark Refresh (1Hz tick driver)
 
 - (void)refresh {
-    if (![self enabled]) {
+    if (![self enabled] || FCClockUserHidden()) {
         FCHideOverlay(_bar);   // detach-then-hide ceremony (welding contract)
         return;
     }
@@ -217,7 +218,7 @@ static const CGFloat kMinZoneW = 92.0;
 #pragma mark Positioning
 
 - (void)syncPosition {
-    if (!_clock || ![self enabled]) return;
+    if (!_clock || ![self enabled] || FCClockUserHidden()) return;
     NSRect c    = _clock.frame;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;
