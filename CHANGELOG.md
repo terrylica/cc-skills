@@ -1,3 +1,102 @@
+# [33.11.0](https://github.com/terrylica/cc-skills/compare/v33.10.0...v33.11.0) (2026-10-10)
+
+
+### Bug Fixes
+
+* **devops-tools:** drop stale self-hosted Firecrawl wording ([7e60f89](https://github.com/terrylica/cc-skills/commit/7e60f89be99dd2a6eb00cb511f498567bc6b26ad))
+
+The self-hosted deployment was retired 2026-08-13 for the public API, but four places still described it:
+- api-endpoint-reference.md: now 'public Firecrawl API (api.firecrawl.dev) contracts for /v2/search and /v2/scrape; there is no health endpoint'
+- SKILL.md chat-share intent table: output is data.markdown, persisted by the caller (the port-3003 -> Caddy file flow no longer exists)
+- devops-tools README: 'self-hosted ops' and the 'self-hosted scraper' / 'docker restart policy' triggers removed
+- root README: devops-tools summary says public API
+
+* **gmail-commander:** **bold**, *italic* and `code` in a draft body arrive as rich text, not literal asterisks ([daece74](https://github.com/terrylica/cc-skills/commit/daece74f4c184380e830cb2f48dc17d663ec1b8b))
+
+The draft builder entity-escaped every body and rendered no Markdown beyond paragraphs, lists and bare URLs, so a recipient saw literal **Office staff** where the author meant bold.
+
+- renderInlineEmphasis turns **bold** into &lt;b>, *italic* and _italic_ into &lt;i>, and backtick spans into &lt;code>, on already-escaped prose, so escaping and URL linking are unchanged.
+- The text/plain part drops the markers and keeps the words.
+- Identifier anchoring keeps snake_case_name, file_id_v2, 2*3*4 and a * b literal; markers inside a code span stay verbatim (the same rules as notes-commander renderMarkup).
+- Eight new tests, 47 pass. Mutation-checked: removing the bold rule fails 3; removing the underscore opener guard fails the new opener test.
+- CLAUDE.md: write emphasis in Markdown; never leave asterisks for the recipient.
+
+* **tests:** iter-145 skips historical tags that a fresh clone no longer has ([392c871](https://github.com/terrylica/cc-skills/commit/392c87194d015e657fe56231a7c62c953ac046f9))
+
+The 2026-10-07 history scrub deleted every tag from the public remote, so a fresh clone carries none of the five tags this test inspects. Group C then matched nothing, and pipefail with set -e killed the script before it printed a result, which failed the release preflight in every fresh clone while passing in older clones that still hold stale local tags.
+
+- An absent tag is now an explicit SKIP: without the tag there are no notes for semantic-release to trip over, so the hazard the group pins cannot occur.
+- Present tags are checked exactly as before; an old clone with the tags still passes 16/16.
+- In a fresh clone the hook regression suite no longer fails here.
+
+
+
+### Features
+
+* **floating-clock:** hide and unhide the whole clock with ⌃⌥⇧⌘H ([b4ad005](https://github.com/terrylica/cc-skills/commit/b4ad0058b9896a2ef4b9e5d0a97cb67bbb1ed8d9))
+
+The clock and its rails can take a lot of screen space, and getting it out of the way meant quitting the app. One switch now hides the clock together with every rail welded to it, and the same switch brings them all back exactly where they were. Because it is used rarely, it sits on a four-modifier chord nobody presses by accident; the chord was chosen from a survey of the shortcuts claimed by the system and installed tools plus a live press-and-diff check, since a Carbon hotkey conflict does not fail, it double-fires silently.
+
+- Global hotkey ⌃⌥⇧⌘H via Carbon RegisterEventHotKey: no Accessibility or Input Monitoring grant, sees no other keystroke, 250 ms debounce. Re-bind or disable with the ToggleVisibilityHotKey default ("none" disables; a malformed value registers nothing).
+- Context-menu item "Hide Clock ⌃⌥⇧⌘H" on the full menu and all three segment menus.
+- floating-clock --toggle|--show|--hide and the distributed notifications &lt;bundle id>.visibility.toggle|show|hide (named from CFBundleIdentifier), delivered immediately even though an accessory app is never active.
+- Every rail (audio, network, brightness, TTS, mic-mute and VPN banners) treats the hidden state like its own disabled state in both refresh and syncPosition, so screen changes cannot re-show a rail behind a hidden clock.
+- Hidden is not persisted: a relaunch always shows the clock.
+- New HotKeySpec parser with unit tests (137 tests pass), and scripts/hotkey-check/ (wins, sidefx, firetest, functest.sh, built by make hotkey-tools) for re-validating any shortcut. The live suite passed 22/22 on the installed app: about 60 ms to hide, 20 stress cycles, several frontmost apps, relaunch while hidden.
+- Method and findings: plugins/floating-clock/docs/visibility-toggle.md.
+
+* **floating-clock:** tell an unlinked mic apart from a muted one ([cf36b4c](https://github.com/terrylica/cc-skills/commit/cf36b4c7491b221ba928ae90991ea732f11ec828))
+
+The mic meter now tracks exact zeros separately from near-silence. An unlinked or switched-off wireless receiver keeps streaming frames, but every sample is exactly 0.0; an analog mute button leaves a faint floor (RMS about 2.8e-5).
+
+- Exact zeros for 0.4 s read "MIC NO SIGNAL · mic off or unlinked?".
+- A faint floor still reads "MIC SILENT · check the mic's own mute".
+- The set mute flag still reads "MIC MUTED · click to unmute".
+
+Verified live: a receiver whose transmitter had dropped into linking mode gave 100% zero samples. A silent virtual input made the banner read NO SIGNAL, and it cleared once a real input was back.
+
+* **floating-clock:** TTS speed rail, clickable mic banner ([ecfa1d2](https://github.com/terrylica/cc-skills/commit/ecfa1d293cfb806b7c465d406de52f31737e8925))
+
+TTS speed rail: a new top-of-stack rail, off by default (TTSBarEnabled), writes one number to TTSRateFile (default ~/.config/floating-clock/tts-rate). A reader that follows that file applies it through a pitch-preserving time-stretch, so the change lands mid-reading.
+
+- Drag snaps to 1, 1.25, 1.5, 1.75, 2, 2.5 or 3.
+- The -/+ buttons step 0.25 and scrolling steps 0.05.
+- The icon resets to 1x and right-click opens the presets.
+- 1x is the floor.
+- Five new unit tests bring the total to 133.
+
+Mic banner: the MIC MUTED banner now names the cause and clears it on click. System Settings never shows an input mute flag; its slider clears the flag only as a side effect. Users therefore saw "muted" in FloatingClock and "not muted" in Settings.
+
+- With the mute flag set, the banner reads "MIC MUTED · click to unmute", and a click clears every set input-mute element.
+- With silence and no flag, it reads "MIC SILENT · check the mic's own mute", and a click does nothing.
+
+* **gmail-commander:** guard direct Gmail sends and raw token reads ([418397f](https://github.com/terrylica/cc-skills/commit/418397f2299158da0917b598e9d3ae737e02d108))
+
+An agent wrote a script that read a cached Gmail OAuth token file and POSTed a raw message to the send endpoint with no From header, so Gmail used each account's default send-as identity, which was the wrong one on both accounts. The drafts guard never saw it: it watches only the drafts API, and a Bash hook cannot see a fetch() inside a script. The new guard watches every surface that incident crossed, and a read-only accounts report replaces the documented loops that read tokens with jq.
+
+- gmail-send-guard.ts (PreToolUse on Bash, Write, Edit, MultiEdit, Read, Grep): denies messages/send, drafts/send and client messages.send / drafts.send with a Gmail context marker, in the command (heredocs and bun -e included), in any script the command executes, and in code files at write time; prose files are exempt
+- denies reading the cached token directory with cat, jq, python, bun -e, cp and similar, directly or via cd / a for loop, and via Read and Grep; ls, stat, test -f, mv and rm still pass for the documented recovery
+- escape: GMAIL-SEND-OK with a 10+ character reason, registered in the marker registry; documentation placeholders (a reason starting with &lt;, or the marker reference's generic example) do not count, so a copied example is never a working escape; no escape for Read and Grep
+- scripts/gmail-accounts.ts: mailbox, scopes, expiry and every send-as alias with the DEFAULT marked, never printing a token
+- gmail-access skill: identity probe and multi-account status now call gmail-accounts.ts; docs/gmail-send-guard.md documents allows, denies and known gaps
+- 50 tests, including subprocess probes for a heredoc fetch, a Write of a sending .ts file, a cat of a token file and the canonical gmail-draft.ts path (allowed)
+
+
+
+### Performance Improvements
+
+* **statusline-tools:** one git status read, one clock read; 86 -> 51 processes per render ([af9228f](https://github.com/terrylica/cc-skills/commit/af9228fc16d6cb15c0438d01ad621b621f170d1b))
+
+Every render ran ~86 external commands (plus their $(...) subshells and pipes) under macOS's /bin/bash 3.2. Same output, fewer processes:
+
+- git: one `git status --porcelain=v2 --branch -uall`, parsed in-shell, replaces ~11 git calls and four wc|tr pipelines (branch, @{u}, ahead, behind, modified, deleted, staged, untracked, conflicts). Unmerged paths still count as modified and staged, as the old `git diff` filters did. Stash count is `git rev-list --walk-reflogs --count refs/stash`.
+- the seven stat badges use printf -v instead of $(...) subshells.
+- clock: `date +%s` once per render (was 13), one `date` for the four UTC fields and one for the six local ones (was 4 and 6).
+- stat: on macOS call /usr/bin/stat (BSD) directly instead of a failing GNU attempt before every call; other platforms unchanged.
+- `pwd | sed` and `readlink | sed` become parameter expansions.
+
+Measured on macOS (clean repo): 86 -> 51 external commands per render, ~310 ms -> ~237 ms. Output A/B-identical against the previous script in a clean repo, a repo ahead 4 / behind 9 with staged files, a non-git directory, a scratch repo with every counter non-zero (modified, deleted, staged + modified, staged rename, three untracked, two stashes, a conflict, ahead and behind), and detached HEAD. bats test_statusline: 39/39. moon run repo:check green.
+
 # [33.10.0](https://github.com/terrylica/cc-skills/compare/v33.9.0...v33.10.0) (2026-10-08)
 
 
