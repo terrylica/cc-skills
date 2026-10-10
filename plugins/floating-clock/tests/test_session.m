@@ -31,6 +31,7 @@
 #import "test_overlay_width.h"           // overlay width agreement + telemetry math
 #import "test_brightness.h"              // 2026-09-19 brightness-rail arithmetic
 #import "test_tts_rate.h"                // 2026-10-08 TTS-rate rail arithmetic
+#import "test_hotkey_spec.h"             // 2026-10-10 whole-clock hide hotkey spec
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
@@ -893,6 +894,12 @@ int main(void) {
         RUN_TEST(test_tts_rate_nearest_detent);
         RUN_TEST(test_tts_rate_delta_and_label);
         RUN_TEST(test_tts_rate_file_roundtrip);
+        // Whole-clock hide hotkey (2026-10-10): default chord, aliases,
+        // malformed specs rejected, glyph display.
+        RUN_TEST(test_hotkey_spec_default_chord);
+        RUN_TEST(test_hotkey_spec_aliases_and_case);
+        RUN_TEST(test_hotkey_spec_rejects_malformed);
+        RUN_TEST(test_hotkey_spec_display);
         RUN_TEST(test_max_safe_factor_is_monotonic);
         RUN_TEST(test_applied_factor_for_level);
         RUN_TEST(test_gamma_baseline_neutrality_guard);

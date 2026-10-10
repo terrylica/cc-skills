@@ -13,6 +13,7 @@
 #import "../core/DateFormatPrefix.h"  // FCDateFormatMenuPairs (DRY 2026-06-12)
 #import "../data/ThemeCatalog.h"
 #import "../segments/FloatingClockSegmentViews.h"
+#import "../actions/FloatingClockPanel+ActionHandlers.h"  // hideClockMenuItem
 
 @implementation FloatingClockPanel (SegmentMenus)
 
@@ -97,6 +98,7 @@
     [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
     fp.target = self;
+    [m addItem:[self hideClockMenuItem]];   // 2026-10-10 whole-clock hide
 
     return m;
 }
@@ -199,6 +201,7 @@
     [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
     fp.target = self;
+    [m addItem:[self hideClockMenuItem]];   // 2026-10-10 whole-clock hide
 
     return m;
 }
@@ -293,6 +296,7 @@
     [m addItem:[NSMenuItem separatorItem]];
     NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
     fp.target = self;
+    [m addItem:[self hideClockMenuItem]];   // 2026-10-10 whole-clock hide
 
     return m;
 }

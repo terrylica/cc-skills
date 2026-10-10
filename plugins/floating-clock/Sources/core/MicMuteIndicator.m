@@ -1,4 +1,5 @@
 #import "MicMuteIndicator.h"
+#import "ClockVisibilityToggle.h"   // FCClockUserHidden(): whole-clock hide (2026-10-10)
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
@@ -269,7 +270,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 }
 
 - (void)syncPosition {
-    if (!_clock || !_muted) return;   // nothing to place while hidden
+    if (!_clock || !_muted || FCClockUserHidden()) return;   // nothing to place while hidden
     NSRect c    = _clock.frame;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;
@@ -292,7 +293,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 - (void)applyMuted:(BOOL)muted {
     if (muted != _muted) FCMicLog(@"  >> BANNER %@", muted ? @"SHOW (muted)" : @"hide (unmuted)");
     _muted = muted;
-    if (muted) {
+    if (muted && !FCClockUserHidden()) {
         [self syncPosition];
     } else {
         FCHideOverlay(_banner);   // detach-then-hide ceremony

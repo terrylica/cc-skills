@@ -1,4 +1,5 @@
 #import "VPNStatusIndicator.h"
+#import "ClockVisibilityToggle.h"   // FCClockUserHidden(): whole-clock hide (2026-10-10)
 #import "MicMuteIndicator.h"
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
@@ -105,7 +106,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
     _label.stringValue           = [self labelText];
     _bg.layer.backgroundColor    = [[self barColor] CGColor];
 
-    BOOL active = ([self enabled] &&
+    BOOL active = ([self enabled] && !FCClockUserHidden() &&
                    [[NSFileManager defaultManager] fileExistsAtPath:[self stateFilePath]]);
     _active = active;
     if (active) {
@@ -118,7 +119,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
 - (BOOL)isShowing { return _active; }
 
 - (void)syncPosition {
-    if (!_clock || !_active) return;
+    if (!_clock || !_active || FCClockUserHidden()) return;
     NSRect c    = _clock.frame;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;

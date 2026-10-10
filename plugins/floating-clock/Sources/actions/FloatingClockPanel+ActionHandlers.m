@@ -6,6 +6,7 @@
 #import "../core/NetworkStatusIndicator.h" // network picker bar show/hide
 #import "../core/BrightnessStatusIndicator.h" // brightness rail show/hide
 #import "../core/TTSRateStatusIndicator.h"    // TTS-rate rail show/hide
+#import "../core/ClockVisibilityToggle.h"     // whole-clock hide (2026-10-10)
 #import "../core/FCXDRBrightness.h"           // release the boost when hidden
 #import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"
@@ -340,6 +341,24 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"TTSBarEnabled"] forKey:@"TTSBarEnabled"];
     [_ttsRateStatusIndicator refresh];
+}
+
+// Whole-clock hide (2026-10-10). Only "Hide" is ever reachable from a menu —
+// a hidden clock has no menu — so the item never needs a "Show" state; the
+// hotkey, `floating-clock --show`, or a relaunch bring it back.
+- (void)toggleClockVisibility:(id)sender {
+    (void)sender;
+    [[FCClockVisibilityToggle shared] toggleWithSource:@"menu"];
+}
+
+- (NSMenuItem *)hideClockMenuItem {
+    NSString *keys = [FCClockVisibilityToggle shared].hotKeyDisplay;
+    NSString *title = keys ? [NSString stringWithFormat:@"Hide Clock    %@", keys] : @"Hide Clock";
+    NSMenuItem *it = [[NSMenuItem alloc] initWithTitle:title
+                                                action:@selector(toggleClockVisibility:)
+                                         keyEquivalent:@""];
+    it.target = self;
+    return it;
 }
 
 // v4 iter-199: UI-naming-campaign toggle. Shows / hides the tiny

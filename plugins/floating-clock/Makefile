@@ -12,7 +12,7 @@ MACOS := $(CONTENTS)/MacOS
 # RGBA16Float frame to make WindowServer grant the panel extra headroom.
 # QuartzCore already vends CAMetalLayer, but presenting a drawable needs the
 # Metal framework itself.
-CFLAGS := -framework Cocoa -framework QuartzCore -framework Metal -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -framework Metal -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -framework Carbon -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -24,7 +24,7 @@ ICONSET := $(BUILD)/icons.iconset
 ICON_PNGS := $(foreach sz,$(ICON_SIZES),$(BUILD)/icon_$(sz).png)
 ICON_ICNS := $(BUILD)/Icon.icns
 
-.PHONY: all build bundle icon sign install run clean test check help leaks
+.PHONY: all build bundle icon sign install run clean test check help leaks hotkey-tools
 
 # Test binary sources are DERIVED from APP_SOURCES (DRY 2026-06-12): a new
 # data/spec module is auto-included in the test link with zero Makefile
@@ -52,6 +52,7 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/core/TTSRateBarZoneView.m \
     Sources/core/FCXDRBrightness.m \
     Sources/core/ClockChildWindowAttachment.m \
+    Sources/core/ClockVisibilityToggle.m \
     Sources/core/LocationProvider.m \
     Sources/rendering/AttributedStringLayoutMeasurer.m \
     Sources/rendering/VerticallyCenteredTextFieldCell.m \
@@ -75,6 +76,17 @@ all: sign
 check: all test
 	@echo "check: build + tests passing."
 
+# Whole-clock hide toggle (2026-10-10): build the three live-test helpers in
+# scripts/hotkey-check/ (see docs/visibility-toggle.md). Not part of `check`:
+# the live tests press keys, activate apps and relaunch the clock.
+HOTKEY_TOOLS := $(BUILD)/hotkey-check
+hotkey-tools:
+	@mkdir -p $(HOTKEY_TOOLS)
+	swiftc -O -o $(HOTKEY_TOOLS)/wins scripts/hotkey-check/wins.swift
+	swiftc -O -o $(HOTKEY_TOOLS)/sidefx scripts/hotkey-check/sidefx.swift
+	swiftc -O -o $(HOTKEY_TOOLS)/firetest scripts/hotkey-check/firetest.swift
+	@echo "hotkey tools in $(HOTKEY_TOOLS)/ — run scripts/hotkey-check/functest.sh for the live suite"
+
 help:
 	@echo "Targets:"
 	@echo "  make          build + bundle + sign (default: all)"
@@ -84,6 +96,7 @@ help:
 	@echo "  make check    build + unit tests (full validation)"
 	@echo "  make leaks    build + run briefly + leaks audit (Instruments-free)"
 	@echo "  make clean    remove the build/ dir"
+	@echo "  make hotkey-tools  build the live hide-toggle test helpers (scripts/hotkey-check/)"
 
 build: $(BUILD)/$(BIN_NAME)
 

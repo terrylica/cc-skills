@@ -24,6 +24,7 @@
 #import "preferences/FloatingClockPanel+ProfileManagement.h"
 #import "actions/FloatingClockPanel+ActionHandlers.h"
 #import "core/LocationProvider.h"
+#import "core/ClockVisibilityToggle.h"  // whole-clock hide/unhide (2026-10-10)
 #import "rendering/SolarOutlinedTextRenderingView.h"  // solar canvas outlined text (2026-06-11)
 
 // # FILE-SIZE-OK
@@ -246,6 +247,17 @@
     [cv addSubview:sessionLabel];
     _sessionLabel = sessionLabel;
 
+    // Whole-clock hide/unhide (2026-10-10): global hotkey + "Hide Clock" menu
+    // item + distributed notifications. After each flip, one tick makes every
+    // rail follow immediately instead of up to a second later. Installed
+    // BEFORE buildMenu so the menu item can show the registered hotkey; the
+    // indicators do not exist yet, but afterChange only runs on a user
+    // action, long after init returns.
+    __weak FloatingClockPanel *weakSelf = self;
+    [[FCClockVisibilityToggle shared] installWithPanel:self afterChange:^{
+        [weakSelf tick];
+    }];
+
     // Attach menu to content view
     NSMenu *menu = [self buildMenu];
     cv.menu = menu;
@@ -379,6 +391,10 @@
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
+        // `floating-clock --toggle|--show|--hide` drives the RUNNING instance
+        // (distributed notification) and exits; it never starts a second clock.
+        if (FCHandleVisibilityCommandLine(argc, argv)) return 0;
+
         NSApplication *app = [NSApplication sharedApplication];
         [app setActivationPolicy:NSApplicationActivationPolicyAccessory];
 
