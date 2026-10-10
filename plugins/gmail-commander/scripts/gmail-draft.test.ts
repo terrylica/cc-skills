@@ -450,3 +450,16 @@ describe("inline emphasis (operator 2026-10-09: bold arrives as rich text, never
     expect(findForcedLineBreaksInRenderedHtml(blocksToHtml(splitBodyIntoBlocks("**A** b\nc d")))).toEqual([]);
   });
 });
+
+describe("Markdown autolinks", () => {
+  test("<https://…> renders as a plain link with no visible angle brackets, in both parts", () => {
+    const blocks = splitBodyIntoBlocks("Open <https://example.com/page/?review=a@b.example> to start.");
+    const html = blocksToHtml(blocks);
+    expect(html).toContain('<a href="https://example.com/page/?review=a@b.example">');
+    expect(html).not.toContain("&lt;");
+    expect(blocksToPlainText(blocks)).toContain("Open https://example.com/page/?review=a@b.example to start.");
+  });
+  test("a literal angle-bracketed word that is not a URL is still escaped", () => {
+    expect(escapeAndLinkify("<tag>")).toBe("&lt;tag&gt;");
+  });
+});

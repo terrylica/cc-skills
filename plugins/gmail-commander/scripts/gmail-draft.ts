@@ -168,6 +168,7 @@ export function blocksToPlainText(blocks: BodyBlock[]): string {
   return `${blocks
     .map((b) => (b.kind === "prose" ? b.text : [b.leadIn, ...b.items].filter(Boolean).join("\n")))
     .map(stripInlineEmphasis)
+    .map((t) => t.replace(/<(https?:\/\/[^\s<>]+)>/g, "$1"))
     .join("\n\n")}\n`;
 }
 
@@ -248,8 +249,11 @@ export function stripInlineEmphasis(text: string): string {
  * each side separately avoids that class entirely.
  */
 export function escapeAndLinkify(text: string): string {
+  // A Markdown autolink `<https://…>` (what formatters turn a bare URL into) is just the URL: without
+  // this, the angle brackets reach the recipient as visible text around the link.
+  const unwrapped = text.replace(/<(https?:\/\/[^\s<>]+)>/g, "$1");
   // Odd indices are the captured URLs; even indices are the prose between them.
-  return text
+  return unwrapped
     .split(URL_SPLIT_PATTERN)
     .map((part, index) => {
       if (index % 2 === 0) return renderInlineEmphasis(escapeHtml(part));
