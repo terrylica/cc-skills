@@ -110,6 +110,15 @@ echo "GROUP C (5 assertions): Post-fix state verification — 5 affected tags no
 # For each of the 5 affected tags, verify the semantic-release tag-notes scan
 # now finds canonical content (not empty).
 for affected_tag in "${ITER145_KNOWN_AFFECTED_HISTORICAL_TAGS_FROM_ITER144_FORENSIC_FINDING[@]}"; do
+    # The 2026-10-07 history scrub deleted every tag from the public remote, so a
+    # fresh clone has none of these. An absent tag carries no notes for
+    # semantic-release to trip over: the hazard this group pins cannot occur, so
+    # skip it explicitly. Without this guard the grep below matches nothing and
+    # pipefail + set -e kill the script before it reports anything.
+    if ! git rev-parse -q --verify "refs/tags/$affected_tag" >/dev/null; then
+        echo "  - C-$affected_tag: SKIP (tag absent in this clone; nothing for semantic-release to scan)"
+        continue
+    fi
     ITER145_TOTAL_ASSERTIONS_EVALUATED=$((ITER145_TOTAL_ASSERTIONS_EVALUATED + 1))
     scan_line_for_this_tag=$(
         git log --tags='*' --decorate-refs='refs/tags/*' --no-walk \
