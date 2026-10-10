@@ -8,7 +8,7 @@
 //
 // Run: bun test plugins/gmail-commander/scripts/gmail-draft.test.ts
 import { test, expect, describe } from "bun:test";
-import { escapeAndLinkify } from "./gmail-draft.ts";
+import { escapeAndLinkify, renderInlineEmphasis, stripInlineEmphasis } from "./gmail-draft.ts";
 import { encodeHeaderValueAsRfc2047EncodedWordIfNonAscii } from "./gmail-draft.ts";
 
 /** Decode an RFC 2047 base64 encoded-word sequence back to the original string. */
@@ -402,5 +402,51 @@ describe("findForcedLineBreaksInRenderedHtml", () => {
     // …and the builder's own path on the SAME source is clean. Both directions, one test.
     const viaBuilder = blocksToHtml(splitBodyIntoBlocks(hardWrapped));
     expect(findForcedLineBreaksInRenderedHtml(viaBuilder)).toEqual([]);
+  });
+});
+
+describe("inline emphasis (operator 2026-10-09: bold arrives as rich text, never as asterisks)", () => {
+  test("**bold**, *italic*, _italic_ and `code` render as tags in the HTML part", () => {
+    const html = blocksToHtml(splitBodyIntoBlocks("**Office staff** (managing) can *view* the _records_ via `drive-office`."));
+    expect(html).toContain("<b>Office staff</b>");
+    expect(html).toContain("<i>view</i>");
+    expect(html).toContain("<i>records</i>");
+    expect(html).toContain("<code>drive-office</code>");
+    expect(html).not.toContain("**");
+  });
+  test("bold inside a list item renders, and the bullet marker is still stripped", () => {
+    const html = blocksToHtml(splitBodyIntoBlocks("Roles:\n- **Front desk**: view only\n- **Nobody** gets the archive"));
+    expect(html).toContain("<li><b>Front desk</b>: view only</li>");
+    expect(html).toContain("<li><b>Nobody</b> gets the archive</li>");
+  });
+  test("identifiers and arithmetic stay literal", () => {
+    const html = blocksToHtml(splitBodyIntoBlocks("Keep snake_case_name and file_id_v2, 2*3*4 and a * b as written."));
+    expect(html).toContain("snake_case_name");
+    expect(html).toContain("file_id_v2");
+    expect(html).toContain("2*3*4");
+    expect(html).toContain("a * b");
+    expect(html).not.toContain("<i>");
+  });
+  test("an underscore inside a word never OPENS emphasis, even when a later underscore could close it", () => {
+    expect(renderInlineEmphasis("the file_name field and the dir_ prefix")).toBe("the file_name field and the dir_ prefix");
+  });
+  test("markers inside a code span stay verbatim", () => {
+    expect(renderInlineEmphasis("`a **b** c`")).toBe("<code>a **b** c</code>");
+  });
+  test("emphasis does not break escaping or URL linking", () => {
+    const html = blocksToHtml(splitBodyIntoBlocks("**Link:** https://example.com/a_b_c and <tag> & more"));
+    expect(html).toContain("<b>Link:</b>");
+    expect(html).toContain('<a href="https://example.com/a_b_c">');
+    expect(html).toContain("&lt;tag&gt; &amp; more");
+  });
+  test("the text/plain part drops the markers and keeps the words", () => {
+    const plain = blocksToPlainText(splitBodyIntoBlocks("**One decision:** see `x` and *this*.\n\n- **Front desk**: view"));
+    expect(plain).toContain("One decision: see x and this.");
+    expect(plain).toContain("- Front desk: view");
+    expect(plain).not.toContain("**");
+    expect(stripInlineEmphasis("snake_case_name 2*3*4")).toBe("snake_case_name 2*3*4");
+  });
+  test("the rendered HTML still has no forced line breaks", () => {
+    expect(findForcedLineBreaksInRenderedHtml(blocksToHtml(splitBodyIntoBlocks("**A** b\nc d")))).toEqual([]);
   });
 });
