@@ -147,7 +147,28 @@ GH_TOKEN="$(gh auth token)" moon run repo:release-preflight   # GH_TOKEN not set
 bun scripts/validate-plugins.mjs           # Plugin validation
 ```
 
-**Dirty working directory:** commit the work, or move it to its own worktree. Do not reach for a bare `git stash`: the stash stack is shared by every worktree and session on this clone, so a bare stash or pop can take someone else's changes. If you must, use `git stash push -u -m "<unique-tag>"` and restore by SHA with `git stash apply <sha>`.
+**Dirty working directory:** commit the work, or move it to its own worktree — but do not then run the release FROM a worktree (next section). Do not reach for a bare `git stash`: the stash stack is shared by every worktree and session on this clone, so a bare stash or pop can take someone else's changes. If you must, use `git stash push -u -m "<unique-tag>"` and restore by SHA with `git stash apply <sha>`.
+
+### Never release from a git worktree of a checkout someone is using
+
+semantic-release syncs the release branch with `git fetch --tags --update-head-ok <url> +refs/heads/main:refs/heads/main`, a forced update. A worktree shares `refs/heads/main` with the main checkout, so running any release task (even `release-dry`) from a worktree moves the main checkout's branch to `origin/main` while its index and files stay put. Its `git status` then shows the whole difference as staged changes, and the next commit there silently reverts everything upstream. Seen 2026-10-10: 376 files, undone with `git update-ref refs/heads/main <previous-sha>` (find it with `git reflog show refs/heads/main`).
+
+Release from the main checkout when it is clean, or from a dedicated fresh clone (next section) — never from a worktree.
+
+### Push refused by the privacy gate for commits you did not touch
+
+semantic-release pushes with `--tags`, which sends **every local tag**. The 2026-10-07 history scrub deleted all tags from the public remote, but an older clone still holds its pre-scrub tags (including local `archive/*` bookmarks), and they point at commits carrying scrubbed identifiers. The privacy gate refuses the push, correctly, and the release stops after creating its local commit.
+
+Check with `git ls-remote --tags origin` against `git tag | wc -l`. Either remove the stale local tags (destructive to local bookmarks — the clone owner's call), or release from a fresh clone:
+
+```bash
+git clone git@github.com-terrylica:terrylica/cc-skills.git ../cc-skills-release && cd ../cc-skills-release
+git tag vX.Y.Z <sha of the last "chore(release): X.Y.Z" commit>   # only if that tag is missing on origin
+bash scripts/install-hooks.sh && moon run repo:commits-install-hook && bun install --frozen-lockfile
+moon run repo:release-full
+```
+
+Without the last-release tag, semantic-release would restart the version at 1.0.0. The privacy gate is a config-based hook in the global gitconfig, so it guards a fresh clone too.
 
 ### Hooks not firing after release
 
