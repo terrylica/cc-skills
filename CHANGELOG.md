@@ -13,7 +13,7 @@ The self-hosted deployment was retired 2026-08-13 for the public API, but four p
 - devops-tools README: 'self-hosted ops' and the 'self-hosted scraper' / 'docker restart policy' triggers removed
 - root README: devops-tools summary says public API
 
-* **gmail-commander:** **bold**, *italic* and `code` in a draft body arrive as rich text, not literal asterisks ([daece74](https://github.com/terrylica/cc-skills/commit/daece74f4c184380e830cb2f48dc17d663ec1b8b))
+* **gmail-commander:** **bold**, *italic* and `code` in a draft body arrive as rich text, not literal asterisks ([a0921b4](https://github.com/terrylica/cc-skills/commit/a0921b4a3a37389e67c4b24bf59fa46d7bc3cc69))
 
 The draft builder entity-escaped every body and rendered no Markdown beyond paragraphs, lists and bare URLs, so a recipient saw literal **Office staff** where the author meant bold.
 
@@ -23,7 +23,7 @@ The draft builder entity-escaped every body and rendered no Markdown beyond para
 - Eight new tests, 47 pass. Mutation-checked: removing the bold rule fails 3; removing the underscore opener guard fails the new opener test.
 - CLAUDE.md: write emphasis in Markdown; never leave asterisks for the recipient.
 
-* **tests:** iter-145 skips historical tags that a fresh clone no longer has ([392c871](https://github.com/terrylica/cc-skills/commit/392c87194d015e657fe56231a7c62c953ac046f9))
+* **tests:** iter-145 skips historical tags that a fresh clone no longer has ([eddda98](https://github.com/terrylica/cc-skills/commit/eddda980881780c6d5509777faf02e3140ed408a))
 
 The 2026-10-07 history scrub deleted every tag from the public remote, so a fresh clone carries none of the five tags this test inspects. Group C then matched nothing, and pipefail with set -e killed the script before it printed a result, which failed the release preflight in every fresh clone while passing in older clones that still hold stale local tags.
 
@@ -35,7 +35,7 @@ The 2026-10-07 history scrub deleted every tag from the public remote, so a fres
 
 ### Features
 
-* **floating-clock:** hide and unhide the whole clock with ⌃⌥⇧⌘H ([b4ad005](https://github.com/terrylica/cc-skills/commit/b4ad0058b9896a2ef4b9e5d0a97cb67bbb1ed8d9))
+* **floating-clock:** hide and unhide the whole clock with ⌃⌥⇧⌘H ([e9e1d52](https://github.com/terrylica/cc-skills/commit/e9e1d5252319a12c5815d6930b824407861ee271))
 
 The clock and its rails can take a lot of screen space, and getting it out of the way meant quitting the app. One switch now hides the clock together with every rail welded to it, and the same switch brings them all back exactly where they were. Because it is used rarely, it sits on a four-modifier chord nobody presses by accident; the chord was chosen from a survey of the shortcuts claimed by the system and installed tools plus a live press-and-diff check, since a Carbon hotkey conflict does not fail, it double-fires silently.
 
