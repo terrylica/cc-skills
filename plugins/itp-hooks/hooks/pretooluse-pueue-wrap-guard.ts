@@ -11,7 +11,8 @@
  * 2. PUEUE WRAPPING: Wraps known long-running Bash commands with pueue.
  *    Uses allowlist approach: ONLY wraps commands matching LONG_RUNNING_PATTERNS.
  *
- * Pipeline: originalCommand → maybeInjectOpToken → shouldWrap → output
+ * Pipeline: originalCommand → maybeInjectOpToken → shouldWrap → spool + wrap
+ *           (lib/pueue-wrap-transport.ts) → `<shell> -n` self-check → output
  *
  * IMPORTANT: This MUST be the LAST PreToolUse entry in hooks.json.
  * Reason: GitHub #15897 — multi-hook updatedInput aggregation bug means the
@@ -28,6 +29,8 @@
 
 import { allow, allowWithInput, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { maybeInjectOpToken } from "./lib/op-token-injector.ts";
+import { buildWrappedCommand, parses, payloadShell, spoolCommand } from "./lib/pueue-wrap-transport.ts";
+import { rmSync } from "node:fs";
 
 /** File where we record pueue task IDs for session-scoped cleanup.
  *  The stop hook reads this to kill only OUR jobs, not all jobs. */
@@ -83,7 +86,7 @@ const LONG_RUNNING_PATTERNS = [
  * Check if a command matches known long-running patterns.
  * Returns true ONLY for commands that should be wrapped.
  */
-function shouldWrap(command: string): boolean {
+export function shouldWrap(command: string): boolean {
   // Opt-in: explicit wrap request
   if (WRAP_COMMENT.test(command)) return true;
 
@@ -102,32 +105,6 @@ function shouldWrap(command: string): boolean {
 
   // Check against known long-running patterns
   return LONG_RUNNING_PATTERNS.some((p) => p.test(command));
-}
-
-/**
- * Build the synchronous pueue wrapper command.
- * Pattern: queue → wait → log (stdout flows back to Claude Code)
- */
-function buildWrappedCommand(command: string, cwd: string): string {
-  // Escape single quotes in command for shell safety
-  const escapedCommand = command.replace(/'/g, "'\\''");
-  const escapedCwd = cwd.replace(/'/g, "'\\''");
-
-  // Fail-loud: if pueue add fails or returns no task ID, print error and
-  // fall back to running the command directly instead of silent 0-byte output.
-  // Record task ID to SESSION_TASK_LOG for session-scoped cleanup.
-  const escapedLog = SESSION_TASK_LOG.replace(/'/g, "'\\''");
-  return (
-    `TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${escapedCommand} 2>&1 | grep -oE '^[0-9]+$' | tail -1); ` +
-    `if [ -z "$TASK_ID" ]; then ` +
-    `echo >&2 "[pueue-wrap] Failed to queue command, running directly"; ` +
-    `${escapedCommand}; ` +
-    `else ` +
-    `echo "$TASK_ID" >> '${escapedLog}'; ` +
-    `pueue wait "$TASK_ID" --quiet && ` +
-    `pueue log "$TASK_ID" --full; ` +
-    `fi`
-  );
 }
 
 async function main() {
@@ -189,14 +166,39 @@ async function main() {
     // JSON parse failed — fail-open
   }
 
-  // Wrap tier: rewrite command with pueue wrapper
-  const workingDir = cwd || process.cwd();
-  const wrappedCommand = buildWrappedCommand(command, workingDir);
+  // Wrap tier. The command travels to pueue as a spool FILE, never as quoted
+  // text (lib/pueue-wrap-transport.ts explains the defect this replaced).
+  // Fail-open to the unwrapped command whenever the result cannot be proven to
+  // parse: a payload that does not parse gets the shell's own error unwrapped,
+  // and a wrapper that does not parse is a bug in this hook, recorded as such.
+  const shell = payloadShell();
+  const passThrough = () =>
+    opTokenInjected ? allowWithInput("PUEUE-WRAP-GUARD", tool_name, { command }) : allow();
+  const paths = spoolCommand(command);
+  if (!parses(shell, [paths.script])) {
+    rmSync(paths.script, { force: true });
+    passThrough();
+    return;
+  }
+  const wrappedCommand = buildWrappedCommand({
+    shell,
+    cwd: cwd || process.cwd(),
+    paths,
+    taskLog: SESSION_TASK_LOG,
+  });
+  if (!parses(shell, ["-c", wrappedCommand])) {
+    rmSync(paths.script, { force: true });
+    trackHookError("pretooluse-pueue-wrap-guard", "built a wrapper that does not parse; passed the command through unwrapped");
+    passThrough();
+    return;
+  }
 
   allowWithInput("PUEUE-WRAP-GUARD", tool_name, { command: wrappedCommand });
 }
 
-main().catch((err) => {
-  trackHookError("pretooluse-pueue-wrap-guard", err instanceof Error ? err.message : String(err));
-  allow();
-});
+if (import.meta.main) {
+  main().catch((err) => {
+    trackHookError("pretooluse-pueue-wrap-guard", err instanceof Error ? err.message : String(err));
+    allow();
+  });
+}
