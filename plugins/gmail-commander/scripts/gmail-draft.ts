@@ -17,6 +17,7 @@
  *     [--reply-to <messageId>]                # thread as a reply to this Gmail message id
  *     [--to a@b] [--cc c@d] [--subject '…']   # required unless --reply-to supplies them
  *     [--replace <draftId>]                   # delete this stale draft after creating the new one
+ *     [--html /path/to/body.html]             # AUTHORED html part (see AUTHORED HTML below)
  *
  * BODY CONVERSION (deliberately minimal + predictable, not a full markdown renderer):
  *   - Blank-line-separated blocks become paragraphs; single newlines INSIDE a block are unwrapped
@@ -26,6 +27,15 @@
  *   - text/plain part: the same text with the emphasis markers dropped.
  *   - text/plain part: the same unwrapped paragraphs (long lines — Gmail may fold THAT part, but
  *     Gmail's editor uses the HTML part, so the visible draft reflows correctly).
+ *
+ * AUTHORED HTML (--html, 2026-10-12): for a designed email (styled quotation cards, section rules,
+ * per-speaker accents) that the minimal converter above cannot express. The file becomes the
+ * text/html part VERBATIM; --body still supplies the text/plain part. Before anything is uploaded the
+ * html is refused (`findAuthoredHtmlProblems`) if it carries script or event handlers, loads anything
+ * external, exceeds Gmail's ~102 KB clipping size, or is missing any word of the --body text in
+ * order, so the two parts cannot say different things. After upload, the html part Gmail stored must
+ * equal the file (CRLF-normalised); the forced-line-break check is not applied, because a break in
+ * authored html is the author's choice, not a converter's accident.
  *
  * OUTPUT: one JSON line {draftId, threadId, account} — machine-readable per CLI-first doctrine.
  */
@@ -43,6 +53,7 @@ interface Args {
   cc?: string | undefined;
   subject?: string | undefined;
   replace?: string | undefined;
+  html?: string | undefined;
 }
 
 const get = (name: string): string | undefined => {
@@ -55,10 +66,10 @@ function parseArgs(): Args {
   const body = get("body");
   const from = get("from");
   if (!account || !body || !from) {
-    console.error("usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>]");
+    console.error("usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--html <file.html>]");
     process.exit(1);
   }
-  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace") };
+  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), html: get("html") };
 }
 
 const TOKENS_DIR = `${process.env.HOME}/.claude/tools/gmail-tokens`;
@@ -327,6 +338,96 @@ export function findForcedLineBreaksInRenderedHtml(html: string): string[] {
   return violations;
 }
 
+// ── authored html (--html) ──
+
+/** Gmail truncates a body past ~102 KB behind "[Message clipped]"; refuse a little before that. */
+export const GMAIL_CLIP_SAFE_BYTES = 100 * 1024;
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", middot: "·",
+  rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", mdash: "—", ndash: "–", hellip: "…",
+};
+
+/** A numeric reference outside Unicode would make String.fromCodePoint throw; keep it as written. */
+const codePointOrSelf = (cp: number, original: string): string =>
+  Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : original;
+
+/** The text a reader sees: head/style/script dropped, tags become spaces, common entities decoded. */
+export function visibleTextOfHtml(html: string): string {
+  return html
+    .replace(/<(head|style|script|title)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#x([0-9a-f]+);/gi, (m, h: string) => codePointOrSelf(Number.parseInt(h, 16), m))
+    .replace(/&#(\d+);/g, (m, d: string) => codePointOrSelf(Number(d), m))
+    .replace(/&([a-z]+);/gi, (m, n: string) => NAMED_ENTITIES[n.toLowerCase()] ?? m)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// A word must hold a letter or digit, so list markers ("-", "•") and separators ("·") never count.
+const wordsOf = (s: string): string[] =>
+  s.replace(/\u00a0/g, " ").match(/[\p{L}\p{N}@.'’_-]*[\p{L}\p{N}][\p{L}\p{N}@.'’_-]*/gu) ?? [];
+
+/**
+ * How far ahead in the html one word may be found. Bounded on purpose: an unbounded search lets a
+ * single dropped common word ("is") match one much later, which then reports every word after it as
+ * missing and hides the one that actually is. Presentation text the html adds between two words of
+ * the plain text (a meta label, a separator) is far shorter than this.
+ */
+const WORD_LOOKAHEAD = 40;
+
+/** MIME transport is CRLF; compare authored html with what Gmail stored on LF, ends trimmed. */
+const normaliseLineEndings = (h: string): string => h.replace(/\r\n/g, "\n").trim();
+
+/**
+ * Why an authored html part must not be uploaded. Empty means it may be.
+ *
+ * The word check is the one that matters: the text/plain part is what a plain-text client, a
+ * forward and a search index see, so the two parts must carry the same words. Every word of the
+ * plain text must appear in the html's visible text, in order. The html may ADD presentation-only
+ * text (a separator, a label); it may never drop or reorder a word the plain text has.
+ */
+export function findAuthoredHtmlProblems(html: string, plain: string): string[] {
+  const problems: string[] = [];
+  if (/<script\b/i.test(html)) problems.push("contains <script>");
+  if (/<[^>]*\son[a-z]+\s*=/i.test(html)) problems.push("contains an inline event handler (on…=)");
+  if (
+    /\b(?:src|background)\s*=\s*["']?\s*(?:https?:)?\/\//i.test(html) ||
+    /url\(\s*["']?\s*(?:https?:)?\/\//i.test(html) ||
+    /<link\b/i.test(html)
+  ) {
+    problems.push("loads an external resource (src/background/url()/<link>); mail clients block or track these");
+  }
+  const bytes = Buffer.byteLength(html, "utf8");
+  if (bytes > GMAIL_CLIP_SAFE_BYTES) problems.push(`is ${bytes} bytes; Gmail clips past ~102 KB (limit used: ${GMAIL_CLIP_SAFE_BYTES})`);
+
+  const want = wordsOf(plain);
+  const have = wordsOf(visibleTextOfHtml(html));
+  let j = 0;
+  const missing: string[] = [];
+  for (const [i, w] of want.entries()) {
+    let k = j;
+    const stop = Math.min(have.length, j + WORD_LOOKAHEAD);
+    while (k < stop && have[k] !== w) k++;
+    // A match that skips over the NEXT expected word is a false match: the html dropped THIS word,
+    // and what was found is a later occurrence of it. Count it missing and do not advance.
+    const next = want[i + 1];
+    const skippedNext = next !== undefined && have.slice(j, k).includes(next);
+    if (k === stop || skippedNext) missing.push(w);
+    else j = k + 1;
+  }
+  if (missing.length > 0) {
+    problems.push(
+      `${missing.length} word(s) of the --body text are missing from the html or out of order (first: ${missing
+        .slice(0, 5)
+        .map((w) => JSON.stringify(w))
+        .join(", ")})`,
+    );
+  }
+  return problems;
+}
+
 function toHtml(paras: string[]): string {
   const body = paras.map((p) => `<p>${escapeAndLinkify(p)}</p>`).join("\n");
   return `<div dir="ltr">\n${body}\n</div>`;
@@ -463,6 +564,7 @@ async function assertCreatedDraftMatchesWhatWeSent(
   at: string,
   draftId: string,
   originalSubject: string,
+  authoredHtml?: string,
 ): Promise<void> {
   // Fetch the draft we just created, fully decoded (format=full).
   //
@@ -529,6 +631,16 @@ async function assertCreatedDraftMatchesWhatWeSent(
     );
   }
   const renderedHtml = Buffer.from(textHtmlPart.body.data, "base64url").toString("utf8");
+  if (authoredHtml !== undefined) {
+    // An authored part is checked for identity, not for converter defects: Gmail must have stored
+    // what the author wrote.
+    if (normaliseLineEndings(renderedHtml) !== normaliseLineEndings(authoredHtml)) {
+      throw new Error(
+        `Authored html did not round-trip in draft ${draftId}: Gmail stored ${renderedHtml.length} chars, ${authoredHtml.length} were sent.`,
+      );
+    }
+    return;
+  }
   const forcedBreaks = findForcedLineBreaksInRenderedHtml(renderedHtml);
   if (forcedBreaks.length > 0) {
     throw new Error(
@@ -649,6 +761,15 @@ if (import.meta.main) {
 
   const md = await Bun.file(args.body).text();
   const blocks = splitBodyIntoBlocks(md);
+  const plain = blocksToPlainText(blocks);
+  const authoredHtml = args.html ? await Bun.file(args.html).text() : undefined;
+  if (authoredHtml !== undefined) {
+    const problems = findAuthoredHtmlProblems(authoredHtml, plain);
+    if (problems.length > 0) {
+      console.error(`REFUSED --html ${args.html}:\n  ${problems.join("\n  ")}`);
+      process.exit(1);
+    }
+  }
   const mime = buildMime(
     {
       From: args.from,
@@ -658,8 +779,8 @@ if (import.meta.main) {
       "In-Reply-To": inReplyTo ?? "",
       References: references ?? "",
     },
-    blocksToPlainText(blocks),
-    blocksToHtml(blocks),
+    plain,
+    authoredHtml ?? blocksToHtml(blocks),
   );
 
   // ── LAYER 2: Validate the MIME before sending ──
@@ -697,7 +818,7 @@ if (import.meta.main) {
   const createdDraftId = draft.id as string;
   const createdThreadId = ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId;
   try {
-    await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject);
+    await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject, authoredHtml);
   } catch (e) {
     // The draft was created but round-trip verification failed. Report it clearly and exit non-zero.
     console.error(`LAYER 1 VERIFICATION FAILED on draft ${createdDraftId}:`);
