@@ -1,3 +1,38 @@
+# [33.12.0](https://github.com/terrylica/cc-skills/compare/v33.11.1...v33.12.0) (2026-10-13)
+
+
+### Bug Fixes
+
+* **gmail-commander:** a Markdown autolink <https://…> renders as a plain link, without visible angle brackets ([1a874c7](https://github.com/terrylica/cc-skills/commit/1a874c7055b8a057d081f426452800465d55f017))
+
+Markdown formatters rewrite a bare URL as <https://…>. The draft builder escaped the brackets, so recipients saw them around the link. escapeAndLinkify and the text/plain part now unwrap the autolink form; a non-URL &lt;word> is still escaped. Two tests; 49 pass.
+
+* **orca-tools:** add the self-evolution sandwich to worktree-spinoff (release preflight) ([7d7dc65](https://github.com/terrylica/cc-skills/commit/7d7dc659c1acb0c13360f41bc748929e75e602a0))
+* **orca-tools:** resolve the review on worktree-spinoff (dry-run remove, main worktree, untracked work, Orca-native targeting) ([5571c22](https://github.com/terrylica/cc-skills/commit/5571c22929160d65d9b4cb0d653a7d35e560226f))
+
+- remove honours --dry-run: prints the plan after every check, changes nothing
+- the main worktree (isMainWorktree) is never matched by remove or the create collision check
+- remove refuses untracked files (only the absolute links made by --link are exempt)
+- --handoff / --prompt-file resolve against the caller's directory, before the cd to the main work tree
+- local vs remote comes from --environment / ORCA_ENVIRONMENT and the row's hostId, not path existence
+- worktree list uses --repo and --limit, refuses a truncated page, reports omitted hosts; remove --host filters
+- paired runtime: the base uses the target clone's remoteName and is checked with orca repo search-refs; branch.&lt;b>.base is written only when the worktree is here; without a handoff or --base, --base-branch is omitted so Orca uses the repo default base (orca-cli guide)
+- repo matching by owner/repo also compares dotted forge hosts; one URL parser for both host checks (ports dropped)
+- not-in-git detected directly; main work tree from git worktree list
+- stdout is one json.dumps object; terminal list failure gives null counts; title sliced by characters in Python
+- explicit ORCA_CLI must be Orca's; push failures show the full output, hook reasons included
+- docs: dry-run wording, cross-device behaviour, README category matches the marketplace (devops)
+
+
+
+### Features
+
+* **orca-tools:** worktree-spinoff, a task spun off into its own Orca IDE worktree with one agent terminal ([80c7de8](https://github.com/terrylica/cc-skills/commit/80c7de8b73174dd6ca7a0799f60b5a05a0e92493))
+
+Spin a task off the default branch into its own Orca worktree: Orca's built-in agent launcher started with the handoff prompt (one tab, the prompt submitted at launch), the handoff committed in the branch before the agent starts, a readable sidebar entry, and a clean removal. Orca-native targeting: this machine, a paired runtime (--environment / --pairing-code, repo matched by owner/repo), or a project host (--host, via --project).
+
+Portable by construction: bash 3.2 through 5, BSD and GNU userland, Python for paths and JSON, no project or personal identity. Finds the Orca IDE CLI even where /usr/bin/orca is the GNOME screen reader. Verified with full create/remove cycles on Linux (bash 5.3) and macOS (/bin/bash 3.2, with and without the repo's setup tab), and a dry run on a second Linux desktop.
+
 ## [33.11.1](https://github.com/terrylica/cc-skills/compare/v33.11.0...v33.11.1) (2026-10-10)
 
 # [33.11.0](https://github.com/terrylica/cc-skills/compare/v33.10.0...v33.11.0) (2026-10-10)
