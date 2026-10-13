@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hooks for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-39-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-40-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -34,6 +34,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hoo
 | [media-tools](./plugins/media-tools/)                   | Download YouTube audio and push to BookPlayer for offline listening                                                                                                                                                                                                  | productivity  |
 | [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, MT5 tick collection ops, FXView Parquet consumer                                                                                                                                | trading       |
 | [openwolf](./plugins/openwolf/)                         | Wraps the third-party openwolf npm middleware (token-saving project memory): installs the global binary, runs `openwolf init`, surfaces status, and adds a clean removal path                                                                                        | productivity  |
+| [orca-tools](./plugins/orca-tools/)                     | Orca IDE: spin a task off into its own Orca worktree with one agent terminal and a committed handoff, locally or on a paired runtime                                                                                                                                 | productivity  |
 | [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, plugin validation, silent failure auditing, TodoWrite templates                                                                                                                                                              | development   |
 | [productivity-tools](./plugins/productivity-tools/)     | Slash command generation, Notion (SDK + CLI), iMessage queries, iTerm2 layouts, calendar event manager, Google Drive access                                                                                                                                          | productivity  |
 | [pushover-commander](./plugins/pushover-commander/)     | Pushover end-to-end: send (+image), priority-2 emergency with receipt polling, headless web-control for apps/sounds, incident-report PNGs, UUID/JSONL audit + quota                                                                                                  | devops        |
@@ -60,8 +61,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 39 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
-for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
+# 2. Install all 40 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
+for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf orca-tools plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -458,8 +459,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (39 plugins) — SSoT
-├── plugins/                      # 39 marketplace plugins (each with its own CLAUDE.md)
+│   └── marketplace.json          # Plugin registry (40 plugins) — SSoT
+├── plugins/                      # 40 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools

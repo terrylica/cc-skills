@@ -970,6 +970,27 @@
         "1password"
       ],
       "strict": false
+    },
+    {
+      "name": "orca-tools",
+      "description": "Claude Code under the Orca IDE: spin a task off into its own Orca worktree with one agent terminal and a committed handoff, on this machine or a paired runtime; clean removal",
+      "version": "33.11.1",
+      "source": "./plugins/orca-tools",
+      "category": "devops",
+      "author": {
+        "name": "terrylica",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "orca",
+        "orca-ide",
+        "worktree",
+        "handoff",
+        "spin-off",
+        "agent",
+        "multi-device"
+      ],
+      "strict": false
     }
   ]
 }
