@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **39 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **40 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 

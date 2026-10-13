@@ -1,0 +1,415 @@
+#!/usr/bin/env bash
+# orca-spinoff: spin a task off the default branch into its own Orca worktree with exactly one terminal (Orca's
+# built-in agent launcher, started with the handoff prompt), the handoff file already committed in the branch, and a
+# readable sidebar name; or remove such a worktree cleanly. See ../SKILL.md for the why of each step.
+#
+#   orca-spinoff create --name NAME --title "Short sidebar title" [--handoff FILE] [--display "Readable name"]
+#                       [--agent claude] [--remote R] [--base REF] [--handoff-dir docs/handoff]
+#                       [--staging-prefix handoff/] [--link PATH]... [--issue N] [--comment TEXT]
+#                       [--prompt-file FILE] [--parent SELECTOR] [--setup run|skip|inherit] [--activate] [--dry-run]
+#   orca-spinoff remove --name NAME [--remote R] [--delete-remote-branch] [--force] [--dry-run]
+#   Every command also takes the Orca-native targeting flags:
+#     [--environment ID | --pairing-code CODE]   a paired remote Orca runtime (orca environment list); passed to
+#                                                every orca call (ORCA_ENVIRONMENT / ORCA_PAIRING_CODE also work)
+#     [--host HOST]                              create: where the worktree is made (orca host list; default: the
+#                                                repo's own checkout); remove: only match worktrees on that host
+#     [--repo-id ID]                             the Orca repo, if matching by forge identity is ambiguous
+#
+# Exit status: 0 done, 1 a step failed (staging branches are cleaned up), 2 bad arguments or a collision found before
+# any change. --dry-run runs every check, then changes no branch or worktree (it may still git fetch).
+# Requires: bash >= 3.2, git >= 2.20, python3 >= 3.9, the orca CLI. Reference setup: a Nix profile providing current
+# bash, git, python3 and coreutils on macOS, Linux and BSD alike (no GNU-only flags are used either way).
+set -euo pipefail
+
+die() { printf 'orca-spinoff: %s\n' "$1" >&2; exit "${2:-2}"; }
+warn() { printf 'orca-spinoff: warning: %s\n' "$1" >&2; }
+# Python gets shell values only as argv (never as source text); PYLIB is shared by every snippet.
+PYLIB='
+import json, os, re, sys
+def url_host_path(u):
+    """(host, owner/repo) of a git remote URL: scheme://[user@]host[:port]/path or scp-like [user@]host:path."""
+    u = (u or "").strip().rstrip("/")
+    if "://" in u:
+        hp, _, path = u.split("://", 1)[1].partition("/")
+    elif ":" in u:
+        hp, _, path = u.partition(":")
+    else:
+        hp, path = "", u
+    return hp.rsplit("@", 1)[-1].split(":")[0].lower(), path.removesuffix(".git").lower()
+def leaf(p):
+    return re.split(r"[\\/]", (p or "").rstrip("/\\"))[-1]
+'
+pa() { local code=$1; shift; python3 -I -c "$PYLIB
+$code" "$@"; }                                                       # argv only
+py() { local code=$1; shift; python3 -I -c "$PYLIB
+d = json.load(sys.stdin)
+$code" "$@"; }                                                       # JSON on stdin as d
+abspath() { pa 'print(os.path.realpath(sys.argv[1]))' "$1"; }
+# One JSON object from key/value pairs: s:<text> is a string, j:<json> a literal (number, true, null).
+emit() { pa '
+it = iter(sys.argv[1:]); o = {}
+for k in it:
+    v = next(it); o[k] = json.loads(v[2:]) if v.startswith("j:") else v[2:]
+print(json.dumps(o))' "$@"; }
+# Push quietly on success (LFS chatter and "remote:" banners dropped); on failure show everything, hook reasons included.
+quiet_push() {
+  local out rc=0
+  out=$(git push -q "$remote" "$@" 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then [ -z "$out" ] || printf '%s\n' "$out" >&2; return "$rc"; fi
+  [ -z "$out" ] || printf '%s\n' "$out" | { grep -v -e '^remote:' -e '^Uploading LFS objects' -e '^Locking support detected' -e 'git config lfs\..*locksverify' >&2 || true; }
+}
+
+# Every orca call goes through o(), so --environment/--pairing-code reach the right runtime (local or paired remote).
+# The Orca IDE CLI: $ORCA_CLI (an explicit choice: an error if it is not Orca's), else `orca` on PATH if it is the IDE's
+# (on Linux desktops /usr/bin/orca is often the GNOME screen reader), else the IDE's own shim locations.
+is_orca() { [ -n "$1" ] && [ -x "$1" ] && "$1" --help 2>/dev/null | grep -q 'worktree create'; }
+find_orca() {
+  local c
+  if [ -n "${ORCA_CLI:-}" ]; then is_orca "$ORCA_CLI" && { echo "$ORCA_CLI"; return 0; }; return 1; fi
+  for c in "$(command -v orca 2>/dev/null || true)" "$HOME/.config/orca/linux-orca-cli-shim/orca" \
+           /Applications/Orca.app/Contents/Resources/bin/orca "$HOME/Applications/Orca.app/Contents/Resources/bin/orca"; do
+    is_orca "$c" && { echo "$c"; return 0; }
+  done
+  return 1
+}
+o() { "$ORCA" "$@" ${target[@]+"${target[@]}"}; }
+
+cmd=${1:-}; [ $# -gt 0 ] && shift
+case $cmd in create|remove) ;; -h|--help|help|'') sed -n '2,21p' "$0"; exit 0 ;; *) die "unknown command: $cmd (create|remove)" ;; esac
+
+name='' title='' display='' handoff='' issue='' comment='' prompt_file='' base='' remote='' agent=claude
+handoff_dir=docs/handoff staging_prefix=handoff/ parent='' activate=0 dry=0 del_remote=0 force=0
+host='' repo_id='' setup='' runtime_remote=0
+links=() target=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    --name) name=$2; shift 2 ;;
+    --title) title=$2; shift 2 ;;
+    --display) display=$2; shift 2 ;;
+    --handoff) handoff=$2; shift 2 ;;
+    --issue) issue=$2; shift 2 ;;
+    --comment) comment=$2; shift 2 ;;
+    --prompt-file) prompt_file=$2; shift 2 ;;
+    --base) base=$2; shift 2 ;;
+    --remote) remote=$2; shift 2 ;;
+    --agent) agent=$2; shift 2 ;;
+    --handoff-dir) handoff_dir=${2%/}; shift 2 ;;
+    --staging-prefix) staging_prefix=$2; shift 2 ;;
+    --link) links+=("$2"); shift 2 ;;
+    --parent) parent=$2; shift 2 ;;
+    --activate) activate=1; shift ;;
+    --dry-run) dry=1; shift ;;
+    --delete-remote-branch) del_remote=1; shift ;;
+    --force) force=1; shift ;;
+    --environment|--pairing-code) target=("$1" "$2"); runtime_remote=1; shift 2 ;;
+    --host) host=$2; shift 2 ;;
+    --setup) setup=$2; shift 2 ;;
+    --repo-id) repo_id=$2; shift 2 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+[ -n "${ORCA_ENVIRONMENT:-}${ORCA_PAIRING_CODE:-}" ] && runtime_remote=1
+[ -n "$name" ] || die "--name is required"
+[[ $name =~ ^[a-z0-9][a-z0-9._-]*$ ]] || die "name must be lowercase [a-z0-9._-]: $name"
+command -v python3 >/dev/null || die "python3 not on PATH" 1
+if ! ORCA=$(find_orca); then
+  [ -z "${ORCA_CLI:-}" ] || die "ORCA_CLI=$ORCA_CLI is not the Orca IDE CLI (its --help has no 'worktree create')" 1
+  die "the Orca IDE CLI was not found (set ORCA_CLI, or install it from Orca: Settings > CLI)" 1
+fi
+# Paths given by the caller are relative to the caller's directory, so resolve them before the cd below.
+[ -z "$handoff" ] || handoff=$(abspath "$handoff")
+[ -z "$prompt_file" ] || prompt_file=$(abspath "$prompt_file")
+
+git rev-parse --git-dir >/dev/null 2>&1 || die "not inside a git repository"
+# The main work tree is the first entry of `git worktree list` (also right for --separate-git-dir and submodules).
+main=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+[ -n "$main" ] && [ -d "$main" ] || die "cannot find the main work tree (git worktree list)" 1
+[ "$(git -C "$main" rev-parse --is-bare-repository)" = false ] || die "the main worktree is bare: run from a non-bare checkout"
+main=$(abspath "$main")
+cd "$main"
+# The remote: --remote, else the default branch's upstream remote, else origin, else the only remote.
+if [ -z "$remote" ]; then
+  remote=$(git config --get "branch.$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo main).remote" || true)
+  [ -n "$remote" ] || { git remote | grep -qx origin && remote=origin; } || true
+  [ -n "$remote" ] || { [ "$(git remote | wc -l | tr -d ' ')" = 1 ] && remote=$(git remote); } || true
+  [ -n "$remote" ] || die "cannot choose a remote: pass --remote"
+fi
+url=$(git remote get-url "$remote" 2>/dev/null) || die "no remote named $remote"
+
+repos=$(o repo list --json)
+# The Orca repo: --repo-id; else the one at this checkout's path (same machine); else the one whose remote names the
+# same owner/repo on the same forge host (a paired runtime on another device keeps its own path, and may use an SSH
+# alias: a dotless host is an alias, so only dotted hosts must match).
+if [ -z "$repo_id" ]; then
+  repo_id=$(py '
+m, (mh, mp) = os.path.realpath(sys.argv[1]), url_host_path(sys.argv[2])
+def same(u):
+    h, p = url_host_path(u)
+    return bool(mp) and p == mp and (h == mh or "." not in h or "." not in mh)
+rs = d["result"]["repos"]
+r = [r for r in rs if os.path.realpath(r["path"]) == m] or \
+    [r for r in rs if same((r.get("gitRemoteIdentity") or {}).get("remoteUrl"))]
+if len(r) != 1:
+    sys.exit("orca-spinoff: %s Orca repo matches %s/%s (path %s); pass --repo-id, or register it: orca repo add --path <checkout>"
+             % ("no" if not r else "more than one", mh, mp, m))
+print(r[0]["id"])' "$main" "$url" <<<"$repos")
+fi
+
+# Worktrees named NAME in this repo, from one complete page: never the main worktree; with --host, only on that host.
+# Prints "<count>\t<omitted hosts>" then one "id\tpath\thostId\tbranch" line per match (an empty field must be last:
+# read with a tab IFS merges adjacent tabs).
+find_wt() {
+  o worktree list --repo "id:$repo_id" --limit 10000 --json | py '
+r = d["result"]
+if r.get("truncated"):
+    sys.exit("orca-spinoff: orca worktree list is truncated (%d of %s rows); cannot check worktree names"
+             % (len(r["worktrees"]), r.get("totalCount")))
+omitted = (r.get("hostScope") or {}).get("omittedHostIds") or []
+h = sys.argv[3]
+hits = [w for w in r["worktrees"] if w.get("repoId") == sys.argv[1] and not w.get("isMainWorktree")
+        and leaf(w.get("path")) == sys.argv[2] and (not h or w.get("hostId") in (h, h.split(":", 1)[-1]))]
+print("%d\t%s" % (len(hits), ",".join(omitted)))
+for w in hits:
+    print("\t".join([w["id"], w["path"], w.get("hostId") or "local", (w.get("branch") or "").removeprefix("refs/heads/")]))' \
+    "$repo_id" "$name" "$1"
+}
+
+# ---------------------------------------------------------------- remove
+if [ "$cmd" = remove ]; then
+  rows=$(find_wt "$host")
+  IFS=$'\t' read -r count omitted <<<"$(printf '%s\n' "$rows" | head -n 1)"
+  case $count in
+    0) die "no Orca worktree named $name in this repo${omitted:+ (hosts not covered by the listing: $omitted)}" ;;
+    1) ;;
+    *) die "$count Orca worktrees named $name in this repo, on different hosts: pass --host" ;;
+  esac
+  IFS=$'\t' read -r wt_id wt_path wt_host branch <<<"$(printf '%s\n' "$rows" | sed -n 2p)"
+  # On this machine only if this runtime is local and Orca says the row's host is this machine (paths alone can match
+  # across machines with the same user name and workspace folder).
+  local_wt=0; [ "$runtime_remote" = 0 ] && [ "$wt_host" = local ] && local_wt=1
+  if [ "$local_wt" = 0 ]; then
+    [ "$force" = 1 ] || die "$wt_path is on another machine (host $wt_host): its unpushed work cannot be checked from here (run remove there, or --force)"
+    if [ "$dry" = 1 ]; then emit dry_run j:true remove "s:$wt_path" branch "s:$branch" host "s:$wt_host" remote_runtime j:true; exit 0; fi
+    o worktree rm --worktree "id:$wt_id" --force --json >/dev/null || die "orca worktree rm failed" 1
+    warn "removed on host $wt_host; its local branch $branch may stay in that machine's clone (git branch -D there)"
+    emit removed "s:$wt_path" branch "s:$branch" host "s:$wt_host" remote_runtime j:true
+    exit 0
+  fi
+  [ -d "$wt_path" ] || die "Orca lists $wt_path on this machine, but it does not exist" 1
+  if [ "$force" != 1 ]; then
+    # Tracked changes and untracked files (ignored files excluded); the absolute symlinks made by --link are ours.
+    dirty=$(git -C "$wt_path" status --porcelain -z | python3 -I -c '
+import os, sys
+root, out, i = sys.argv[1], [], 0
+ents = sys.stdin.buffer.read().split(b"\0")
+while i < len(ents):
+    e = ents[i].decode("utf-8", "replace"); i += 1
+    if not e: continue
+    xy, p = e[:2], e[3:]
+    if xy[0] in "RC": i += 1                     # -z: a rename or copy is followed by its source path
+    f = os.path.join(root, p.rstrip("/"))
+    if xy == "??" and "/" not in p.rstrip("/") and os.path.islink(f) and os.path.isabs(os.readlink(f)): continue
+    out.append(e)
+print("\n".join(out[:20]) + ("\n..." if len(out) > 20 else ""))' "$wt_path") || die "git status failed in $wt_path" 1
+    [ -z "$dirty" ] || die "$wt_path has uncommitted changes or untracked files (commit or remove them, or --force to discard):
+$dirty"
+    if [ -n "$branch" ] && git rev-parse --verify --quiet "$remote/$branch" >/dev/null; then
+      [ -z "$(git log --oneline "$remote/$branch..$branch")" ] || die "$branch has commits not on $remote (push them, or --force)"
+    elif [ -n "$branch" ] && [ -n "$(git log --oneline "$branch" --not --remotes="$remote" 2>/dev/null)" ]; then
+      die "$branch has commits on no $remote branch (push them, or --force)"
+    fi
+  fi
+  if [ "$dry" = 1 ]; then emit dry_run j:true remove "s:$wt_path" branch "s:$branch" host s:local delete_remote_branch "j:$([ "$del_remote" = 1 ] && echo true || echo false)"; exit 0; fi
+  # untracked links made by `create --link` would otherwise block the removal
+  find "$wt_path" -maxdepth 1 -type l -exec sh -c 'case "$(readlink "$1")" in /*) rm -f "$1";; esac' _ {} \;
+  o worktree rm --worktree "id:$wt_id" --force --json >/dev/null || die "orca worktree rm failed" 1
+  # Orca removes asynchronously ("removing": true): wait for the folder to go before touching the branch
+  i=0; while [ -e "$wt_path" ] && [ $i -lt 60 ]; do i=$((i + 1)); sleep 1; done
+  [ ! -e "$wt_path" ] || die "$wt_path still exists 60 s after orca worktree rm" 1
+  git worktree prune
+  # Orca deletes the branch only when it equals the worktree name; a prefixed one (<user>/<name>) stays behind.
+  if [ -n "$branch" ] && git show-ref --verify --quiet "refs/heads/$branch"; then git branch -D "$branch" >/dev/null; fi
+  if [ "$del_remote" = 1 ] && [ -n "$branch" ] && git ls-remote --exit-code "$remote" "refs/heads/$branch" >/dev/null 2>&1; then
+    quiet_push --delete "$branch"
+  fi
+  emit removed "s:$wt_path" branch "s:$branch"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- create: checks (all before any change)
+[ -n "$title" ] || die "--title is required (its first line labels the agent row in the sidebar)"
+[ -z "$handoff" ] || { [ -f "$handoff" ] && [ -r "$handoff" ]; } || die "missing or unreadable handoff file: $handoff"
+[ -z "$prompt_file" ] || { [ -f "$prompt_file" ] && [ -r "$prompt_file" ]; } || die "missing or unreadable prompt file: $prompt_file"
+# The worktree is on another machine with a paired runtime (--environment), or on another host (--host ssh:/runtime:).
+elsewhere=$runtime_remote; [ -n "$host" ] && [ "$host" != local ] && elsewhere=1
+
+fhost=$(pa 'print(url_host_path(sys.argv[1])[0])' "$url")
+case $fhost in
+  *.*) ;;
+  *) warn "remote $remote uses the SSH host alias '$fhost'; Orca treats a host without a dot as unresolved, so its forge features (tasks, PR links, branch prefix) stay off. Use the real host in the URL and pin the key with: git config core.sshCommand 'ssh -i <key> -o IdentitiesOnly=yes'" ;;
+esac
+IFS=$'\t' read -r orca_host target_remote <<<"$(py '
+r = next(r for r in d["result"]["repos"] if r["id"] == sys.argv[1])
+g = r.get("gitRemoteIdentity") or {}
+print("%s\t%s" % (url_host_path(g.get("remoteUrl"))[0] or "none", g.get("remoteName") or ""))' "$repo_id" <<<"$repos")"
+[ "$elsewhere" = 1 ] || [ "$orca_host" = "$fhost" ] || warn "Orca's cached remote identity has host '$orca_host' (the remote now says '$fhost'); Orca refreshes it on restart"
+
+rows=$(find_wt '')
+IFS=$'\t' read -r count omitted <<<"$(printf '%s\n' "$rows" | head -n 1)"
+[ "$count" = 0 ] || die "an Orca worktree named $name already exists in this repo"
+if [ -n "$omitted" ]; then
+  case ",$omitted," in *",$host,"*|*",${host#*:},"*) [ -z "$host" ] || die "Orca's worktree listing does not cover host $host: cannot check for a name collision there" 1 ;; esac
+  warn "Orca's worktree listing does not cover hosts $omitted: a worktree named $name there was not checked"
+fi
+# The base: given (--base), or the remote's default branch when a handoff must be staged on top of it; otherwise
+# Orca's own repo default base (orca-cli guide: omit --base-branch for independent top-level handoffs).
+if [ -n "$base" ] || [ -n "$handoff" ]; then
+  git fetch -q "$remote"
+  if [ -z "$base" ]; then
+    base=$(git symbolic-ref --quiet --short "refs/remotes/$remote/HEAD" 2>/dev/null || true)
+    [ -n "$base" ] || { git remote set-head "$remote" --auto >/dev/null 2>&1 && base=$(git symbolic-ref --quiet --short "refs/remotes/$remote/HEAD"); } || true
+    [ -n "$base" ] || die "cannot find $remote's default branch: pass --base"
+  fi
+  git rev-parse --verify --quiet "$base^{commit}" >/dev/null || die "base $base not found (after git fetch $remote)"
+fi
+base_ref=''; [ -z "$base" ] || base_ref=$(git rev-parse --symbolic-full-name "$base" 2>/dev/null || true)
+staging=$staging_prefix$name
+doc=''
+if [ -n "$handoff" ]; then
+  doc=$handoff_dir/$(basename "$handoff")
+  ! git cat-file -e "$base:$doc" 2>/dev/null || die "$doc already exists in $base: rename the handoff file"
+  ! git show-ref --verify --quiet "refs/heads/$staging" || die "local branch $staging is left over: git branch -D $staging"
+  rc=0; git ls-remote --exit-code "$remote" "refs/heads/$staging" >/dev/null || rc=$?
+  case $rc in 0) die "remote branch $staging is left over: git push $remote --delete $staging" ;; 2) ;; *) die "git ls-remote $remote failed (exit $rc)" 1 ;; esac
+  # On a paired runtime the target clone names the remote itself (Orca reports it as gitRemoteIdentity.remoteName).
+  if [ "$runtime_remote" = 1 ] && [ -z "$target_remote" ]; then
+    warn "the target runtime does not report its clone's remote name; assuming '$remote'"
+  fi
+fi
+left=$(git for-each-ref --format='%(refname:short)' refs/heads/ | awk -v n="$name" '$0 == n || substr($0, length($0) - length(n)) == "/" n')
+[ -z "$left" ] || die "branch(es) named $name are left over: $(echo "$left" | tr '\n' ' ')(git branch -D ...)"
+for l in ${links[@]+"${links[@]}"}; do [ -e "$main/$l" ] || die "--link $l: $main/$l does not exist"; done
+
+if [ -n "$prompt_file" ]; then body=$(cat "$prompt_file")
+elif [ -n "$doc" ]; then body="You own this worktree. Read $doc first: it holds the request verbatim and everything needed to continue."
+else body="You own this worktree."; fi
+prompt=$(printf '%s\n\n%s' "$title" "$body")
+
+echo "repo $repo_id, remote $remote, base ${base:-the Orca repo default}${base_ref:+ ($base_ref)}, name $name${doc:+, handoff $doc via $staging}: checks passed" >&2
+if [ "$dry" = 1 ]; then printf -- '--- prompt ---\n%s\n' "$prompt" >&2; exit 0; fi
+
+# ---------------------------------------------------------------- create: changes (the trap undoes staging state)
+tmp='' staged_local=0 staged_remote=0
+cleanup() {
+  local rc=$?
+  if [ -n "$tmp" ]; then git worktree remove --force "$tmp" 2>/dev/null || true; rm -rf "$tmp"; fi
+  if [ "$staged_local" = 1 ]; then git branch -D "$staging" >/dev/null 2>&1 || warn "could not delete local branch $staging"; fi
+  if [ "$staged_remote" = 1 ] && git ls-remote --exit-code "$remote" "refs/heads/$staging" >/dev/null 2>&1; then
+    quiet_push --delete "$staging" || warn "could not delete remote branch $staging"
+  fi
+  exit "$rc"
+}
+trap cleanup EXIT
+
+start=$base
+if [ -n "$doc" ]; then
+  # 1. stage the handoff on <prefix><name> (a plain git worktree outside Orca, removed again)
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/orca-spinoff.XXXXXX")
+  staged_local=1
+  GIT_LFS_SKIP_SMUDGE=1 git worktree add -q -b "$staging" "$tmp" "$base"
+  mkdir -p "$tmp/$handoff_dir"
+  cp "$handoff" "$tmp/$doc"
+  git -C "$tmp" add "$doc"
+  git -C "$tmp" commit -q -m "docs(handoff): $title"
+  staged_remote=1
+  quiet_push "$staging"
+  git worktree remove "$tmp"; tmp=''
+  git branch -D "$staging" >/dev/null; staged_local=0
+  if [ "$runtime_remote" = 1 ]; then
+    # The ref must exist in the target runtime's clone, under its own remote name; Orca's ref search shows it.
+    start=${target_remote:-$remote}/$staging
+    o repo search-refs --repo "id:$repo_id" --query "$staging" --limit 50 --json | py '
+sys.exit(0 if sys.argv[1] in (d.get("result") or {}).get("refs", []) else 1)' "$start" ||
+      die "the target runtime's clone has no ref $start (it has not fetched the pushed staging branch): run git fetch in that clone, then retry" 1
+  else
+    git fetch -q "$remote"
+    start=$remote/$staging
+    [ "$elsewhere" = 0 ] || warn "host $host: $start was fetched here; that host's clone must also have it"
+  fi
+fi
+
+# 2. one-step create: the built-in launcher, prompt submitted at launch
+# Orca's targets: --repo for this runtime's own checkout; --project + --host for another host (ssh:<id>, runtime:<id>).
+if [ -n "$host" ] && [ "$host" != local ]; then
+  project=$(o project list --json | py '
+p = [p for p in d["result"]["projects"] if sys.argv[1] in (p.get("sourceRepoIds") or [])]
+if len(p) != 1: sys.exit("orca-spinoff: no single Orca project holds repo %s (orca project list)" % sys.argv[1])
+print(p[0]["id"])' "$repo_id")
+  tgt=(--project "$project" --host "$host")
+else
+  tgt=(--repo "id:$repo_id")
+fi
+args=(worktree create "${tgt[@]}" --name "$name" --agent "$agent" --prompt "$prompt" --json)
+[ -n "$start" ] && args+=(--base-branch "$start")
+if [ -n "$parent" ]; then args+=(--parent-worktree "$parent"); else args+=(--no-parent); fi
+[ -n "$issue" ] && args+=(--issue "$issue")
+[ -n "$comment" ] && args+=(--comment "$comment")
+[ "$activate" = 1 ] && args+=(--activate)
+[ -n "$setup" ] && args+=(--setup "$setup")
+out=$(o "${args[@]}") || { printf 'orca-spinoff: orca worktree create failed:\n%s\n' "$out" >&2; exit 1; }
+fields=$(py '
+if d.get("ok") is not True:
+    r = d.get("result") or {}
+    p = ((r.get("worktree") or {}).get("path")) if isinstance(r, dict) else None
+    sys.exit("orca-spinoff: orca worktree create returned ok=%r: %s%s" % (d.get("ok"), json.dumps(d.get("error")),
+             "; a partial worktree exists at %s" % p if p else ""))
+r = d["result"]; w = r["worktree"]
+h = r.get("agentTerminalHandle") or (r.get("startupTerminal") or {}).get("handle") or ""
+print("\t".join([w["id"], w["path"], w["branch"].removeprefix("refs/heads/"), h]))' <<<"$out")
+IFS=$'\t' read -r wt_id wt_path branch handle <<<"$fields"
+
+# 3. the staging branch goes at once (the new branch contains it); the recorded base points back at --base
+if [ -n "$doc" ]; then
+  quiet_push --delete "$staging"; staged_remote=0
+  if [ "$elsewhere" = 1 ]; then :   # branch.<b>.base lives in the other machine's clone
+  elif [ -n "$base_ref" ]; then git config "branch.$branch.base" "$base_ref" || warn "could not set branch.$branch.base"
+  else warn "--base $base is not a ref name; branch.$branch.base still names the deleted $start"; fi
+fi
+
+# 4. optional: readable sidebar name, links into the worktree (failures warn, never abort)
+if [ -n "$display" ] && ! o worktree set --worktree "id:$wt_id" --display-name "$display" --json >/dev/null; then
+  warn "could not set the display name"
+fi
+if [ ${#links[@]} -gt 0 ] && [ "$elsewhere" = 1 ]; then warn "the worktree is on another machine ($wt_path): --link skipped"; links=(); fi
+for l in ${links[@]+"${links[@]}"}; do
+  [ -e "$wt_path/$l" ] || ln -s "$main/$l" "$wt_path/$l" || warn "could not link $l"
+done
+
+# 5. verify: exactly one terminal, and the prompt's title reached it (bounded wait; no resend)
+# The agent's tab, plus a "Setup" tab when the repo defines a setup script and Orca runs it in a new tab
+# (settings.setupScriptLaunchMode = new-tab); --setup skip leaves the agent's tab alone.
+n=null nsetup=null
+if tl=$(o terminal list --worktree "id:$wt_id" --json); then
+  read -r n nsetup <<<"$(py '
+t = d["result"]["terminals"]; print(len(t), sum(1 for x in t if (x.get("title") or "").strip().lower() == "setup"))' <<<"$tl")"
+  [ "$((n - nsetup))" = 1 ] || warn "$n terminals in $wt_path ($nsetup setup), expected the agent's tab plus at most a Setup tab"
+else
+  warn "orca terminal list failed for $wt_id"
+fi
+# The launcher already submitted the prompt, so this only reads (never sends): the title's first 30 characters
+# (sliced by Python, so multi-byte titles survive any locale) must show in the agent's terminal.
+seen=false
+if [ -n "$handle" ]; then
+  i=0
+  while [ $i -lt 30 ]; do
+    if o terminal read --terminal "$handle" --cursor 0 --limit 2000 --json 2>/dev/null | py '
+t = d.get("result", {}).get("terminal", {}); tail = t.get("tail") or []
+want = (sys.argv[1].splitlines() or [""])[0][:30]
+sys.exit(0 if want in "\n".join(tail if isinstance(tail, list) else [tail]) else 1)' "$title"; then
+      seen=true; break
+    fi
+    i=$((i + 1)); sleep 3
+  done
+fi
+[ "$seen" = true ] || warn "the prompt's title did not appear in terminal ${handle:-?} within 90 s; check: orca terminal read --terminal ${handle:-<handle>} --cursor 0 --json"
+emit worktree "s:$wt_id" path "s:$wt_path" branch "s:$branch" terminal "s:$handle" terminals "j:$n" setup_tabs "j:$nsetup" prompt_seen "j:$seen"
