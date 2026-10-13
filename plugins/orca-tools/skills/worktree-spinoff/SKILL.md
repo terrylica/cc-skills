@@ -21,14 +21,16 @@ SPIN=<this skill's directory>/scripts/orca-spinoff     # e.g. from the plugin ca
 "$SPIN" create --name my-task --title "My task (issue #12)" \
   --handoff ./handoff.md --display "My task: readable name" \
   [--issue 12] [--comment "status"] [--link .venv] [--setup skip] [--dry-run]
-"$SPIN" remove --name my-task [--delete-remote-branch] [--force]
+"$SPIN" remove --name my-task [--delete-remote-branch] [--force] [--dry-run]
 ```
 
 - **`--title`:** the prompt's first line. Orca labels the agent's row in the sidebar with it, so keep it short and specific.
 - **`--handoff FILE`:** committed as `docs/handoff/<file>` (`--handoff-dir`) before the agent starts. The default prompt tells the agent to read it first; `--prompt-file` replaces the prompt body.
 - **`--link PATH`:** symlinks a path of the main checkout into the worktree, for things that are not in git: `.venv`, `node_modules`, `.env`.
-- **`--dry-run`:** runs every check (repo, remote, base, collisions, leftovers), prints the prompt, and changes nothing.
-- **Output:** one JSON line, `{"worktree", "branch", "terminal", "terminals", "setup_tabs", "prompt_seen"}`. The handoff is complete when `prompt_seen` is true. Report the worktree and terminal to the user; do not wait for the new agent to finish.
+- **`--handoff` and `--prompt-file`:** relative paths are relative to your current directory, also inside a linked worktree.
+- **Base:** with a handoff, the remote's default branch (or `--base`). Without a handoff or `--base`, the script omits `--base-branch`, so Orca uses the repo's default base, as Orca's `orca-cli` guide asks for independent top-level handoffs.
+- **`--dry-run`:** for `create` and `remove`, runs every check (repo, remote, base, collisions, leftovers, unsaved work), prints the plan, and changes no branch or worktree. It may still `git fetch`.
+- **Output:** stdout is one JSON line, `{"worktree", "path", "branch", "terminal", "terminals", "setup_tabs", "prompt_seen"}` (`terminals` is `null` if Orca could not list them); progress and warnings go to stderr. The handoff is complete when `prompt_seen` is true. Report the worktree and terminal to the user; do not wait for the new agent to finish.
 
 ### Other devices (Orca-native targeting)
 
@@ -39,7 +41,7 @@ SPIN=<this skill's directory>/scripts/orca-spinoff     # e.g. from the plugin ca
 | A host of a project (`ssh:<id>`, `runtime:<id>`) | `--host <host>` | `orca host list`. Uses `--project` (resolved from the repo) instead of `--repo`, as Orca requires |
 | Ambiguous match | `--repo-id <id>` | From `orca repo list --json` on the target |
 
-The handoff is staged on the forge (`handoff/<name>`, deleted after creation), so it reaches any device that can fetch the repository. `--link` applies only when the worktree is on this machine. `remove` on another runtime removes the worktree there and leaves that machine's local branch for you to delete there.
+The handoff is staged on the forge (`handoff/<name>`, deleted after creation), so it reaches any device that can fetch the repository. On a paired runtime the base is named with that clone's own remote (Orca's `gitRemoteIdentity.remoteName`), and `orca repo search-refs` must find it there first; if that clone has not fetched yet, the script stops and removes the staging branch. Whether a worktree is on this machine is decided from Orca's data (`--environment`, or the row's `hostId`), never from whether its path exists here: two machines with the same user name have the same workspace paths. `--link` applies only when the worktree is on this machine. `remove` on another runtime or host removes the worktree there and leaves that machine's local branch for you to delete there. `remove --host` picks among same-named worktrees on several hosts.
 
 ## Why each step (observed, not assumed)
 
@@ -52,7 +54,7 @@ The handoff is staged on the forge (`handoff/<name>`, deleted after creation), s
 - **Branch name.** With `settings.branchPrefix = git-username`, Orca names the branch `<forge login>/<name>`. The prefix follows the live remote: a forge Orca does not recognise gives a plain `<name>`. Tell the agent its real branch (`git branch --show-current`) if the handoff names another.
 - **Display name.** `worktree create` has no display-name flag, so the script follows with `orca worktree set --display-name`.
 - **Lineage and focus.** `--no-parent` by default, so the task is a top-level entry and an independent concern. Pass `--parent active` for stacked work. `--activate` is off by default, so your current view is not switched; the new entry appears in the sidebar at once.
-- **Removal.** `orca worktree rm` is asynchronous (`removing: true`), so the script waits for the folder to disappear. Orca deletes the branch only when it equals the worktree name, so the script deletes a prefixed branch itself. Without `--force` it refuses if there are uncommitted changes or commits on no remote branch.
+- **Removal.** `orca worktree rm` is asynchronous (`removing: true`), so the script waits for the folder to disappear. Orca deletes the branch only when it equals the worktree name, so the script deletes a prefixed branch itself. Without `--force` it refuses if there are uncommitted changes, untracked files (other than the links it made), or commits on no remote branch. Ignored files (`.venv`, build output) are deleted with the folder. The main worktree is never matched, and names are checked against Orca's complete listing (`--repo`, no truncation; hosts it could not reach are reported).
 
 ## Pitfalls found on real machines
 
