@@ -550,3 +550,62 @@ describe("named links [text](url) — the reader sees words, not a 270-character
     expect(blocksToPlainText(blocks)).toContain(`- Open the form (${longUrl})`);
   });
 });
+
+describe("--html: an authored html part is refused unless it is safe and says what the plain part says", () => {
+  // Imported lazily so the suite above keeps its own import block untouched.
+  const load = () => import("./gmail-draft.ts");
+  const plain = "Hello Alex,\n\nThe report is ready. See the quote below.\n\n- Call, 1 Jan 10:00:00, me: \"It is done.\"\n";
+  const good =
+    '<!doctype html><html lang="en"><body><table role="presentation"><tr><td style="font-family:Arial">' +
+    "<p>Hello Alex,</p><p>The report is ready. See the quote below.</p>" +
+    '<blockquote style="border-left:3px solid #456">Call &middot; 1 Jan &middot; 10:00:00 &middot; me<br>"It is done."</blockquote>' +
+    "</td></tr></table></body></html>";
+
+  test("a clean designed part passes, even with separators and a <br> the converter would never emit", async () => {
+    const { findAuthoredHtmlProblems } = await load();
+    expect(findAuthoredHtmlProblems(good, plain)).toEqual([]);
+  });
+
+  test("a dropped word is refused and named", async () => {
+    const { findAuthoredHtmlProblems } = await load();
+    const p = findAuthoredHtmlProblems(good.replace("is ready", "ready"), plain);
+    expect(p.length).toBe(1);
+    expect(p[0]).toContain('"is"');
+  });
+
+  test("reordered words are refused, not just missing ones", async () => {
+    const { findAuthoredHtmlProblems } = await load();
+    const swapped = good.replace("<p>Hello Alex,</p><p>The report is ready. See the quote below.</p>", "<p>The report is ready. See the quote below.</p><p>Hello Alex,</p>");
+    expect(findAuthoredHtmlProblems(swapped, plain).some((x) => x.includes("out of order"))).toBe(true);
+  });
+
+  test("script, event handlers and external resources are each refused", async () => {
+    const { findAuthoredHtmlProblems } = await load();
+    expect(findAuthoredHtmlProblems(good.replace("</body>", "<script>x()</script></body>"), plain).join()).toContain("<script>");
+    expect(findAuthoredHtmlProblems(good.replace("<p>Hello", '<p onclick="x()">Hello'), plain).join()).toContain("event handler");
+    expect(findAuthoredHtmlProblems(good.replace("<p>Hello", '<img src="https://example.com/p.gif"><p>Hello'), plain).join()).toContain("external resource");
+    expect(findAuthoredHtmlProblems(good.replace('style="font-family:Arial"', 'style="background:url(//example.com/b.png)"'), plain).join()).toContain("external resource");
+  });
+
+  test("the word 'online' in prose is not mistaken for an event handler", async () => {
+    const { findAuthoredHtmlProblems } = await load();
+    const p2 = "We met online today.";
+    expect(findAuthoredHtmlProblems("<p>We met online today.</p>", p2)).toEqual([]);
+  });
+
+  test("a part past Gmail's clipping size is refused", async () => {
+    const { findAuthoredHtmlProblems, GMAIL_CLIP_SAFE_BYTES } = await load();
+    const big = good.replace("</td>", `<p>${"x ".repeat(GMAIL_CLIP_SAFE_BYTES)}</p></td>`);
+    expect(findAuthoredHtmlProblems(big, plain).join()).toContain("clips");
+  });
+
+  test("visible text drops head/style, decodes entities and numeric references", async () => {
+    const { visibleTextOfHtml } = await load();
+    expect(visibleTextOfHtml("<head><title>T</title><style>p{}</style></head><p>a&nbsp;&amp;&#8217;b &#x2014; c</p>")).toBe("a &’b — c");
+  });
+
+  test("an out-of-range numeric reference is kept as written instead of crashing", async () => {
+    const { visibleTextOfHtml } = await load();
+    expect(visibleTextOfHtml("<p>a &#99999999; b &#x110000; c</p>")).toBe("a &#99999999; b &#x110000; c");
+  });
+});
