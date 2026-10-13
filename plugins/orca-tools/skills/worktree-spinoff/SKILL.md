@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Write
 
 # Worktree spin-off (Orca IDE)
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, Orca's CLI changed, or a workaround was needed: fix this file and the script immediately, don't defer. Only update for real, reproducible issues.
+
 Use this when a task should continue in its own Orca worktree, with its own branch, sidebar entry and agent session, instead of in the current one. One command, [`scripts/orca-spinoff`](./scripts/orca-spinoff), does the whole spin-off and the clean removal. It follows Orca's bundled `orca-cli` guide (`orca skills get orca-cli`) and keeps to Orca's native model: worktrees, the built-in agent launcher, repos and projects, hosts, and paired runtimes. Everything here was observed on Orca 1.4.22x on Linux and macOS.
 
 ## Assumptions
@@ -77,3 +79,13 @@ The handoff is staged on the forge (`handoff/<name>`, deleted after creation), s
   - macOS: `screencapture -x shot.png`.
 
   Expect the display name in bold, the branch below it, and one agent row labelled with the prompt's title.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the command succeed?** If not, fix the instruction, the script or the pitfall list that caused the failure.
+2. **Did Orca's CLI or output change?** If a flag, a JSON field or a default drifted (`orca worktree create --help`, `orca skills get orca-cli`), update the script and the tables here to match.
+3. **Was a workaround needed?** If you had to improvise (extra flags, manual cleanup, another platform's quirk), fold it into the script or the pitfalls so the next run does not need it.
+
+Only update if the issue is real and reproducible, not speculative.
