@@ -5,7 +5,7 @@
 
 ### Bug Fixes
 
-* **devops-tools:** drop stale self-hosted Firecrawl wording ([7e60f89](https://github.com/terrylica/cc-skills/commit/7e60f89be99dd2a6eb00cb511f498567bc6b26ad))
+* **devops-tools:** drop stale self-hosted Firecrawl wording ([8125f91](https://github.com/terrylica/cc-skills/commit/8125f917045ec214f485a93f8c5568fe2ce14d44))
 
 The self-hosted deployment was retired 2026-08-13 for the public API, but four places still described it:
 - api-endpoint-reference.md: now 'public Firecrawl API (api.firecrawl.dev) contracts for /v2/search and /v2/scrape; there is no health endpoint'
@@ -47,7 +47,7 @@ The clock and its rails can take a lot of screen space, and getting it out of th
 - New HotKeySpec parser with unit tests (137 tests pass), and scripts/hotkey-check/ (wins, sidefx, firetest, functest.sh, built by make hotkey-tools) for re-validating any shortcut. The live suite passed 22/22 on the installed app: about 60 ms to hide, 20 stress cycles, several frontmost apps, relaunch while hidden.
 - Method and findings: plugins/floating-clock/docs/visibility-toggle.md.
 
-* **floating-clock:** tell an unlinked mic apart from a muted one ([cf36b4c](https://github.com/terrylica/cc-skills/commit/cf36b4c7491b221ba928ae90991ea732f11ec828))
+* **floating-clock:** tell an unlinked mic apart from a muted one ([eda5982](https://github.com/terrylica/cc-skills/commit/eda59828426ba9c6cf277ea4c8583578a5e55d0c))
 
 The mic meter now tracks exact zeros separately from near-silence. An unlinked or switched-off wireless receiver keeps streaming frames, but every sample is exactly 0.0; an analog mute button leaves a faint floor (RMS about 2.8e-5).
 
@@ -57,7 +57,7 @@ The mic meter now tracks exact zeros separately from near-silence. An unlinked o
 
 Verified live: a receiver whose transmitter had dropped into linking mode gave 100% zero samples. A silent virtual input made the banner read NO SIGNAL, and it cleared once a real input was back.
 
-* **floating-clock:** TTS speed rail, clickable mic banner ([ecfa1d2](https://github.com/terrylica/cc-skills/commit/ecfa1d293cfb806b7c465d406de52f31737e8925))
+* **floating-clock:** TTS speed rail, clickable mic banner ([41a1773](https://github.com/terrylica/cc-skills/commit/41a1773278ca0fcde668ad6d8417602400f23099))
 
 TTS speed rail: a new top-of-stack rail, off by default (TTSBarEnabled), writes one number to TTSRateFile (default ~/.config/floating-clock/tts-rate). A reader that follows that file applies it through a pitch-preserving time-stretch, so the change lands mid-reading.
 
@@ -72,7 +72,7 @@ Mic banner: the MIC MUTED banner now names the cause and clears it on click. Sys
 - With the mute flag set, the banner reads "MIC MUTED · click to unmute", and a click clears every set input-mute element.
 - With silence and no flag, it reads "MIC SILENT · check the mic's own mute", and a click does nothing.
 
-* **gmail-commander:** guard direct Gmail sends and raw token reads ([418397f](https://github.com/terrylica/cc-skills/commit/418397f2299158da0917b598e9d3ae737e02d108))
+* **gmail-commander:** guard direct Gmail sends and raw token reads ([fbcb8b6](https://github.com/terrylica/cc-skills/commit/fbcb8b6a1e3a9d1388f2aa51b11c5cd2b7d6fdf8))
 
 An agent wrote a script that read a cached Gmail OAuth token file and POSTed a raw message to the send endpoint with no From header, so Gmail used each account's default send-as identity, which was the wrong one on both accounts. The drafts guard never saw it: it watches only the drafts API, and a Bash hook cannot see a fetch() inside a script. The new guard watches every surface that incident crossed, and a read-only accounts report replaces the documented loops that read tokens with jq.
 
@@ -87,7 +87,7 @@ An agent wrote a script that read a cached Gmail OAuth token file and POSTed a r
 
 ### Performance Improvements
 
-* **statusline-tools:** one git status read, one clock read; 86 -> 51 processes per render ([af9228f](https://github.com/terrylica/cc-skills/commit/af9228fc16d6cb15c0438d01ad621b621f170d1b))
+* **statusline-tools:** one git status read, one clock read; 86 -> 51 processes per render ([89dfb9d](https://github.com/terrylica/cc-skills/commit/89dfb9da675cd086335a3f0b6ed9af503ca3d6d9))
 
 Every render ran ~86 external commands (plus their $(...) subshells and pipes) under macOS's /bin/bash 3.2. Same output, fewer processes:
 
