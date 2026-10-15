@@ -1,3 +1,30 @@
+# [33.13.0](https://github.com/terrylica/cc-skills/compare/v33.12.0...v33.13.0) (2026-10-15)
+
+
+### Bug Fixes
+
+* **orca-tools:** orca-spinoff no longer pipes orca --help into grep -q ([7925ded](https://github.com/terrylica/cc-skills/commit/7925deda02d328c07b6c5332130d46c1a4f737f3))
+
+Under set -o pipefail, grep -q exits on its first match and can kill orca --help with SIGPIPE; the pipeline then reports failure, so is_orca could reject the real Orca CLI (an inverted test). The help text is now captured once and matched with case, the same fix the new orca-closeout uses. Found by the itp-hooks sigpipe-pipefail check while writing orca-closeout.
+
+
+
+### Features
+
+* **orca-tools:** session-closeout skill: recall name, compact handoff, and a safe close of the session's own Orca tab ([7e101be](https://github.com/terrylica/cc-skills/commit/7e101bebdaca132055f2cb7947144e2a36e57a82))
+
+A Claude Code session running in an Orca IDE terminal can now be closed out in one step: given a name that Claude Code and Orca's Agent Session History both show in full, ended on a five-line handoff, and, only if wanted, have its own terminal tab closed to free memory. Naming and closing are independent, and closing is guarded so it cannot take another session's tab or kill running work.
+
+- Naming appends the two records Claude Code's /rename writes (custom-title and agent-name), since an agent cannot type a slash command. One append, never onto a partial line, read back by content.
+- Name limits were measured in the shipping code, not guessed. Claude Code keeps 200 code points of a title and removes control characters. Orca's session scanner keeps 96 UTF-16 units, then 93 plus an ellipsis. The script refuses 97 or more unless --allow-long, and refuses 201 or more always.
+- The terminal is always named by handle (ORCA_TERMINAL_HANDLE). Orca's guide says an omitted --terminal means the active terminal, which can be another session's. Before closing, the handle's tab must equal ORCA_TAB_ID. The close uses --tab, never --worktree --all, which would close every terminal in the workspace and delete their resume records.
+- The close waits for Orca's own idle signal (orca terminal wait --for tui-idle), so the final handoff message is delivered first. The closer is double-forked into its own session. At close time it checks again: the same tab, no new user prompt since scheduling, and no background command started meanwhile.
+- The guard fails closed. If the script cannot identify its claude agent and its own Bash-tool shell (marked by the shell-snapshot source), it refuses unless --force. A still-running Bash-tool shell is background work that the close would kill, so it refuses then too.
+- SKILL.md covers when to keep, close or Sleep (Sleep has no CLI). It also gives the naming convention, the Closeout block (Done / Open / Next / Resume), and a user-level CLAUDE.md snippet that makes every session close out this way.
+- The resume command uses the folder the session started in, which is where Claude Code files the session.
+
+Tests: 17 Bun tests under /bin/bash 3.2, using a stub Orca CLI, a throwaway config dir and a fake claude agent. They cover every refusal before any change, a close only after idle, and cancellation by a new prompt and by late background work. An independent review's eleven findings are fixed. A live dry run in a real Orca terminal identified the agent, its shell and its own tab.
+
 # [33.12.0](https://github.com/terrylica/cc-skills/compare/v33.11.1...v33.12.0) (2026-10-13)
 
 
