@@ -16,19 +16,40 @@ let dir: string;
 let transcript: string;
 let orcaLog: string;
 
+const WT = "repo-1::/tmp/start";
+
+/** Orca's sidebar rows (`worktree ps`): this tab's row, plus optionally another session's tab in the same workspace. */
+function setRows(state: string, opts: { workingMode?: string; otherTab?: boolean; comment?: string; status?: string } = {}) {
+  const agents = [{ paneKey: `${TAB}:leaf-1`, state, workingMode: opts.workingMode ?? null, mainAgent: { state: "done" } }];
+  if (opts.otherTab) agents.push({ paneKey: "other-tab:leaf-9", state: "done", workingMode: null, mainAgent: { state: "done" } });
+  const wt = { worktreeId: WT, comment: opts.comment ?? "old comment", workspaceStatus: opts.status ?? "todo", agents };
+  writeFileSync(join(dir, "ps.json"), `${JSON.stringify({ ok: true, result: { worktrees: [wt], truncated: false } })}\n`);
+}
+
+/** Orca's per-tab agent status record, as its hook listener persists it. */
+function setStatus(subagents: Array<{ id: string; state: string }>, extra: Record<string, unknown> = {}, sid = SID) {
+  const p = join(dir, "orca-data", "agent-hooks");
+  mkdirSync(p, { recursive: true });
+  const entry = { tabId: TAB, paneKey: `${TAB}:leaf-1`, providerSession: { id: sid }, payload: { subagents }, ...extra };
+  writeFileSync(join(p, "last-status.json"), JSON.stringify({ version: 1, entries: { [`${TAB}:leaf-1`]: entry } }));
+}
+
 /** A stub Orca CLI. `waitSeconds` delays `terminal wait --for tui-idle`, like an agent still finishing its turn. */
 function stubOrca(tabId: string, waitSeconds = 0): string {
   const p = join(dir, "orca");
+  if (!existsSync(join(dir, "ps.json"))) setRows("done");
   writeFileSync(
     p,
     `#!/bin/sh
 echo "$*" >> "${orcaLog}"
 case "$1 $2" in
   "terminal --help") printf 'orca terminal\n\nUsage: orca terminal <command> [options]\n\nCommands:\n  close              Close one terminal, its whole tab, or every terminal in a workspace\n' ;;
-  "terminal show") printf '{"ok":true,"result":{"terminal":{"handle":"${HANDLE}","tabId":"${tabId}"}}}\\n' ;;
+  "terminal show") printf '{"ok":true,"result":{"terminal":{"handle":"${HANDLE}","tabId":"${tabId}","title":"auto title"}}}\\n' ;;
   "terminal wait") sleep ${waitSeconds}; printf '{"ok":true}\\n' ;;
   "terminal rename") printf '{"ok":true}\\n' ;;
   "terminal close") printf '{"ok":true}\\n' ;;
+  "worktree ps") cat "${dir}/ps.json" ;;
+  "worktree set") printf '{"ok":true}\\n' ;;
 esac
 `,
   );
@@ -43,6 +64,8 @@ function baseEnv(extra: Record<string, string | undefined> = {}): Record<string,
     TMPDIR: dir,
     CLAUDE_CONFIG_DIR: join(dir, "config"),
     CLAUDE_CODE_SESSION_ID: SID,
+    ORCA_USER_DATA_PATH: join(dir, "orca-data"),
+    ORCA_CLOSEOUT_POLL: "1",
     ...extra,
   };
   for (const k of Object.keys(e)) if (e[k] === undefined) delete e[k];
@@ -67,9 +90,28 @@ os.wait()`;
   return JSON.parse(readFileSync(res, "utf8")) as { code: number; out: string; err: string };
 }
 
+/**
+ * Run with no `claude` ancestor, synchronously: double-forked away from the test runner, so a real Claude Code session
+ * running these tests (and the work it has running) is never mistaken for the script's own agent.
+ */
 function run(args: string[], env: Record<string, string | undefined> = {}) {
-  const r = Bun.spawnSync([BASH, SCRIPT, ...args], { env: baseEnv(env), cwd: dir });
-  return { code: r.exitCode, out: r.stdout.toString(), err: r.stderr.toString() };
+  const res = join(dir, "isolated.json");
+  rmSync(res, { force: true });
+  const py = `import json, os, subprocess, sys, time
+res, argv = sys.argv[1], sys.argv[2:]
+if os.fork() == 0:
+    os.setsid()
+    if os.fork() == 0:
+        r = subprocess.run(argv, capture_output=True, text=True)
+        open(res + ".tmp", "w").write(json.dumps({"code": r.returncode, "out": r.stdout, "err": r.stderr}))
+        os.rename(res + ".tmp", res)
+    os._exit(0)
+os.wait()
+for _ in range(300):
+    if os.path.exists(res): break
+    time.sleep(0.05)`;
+  Bun.spawnSync(["python3", "-c", py, res, BASH, SCRIPT, ...args], { env: baseEnv(env), cwd: dir });
+  return JSON.parse(readFileSync(res, "utf8")) as { code: number; out: string; err: string };
 }
 
 /**
@@ -77,28 +119,52 @@ function run(args: string[], env: Record<string, string | undefined> = {}) {
  * a program named `claude`. `background` leaves another such shell running, like a background command; `linger` keeps
  * the fake agent alive afterwards, so the closer can re-check it.
  */
-function runAsAgent(args: string[], opts: { background?: number; linger?: number; env?: Record<string, string | undefined> } = {}) {
+function runAsAgent(
+  args: string[],
+  opts: { background?: number; linger?: number; env?: Record<string, string | undefined>; script?: string } = {},
+) {
+  const script = opts.script ?? SCRIPT;
   const bin = join(dir, "bin");
   mkdirSync(bin, { recursive: true });
   const fake = join(bin, "claude");
   const argFile = join(dir, "args");
+  const res = join(dir, "agent-run");
+  for (const f of [`${res}.out`, `${res}.err`, `${res}.rc`]) rmSync(f, { force: true });
   writeFileSync(argFile, `${args.join("\n")}\n`);
+  // With `linger`, the fake agent itself stays alive afterwards (as a real session does), so the watcher can keep
+  // checking it; the result is read from files the agent writes before it lingers.
   writeFileSync(
     fake,
     `#!${BASH}
 ${opts.background ? `${BASH} -c ': shell-snapshots/snapshot-test; sleep ${opts.background}; true' &\nsleep 0.3` : ""}
-${BASH} -c ': shell-snapshots/snapshot-test; args=(); while IFS= read -r a; do args+=("$a"); done < "$1"; ${BASH} "$2" "\${args[@]}"' x '${argFile}' '${SCRIPT}'
-rc=$?
-${opts.linger ? `sleep ${opts.linger} >/dev/null 2>&1 &` : ""}
-exit $rc
+${BASH} -c ': shell-snapshots/snapshot-test; args=(); while IFS= read -r a; do args+=("$a"); done < "$1"; ${BASH} "$2" "\${args[@]}"' x '${argFile}' '${script}' >'${res}.out' 2>'${res}.err'
+echo $? >'${res}.rc'
+${opts.linger ? `sleep ${opts.linger} >/dev/null 2>&1` : ""}
+exit 0
 `,
   );
   chmodSync(fake, 0o755);
-  const r = Bun.spawnSync([fake], { env: baseEnv(opts.env ?? {}), cwd: dir });
-  return { code: r.exitCode, out: r.stdout.toString(), err: r.stderr.toString() };
+  if (opts.linger) {
+    Bun.spawn([fake], { env: baseEnv(opts.env ?? {}), cwd: dir, stdout: "ignore", stderr: "ignore" });
+    const t0 = Date.now();
+    while (!existsSync(`${res}.rc`) && Date.now() - t0 < 15000) Bun.sleepSync(50);
+  } else {
+    Bun.spawnSync([fake], { env: baseEnv(opts.env ?? {}), cwd: dir });
+  }
+  const rc = existsSync(`${res}.rc`) ? Number(readFileSync(`${res}.rc`, "utf8").trim()) : -1;
+  return { code: rc, out: readFileSync(`${res}.out`, "utf8"), err: readFileSync(`${res}.err`, "utf8") };
 }
 
-const orcaEnv = (orca: string, tab = TAB): Record<string, string | undefined> => ({ ORCA_CLI: orca, ORCA_TERMINAL_HANDLE: HANDLE, ORCA_TAB_ID: tab });
+const orcaEnv = (orca: string, tab = TAB): Record<string, string | undefined> => ({
+  ORCA_CLI: orca,
+  ORCA_TERMINAL_HANDLE: HANDLE,
+  ORCA_TAB_ID: tab,
+  ORCA_WORKTREE_ID: WT,
+});
+/** Transcript records: a background command launched, and (optionally) its completion notification. */
+const launch = (id: string) => JSON.stringify({ type: "user", toolUseResult: { backgroundTaskId: id } });
+const notified = (id: string) =>
+  JSON.stringify({ type: "user", message: { role: "user", content: `<task-notification>\n<task-id>${id}</task-id>\n<status>completed</status>\n</task-notification>` } });
 const lines = () => readFileSync(transcript, "utf8").split("\n").filter(Boolean);
 const orcaCalls = () => (existsSync(orcaLog) ? readFileSync(orcaLog, "utf8") : "");
 const closerLog = () => {
@@ -196,11 +262,118 @@ describe("--close refuses before changing anything", () => {
       expect(orcaCalls()).not.toContain("terminal close");
     });
   }
-  test("while a background command is running, unless --force", () => {
-    const busy = runAsAgent(["--close", "--min-wait", "0"], { background: 3, env: orcaEnv(stubOrca(TAB)) });
-    expect(busy.code).toBe(2);
-    expect(busy.err).toContain("still running");
-  }, 20000);
+  test("when Orca's status record for this tab belongs to another session (fails closed)", () => {
+    setStatus([], {}, "aaaaaaaa-0000-4000-8000-000000000000");
+    const r = runAsAgent(["--title", "t", "--close"], { env: orcaEnv(stubOrca(TAB)) });
+    expect(r.code).toBe(2);
+    expect(r.err).toContain("orca_status=other-session");
+    expect(orcaCalls()).not.toContain("terminal close");
+  });
+  test("when Orca's status record is unreadable, unless --force", () => {
+    mkdirSync(join(dir, "orca-data", "agent-hooks"), { recursive: true });
+    writeFileSync(join(dir, "orca-data", "agent-hooks", "last-status.json"), "{not json");
+    expect(runAsAgent(["--close"], { env: orcaEnv(stubOrca(TAB)) }).code).toBe(2);
+    expect(runAsAgent(["--close", "--force", "--dry-run"], { env: orcaEnv(stubOrca(TAB)) }).code).toBe(0);
+  });
+});
+
+describe("running work is reported by every form", () => {
+  test("a background command launched with no completion notification", () => {
+    appendFileSync(transcript, `${launch("bgtask01")}\n`);
+    const j = JSON.parse(run([]).out);
+    expect(j.running_count).toBe(1);
+    expect(j.running[0]).toMatchObject({ kind: "background-command", id: "bgtask01", source: "transcript" });
+  });
+  test("is cleared by its task notification, or by a TaskStop result", () => {
+    appendFileSync(transcript, `${launch("bgtask01")}\n${notified("bgtask01")}\n${launch("bgtask02")}\n`);
+    appendFileSync(transcript, `${JSON.stringify({ type: "user", toolUseResult: { task_id: "bgtask02", task_type: "local_bash" } })}\n`);
+    expect(JSON.parse(run([]).out).running_count).toBe(0);
+  });
+  test("a working subagent or teammate in Orca's status record; idle and done ones are finished", () => {
+    setStatus([
+      { id: "a-1", state: "working" },
+      { id: "a-2", state: "idle" },
+      { id: "a-3", state: "done" },
+    ]);
+    const j = JSON.parse(run([], { ORCA_TAB_ID: TAB }).out);
+    expect(j.running.map((r: { id: string }) => r.id)).toEqual(["a-1"]);
+    expect(j.checks.orca_status).toBe("ok");
+  });
+  test("a background shell or monitor, and a pending task wake-up, from Orca's status record", () => {
+    setStatus([], { claudeRunningNonAgentTask: true, claudeTaskWakeupPending: "notification" });
+    const kinds = JSON.parse(run([], { ORCA_TAB_ID: TAB }).out).running.map((r: { kind: string }) => r.kind);
+    expect(kinds).toEqual(["background-task", "wakeup"]);
+  });
+  test("a session-only cron without a CronDelete, and a ScheduleWakeup not yet due", () => {
+    const now = new Date().toISOString();
+    appendFileSync(
+      transcript,
+      `${JSON.stringify({ type: "assistant", timestamp: now, message: { content: [{ type: "tool_use", id: "tu1", name: "CronCreate", input: { cron: "*/5 * * * *", prompt: "check", recurring: true } }] } })}\n` +
+        `${JSON.stringify({ type: "user", timestamp: now, toolUseResult: { id: "cron-abc1" }, message: { content: [{ type: "tool_result", tool_use_id: "tu1", content: "ok" }] } })}\n` +
+        `${JSON.stringify({ type: "assistant", timestamp: now, message: { content: [{ type: "tool_use", id: "tu2", name: "ScheduleWakeup", input: { delaySeconds: 1200 } }] } })}\n`,
+    );
+    const j = JSON.parse(run([]).out);
+    expect(j.running.map((r: { kind: string }) => r.kind).toSorted()).toEqual(["cron", "wakeup"]);
+    appendFileSync(
+      transcript,
+      `${JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "tu3", name: "CronDelete", input: { id: "cron-abc1" } }, { type: "tool_use", id: "tu4", name: "ScheduleWakeup", input: { stop: true } }] } })}\n`,
+    );
+    expect(JSON.parse(run([]).out).running_count).toBe(0);
+  });
+});
+
+describe("naming while work is running", () => {
+  test("names the session, marks the tab and the workspace, and a watcher removes the markers once it settles", async () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    setRows("working", { workingMode: "monitoring", comment: "old comment", status: "todo" });
+    const r = runAsAgent(["--title", "Area: done", "--tab-title", "Short"], { env: orcaEnv(stubOrca(TAB)), linger: 8 });
+    expect(r.code).toBe(0);
+    const j = JSON.parse(r.out);
+    expect(j.named).toBe(true);
+    expect(j.marked).toEqual({ tab: true, workspace: true });
+    expect(j.close_scheduled).toBe(false);
+    expect(lines().slice(-2).map((l) => JSON.parse(l).type)).toEqual(["custom-title", "agent-name"]);
+    expect(orcaCalls()).toContain(`terminal rename --terminal ${HANDLE} --title [running] Short --json`);
+    expect(orcaCalls()).toContain(`worktree set --worktree id:${WT} --workspace-status in-progress --comment Running: 1 subagent | old comment --json`);
+    // The work finishes: the watcher restores the plain label and the old comment and status, and closes nothing.
+    setStatus([{ id: "a-1", state: "done" }]);
+    setRows("done");
+    expect(await until(() => closerLog().includes("markers removed"), 12000)).toBe(true);
+    expect(orcaCalls()).toContain(`terminal rename --terminal ${HANDLE} --title Short --json`);
+    expect(orcaCalls()).toContain(`worktree set --worktree id:${WT} --comment old comment --workspace-status todo --json`);
+    expect(orcaCalls()).not.toContain("terminal close");
+  }, 30000);
+  test("never adds a comment to a workspace that had none (Orca cannot clear one), and resets an unlabelled tab", async () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    setRows("working", { comment: "", status: "todo" });
+    const j = JSON.parse(runAsAgent(["--title", "t"], { env: orcaEnv(stubOrca(TAB)), linger: 8 }).out);
+    expect(j.marked).toEqual({ tab: true, workspace: true });
+    expect(orcaCalls()).toContain(`worktree set --worktree id:${WT} --workspace-status in-progress --json`);
+    setStatus([{ id: "a-1", state: "done" }]);
+    setRows("done", { comment: "", status: "in-progress" });
+    expect(await until(() => closerLog().includes("markers removed"), 12000)).toBe(true);
+    expect(orcaCalls()).not.toContain("--comment");
+    expect(orcaCalls()).toContain(`worktree set --worktree id:${WT} --workspace-status todo --json`);
+  }, 30000);
+  test("a tab without a label of ours is marked from its current title", async () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    setRows("working");
+    runAsAgent(["--close", "--min-wait", "0"], { env: orcaEnv(stubOrca(TAB)), linger: 8 });
+    expect(orcaCalls()).toContain(`terminal rename --terminal ${HANDLE} --title [running] auto title --json`);
+  }, 30000);
+  test("does not mark the workspace when another session's tab shares it", () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    setRows("working", { otherTab: true });
+    const j = JSON.parse(runAsAgent(["--title", "t"], { env: orcaEnv(stubOrca(TAB)), linger: 2 }).out);
+    expect(j.marked).toEqual({ tab: true, workspace: false });
+    expect(orcaCalls()).not.toContain("worktree set");
+  });
+  test("with nothing running, nothing is marked and no watcher starts", () => {
+    const j = JSON.parse(runAsAgent(["--title", "t", "--tab-title", "Short"], { env: orcaEnv(stubOrca(TAB)) }).out);
+    expect(j.marked).toEqual({ tab: false, workspace: false });
+    expect(j.watcher_pid).toBeNull();
+    expect(orcaCalls()).toContain("--title Short --json");
+  });
 });
 
 describe("--close", () => {
@@ -222,8 +395,72 @@ describe("--close", () => {
     expect(await until(() => closerLog().includes("new prompt"))).toBe(true);
     expect(orcaCalls()).not.toContain("terminal close");
   }, 20000);
-  test("re-checks at close time: a background command started meanwhile cancels the close", async () => {
-    const orca = stubOrca(TAB, 2);
+  test("waits for a running subagent: closes only after Orca shows it finished and the row settled", async () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    setRows("working", { workingMode: undefined });
+    const r = runAsAgent(["--close", "--min-wait", "0"], { env: orcaEnv(stubOrca(TAB)), linger: 12 });
+    expect(r.code).toBe(0);
+    const j = JSON.parse(r.out);
+    expect(j.close_deferred).toBe(true);
+    expect(j.marked.tab).toBe(true);
+    await Bun.sleep(3000);
+    expect(orcaCalls()).not.toContain("terminal close");
+    setStatus([{ id: "a-1", state: "done" }]);
+    setRows("done");
+    expect(await until(() => orcaCalls().includes("terminal close"), 12000)).toBe(true);
+    expect(closerLog()).toContain("settled");
+  }, 30000);
+  test("the row held open by child work after the turn ended (Orca's monitoring) also defers the close", async () => {
+    setRows("working", { workingMode: "monitoring" });
+    const r = runAsAgent(["--close", "--min-wait", "0", "--settle-timeout", "3"], { env: orcaEnv(stubOrca(TAB)), linger: 10 });
+    expect(r.code).toBe(0);
+    expect(await until(() => closerLog().includes("gave up"), 12000)).toBe(true);
+    expect(orcaCalls()).not.toContain("terminal close");
+  }, 30000);
+  test("gives up after --settle-timeout: the tab stays open and marked, and the workspace gets its unread dot", async () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    setRows("working");
+    const r = runAsAgent(["--close", "--min-wait", "0", "--settle-timeout", "3"], { env: orcaEnv(stubOrca(TAB)), linger: 10 });
+    expect(JSON.parse(r.out).marked).toEqual({ tab: true, workspace: true });
+    expect(await until(() => closerLog().includes("gave up"), 12000)).toBe(true);
+    expect(closerLog()).toContain("subagent a-1 working");
+    expect(orcaCalls()).toContain(`worktree set --worktree id:${WT} --unread --json`);
+    expect(orcaCalls()).not.toContain("terminal close");
+    expect(orcaCalls()).not.toContain("markers removed");
+  }, 30000);
+  test("--force closes when the turn ends even with a subagent running", async () => {
+    setStatus([{ id: "a-1", state: "working" }]);
+    const r = runAsAgent(["--close", "--min-wait", "0", "--force"], { env: orcaEnv(stubOrca(TAB)), linger: 8 });
+    expect(r.code).toBe(0);
+    expect(JSON.parse(r.out).marked).toEqual({ tab: false, workspace: false });
+    expect(await until(() => orcaCalls().includes("terminal close"), 12000)).toBe(true);
+    expect(closerLog()).toContain("--force");
+  }, 30000);
+  test("a task notification arriving while it waits is not mistaken for a typed prompt", async () => {
+    appendFileSync(transcript, `${launch("bgtask09")}\n`);
+    const r = runAsAgent(["--close", "--min-wait", "0"], { env: orcaEnv(stubOrca(TAB)), linger: 10 });
+    expect(JSON.parse(r.out).close_deferred).toBe(true);
+    appendFileSync(transcript, `${notified("bgtask09")}\n`);
+    expect(await until(() => orcaCalls().includes("terminal close"), 12000)).toBe(true);
+    expect(closerLog()).not.toContain("new prompt");
+  }, 30000);
+  test("works when the script is run by a relative path (the watcher changes directory before it starts)", async () => {
+    writeFileSync(join(dir, "orca-closeout"), readFileSync(SCRIPT));
+    chmodSync(join(dir, "orca-closeout"), 0o755);
+    const r = runAsAgent(["--close", "--min-wait", "0"], { env: orcaEnv(stubOrca(TAB)), linger: 8, script: "./orca-closeout" });
+    expect(r.code).toBe(0);
+    expect(await until(() => orcaCalls().includes("terminal close"), 12000)).toBe(true);
+    expect(closerLog()).toContain("watcher started");
+  }, 30000);
+  test("stops without closing when the agent process is gone", async () => {
+    const r = runAsAgent(["--close", "--min-wait", "1"], { env: orcaEnv(stubOrca(TAB)) });
+    expect(r.code).toBe(0);
+    expect(await until(() => closerLog().includes("process"), 12000)).toBe(true);
+    expect(closerLog()).toContain("is gone");
+    expect(orcaCalls()).not.toContain("terminal close");
+  }, 30000);
+  test("re-checks at close time: a background command started meanwhile defers the close until it ends", async () => {
+    const orca = stubOrca(TAB, 1);
     const bin = join(dir, "bin");
     mkdirSync(bin, { recursive: true });
     const fake = join(bin, "claude");
@@ -233,12 +470,15 @@ describe("--close", () => {
 ${BASH} -c ': shell-snapshots/snapshot-test; ${BASH} "$1" --close --min-wait 0' x '${SCRIPT}'
 ${BASH} -c ': shell-snapshots/snapshot-test; sleep 6; true' &
 wait
+sleep 6
 `,
     );
     chmodSync(fake, 0o755);
+    const t0 = Date.now();
     const proc = Bun.spawn([fake], { env: baseEnv(orcaEnv(orca)), cwd: dir, stdout: "ignore", stderr: "ignore" });
-    expect(await until(() => closerLog().includes("still running"))).toBe(true);
-    expect(orcaCalls()).not.toContain("terminal close");
+    expect(await until(() => orcaCalls().includes("terminal close"), 15000)).toBe(true);
+    expect(Date.now() - t0).toBeGreaterThan(5500);
+    expect(closerLog()).toContain("settled");
     proc.kill();
-  }, 20000);
+  }, 30000);
 });
