@@ -1,3 +1,15 @@
+## [33.14.1](https://github.com/terrylica/cc-skills/compare/v33.14.0...v33.14.1) (2026-10-15)
+
+
+### Bug Fixes
+
+* **orca-tools:** session-closeout retires the session's own subagents and teammates ([b8dd491](https://github.com/terrylica/cc-skills/commit/b8dd491a3be2856e81253fccc71bd7ef2781a5b3))
+
+A closeout on 2026-10-15 left six finished teammates (five research agents and one cross-check agent) listed under the closed session in Orca's sidebar, idle for 10-12 hours. The skill's unfinished-work step only covered Bash background commands, drafts and uncommitted changes, and the script cannot see in-process teammates: they are not separate processes, so its background-command guard never counts them.
+
+- New step 2: run ListAgents, stop each subagent or teammate whose result is already used with TaskStop (by name), wait for or list under Open any that is still working, and leave peer sessions alone.
+- Later steps renumbered (3-5).
+
 # [33.14.0](https://github.com/terrylica/cc-skills/compare/v33.13.0...v33.14.0) (2026-10-15)
 
 
