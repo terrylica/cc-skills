@@ -62,7 +62,10 @@ quiet_push() {
 # Every orca call goes through o(), so --environment/--pairing-code reach the right runtime (local or paired remote).
 # The Orca IDE CLI: $ORCA_CLI (an explicit choice: an error if it is not Orca's), else `orca` on PATH if it is the IDE's
 # (on Linux desktops /usr/bin/orca is often the GNOME screen reader), else the IDE's own shim locations.
-is_orca() { [ -n "$1" ] && [ -x "$1" ] && "$1" --help 2>/dev/null | grep -q 'worktree create'; }
+is_orca() {  # help text captured, not piped to grep -q: an early-exiting reader under pipefail can SIGPIPE it
+  local h; [ -n "$1" ] && [ -x "$1" ] || return 1; h=$("$1" --help 2>/dev/null) || true
+  case $h in *"worktree create"*) return 0 ;; *) return 1 ;; esac
+}
 find_orca() {
   local c
   if [ -n "${ORCA_CLI:-}" ]; then is_orca "$ORCA_CLI" && { echo "$ORCA_CLI"; return 0; }; return 1; fi
