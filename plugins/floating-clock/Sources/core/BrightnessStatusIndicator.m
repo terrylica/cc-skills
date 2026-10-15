@@ -4,6 +4,7 @@
 #import "FCXDRBrightness.h"
 #import "DisplayBrightnessHelpers.h"
 #import "OverlayPanelFactory.h"
+#import "OverlayStack.h"                // registered rails below this one (2026-10-15)
 #import "OverlayStackingPositioner.h"
 #import "OverlayWidthConsensus.h"
 #import "ClockChildWindowAttachment.h"
@@ -171,6 +172,7 @@ static const NSTimeInterval kBoostIdleTimeout = 30.0 * 60.0;
     if (self.micIndicator     && [self.micIndicator     isShowing]) offset += slot;
     if (self.vpnIndicator     && [self.vpnIndicator     isShowing]) offset += slot;
     if (self.networkIndicator && [self.networkIndicator isShowing]) offset += slot;
+    offset += [[FCOverlayStack shared] offsetBelowOrder:FCStackOrderBrightness];   // registered rails below (OverlayStack.h)
 
     // Width is the STACK's agreed width, not this bar's own need, so every
     // rail shares one left and right edge. See OverlayWidthConsensus.h.

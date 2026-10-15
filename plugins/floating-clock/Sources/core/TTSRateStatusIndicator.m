@@ -3,6 +3,7 @@
 #import "TTSRateBarZoneView.h"
 #import "TTSRateHelpers.h"
 #import "OverlayPanelFactory.h"
+#import "OverlayStack.h"                // registered rails below this one (2026-10-15)
 #import "OverlayStackingPositioner.h"
 #import "OverlayWidthConsensus.h"
 #import "ClockChildWindowAttachment.h"
@@ -127,6 +128,7 @@ static const CGFloat kMinBarW      = 160.0;
     if (self.vpnIndicator        && [self.vpnIndicator        isShowing]) offset += slot;
     if (self.networkIndicator    && [self.networkIndicator    isShowing]) offset += slot;
     if (self.brightnessIndicator && [self.brightnessIndicator isShowing]) offset += slot;
+    offset += [[FCOverlayStack shared] offsetBelowOrder:FCStackOrderTTS];   // registered rails below (OverlayStack.h)
     CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
     NSRect f = FCComputeOverlayFrameWithWidth(c, vf, kTTSBarHeight, offset, kTTSBarGap, agreed);
     if (!NSEqualRects(f, _bar.frame)) [_bar setFrame:f display:YES];

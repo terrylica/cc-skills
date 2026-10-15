@@ -3,6 +3,7 @@
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
+#import "OverlayStack.h"                // registered rails below this one (2026-10-15)
 #import "OverlayStackingPositioner.h"   // shared stacking geometry (DRY 2026-06-12)
 #import "OverlayWidthConsensus.h"       // shared stack width (2026-09-06)
 #import <CoreAudio/CoreAudio.h>
@@ -34,6 +35,7 @@ typedef struct {
     volatile double  lastRMS;         // DEBUG: most recent RMS from the IOProc
     volatile int64_t cbCount;         // DEBUG: total IOProc callbacks (liveness)
     volatile int64_t lastFrames;      // DEBUG: frames in the most recent buffer
+    volatile float   peakMax;         // level-meter rail: max |sample| since the UI last read it
 } FCMeter;
 
 #pragma mark - DEBUG instrumentation (FC_MIC_DEBUG=1) — data-flow tracing
@@ -113,6 +115,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     if (!m || !inInputData || inInputData->mNumberBuffers == 0) return noErr;
 
     double sumSq = 0.0;
+    float  peak = 0.0f;
     BOOL   allZero = YES;   // exact 0.0: no source at all (unlinked wireless receiver, transmitter off)
     UInt32 totalSamples = 0;
     UInt32 frames = 0;
@@ -121,7 +124,10 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         const float *s = (const float *)buf->mData;
         if (!s) continue;
         UInt32 samples = buf->mDataByteSize / (UInt32)sizeof(float);
-        for (UInt32 i = 0; i < samples; i++) { double v = s[i]; sumSq += v * v; if (v != 0.0) allZero = NO; }
+        for (UInt32 i = 0; i < samples; i++) {
+            double v = s[i]; sumSq += v * v; if (v != 0.0) allZero = NO;
+            float a = fabsf(s[i]); if (a > peak) peak = a;
+        }
         totalSamples += samples;
         UInt32 ch = buf->mNumberChannels ? buf->mNumberChannels : 1;
         UInt32 f = samples / ch;
@@ -134,6 +140,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     m->lastRMS    = rms;
     m->lastFrames = frames;
     m->cbCount   += 1;
+    if (peak > m->peakMax) m->peakMax = peak;   // reset by the reader (a lost reset only overstates one frame)
 
     // Exact zeros vs a quiet floor (measured): an unlinked wireless
     // receiver still streams frames, but every sample is exactly 0.0; an analog
@@ -283,6 +290,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // wider content-sized bars. This banner publishes no need of its own — its
     // label is short, so it is never the one that sets the width.
     CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
+    audioOffset += [[FCOverlayStack shared] offsetBelowOrder:FCStackOrderMic];   // registered rails below (OverlayStack.h)
     [_banner setFrame:FCComputeOverlayFrameWithWidth(c, vf, kBannerHeight, audioOffset,
                                                      kBannerGap, agreed)
               display:YES];
@@ -561,6 +569,22 @@ static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
         }
     }
 }
+
+// Level-meter rail: newest RMS and the peak since the previous read. NO when the meter is not
+// running (Bluetooth input, no mic permission, no device) or no buffer arrived since last time.
+- (BOOL)readInputPeak:(float *)peak rms:(float *)rms {
+    static int64_t lastSeen = -1;
+    if (!_meteringStarted) { *peak = 0; *rms = 0; return NO; }
+    int64_t cb = _meter.cbCount;
+    if (cb == lastSeen) { *peak = 0; *rms = 0; return NO; }
+    lastSeen = cb;
+    *rms  = (float)_meter.lastRMS;
+    *peak = _meter.peakMax;
+    _meter.peakMax = 0.0f;
+    return YES;
+}
+
+- (BOOL)inputMeterAvailable { return _meteringStarted; }
 
 - (void)stopMetering {
     if (_ioProc && _device != kAudioObjectUnknown) {

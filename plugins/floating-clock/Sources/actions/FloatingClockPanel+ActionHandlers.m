@@ -3,6 +3,8 @@
 #import "../core/FloatingClockPanel+Runtime.h"
 #import "../core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
 #import "../core/AudioStatusIndicator.h"   // 2026-06-11: instant bar show/hide
+#import "../core/LevelMeterIndicator.h"   // 2026-10-15 level meters / device rail
+#import "../core/DeviceDockIndicator.h"   // 2026-10-15 level meters / device rail
 #import "../core/NetworkStatusIndicator.h" // network picker bar show/hide
 #import "../core/BrightnessStatusIndicator.h" // brightness rail show/hide
 #import "../core/TTSRateStatusIndicator.h"    // TTS-rate rail show/hide
@@ -310,6 +312,13 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"AudioBarEnabled"] forKey:@"AudioBarEnabled"];
     [_audioStatusIndicator refresh];   // instant show/hide (vs ≤1s tick lag)
+}
+
+// 2026-10-15: level meters on/off. The indicator's refresh shows/hides and starts/stops the tap.
+- (void)toggleShowLevelMeters:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"LevelMeterEnabled"] forKey:@"LevelMeterEnabled"];
+    [_levelMeterIndicator refresh];
 }
 
 // Hide/show the network picker bar. Same shape as the audio-bar toggle: the

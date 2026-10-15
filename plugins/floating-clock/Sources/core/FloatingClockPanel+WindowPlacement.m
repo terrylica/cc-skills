@@ -5,6 +5,8 @@
 #import "FloatingClockPanel+WindowPlacement.h"
 #import "FloatingClockPanel+Layout.h"      // applyDisplaySettings (re-home)
 #import "MicMuteIndicator.h"               // overlay re-sync on moves
+#import "LevelMeterIndicator.h"   // 2026-10-15 level meters / device rail
+#import "DeviceDockIndicator.h"   // 2026-10-15 level meters / device rail
 #import "VPNStatusIndicator.h"
 #import "AudioStatusIndicator.h"
 #import "NetworkStatusIndicator.h"
@@ -54,6 +56,8 @@
     [_micMuteIndicator syncPosition];
     [_vpnStatusIndicator syncPosition];
     [_audioStatusIndicator syncPosition];
+    [_levelMeterIndicator syncPosition];
+    [_deviceDockIndicator syncPosition];
     [_networkStatusIndicator syncPosition];
     [_brightnessStatusIndicator syncPosition];
     [_ttsRateStatusIndicator syncPosition];

@@ -1,10 +1,12 @@
 ← [Back to plugin CLAUDE.md](../CLAUDE.md)
 
-# Overlay indicators — network picker · audio I/O bar · mic-mute banner · VPN banner
+# Overlay indicators — network picker · audio I/O bar · level meters · device rail · mic-mute banner · VPN banner
 
 The clock carries a stack of overlay NSPanels pinned above it. This spoke is the SSoT for the audio bar saga (2026-06-11/12), the drag-welding architecture, and the generic VPN/state-file banner.
 
-Stack order, bottom to top (2026-10-08): clock → audio I/O → mic-mute → VPN → network → brightness ([brightness-rail.md](./brightness-rail.md)) → TTS speed (plugin CLAUDE.md § TTS speed rail). A hidden rail gives up its slot.
+Stack order, bottom to top (2026-10-15): clock → level meters → audio I/O → device rail → mic-mute → VPN → network → brightness ([brightness-rail.md](./brightness-rail.md)) → TTS speed (plugin CLAUDE.md § TTS speed rail). A hidden rail gives up its slot.
+
+**Stack registry (`OverlayStack`, 2026-10-15).** The original rails each hard-code their juniors and add one fixed 20 + 3 pt slot per visible junior. The two newer rails have their own heights and sit in the middle of the stack, so instead of teaching every rail about them, they register with `FCOverlayStack` under an order (level meters 5, device rail 15; the existing rails' orders are constants in `OverlayStack.h`), and every rail adds `-offsetBelowOrder:` for its own order: the summed height + gap of registered, showing rails below it. A registered rail that appears or disappears calls `-noteChanged`, which posts the width-consensus notification every rail already re-syncs on.
 
 ## Always-visible audio I/O status bar (`AudioStatusIndicator`, 2026-06-11)
 
@@ -40,6 +42,48 @@ AskUserQuestion-selected extras (same day, all verified on-screen):
 | ----------------- | ---- | ------- | ------------------------------ |
 | `AudioBarEnabled` | BOOL | `YES`   | master on/off (also in menu)   |
 | `AudioBarStep`    | int  | `5`     | −/+ click step %, clamped 1–25 |
+
+## Level meters (`LevelMeterIndicator`, 2026-10-15)
+
+A 9 pt strip directly above the clock and below the audio I/O bar. Its two halves line up under the audio bar's IN and OUT zones (`-[FCAudioStatusIndicator inputZoneWidth]`): green LED cells for what the default input hears, blue for what the Mac is playing, amber above -12 dBFS and red above -3 dBFS, with a peak-hold tick. Cells are 2 pt wide on a 3 pt pitch, drawn with a `CAReplicatorLayer` mask over a `CAGradientLayer`, so a frame is one clip-width and one tick-position change. Ballistics (`LevelMeterMath`, unit-tested): instant attack, 24 dB/s release, 1 s peak hold, range -60..0 dBFS. The empty rail looks like a row of dim cells.
+
+**Input** comes from the mic-mute indicator's existing IOProc (`-readInputPeak:rms:`). There is no second capture. Bluetooth inputs are never metered (holding one open forces the headset into call mode), so the IN half stays dark for them.
+
+**Output** has no public property (`kAudioDevicePropertyVolumeScalar` is the slider, not the signal), so `OutputLevelTap` uses a Core Audio process tap (macOS 14.2+): a private, global, unmuted tap inside a private aggregate device, whose IOProc publishes peak and sum-of-squares through atomics. It runs **only while another process is producing output** (`kAudioProcessPropertyIsRunningOutput`, checked on the 1 Hz tick), and stops 3 s after playback ends. While it runs, macOS shows its purple "system audio recording" dot; gating it on playback keeps that dot honest and avoids coreaudiod's idle-sleep assertion during silence. It is rebuilt when the default output device or its sample rate changes. Permission is "System Audio Recording Only" (`NSAudioCaptureUsageDescription`), asked once; denied means silent buffers and a dark OUT half. `AudioDeviceStart` runs off the main thread, because it can block on the permission prompt.
+
+**Cost.** The 24 Hz animation runs only while either side has signal above the -60 dB floor. It stops after 1 s of silence, and the 1 Hz tick peeks to restart it. Frames that change no cell skip Core Animation entirely. A quiet room (about -68 dB on a typical USB microphone) reads as silence.
+
+| default key               | type | default | meaning                                    |
+| ------------------------- | ---- | ------- | ------------------------------------------ |
+| `LevelMeterEnabled`       | BOOL | `NO`    | master on/off (menu: Show Level Meters)    |
+| `LevelMeterOutputEnabled` | BOOL | `YES`   | NO = input only, never start the output tap |
+
+Off by default in the public build, because the output half asks for a permission.
+
+## Device rail (`DeviceDockIndicator`, 2026-10-15)
+
+Directly above the audio I/O bar. It shows where a watched USB device is relative to the port it docks on, and what an external job is doing with it. The plugin knows nothing about the device or the job: the IDs, the label and the status-file path are preferences, and the job owns the text. Inert until configured.
+
+**Dock state** is read from the IOPort registry on the 1 Hz tick, in-process: one `IOServiceGetMatchingService` for the device (vendor and product ID), walking up the `IOPort` plane to its `Port-USB-C@N`, and one iterator read of that port's `ConnectionActive`. The port the device last enumerated on is remembered (`DeviceRailDockPort`), which gives four states (`FCDeriveDockState`, unit-tested):
+- `●` **docked**: the device is enumerated.
+- `◌` **off dock**: the device is gone but its port is still connected. A magnetic dock cable stays electrically present on its own (measured with a magnetic USB-C dock cable: `ConnectionActive = Yes`, transports `(CC)`).
+- `○` **dock unplugged**: that port has nothing connected.
+- `?` **not seen yet**: the device has never been seen.
+
+A device that drops and comes back within 10 s while its port stayed connected shows `↻` for 5 s. Power-cycling a USB-storage device on its dock looks exactly like that, and its on/off state is otherwise invisible. The age (`docked 12m`) is shown only for transitions the clock witnessed, never counted from its own launch.
+
+**Job state** comes from a JSON status file the job writes atomically (contract in `DeviceRailModel.h`, schema v1): `pid`, `phase`, `tone` (active · ok · warn · error · idle), `text`, `detail`, `progress`, `summary`. While `pid` is alive and the tone is active, a 4 Hz timer animates a `◐◓◑◒` spinner and the eighth-block progress bar. A dead `pid` with an active tone reads `⚠ stopped during <phase>`. At rest the rail shows the outcome and the standing `summary`. The status file is re-parsed only when its mtime changes. The rail publishes one constant width need, measured from its widest template line, so the stack never breathes with the text.
+
+| default key            | type   | default | meaning                                         |
+| ---------------------- | ------ | ------- | ----------------------------------------------- |
+| `DeviceRailEnabled`    | BOOL   | `NO`    | master on/off                                   |
+| `DeviceRailVendorID`   | int    | `0`     | USB `idVendor` of the watched device            |
+| `DeviceRailProductID`  | int    | `0`     | USB `idProduct`                                 |
+| `DeviceRailLabel`      | string | `"USB"` | short label at the left of the rail             |
+| `DeviceRailStatusFile` | string | none    | job status JSON (`~` expanded); omit for dock state only |
+| `DeviceRailDockPort`   | string | (auto)  | written by the rail: the port the device last used |
+
+**Measured (Apple silicon laptop, 2026-10-15, 60 s CPU-time deltas after settling):** the clock ran at 1.3% CPU with the device rail on and the meters off, and 2.1% with both on while a USB microphone heard a quiet room. So the live meters cost about 0.8% while there is signal, and nothing once the room is below the floor. The device rail's own cost is inside measurement noise.
 
 ## Network picker bar (`NetworkStatusIndicator`, 2026-09-06)
 

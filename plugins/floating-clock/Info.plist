@@ -24,6 +24,8 @@
 	<string>FloatingClock lists your paired Bluetooth headphones and speakers in the audio bar's right-click menu and connects the one you pick — including pulling it over from another device such as an iPhone. No scanning, no tracking; only devices you already paired.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>FloatingClock measures your microphone's signal level (never records or transmits audio) to detect when the mic is muted — including a hardware mute button that macOS cannot otherwise see — and show a MUTED banner over the clock.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>FloatingClock measures the level of the sound your Mac is playing to animate the output level meter under the audio bar. It never records, stores or transmits any audio, and it only listens while something is actually playing.</string>
 	<key>NSRequiresIPhoneOS</key>
 	<false/>
 </dict>

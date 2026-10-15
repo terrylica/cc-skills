@@ -5,6 +5,7 @@
 #import "CoreAudioDeviceHALHelpers.h"           // HAL reads/writes (2026-06-12 split)
 #import "ClockChildWindowAttachment.h"          // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"                 // shared overlay construction (DRY 2026-06-12)
+#import "OverlayStack.h"                // registered rails below this one (2026-10-15)
 #import "OverlayStackingPositioner.h"           // shared stacking geometry (DRY 2026-06-12)
 #import "OverlayWidthConsensus.h"               // shared stack width (2026-09-06)
 #import "MicMuteIndicator.h"   // -isShowing feeds the IN zone's red mute state
@@ -142,6 +143,8 @@ static const CGFloat kMinZoneW = 92.0;
 //   · bar < content (capped at screen width) → shrink proportionally; the
 //     name labels truncate as a last resort.
 // Caches the applied split so the 1Hz tick re-flows nothing at steady state.
+- (CGFloat)inputZoneWidth { return _lastInW; }
+
 - (void)layoutZonesInBarWidth:(CGFloat)w {
     CGFloat avail = w - 1.0;                       // minus the 1pt divider
     CGFloat need  = _inZoneNeed + _outZoneNeed;
@@ -232,7 +235,8 @@ static const CGFloat kMinZoneW = 92.0;
     // positioning path would post the change notification that calls straight
     // back into this method. See OverlayWidthConsensus.h.
     CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
-    NSRect f = FCComputeOverlayFrameWithWidth(c, vf, kAudioBarHeight, 0.0,
+    // Registered rails below (the level-meter strip) push the bar up (OverlayStack.h).
+    NSRect f = FCComputeOverlayFrameWithWidth(c, vf, kAudioBarHeight, [[FCOverlayStack shared] offsetBelowOrder:FCStackOrderAudio],
                                               kAudioBarGap, agreed);
     if (!NSEqualRects(f, _bar.frame)) {
         [_bar setFrame:f display:YES];

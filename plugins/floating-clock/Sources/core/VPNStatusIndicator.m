@@ -4,6 +4,7 @@
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
+#import "OverlayStack.h"                // registered rails below this one (2026-10-15)
 #import "OverlayStackingPositioner.h"   // shared stacking geometry (DRY 2026-06-12)
 #import "OverlayWidthConsensus.h"       // shared stack width (2026-09-06)
 
@@ -132,6 +133,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
     // Consume the stack's agreed width so this rail's edges line up with the
     // wider content-sized bars. This banner publishes no need of its own — its
     // label is short, so it is never the one that sets the width.
+    audioOffset += [[FCOverlayStack shared] offsetBelowOrder:FCStackOrderVPN];   // registered rails below (OverlayStack.h)
     CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
     [_banner setFrame:FCComputeOverlayFrameWithWidth(c, vf, kVPNBannerHeight,
                                                      micOffset + audioOffset,

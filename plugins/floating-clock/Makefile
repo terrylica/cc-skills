@@ -12,7 +12,7 @@ MACOS := $(CONTENTS)/MacOS
 # RGBA16Float frame to make WindowServer grant the panel extra headroom.
 # QuartzCore already vends CAMetalLayer, but presenting a drawable needs the
 # Metal framework itself.
-CFLAGS := -framework Cocoa -framework QuartzCore -framework Metal -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -framework Carbon -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -framework Metal -framework CoreLocation -framework CoreAudio -framework IOKit -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -framework Carbon -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -50,6 +50,9 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/core/BrightnessBarZoneView.m \
     Sources/core/TTSRateStatusIndicator.m \
     Sources/core/TTSRateBarZoneView.m \
+    Sources/core/LevelMeterIndicator.m \
+    Sources/core/OutputLevelTap.m \
+    Sources/core/DeviceDockIndicator.m \
     Sources/core/FCXDRBrightness.m \
     Sources/core/ClockChildWindowAttachment.m \
     Sources/core/ClockVisibilityToggle.m \
@@ -66,7 +69,7 @@ $(if $(TEST_SOURCES),,$(error TEST_SOURCES is empty after filtering))
 # CoreWLAN lets NetworkTelemetry's pure rate/format helpers be exercised without
 # excluding the whole module — its Wi-Fi reader is the only part needing a
 # framework, and the arithmetic beside it is exactly what most needs testing.
-TEST_CFLAGS := -framework Cocoa -framework CoreAudio -framework CoreWLAN -fobjc-arc -Wall -ISources
+TEST_CFLAGS := -framework Cocoa -framework CoreAudio -framework IOKit -framework CoreWLAN -fobjc-arc -Wall -ISources
 
 all: sign
 

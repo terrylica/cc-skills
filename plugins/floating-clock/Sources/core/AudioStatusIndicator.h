@@ -58,6 +58,10 @@ NS_ASSUME_NONNULL_BEGIN
 // themselves above this bar.
 - (BOOL)isShowing;
 
+// Level-meter rail alignment (2026-10-15): the current IN-zone width in bar points (the OUT zone
+// starts 1 pt after it). 0 before the first layout.
+- (CGFloat)inputZoneWidth;
+
 // User actions (invoked by the zone views; exposed for testability).
 - (void)cycleDeviceForInput:(BOOL)isInput;
 - (void)adjustVolumeForInput:(BOOL)isInput byPercent:(NSInteger)deltaPercent;

@@ -2,6 +2,8 @@
 #import "FloatingClockPanel+Layout.h"
 #import "FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
 #import "MicMuteIndicator.h"     // mic-mute banner sync (user directive 2026-06-01)
+#import "LevelMeterIndicator.h"   // 2026-10-15 level meters / device rail
+#import "DeviceDockIndicator.h"   // 2026-10-15 level meters / device rail
 #import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
 #import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
 #import "NetworkStatusIndicator.h" // network picker bar sync
@@ -73,6 +75,9 @@ static uint64_t nsUntilNextSecond(void) {
     // Audio I/O bar: re-read default devices + volumes (6 cheap HAL property
     // reads) and reposition to follow the clock's per-tick resize/recenter.
     [_audioStatusIndicator refresh];
+    // Level meters (output-tap gating + idle peek) and the device rail (IOPort read + status file).
+    [_levelMeterIndicator refresh];
+    [_deviceDockIndicator refresh];
     // In-process SCDynamicStore read only — never spawns a subprocess on
     // the tick (see NetworkStatusIndicator.h refresh-model note).
     [_networkStatusIndicator refresh];

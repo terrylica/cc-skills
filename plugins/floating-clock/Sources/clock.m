@@ -12,6 +12,8 @@
 #import "core/FloatingClockPanel.h"
 #import "core/MicMuteIndicator.h"
 #import "core/VPNStatusIndicator.h"
+#import "core/LevelMeterIndicator.h"
+#import "core/DeviceDockIndicator.h"
 #import "core/AudioStatusIndicator.h"
 #import "core/NetworkStatusIndicator.h"
 #import "core/BrightnessStatusIndicator.h"
@@ -141,6 +143,12 @@
         // audio-device-monitor's automatic prioritization with manual,
         // clock-centric control.
         @"AudioBarEnabled": @YES,
+        // 2026-10-15: live level meters under the audio bar. OFF in the public build: the output
+        // half uses a Core Audio process tap, which asks for "System Audio Recording Only".
+        @"LevelMeterEnabled": @NO,
+        @"LevelMeterOutputEnabled": @YES,
+        // 2026-10-15: generic watched-USB-device rail; inert until a deployment configures it.
+        @"DeviceRailEnabled": @NO,
         @"AudioBarStep": @5,
         // Network picker bar: shows which network service currently carries
         // the default route and lets the user switch it. ON by default,
@@ -298,6 +306,14 @@
     _vpnStatusIndicator = [[FCVPNStatusIndicator alloc] initWithClockPanel:self
                                                              micIndicator:_micMuteIndicator];
     _vpnStatusIndicator.audioIndicator = _audioStatusIndicator;
+
+    // 2026-10-15: level meters (below the audio bar) and the device rail (above it). Both register
+    // with FCOverlayStack, which the rails above already consult, so nothing else needs to know.
+    _levelMeterIndicator = [[FCLevelMeterIndicator alloc] initWithClockPanel:self];
+    _levelMeterIndicator.audioIndicator = _audioStatusIndicator;
+    _levelMeterIndicator.micIndicator   = _micMuteIndicator;
+    _deviceDockIndicator = [[FCDeviceDockIndicator alloc] initWithClockPanel:self];
+    _deviceDockIndicator.audioIndicator = _audioStatusIndicator;
 
     // Network picker bar (top of the indicator stack). macOS resolves the
     // default route from the network SERVICE ORDER, which a newly attached

@@ -84,6 +84,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowAudioBar:) keyEquivalent:@""];
     [displayItems addObject:sab];
 
+    // 2026-10-15: live input/output level meters under the audio bar. Backing key:
+    // LevelMeterEnabled (registered NO; the output half asks for System Audio Recording).
+    NSMenuItem *slm = [[NSMenuItem alloc] initWithTitle:@"Show Level Meters"
+                                                 action:@selector(toggleShowLevelMeters:) keyEquivalent:@""];
+    [displayItems addObject:slm];
+
     // Network picker bar (NetworkStatusIndicator). Backing key:
     // NetworkBarEnabled (registered YES).
     NSMenuItem *snb = [[NSMenuItem alloc] initWithTitle:@"Show Network Bar"
