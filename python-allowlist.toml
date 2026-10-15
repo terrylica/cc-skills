@@ -18,3 +18,7 @@ reason = "Parses Python argparse CLIs via the stdlib `ast` module without import
 [[allow]]
 path = "scripts/test_cli_spec.py"
 reason = "Test suite for cli_spec.py. A test must run in the same runtime as the code under test; splitting it into Bun would mean shelling out and asserting on stdout instead of calling the functions."
+
+[[allow]]
+path   = "plugins/chrome-profiles/scripts/extension-token-from-profile.py"
+reason = "Reads Chrome LevelDB localStorage (Snappy blocks) via ccl_chromium_reader, the reference parser, which is Python-only"

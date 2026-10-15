@@ -197,10 +197,23 @@ case "$cmd" in
     fi
 
     if [ -z "$(token_get "$email")" ]; then
-      say "opening the extension's status page: copy the token it shows"
+      # Opening the status page makes the extension create its token (localStorage "auth-token"); read it from a
+      # copy of the profile's Local Storage so nobody has to copy and paste it. Fall back to asking.
+      say "opening the extension's status page (it creates the token)"
       "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
-      sleep 2
-      tok=$(prompt_hidden "Paste the Playwright Extension token for $email (the part after PLAYWRIGHT_MCP_EXTENSION_TOKEN= is enough):") || tok=""
+      tok=""
+      for _ in 1 2 3 4 5 6; do
+        sleep 2
+        tok=$(EXT_ID="$EXT_ID" CHROME_USER_DATA_DIR="$ROOT" uv run -q --no-project \
+          --with "ccl_chromium_reader @ git+https://github.com/cclgroupltd/ccl_chromium_reader" \
+          python -I "$(dirname "$SELF")/extension-token-from-profile.py" "$dir" --emit 2>/dev/null) || tok=""
+        [ -n "$tok" ] && break
+      done
+      if [ -n "$tok" ]; then
+        say "token read from the profile (${#tok} chars, not shown)"
+      else
+        tok=$(prompt_hidden "Paste the Playwright Extension token for $email (the part after PLAYWRIGHT_MCP_EXTENSION_TOKEN= is enough):") || tok=""
+      fi
       token_put "$email" "$tok"
       unset tok
       say "token stored in the login Keychain (service $KC_SERVICE)"
