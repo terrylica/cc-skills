@@ -1,3 +1,30 @@
+# [33.14.0](https://github.com/terrylica/cc-skills/compare/v33.13.0...v33.14.0) (2026-10-15)
+
+
+### Bug Fixes
+
+* **floating-clock:** sidefx can press the slash key ([ae4cc45](https://github.com/terrylica/cc-skills/commit/ae4cc455c6bd42e4f23c176ac1cb2b05137df859))
+
+The key-code table had letters only, so sidefx could not press-and-diff a chord on '/' (key code 44). Used 2026-10-13 to prove Opt+Shift+/ quiet before binding it.
+
+
+
+### Features
+
+* **macro-keyboard:** diagnose global hotkeys lost to one app ([0bb8d99](https://github.com/terrylica/cc-skills/commit/0bb8d9970abfddcbbe7acd8a8199d828daeec0fe))
+
+A global hotkey that works everywhere except while a VNC or remote-desktop viewer, a VM or a game is in front is lost at one of four layers: a DriverKit remapper rule that rewrites the chord below every event tap, an app's active keyboard-grab CGEventTap that swallows it, Secure Event Input, or the hotkey owner itself. The skill traces a real key press through four listen-only tap positions (HID head and tail, Session head and tail), maps the log pattern to the layer, and applies a fix to that layer only.
+
+It also encodes two traps measured on the case that produced it. A synthetic CGEventPost probe enters above Karabiner, so it reported the hotkey fixed while the physical key still failed. And a logger filtered to Command chords logged nothing, because a per-app Command-to-Control rule had already turned the chord into Ctrl+Shift+X.
+
+- New skill plugins/macro-keyboard/skills/diagnose-dead-global-hotkey (SKILL.md, per-skill CLAUDE.md)
+- scripts/tap-census.swift: read-only list of keyboard event taps, ACTIVE versus listen-only
+- scripts/key-path-logger.swift: four listen-only taps, logs only Cmd/Ctrl/Opt chords, never plain typing
+- scripts/hotkey-probe.swift: synthetic chord plus watched-app window check, with its remapper blindness documented
+- Fix A: Karabiner exception manipulators inside a frontmost_application_if modifier-remap rule
+- Fix B: disable an app's keyboard grab (TigerVNC -FullscreenSystemKeys=0)
+- docs/LESSONS.md entry; plugin README, CLAUDE.md and marketplace description and keywords updated
+
 # [33.13.0](https://github.com/terrylica/cc-skills/compare/v33.12.0...v33.13.0) (2026-10-15)
 
 
