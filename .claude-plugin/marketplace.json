@@ -546,7 +546,7 @@
     },
     {
       "name": "macro-keyboard",
-      "description": "Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements: emit real Fn, remap per-device, diagnose mystery keycodes. Includes worked example: Jieli/Free3-P (VID 0x4c4a USB / 0x04E8 BT).",
+      "description": "Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements: emit real Fn, remap per-device, diagnose mystery keycodes, and diagnose a global hotkey that dies while a VNC viewer, VM or game is frontmost. Includes worked example: Jieli/Free3-P (VID 0x4c4a USB / 0x04E8 BT).",
       "version": "33.13.0",
       "source": "./plugins/macro-keyboard",
       "category": "productivity",
@@ -588,7 +588,13 @@
         "macos",
         "remap",
         "device-scoped",
-        "device-if"
+        "device-if",
+        "global-hotkey",
+        "hotkey-not-working",
+        "cgeventtap",
+        "keyboard-grab",
+        "vnc-viewer",
+        "frontmost-application-if"
       ],
       "strict": false
     },
