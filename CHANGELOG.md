@@ -1,3 +1,21 @@
+# [33.16.0](https://github.com/terrylica/cc-skills/compare/v33.15.0...v33.16.0) (2026-10-15)
+
+
+### Features
+
+* **floating-clock:** device rail pipeline steps + integrity seal ([6188684](https://github.com/terrylica/cc-skills/commit/61886844b8cdfa0590d159ad8da97b00817787b5))
+
+The device rail's status file gains two optional, additive fields (schema stays v1):
+
+- steps: the run's pipeline as [[name, state], ...], drawn before the text as one mark per step (green done, blue active, red failed, dim to do; skip draws nothing).
+- badge + badge_tone: a standing seal such as an integrity result, shown after the summary at rest and also mid-run when its tone is not ok.
+
+The header now mirrors the network rail's "NET Wi-Fi en0": DeviceRailLabel is an all-caps heavy heading in violet (distinct from NET cyan and IN green / OUT blue), followed by the new DeviceRailName (lavender) and DeviceRailTag (dim).
+
+Fix: the rail's text sat above centre. It now uses the same fixed 14 pt label height, centred in the 20 pt rail, as the network and audio rails, so all baselines line up.
+
+Tests: a new fixture covers step parsing, mark roles, skip handling, the badge at rest and mid-run, and the header roles; 144 tests pass.
+
 # [33.15.0](https://github.com/terrylica/cc-skills/compare/v33.14.1...v33.15.0) (2026-10-15)
 
 
