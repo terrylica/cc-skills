@@ -87,23 +87,53 @@ void test_device_rail_status_parse(void) {
 void test_device_rail_segments(void) {
     FCDeviceRailStatus *run = [FCDeviceRailStatus statusFromJSONData:[@"{\"v\":1,\"pid\":42,\"phase\":\"copy\",\"tone\":\"active\","
         "\"text\":\"copy 3/7\",\"detail\":\"41 MB/s\",\"progress\":0.5,\"summary\":\"✓ 25 on Drive · 14:31\"}" dataUsingEncoding:NSUTF8StringEncoding]];
-    NSString *active = FCJoin(FCDeviceRailSegments(@"TX", FCDockStateAttached, 750, NO, run, YES, 2));
+    NSString *active = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateAttached, 750, NO, run, YES, 2));
     CHECK([active hasPrefix:@"TX ● docked 12m"], "dock part: %@", active);
     CHECK([active containsString:@"◑ copy 3/7 █████░░░░░  50% · 41 MB/s"], "active line: %@", active);
 
-    NSString *dead = FCJoin(FCDeviceRailSegments(@"TX", FCDockStateAttached, 10, NO, run, NO, 0));
+    NSString *dead = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateAttached, 10, NO, run, NO, 0));
     CHECK([dead containsString:@"⚠ stopped during copy"], "dead pid while active: %@", dead);
 
     FCDeviceRailStatus *rest = [FCDeviceRailStatus statusFromJSONData:[@"{\"v\":1,\"pid\":null,\"phase\":\"idle\",\"tone\":\"idle\","
         "\"text\":\"up to date\",\"progress\":null,\"summary\":\"✓ 25 on Drive · 14:31\"}" dataUsingEncoding:NSUTF8StringEncoding]];
-    NSString *idle = FCJoin(FCDeviceRailSegments(@"TX", FCDockStateEmpty, 200, NO, rest, NO, 0));
+    NSString *idle = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateEmpty, 200, NO, rest, NO, 0));
     CHECK([idle isEqualToString:@"TX ◌ off dock 3m  │ ✓ 25 on Drive · 14:31"], "resting off dock: %@", idle);
 
     FCDeviceRailStatus *off = [FCDeviceRailStatus statusFromJSONData:[@"{\"v\":1,\"pid\":null,\"phase\":\"deferred\",\"tone\":\"warn\","
         "\"text\":\"offline · 3 waiting\",\"summary\":\"✓ 25 on Drive · 14:31\"}" dataUsingEncoding:NSUTF8StringEncoding]];
-    NSString *def = FCJoin(FCDeviceRailSegments(@"TX", FCDockStateUnplugged, -1, NO, off, NO, 0));
+    NSString *def = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateUnplugged, -1, NO, off, NO, 0));
     CHECK([def isEqualToString:@"TX ○ dock unplugged  │ offline · 3 waiting · ✓ 25 on Drive · 14:31"], "deferred: %@", def);
 
-    NSString *blip = FCJoin(FCDeviceRailSegments(@"TX", FCDockStateAttached, 5, YES, nil, NO, 0));
+    NSString *blip = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateAttached, 5, YES, nil, NO, 0));
     CHECK([blip isEqualToString:@"TX ↻ docked 5s"], "blip, no status file: %@", blip);
+}
+
+void test_device_rail_steps_and_badge(void) {
+    FCDeviceRailStatus *run = [FCDeviceRailStatus statusFromJSONData:[@"{\"v\":1,\"pid\":7,\"phase\":\"check\",\"tone\":\"active\","
+        "\"text\":\"checking Drive\",\"summary\":\"✓ 26 on Drive\",\"badge\":\"⛨ 26/26 proven\",\"badge_tone\":\"ok\","
+        "\"steps\":[[\"read\",\"done\"],[\"reread\",\"skip\"],[\"upload\",\"done\"],[\"check\",\"active\"],[\"seal\",\"todo\"]]}" dataUsingEncoding:NSUTF8StringEncoding]];
+    CHECK(run.stepStates.count == 5, "five steps parsed");
+    NSArray *marks = FCStepSegments(run.stepStates);
+    CHECK(marks.count == 4, "skip draws no mark");
+    CHECK([FCJoin(marks) isEqualToString:@"▰▰▰▱"], "marks: %@", FCJoin(marks));
+    CHECK([marks[2][1] integerValue] == FCRailRoleActive && [marks[3][1] integerValue] == FCRailRoleDim, "roles");
+    NSString *active = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateAttached, -1, NO, run, YES, 0));
+    CHECK([active isEqualToString:@"TX ● docked  │ ◐ ▰▰▰▱ checking Drive"], "ok badge hidden mid-run: %@", active);
+
+    FCDeviceRailStatus *rest = [FCDeviceRailStatus statusFromJSONData:[@"{\"v\":1,\"pid\":null,\"tone\":\"idle\",\"text\":\"up to date\","
+        "\"summary\":\"✓ 26 on Drive · 16:20\",\"badge\":\"⛨ 26/26 proven\",\"badge_tone\":\"ok\"}" dataUsingEncoding:NSUTF8StringEncoding]];
+    NSString *idle = FCJoin(FCDeviceRailSegments(@"TX", nil, nil, FCDockStateEmpty, -1, NO, rest, NO, 0));
+    CHECK([idle isEqualToString:@"TX ◌ off dock  │ ✓ 26 on Drive · 16:20 · ⛨ 26/26 proven"], "badge at rest: %@", idle);
+
+    FCDeviceRailStatus *bad = [FCDeviceRailStatus statusFromJSONData:[@"{\"v\":1,\"pid\":9,\"tone\":\"active\",\"text\":\"audit 1/2\","
+        "\"badge\":\"⛨ ✗ 1 corrupt\",\"badge_tone\":\"error\"}" dataUsingEncoding:NSUTF8StringEncoding]];
+    NSArray *segs = FCDeviceRailSegments(@"TX", nil, nil, FCDockStateAttached, -1, NO, bad, YES, 1);
+    CHECK([FCJoin(segs) hasSuffix:@"audit 1/2 · ⛨ ✗ 1 corrupt"], "error badge shown mid-run: %@", FCJoin(segs));
+    CHECK([[segs lastObject][1] integerValue] == FCRailRoleError, "error role");
+
+    // Heading + name + dim tag, like "NET Wi-Fi en0".
+    NSArray *named = FCDeviceRailSegments(@"MIC", @"Pocket", @"TX", FCDockStateAttached, -1, NO, nil, NO, 0);
+    CHECK([FCJoin(named) isEqualToString:@"MIC Pocket TX ● docked"], "header: %@", FCJoin(named));
+    CHECK([named[0][1] integerValue] == FCRailRoleLabel && [named[1][1] integerValue] == FCRailRoleName
+          && [named[2][1] integerValue] == FCRailRoleDim, "header roles");
 }

@@ -14,6 +14,10 @@
 static const CGFloat kDevRailHeight = 20.0;
 static const CGFloat kDevRailGap    = 3.0;
 static const CGFloat kDevRailPadX   = 8.0;
+// Text is laid out at this fixed height and centred in the rail, the same constant the network and
+// audio rails use (see NetworkBarZoneView.m kLabelH): an NSTextField centres glyphs in its own frame
+// using metrics that include leading, so a taller field parks the text above centre.
+static const CGFloat kDevRailLabelH = 14.0;
 static const double  kBlipWindow    = 10.0;   // gone-and-back within this = a re-attach blip
 static const double  kBlipShow      = 5.0;
 
@@ -113,6 +117,8 @@ static BOOL FCPortConnected(NSString *portDescription) {
 - (int)vendorID { return (int)[[self d] integerForKey:@"DeviceRailVendorID"]; }
 - (int)productID { return (int)[[self d] integerForKey:@"DeviceRailProductID"]; }
 - (NSString *)label { NSString *s = [[self d] stringForKey:@"DeviceRailLabel"]; return s.length ? s : @"USB"; }
+- (NSString *)name { return [[self d] stringForKey:@"DeviceRailName"]; }
+- (NSString *)tag { return [[self d] stringForKey:@"DeviceRailTag"]; }
 - (NSString *)statusPath {
     NSString *p = [[self d] stringForKey:@"DeviceRailStatusFile"];
     return p.length ? [p stringByExpandingTildeInPath] : nil;
@@ -136,7 +142,7 @@ static BOOL FCPortConnected(NSString *portDescription) {
     NSTextField *l = [NSTextField labelWithString:@""];
     l.font = [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium];
     l.lineBreakMode = NSLineBreakByTruncatingTail;
-    l.frame = NSMakeRect(kDevRailPadX, 2, r.size.width - 2 * kDevRailPadX, 16);
+    l.frame = NSMakeRect(kDevRailPadX, floor((kDevRailHeight - kDevRailLabelH) / 2.0), r.size.width - 2 * kDevRailPadX, kDevRailLabelH);
     l.autoresizingMask = NSViewWidthSizable;
     [bg addSubview:l];
     _label = l;
@@ -145,7 +151,9 @@ static BOOL FCPortConnected(NSString *portDescription) {
 
 - (NSColor *)colorForRole:(FCRailRole)role {
     switch (role) {
-        case FCRailRoleLabel:  return [NSColor colorWithWhite:1.0 alpha:0.92];
+        // Heading in violet: distinct from the rails around it (NET cyan above, IN green / OUT blue below).
+        case FCRailRoleLabel:  return [NSColor colorWithSRGBRed:0.74 green:0.56 blue:1.00 alpha:1.0];
+        case FCRailRoleName:   return [NSColor colorWithSRGBRed:0.88 green:0.82 blue:1.00 alpha:1.0];
         case FCRailRoleText:   return [NSColor colorWithWhite:1.0 alpha:0.86];
         case FCRailRoleDim:    return [NSColor colorWithWhite:1.0 alpha:0.50];
         case FCRailRoleOK:     return [NSColor colorWithSRGBRed:0.34 green:0.95 blue:0.46 alpha:1.0];
@@ -217,7 +225,7 @@ static BOOL FCPortConnected(NSString *portDescription) {
     BOOL blip = _blipUntil && [_blipUntil timeIntervalSinceNow] > 0;
     if (!_stateSince) secs = -1;
     BOOL alive = [self jobAlive];
-    NSArray *segs = FCDeviceRailSegments([self label], _state, _state == FCDockStateUnknown ? -1 : secs,
+    NSArray *segs = FCDeviceRailSegments([self label], [self name], [self tag], _state, _state == FCDockStateUnknown ? -1 : secs,
                                          blip, _status, alive, _spin);
     NSMutableString *key = [NSMutableString string];
     NSMutableAttributedString *as = [NSMutableAttributedString new];
@@ -278,7 +286,10 @@ static BOOL FCPortConnected(NSString *portDescription) {
 - (void)publishNeed {
     if (_need <= 0) {
         NSFont *f = [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium];
-        NSString *tpl = [NSString stringWithFormat:@"%@ ● docked 23h59m  │ ◐ upload 99/99 ██████████ 100%% · 999.9 MB/s", [self label]];
+        NSString *head = [self label];
+        if ([self name].length) head = [head stringByAppendingFormat:@" %@", [self name]];
+        if ([self tag].length) head = [head stringByAppendingFormat:@" %@", [self tag]];
+        NSString *tpl = [NSString stringWithFormat:@"%@ ● docked 23h59m  │ ◐ ▰▰▰▰▰▰ upload 99/99 ██████████ 100%% · 999.9 MB/s", head];
         _need = ceil([tpl sizeWithAttributes:@{ NSFontAttributeName: f }].width) + 2 * kDevRailPadX + 4;
     }
     [[FCOverlayWidthConsensus shared] setNeed:_need forOverlay:NSStringFromClass(self.class)];

@@ -64,6 +64,8 @@ Off by default in the public build, because the output half asks for a permissio
 
 Directly above the audio I/O bar. It shows where a watched USB device is relative to the port it docks on, and what an external job is doing with it. The plugin knows nothing about the device or the job: the IDs, the label and the status-file path are preferences, and the job owns the text. Inert until configured.
 
+The header mirrors the network rail's `NET Wi-Fi en0`: heading, name, dim tag (for example a heading `MIC`, the product name, and a short role tag). The heading is violet so the rail stands apart from NET (cyan) above and IN (green) / OUT (blue) below. Text is laid out at the same fixed 14 pt label height, centred in the 20 pt rail, as the network and audio rails, so all baselines line up.
+
 **Dock state** is read from the IOPort registry on the 1 Hz tick, in-process: one `IOServiceGetMatchingService` for the device (vendor and product ID), walking up the `IOPort` plane to its `Port-USB-C@N`, and one iterator read of that port's `ConnectionActive`. The port the device last enumerated on is remembered (`DeviceRailDockPort`), which gives four states (`FCDeriveDockState`, unit-tested):
 - `●` **docked**: the device is enumerated.
 - `◌` **off dock**: the device is gone but its port is still connected. A magnetic dock cable stays electrically present on its own (measured with a magnetic USB-C dock cable: `ConnectionActive = Yes`, transports `(CC)`).
@@ -72,14 +74,16 @@ Directly above the audio I/O bar. It shows where a watched USB device is relativ
 
 A device that drops and comes back within 10 s while its port stayed connected shows `↻` for 5 s. Power-cycling a USB-storage device on its dock looks exactly like that, and its on/off state is otherwise invisible. The age (`docked 12m`) is shown only for transitions the clock witnessed, never counted from its own launch.
 
-**Job state** comes from a JSON status file the job writes atomically (contract in `DeviceRailModel.h`, schema v1): `pid`, `phase`, `tone` (active · ok · warn · error · idle), `text`, `detail`, `progress`, `summary`. While `pid` is alive and the tone is active, a 4 Hz timer animates a `◐◓◑◒` spinner and the eighth-block progress bar. A dead `pid` with an active tone reads `⚠ stopped during <phase>`. At rest the rail shows the outcome and the standing `summary`. The status file is re-parsed only when its mtime changes. The rail publishes one constant width need, measured from its widest template line, so the stack never breathes with the text.
+**Job state** comes from a JSON status file the job writes atomically (contract in `DeviceRailModel.h`, schema v1): `pid`, `phase`, `tone` (active · ok · warn · error · idle), `text`, `detail`, `progress`, `summary`. While `pid` is alive and the tone is active, a 4 Hz timer animates a `◐◓◑◒` spinner and the eighth-block progress bar. A dead `pid` with an active tone reads `⚠ stopped during <phase>`. At rest the rail shows the outcome and the standing `summary`. Two optional fields (additive, still schema v1): `steps`, the run's pipeline as `[[name, state], …]`, drawn before the text as one mark per step (`▰` green done, `▰` blue active, `▰` red failed, `▱` dim to do; `skip` draws nothing); and `badge` + `badge_tone`, a standing seal such as an integrity result (for example `⛨ 12/12 proven` green, `⛨ ✗ 1 corrupt` red), shown after the summary at rest and also mid-run when its tone is not `ok`. The status file is re-parsed only when its mtime changes. The rail publishes one constant width need, measured from its widest template line, so the stack never breathes with the text.
 
 | default key            | type   | default | meaning                                         |
 | ---------------------- | ------ | ------- | ----------------------------------------------- |
 | `DeviceRailEnabled`    | BOOL   | `NO`    | master on/off                                   |
 | `DeviceRailVendorID`   | int    | `0`     | USB `idVendor` of the watched device            |
 | `DeviceRailProductID`  | int    | `0`     | USB `idProduct`                                 |
-| `DeviceRailLabel`      | string | `"USB"` | short label at the left of the rail             |
+| `DeviceRailLabel`      | string | `"USB"` | all-caps heading at the left (heavy, violet), like `NET` / `IN` |
+| `DeviceRailName`       | string | none    | the device's name after the heading (lavender), like `Wi-Fi` |
+| `DeviceRailTag`        | string | none    | a dim tag after the name, like the network rail's `en0` |
 | `DeviceRailStatusFile` | string | none    | job status JSON (`~` expanded); omit for dock state only |
 | `DeviceRailDockPort`   | string | (auto)  | written by the rail: the port the device last used |
 

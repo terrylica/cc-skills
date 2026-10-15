@@ -896,6 +896,7 @@ int main(void) {
         RUN_TEST(test_device_rail_dock_state);
         RUN_TEST(test_device_rail_status_parse);
         RUN_TEST(test_device_rail_segments);
+        RUN_TEST(test_device_rail_steps_and_badge);
         RUN_TEST(test_tts_rate_clamp);
         RUN_TEST(test_tts_rate_track_mapping);
         RUN_TEST(test_tts_rate_nearest_detent);

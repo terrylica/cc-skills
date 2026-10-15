@@ -13,5 +13,6 @@ void test_level_meter_eighth_bar(void);
 void test_device_rail_dock_state(void);
 void test_device_rail_status_parse(void);
 void test_device_rail_segments(void);
+void test_device_rail_steps_and_badge(void);
 
 NS_ASSUME_NONNULL_END

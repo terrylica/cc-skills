@@ -9,6 +9,11 @@
 //   {"v":1,"pid":123|null,"updated":<unix s>,"phase":"copy","tone":"active|ok|warn|error|idle",
 //    "text":"copy 3/7","detail":"41 MB/s","progress":0.42|null,"summary":"✓ 25 on Drive · 14:31"}
 //   pid set = a run is alive (a dead pid with an active tone = the job stopped mid-way).
+//   Optional, additive (still v1):
+//   "badge":"⛨ 26/26 proven","badge_tone":"ok"   a standing seal (e.g. integrity), shown after the
+//                                                 summary at rest, and while running if not ok;
+//   "steps":[["read","done"],["upload","active"],["check","todo"]]   the run's pipeline, one mark
+//                                                 per step: done/active/fail/todo (skip = no mark).
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -25,6 +30,7 @@ FCDockState FCDeriveDockState(BOOL devicePresent, BOOL dockPortKnown, BOOL dockP
 // Colour roles the view maps to its palette.
 typedef NS_ENUM(NSInteger, FCRailRole) {
     FCRailRoleLabel = 0, FCRailRoleText, FCRailRoleDim, FCRailRoleOK, FCRailRoleActive, FCRailRoleWarn, FCRailRoleError,
+    FCRailRoleName,   // the device's name after the heading (its own tint, like the heading's family)
 };
 
 @interface FCDeviceRailStatus : NSObject
@@ -36,15 +42,24 @@ typedef NS_ENUM(NSInteger, FCRailRole) {
 @property (nonatomic, copy) NSString *detail;
 @property (nonatomic) double progress;       // <0 = none
 @property (nonatomic, copy) NSString *summary;
+@property (nonatomic, copy) NSString *badge;
+@property (nonatomic, copy) NSString *badgeTone;
+@property (nonatomic, copy) NSArray<NSString *> *stepStates;  // one state per step, in order
 + (nullable instancetype)statusFromJSONData:(NSData *)data;
 @end
 
-// The rail's segments: an array of @[NSString text, NSNumber role]. `pidAlive` is the caller's
+// The rail's segments: an array of @[NSString text, NSNumber role]. The header is `label` (an
+// all-caps heading like NET/IN, e.g. "MIC"), then the optional `name` (the product name) and a dim `tag`
+// ("TX"), mirroring the network rail's "NET Wi-Fi en0". `pidAlive` is the caller's
 // kill(pid,0) check; `dockSecs` = seconds in the current dock state (<0 unknown); `spin` = frame
 // counter for the activity spinner; `blip` = the device dropped and came back moments ago.
-NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, FCDockState dock, double dockSecs, BOOL blip,
+NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, NSString *_Nullable name, NSString *_Nullable tag,
+                                         FCDockState dock, double dockSecs, BOOL blip,
                                          FCDeviceRailStatus *_Nullable status, BOOL pidAlive,
                                          NSUInteger spin);
+
+// The pipeline marks for `stepStates` as segments (▰ done/active/fail, ▱ todo; skip omitted).
+NSArray<NSArray *> *FCStepSegments(NSArray<NSString *> *states);
 
 // "12m", "3h05m", "2d" — compact age.
 NSString *FCCompactAge(double secs);

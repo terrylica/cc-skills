@@ -34,6 +34,15 @@ static NSString *FCStr(id v) { return [v isKindOfClass:[NSString class]] ? v : @
     s.detail   = FCStr(d[@"detail"]);
     s.progress = [d[@"progress"] isKindOfClass:[NSNumber class]] ? [d[@"progress"] doubleValue] : -1.0;
     s.summary  = FCStr(d[@"summary"]);
+    s.badge    = FCStr(d[@"badge"]);
+    s.badgeTone = FCStr(d[@"badge_tone"]);
+    NSMutableArray *states = [NSMutableArray array];
+    if ([d[@"steps"] isKindOfClass:[NSArray class]]) {
+        for (id step in d[@"steps"]) {
+            if ([step isKindOfClass:[NSArray class]] && [step count] >= 2) [states addObject:FCStr(step[1])];
+        }
+    }
+    s.stepStates = states;
     return s;
 }
 @end
@@ -46,12 +55,28 @@ static FCRailRole FCRoleForTone(NSString *tone) {
     return FCRailRoleDim;
 }
 
-NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, FCDockState dock, double dockSecs, BOOL blip,
+NSArray<NSArray *> *FCStepSegments(NSArray<NSString *> *states) {
+    NSMutableArray *out = [NSMutableArray array];
+    for (NSString *st in states) {
+        if ([st isEqualToString:@"skip"]) continue;
+        FCRailRole r = [st isEqualToString:@"done"]   ? FCRailRoleOK
+                     : [st isEqualToString:@"active"] ? FCRailRoleActive
+                     : [st isEqualToString:@"fail"]   ? FCRailRoleError
+                                                      : FCRailRoleDim;
+        [out addObject:@[ [st isEqualToString:@"todo"] ? @"▱" : @"▰", @(r) ]];
+    }
+    return out;
+}
+
+NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, NSString *name, NSString *tag,
+                                         FCDockState dock, double dockSecs, BOOL blip,
                                          FCDeviceRailStatus *status, BOOL pidAlive, NSUInteger spin) {
     NSMutableArray *out = [NSMutableArray array];
     void (^add)(NSString *, FCRailRole) = ^(NSString *t, FCRailRole r) { if (t.length) [out addObject:@[ t, @(r) ]]; };
 
     add([label stringByAppendingString:@" "], FCRailRoleLabel);
+    if (name.length) add([name stringByAppendingString:@" "], FCRailRoleName);
+    if (tag.length) add([tag stringByAppendingString:@" "], FCRailRoleDim);
     NSString *age = FCCompactAge(dockSecs);
     switch (dock) {
         case FCDockStateAttached:
@@ -87,6 +112,8 @@ NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, FCDockState dock, doub
         // glyph family as the ●◌○ dock marks.
         static NSString *const frames[4] = { @"◐", @"◓", @"◑", @"◒" };
         add([frames[spin % 4] stringByAppendingString:@" "], FCRailRoleActive);
+        NSArray *steps = FCStepSegments(status.stepStates);
+        if (steps.count) { [out addObjectsFromArray:steps]; add(@" ", FCRailRoleDim); }
         add(status.text, FCRailRoleText);
         if (status.progress >= 0) {
             add(@" ", FCRailRoleDim);
@@ -94,6 +121,10 @@ NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, FCDockState dock, doub
             add([NSString stringWithFormat:@" %3d%%", (int)llround(status.progress * 100.0)], FCRailRoleText);
         }
         if (status.detail.length) { add(@" · ", FCRailRoleDim); add(status.detail, FCRailRoleDim); }
+        if (status.badge.length && ![status.badgeTone isEqualToString:@"ok"]) {
+            add(@" · ", FCRailRoleDim);
+            add(status.badge, FCRoleForTone(status.badgeTone));
+        }
         return out;
     }
     // Resting: this pass's outcome (if it carries news) and the standing summary.
@@ -105,6 +136,10 @@ NSArray<NSArray *> *FCDeviceRailSegments(NSString *label, FCDockState dock, doub
         add(status.summary, news ? FCRailRoleDim : FCRailRoleOK);
     } else if (!news && status.text.length) {
         add(status.text, FCRailRoleDim);
+    }
+    if (status.badge.length) {
+        add(@" · ", FCRailRoleDim);
+        add(status.badge, FCRoleForTone(status.badgeTone));
     }
     return out;
 }
