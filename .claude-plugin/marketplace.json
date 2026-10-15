@@ -973,7 +973,7 @@
     },
     {
       "name": "orca-tools",
-      "description": "Claude Code under the Orca IDE: spin a task off into its own Orca worktree with one agent terminal and a committed handoff, on this machine or a paired runtime; clean removal",
+      "description": "Claude Code under the Orca IDE: spin a task off into its own Orca worktree with one agent terminal and a committed handoff, on this machine or a paired runtime; close out a session with a recall name, a handoff and an optional close of its own tab",
       "version": "33.12.0",
       "source": "./plugins/orca-tools",
       "category": "devops",
@@ -988,7 +988,10 @@
         "handoff",
         "spin-off",
         "agent",
-        "multi-device"
+        "multi-device",
+        "session-closeout",
+        "rename-session",
+        "agent-session-history"
       ],
       "strict": false
     }

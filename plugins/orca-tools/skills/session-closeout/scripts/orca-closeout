@@ -1,0 +1,323 @@
+#!/usr/bin/env bash
+# orca-closeout: name the running Claude Code session for later recall, and optionally close its own Orca terminal tab
+# to free memory. Run it from inside the session (Claude Code's Bash tool). See ../SKILL.md for the why of each step.
+#
+#   orca-closeout                                   show: session id, transcript, current name, tab, resume command
+#   orca-closeout --title "Area: what was done"     name the session (Claude Code + Orca Agent Session History)
+#                 [--tab-title "Short tab label"]   label for this Orca tab (default: the title; tabs show ~25 chars)
+#                 [--allow-long]                    allow 97-200 characters (Orca's history cuts at 96)
+#   orca-closeout --close [--min-wait SECONDS]      close THIS session's own Orca tab once the agent is idle (its final
+#                                                   message delivered); never before SECONDS (default 5, max 600)
+#                 [--force]                         close even with a background command running, or with no agent found
+#   Every form takes --dry-run (check everything, change nothing). --title and --close can be combined.
+#
+# Exit status: 0 done, 1 a step failed, 2 refused before any change (bad arguments, unsafe close, not inside Orca).
+# stdout is one JSON object (except --help); progress and warnings go to stderr.
+# Requires: bash >= 3.2, python3 >= 3.9; the Orca IDE CLI only for --tab-title/--close. No GNU-only flags.
+set -euo pipefail
+
+die() { printf 'orca-closeout: %s\n' "$1" >&2; exit "${2:-2}"; }
+warn() { printf 'orca-closeout: warning: %s\n' "$1" >&2; }
+note() { printf 'orca-closeout: %s\n' "$1" >&2; }
+# Python gets shell values only as argv (never as source text). PYLIB is shared by every snippet.
+PYLIB='
+import json, os, re, sys, subprocess, time
+SHELLS = ("sh", "bash", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", "cmd.exe")
+def prog(args): return os.path.basename(args.split(" ", 1)[0]).lstrip("-") if args else ""
+def is_agent(args):
+    # The native binary runs as `claude`; an npm install as `node .../claude` or `.../@anthropic-ai/claude-code/cli.js`;
+    # a wrapper script as `<shell> .../claude`. So look past one interpreter.
+    w = args.split()[:2]
+    return any(os.path.basename(x) in ("claude", "claude.exe") for x in w) or \
+        (len(w) > 1 and "@anthropic-ai/claude-code" in w[1])
+def bash_tool(args):
+    # Claude Code starts every Bash-tool command in a shell that first sources a shell snapshot.
+    return prog(args) in SHELLS and "shell-snapshots" in args
+def table():
+    out = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "args="], capture_output=True, text=True).stdout
+    rows = {}
+    for line in out.splitlines():
+        p = line.split(None, 2)
+        if len(p) >= 2 and p[0].isdigit() and p[1].isdigit():
+            rows[int(p[0])] = (int(p[1]), p[2].strip() if len(p) > 2 else "")
+    return rows
+def chain_of(rows, pid):
+    c = []
+    while pid in rows and pid > 1 and len(c) < 64:
+        c.append(pid); pid = rows[pid][0]
+    return c
+def busy_shells(rows, agent, skip):
+    """The agent shells still running (and their descendants), other than the pids in skip."""
+    kids = {}
+    for p, (pp, _) in rows.items():
+        kids.setdefault(pp, []).append(p)
+    out, todo = [], [p for p in kids.get(agent, []) if bash_tool(rows[p][1]) and p not in skip]
+    while todo:
+        p = todo.pop()
+        if p in skip: continue
+        out.append({"pid": p, "args": rows[p][1][:160]})
+        todo.extend(kids.get(p, []))
+    return out
+'
+pa() { local code=$1; shift; python3 -I -c "$PYLIB
+$code" "$@"; }
+
+# Limits measured in the shipping code (see SKILL.md "Name length"): Claude Code keeps at most 200 code points of a
+# title, control characters removed; Orca's Agent Session History keeps 96 UTF-16 units (longer: 93 + an ellipsis).
+ORCA_HISTORY_MAX=96
+CLAUDE_TITLE_MAX=200
+MAX_WAIT=600
+
+# ── The detached closer (internal): wait for idle, re-check everything, then close this one tab. ────────────────────
+if [ "${1:-}" = "--_fire" ]; then
+  shift; agent=$1 min_wait=$2 offset=$3 transcript=$4 handle=$5 tab=$6 ORCA=$7 force=$8
+  exec >>"${TMPDIR:-/tmp}/orca-closeout-$handle.log" 2>&1
+  echo "$(date -u +%FT%TZ) closer started: agent $agent, min wait ${min_wait}s"
+  sleep "$min_wait"
+  # Orca's own readiness signal: the agent's turn (and so its final message) is over.
+  if ! "$ORCA" terminal wait --terminal "$handle" --for tui-idle --timeout-ms $((MAX_WAIT * 1000)) --json; then
+    echo "not closing: the agent did not become idle within ${MAX_WAIT}s"; exit 1
+  fi
+  pa '
+agent, offset, transcript, handle, tab, orca, force = int(sys.argv[1]), int(sys.argv[2]), *sys.argv[3:7], sys.argv[7] == "1"
+# The user kept working: a typed prompt after the close was scheduled cancels it.
+with open(transcript, "rb") as fh:
+    fh.seek(offset)
+    for line in fh:
+        try: d = json.loads(line)
+        except Exception: continue
+        m = d.get("message") or {}
+        if d.get("type") == "user" and not d.get("isMeta") and isinstance(m.get("content"), str):
+            sys.exit("not closing: a new prompt arrived after the close was scheduled")
+r = subprocess.run([orca, "terminal", "show", "--terminal", handle, "--json"], capture_output=True, text=True)
+t = ((json.loads(r.stdout or "{}").get("result") or {}).get("terminal") or {}) if r.returncode == 0 else {}
+if t.get("handle") != handle or t.get("tabId") != tab:
+    sys.exit("not closing: the terminal is no longer this session tab")
+rows = table()
+if agent in rows:
+    busy = busy_shells(rows, agent, set())
+    if busy and not force:
+        sys.exit("not closing: background command(s) still running: " + "; ".join(b["args"] for b in busy))
+' "$agent" "$offset" "$transcript" "$handle" "$tab" "$ORCA" "$force" || exit 1
+  "$ORCA" terminal close --terminal "$handle" --tab --json
+  exit $?
+fi
+
+title='' tab_title='' close=0 min_wait=5 force=0 dry=0 allow_long=0
+while [ $# -gt 0 ]; do
+  case $1 in
+    --title) [ $# -ge 2 ] || die "--title needs a value"; title=$2; shift 2 ;;
+    --tab-title) [ $# -ge 2 ] || die "--tab-title needs a value"; tab_title=$2; shift 2 ;;
+    --close) close=1; shift ;;
+    --min-wait) [ $# -ge 2 ] || die "--min-wait needs a value"; min_wait=$2; shift 2 ;;
+    --force) force=1; shift ;;
+    --allow-long) allow_long=1; shift ;;
+    --dry-run) dry=1; shift ;;
+    -h|--help|help) sed -n '2,16p' "$0"; exit 0 ;;
+    *) die "unknown argument: $1 (see --help)" ;;
+  esac
+done
+case $min_wait in ''|*[!0-9]*) die "--min-wait must be a whole number of seconds" ;; esac
+[ "$min_wait" -le "$MAX_WAIT" ] || die "--min-wait is at most $MAX_WAIT seconds"
+
+# ── The session: Claude Code exports its id to every Bash-tool command. ────────────────────────────────────────────
+sid=${CLAUDE_CODE_SESSION_ID:-}
+[ -n "$sid" ] || die "CLAUDE_CODE_SESSION_ID is not set: run this from inside the Claude Code session to be named"
+case $sid in *[!0-9a-fA-F-]*) die "unexpected session id: $sid" ;; esac
+config_dir=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+transcript=$(pa '
+import glob
+hits = glob.glob(os.path.join(sys.argv[1], "projects", "*", sys.argv[2] + ".jsonl"))
+if len(hits) != 1:
+    print(len(hits)); sys.exit(3)
+print(hits[0])' "$config_dir" "$sid") || {
+  die "expected exactly one transcript for session $sid under $config_dir/projects, found ${transcript:-0}"; }
+
+# Normalise as Claude Code does (control characters removed, trimmed), then collapse whitespace as Orca does.
+norm() { pa '
+t = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", sys.argv[1])
+print(re.sub(r"\s+", " ", t).strip())' "$1"; }
+
+if [ -n "$title" ]; then
+  title=$(norm "$title")
+  [ -n "$title" ] || die "the title is empty after removing control characters and spaces"
+  lens=$(pa 's = sys.argv[1]; print(len(s), len(s.encode("utf-16-le")) // 2)' "$title")
+  cp=${lens% *} u16=${lens#* }
+  if [ "$cp" -gt "$CLAUDE_TITLE_MAX" ]; then
+    die "title is $cp characters; Claude Code silently cuts at $CLAUDE_TITLE_MAX. Shorten it"
+  elif [ "$u16" -gt "$ORCA_HISTORY_MAX" ] && [ "$allow_long" -eq 0 ]; then
+    die "title is $u16 characters; Orca's Agent Session History shows $ORCA_HISTORY_MAX (then 93 + an ellipsis). Shorten it, or pass --allow-long"
+  fi
+fi
+[ -z "$tab_title" ] || tab_title=$(norm "$tab_title")
+
+# ── Orca: the IDE's CLI, found the way Orca itself exposes it inside its terminals. ──────────────────────────────────
+is_orca() {  # help text captured, not piped to grep -q: an early-exiting reader under pipefail can SIGPIPE it
+  local h; [ -n "$1" ] && [ -x "$1" ] || return 1; h=$("$1" terminal --help 2>/dev/null) || true
+  case $h in *"orca terminal"*"close"*"Close one terminal"*) return 0 ;; *) return 1 ;; esac
+}
+find_orca() {
+  local c
+  if [ -n "${ORCA_CLI:-}" ]; then is_orca "$ORCA_CLI" && { echo "$ORCA_CLI"; return 0; }; return 1; fi
+  for c in "${ORCA_CLI_BIN_DIR:+$ORCA_CLI_BIN_DIR/orca}" "$(command -v orca 2>/dev/null || true)" \
+           "$HOME/.config/orca/linux-orca-cli-shim/orca" /Applications/Orca.app/Contents/Resources/bin/orca \
+           "$HOME/Applications/Orca.app/Contents/Resources/bin/orca"; do
+    is_orca "$c" && { echo "$c"; return 0; }
+  done
+  return 1
+}
+handle=${ORCA_TERMINAL_HANDLE:-}
+tab=${ORCA_TAB_ID:-}
+case $handle in *[!A-Za-z0-9_.-]*) die "unexpected ORCA_TERMINAL_HANDLE: $handle" ;; esac
+ORCA=''
+if [ -n "$handle" ]; then ORCA=$(find_orca) || warn "inside an Orca terminal, but the Orca IDE CLI was not found"; fi
+need_orca() { [ -n "$handle" ] || die "$1 needs an Orca terminal (ORCA_TERMINAL_HANDLE is not set)"; [ -n "$ORCA" ] || die "$1 needs the Orca IDE CLI (set ORCA_CLI)"; }
+[ -z "$tab_title" ] || need_orca "--tab-title"
+
+current_title() { pa '
+cur = None
+with open(sys.argv[1], "rb") as fh:
+    for line in fh:
+        if b"\"custom-title\"" not in line: continue
+        try: d = json.loads(line)
+        except Exception: continue
+        if d.get("type") == "custom-title": cur = d.get("customTitle")
+print(cur or "")' "$transcript"; }
+
+# Resume from the folder the session started in: Claude Code files a session under that folder, not the current one.
+cwd=$(pa '
+start = None
+with open(sys.argv[1], "rb") as fh:
+    for line in fh:
+        if b"\"cwd\"" not in line: continue
+        try: start = json.loads(line).get("cwd")
+        except Exception: continue
+        if start: break
+print(start or os.getcwd())' "$transcript")
+
+if [ -z "$title" ] && [ "$close" -eq 0 ] && [ -z "$tab_title" ]; then
+  pa '
+print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
+                  "terminal": sys.argv[4] or None, "resume": "cd %s && claude --resume %s" % (sys.argv[5], sys.argv[1])}))' \
+    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd"
+  exit 0
+fi
+
+# ── Close guard first, so a refused close changes nothing at all. It fails CLOSED: anything it cannot confirm refuses.
+agent=''
+if [ "$close" -eq 1 ]; then
+  need_orca "--close"
+  [ -n "$tab" ] || die "--close needs ORCA_TAB_ID, to confirm the tab is this session's own"
+  tj=$("$ORCA" terminal show --terminal "$handle" --json) || die "orca terminal show --terminal $handle failed; not closing"
+  pa '
+d = json.loads(sys.argv[1]); t = (d.get("result") or {}).get("terminal") or {}
+if not d.get("ok") or t.get("handle") != sys.argv[2]:
+    sys.exit("orca reports a different terminal than " + sys.argv[2])
+if t.get("tabId") != sys.argv[3]:
+    sys.exit("terminal %s is in tab %s, not this session tab %s" % (sys.argv[2], t.get("tabId"), sys.argv[3]))' \
+    "$tj" "$handle" "$tab" || die "not closing: the terminal could not be confirmed as this session's own"
+  gj=$(pa '
+rows = table(); me = int(sys.argv[1]); chain = chain_of(rows, me)
+agent = next((p for p in chain if is_agent(rows[p][1])), None)
+own_shell = any(bash_tool(rows[p][1]) for p in chain)
+print(json.dumps({"agent": agent, "own_shell": own_shell,
+                  "busy": busy_shells(rows, agent, set(chain)) if agent else []}))' "$$")
+  agent=$(pa 'print(json.loads(sys.argv[1])["agent"] or "")' "$gj")
+  ok=$(pa 'd = json.loads(sys.argv[1]); print(1 if d["agent"] and d["own_shell"] else 0)' "$gj")
+  busy=$(pa 'print(len(json.loads(sys.argv[1])["busy"]))' "$gj")
+  if [ "$ok" -ne 1 ]; then
+    [ "$force" -eq 1 ] || die "not closing: could not identify this session's agent process and its Bash-tool shell, so running background work cannot be ruled out. Pass --force to close anyway"
+    warn "--force: the agent process could not be identified; background work is not checked"
+  fi
+  if [ "$busy" -gt 0 ]; then
+    pa 'for c in json.loads(sys.argv[1])["busy"]: print("  still running: %d %s" % (c["pid"], c["args"]), file=sys.stderr)' "$gj"
+    [ "$force" -eq 1 ] || die "not closing: $busy background command process(es) would be killed with the tab. Finish or stop them, or pass --force"
+    warn "--force: closing anyway; the processes above will be killed with the tab"
+  fi
+fi
+
+# ── Name the session: the same two records Claude Code's /rename appends. ────────────────────────────────────────────
+named=false
+if [ -n "$title" ]; then
+  if [ "$dry" -eq 1 ]; then
+    note "dry run: would append custom-title + agent-name \"$title\" to $transcript"
+  else
+    pa '
+path, sid, title = sys.argv[1:4]
+rec = lambda d: json.dumps(d, ensure_ascii=False, separators=(",", ":"))
+want = [{"type": "custom-title", "customTitle": title, "sessionId": sid},
+        {"type": "agent-name", "agentName": title, "sessionId": sid}]
+data = "".join(rec(d) + "\n" for d in want)
+fd = os.open(path, os.O_RDWR | os.O_APPEND)
+try:
+    size = os.fstat(fd).st_size
+    if size and os.pread(fd, 1, size - 1) != b"\n":
+        data = "\n" + data            # never glue our record onto a partial line
+    buf = data.encode("utf-8")
+    if os.write(fd, buf) != len(buf):   # one append; a short write is a failure, not a silent half record
+        sys.exit("short write to the transcript")
+finally:
+    os.close(fd)
+# Verify both records by content, from the whole file (robust to other appends landing after ours).
+found = set()
+with open(path, "rb") as fh:
+    for line in fh:
+        if b"\"custom-title\"" not in line and b"\"agent-name\"" not in line: continue
+        try: d = json.loads(line)
+        except Exception: continue
+        for i, w in enumerate(want):
+            if d == w: found.add(i)
+sys.exit(0 if found == {0, 1} else "the name records could not be read back")' "$transcript" "$sid" "$title" \
+      || die "naming failed" 1
+    named=true
+  fi
+fi
+
+# ── Label this Orca tab (explicit handle, never the active terminal). ────────────────────────────────────────────────
+tab_label=${tab_title:-$title}
+tabbed=false
+if [ -n "$tab_label" ] && [ -n "$handle" ]; then
+  if [ -z "$ORCA" ]; then warn "tab not labelled: the Orca IDE CLI was not found"
+  elif [ "$dry" -eq 1 ]; then note "dry run: would label tab $handle \"$tab_label\""
+  elif "$ORCA" terminal rename --terminal "$handle" --title "$tab_label" --json >/dev/null; then tabbed=true
+  elif [ -n "$tab_title" ]; then die "orca terminal rename failed" 1
+  else warn "orca terminal rename failed; the session name is unaffected"
+  fi
+fi
+
+# ── Close: a closer in its own session waits for Orca's idle signal, re-checks, then closes only this tab. ──────────
+log='' closer=''
+if [ "$close" -eq 1 ]; then
+  log=${TMPDIR:-/tmp}/orca-closeout-$handle.log
+  if [ "$dry" -eq 1 ]; then
+    note "dry run: would close tab of $handle once the agent is idle (not before ${min_wait}s)"
+  else
+    offset=$(pa 'print(os.path.getsize(sys.argv[1]))' "$transcript")
+    # Double fork + setsid (python, since macOS has no setsid command): the closer survives this shell, the tool
+    # call's process group, and an interrupt, and is reparented away from the agent.
+    closer=$(pa '
+args = sys.argv[1:]
+r, w = os.pipe()
+if os.fork() == 0:
+    os.close(r); os.setsid()
+    pid = os.fork()
+    if pid:
+        os.write(w, str(pid).encode()); os._exit(0)
+    os.close(w); os.chdir("/")
+    fd = os.open(os.devnull, os.O_RDWR)
+    for n in (0, 1, 2): os.dup2(fd, n)
+    os.execvp(args[0], args)
+os.close(w); print(os.read(r, 32).decode()); os.wait()' \
+      "$0" --_fire "${agent:-0}" "$min_wait" "$offset" "$transcript" "$handle" "$tab" "$ORCA" "$force")
+    note "this tab closes once the agent is idle (closer pid $closer, log $log). The session stays resumable."
+  fi
+fi
+
+pa '
+print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
+  "title_length": len(sys.argv[3]) if sys.argv[3] else None, "named": sys.argv[4] == "true",
+  "terminal": sys.argv[5] or None, "tab_labelled": sys.argv[6] == "true",
+  "close_scheduled": bool(sys.argv[7]), "closer_pid": int(sys.argv[7]) if sys.argv[7] else None,
+  "close_log": sys.argv[8] or None, "dry_run": sys.argv[9] == "1",
+  "resume": "cd %s && claude --resume %s" % (sys.argv[10], sys.argv[1])}))' \
+  "$sid" "$transcript" "$title" "$named" "$handle" "$tabbed" "$closer" "$log" "$dry" "$cwd"
