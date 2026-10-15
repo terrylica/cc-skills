@@ -76,9 +76,10 @@ and end with the five-line Closeout block (Done / Open / Next / Resume), nothing
 ## Steps
 
 1. **Check for unfinished work.** Background commands still running? Drafts or messages not sent? Uncommitted changes the user expects pushed? Finish them or list them under **Open**. The script refuses `--close` while one of the agent's own Bash-tool commands is still running (closing would kill it), and checks again just before closing; `--force` overrides.
-2. **Choose the name** (rules above). Run `"$CLOSE"` first to see any existing name.
-3. **Name, and close if asked:** `"$CLOSE" --title "…" [--tab-title "…"] [--close]`. Use `--dry-run` first if unsure.
-4. **Write the Closeout block as your final message**, using `resume` from the script's JSON.
+2. **Retire the session's own subagents and teammates.** Run `ListAgents`: every subagent or named teammate this session spawned stays listed under the session in Orca's sidebar (idle for hours) until it is stopped. For each one whose result is already used, stop it with `TaskStop` (pass its name); one still working is either waited for or listed under **Open**. Leave **peer sessions** alone: they are other people's or other tasks' sessions, not this session's children. The script cannot do this step: in-process teammates are not separate processes, so its background-command guard never sees them.
+3. **Choose the name** (rules above). Run `"$CLOSE"` first to see any existing name.
+4. **Name, and close if asked:** `"$CLOSE" --title "…" [--tab-title "…"] [--close]`. Use `--dry-run` first if unsure.
+5. **Write the Closeout block as your final message**, using `resume` from the script's JSON.
 
 ## Why each step (observed, not assumed)
 
