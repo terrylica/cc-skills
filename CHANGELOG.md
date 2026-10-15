@@ -1,3 +1,16 @@
+# [33.15.0](https://github.com/terrylica/cc-skills/compare/v33.14.1...v33.15.0) (2026-10-15)
+
+
+### Features
+
+* **floating-clock:** live level meters and a generic device-dock rail ([b95492a](https://github.com/terrylica/cc-skills/commit/b95492abaae8a90e5979e80ed9fe2b2bacdea7f0))
+
+Level meters: a 9 pt strip between the clock and the audio I/O bar, aligned under the IN and OUT zones. Input reuses the mic-mute IOProc; output uses a Core Audio process tap (macOS 14.2+) that runs only while another process is playing, so the purple recording dot shows only then. LED cells with peak hold, 24 Hz only while there is signal. Off by default (it asks for System Audio Recording).
+
+Device rail: shows where a watched USB device is (docked, off dock, dock unplugged) from in-process IOPort registry reads, plus an external job's phase, progress and outcome from a JSON status file. Generic: the device IDs, label and status-file path are preferences. Off by default.
+
+OverlayStack: newer rails register with an order and height, and the existing rails add the registered height below them, instead of each rail hard-coding the others. 143 unit tests pass.
+
 ## [33.14.1](https://github.com/terrylica/cc-skills/compare/v33.14.0...v33.14.1) (2026-10-15)
 
 
