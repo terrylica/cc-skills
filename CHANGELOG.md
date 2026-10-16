@@ -1,3 +1,15 @@
+## [33.16.1](https://github.com/terrylica/cc-skills/compare/v33.16.0...v33.16.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** token lookup reads stdin from /dev/null ([d1d47c2](https://github.com/terrylica/cc-skills/commit/d1d47c23228be2ac4e54c3ac366e1a15426c7e2e))
+
+When an MCP client starts chrome-profile.sh playwright-mcp, the script stdin is the client JSON-RPC pipe. The token lookup ran vault get with that stdin, and vault get waited on it forever, so the Playwright server never started and the client initialize request was never answered.
+
+- vault get and the Keychain fallback (security find-generic-password) now read stdin from /dev/null.
+- Checked: with an open stdin pipe, the launcher now answers initialize (before, it hung in vault get).
+
 # [33.16.0](https://github.com/terrylica/cc-skills/compare/v33.15.0...v33.16.0) (2026-10-15)
 
 
