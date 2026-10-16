@@ -88,8 +88,7 @@ OPTIONAL:
   --sound <name>      Pushover sound (e.g. siren, magic, intermission, none)
   --plain             The phone shows only --title and --message (no [service] → target, level,
                       lookup or UUID lines); the JSONL entry, UUID included, is written as always.
-                      For messages a person reads at a glance (2026-10-16: the MacBook vault's
-                      Touch ID notices read as jargon on the phone).
+                      Use it for messages a person should take in at a glance.
   --extra <json>      Extra structured fields, merged into JSONL entry
   --help              This help
 
