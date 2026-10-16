@@ -21,8 +21,11 @@
 #
 # THE EXTENSION TOKEN is per profile. It is kept in the macOS login Keychain (service "playwright-extension-token",
 # account = the email), or in a `vault` CLI scope "chrome-extension-tokens" if one exists, and handed to the one MCP
-# process through its environment. It is never written to ~/.claude.json, never put on a command line, and never
-# printed.
+# process through its environment. It is never written to ~/.claude.json and never printed. One command line does
+# carry it: the relay inside @playwright/mcp opens the extension's connect page by launching Chrome with a URL that
+# includes the token. `playwright-mcp` therefore gives the relay chrome-connect-launch.sh as its browser, which starts
+# Chrome without the token when it is not running and then hands the URL over through a short-lived process; see
+# that script's header for what remains.
 set -euo pipefail
 
 ROOT="${CHROME_USER_DATA_DIR:-$HOME/Library/Application Support/Google/Chrome}"
@@ -173,7 +176,8 @@ case "$cmd" in
     tok=$(token_get "$email")
     if [ -n "$tok" ]; then export PLAYWRIGHT_MCP_EXTENSION_TOKEN="$tok"; fi
     unset tok
-    exec npx -y @playwright/mcp@latest --extension --profile-dir-name "$dir" ;;
+    exec npx -y @playwright/mcp@latest --extension --profile-dir-name "$dir" \
+      --executable-path "$(dirname "$(stable_self)")/chrome-connect-launch.sh" ;;
 
   setup)
     email="${1:-}"; shift || true
