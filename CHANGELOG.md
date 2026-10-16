@@ -1,3 +1,12 @@
+# [33.17.0](https://github.com/terrylica/cc-skills/compare/v33.16.4...v33.17.0) (2026-10-16)
+
+
+### Features
+
+* **pushover-commander:** --plain sends only the title and message to the phone; the JSONL audit entry is unchanged ([516e3df](https://github.com/terrylica/cc-skills/commit/516e3df287d3de92fea99f4b0dcc03540e7d5902))
+
+The MacBook vault's Touch ID notices reached the operator as "Touch ID denied-or-failed: x.sops.json: secure-enclave-decrypt · DETACHED process … level=WARN priority=0 / lookup: … / UUID: …" (2026-10-16), the jargon the approval routine is removing. With --plain the Pushover body is the message alone; the JSONL entry, with its UUID, service, actor, target and level, is written as before and marked "plain": true, so pushover-lookup still finds it. Default output is unchanged. Checked with a fake curl: --plain sends exactly the message; without it the body keeps the [service], level, lookup and UUID lines.
+
 ## [33.16.4](https://github.com/terrylica/cc-skills/compare/v33.16.3...v33.16.4) (2026-10-16)
 
 
