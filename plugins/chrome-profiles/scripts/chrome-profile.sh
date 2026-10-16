@@ -20,7 +20,8 @@
 # Chrome's own opt-in at chrome://inspect/#remote-debugging.
 #
 # THE EXTENSION TOKEN is per profile. It is kept in the macOS login Keychain (service "playwright-extension-token",
-# account = the email), or in a `vault` CLI scope "chrome-extension-tokens" if one exists, and handed to the one MCP
+# account = the email), or in a `vault` CLI scope "chrome-extension-tokens" if one exists (read through the vault's
+# own Keychain mirror, so a server start never costs a Touch ID: see token_get), and handed to the one MCP
 # process through its environment. It is never written to ~/.claude.json and never printed. One command line does
 # carry it: the relay inside @playwright/mcp opens the extension's connect page by launching Chrome with a URL that
 # includes the token. `playwright-mcp` therefore gives the relay chrome-connect-launch.sh as its browser, which starts
@@ -57,15 +58,30 @@ EOF
 
 token_key() { printf '%s' "$1" | tr '@.' '__'; }
 
+# Does the vault hold this key? `vault list` reads key names from the ciphertext files: no decrypt, no Touch ID.
+vault_holds() {
+  command -v vault >/dev/null 2>&1 || return 1
+  vault list </dev/null 2>/dev/null | awk -v s="[$VAULT_SCOPE]" -v k="$1" '$1 == s { on = 1; next } /^\[/ { on = 0 } on && $1 == k { f = 1 } END { exit !f }'
+}
+
 token_get() {
-  local email="$1" t=""
-  # Both lookups read stdin from /dev/null: under `playwright-mcp` the script's stdin is the MCP
+  local email="$1" key t=""
+  key="$(token_key "$email")"
+  # Every lookup reads stdin from /dev/null: under `playwright-mcp` the script's stdin is the MCP
   # client's JSON-RPC pipe, and `vault get` waited on it forever, so the server never started.
-  if command -v vault >/dev/null 2>&1; then
-    t=$(vault get "$VAULT_SCOPE" "$(token_key "$email")" </dev/null 2>/dev/null) || t=""
-  fi
+  #
+  # Keychain before the vault (2026-10-16, Touch ID storms on the MacBook): this runs at every MCP server start, three
+  # servers per Claude session, and each `vault get` was a sops decrypt that could ask for Touch ID. Order:
+  #   1. the vault's own plain-Keychain mirror of the value (`vault set` writes "<scope>-<key>" for non-crown scopes),
+  #      so the vault's value still wins, read without sops or the Secure Enclave;
+  #   2. this script's own Keychain item;
+  #   3. `vault get`, only when both missed AND the vault holds the key (a profile with no vault entry never decrypts).
+  t=$(security find-generic-password -s "$VAULT_SCOPE-$key" -w </dev/null 2>/dev/null) || t=""
   if [ -z "$t" ]; then
     t=$(security find-generic-password -s "$KC_SERVICE" -a "$email" -w </dev/null 2>/dev/null) || t=""
+  fi
+  if [ -z "$t" ] && vault_holds "$key"; then
+    t=$(vault get "$VAULT_SCOPE" "$key" </dev/null 2>/dev/null) || t=""
   fi
   # The extension shows the token as "PLAYWRIGHT_MCP_EXTENSION_TOKEN=<token>"; copying that whole line is natural.
   printf '%s' "${t#PLAYWRIGHT_MCP_EXTENSION_TOKEN=}"
