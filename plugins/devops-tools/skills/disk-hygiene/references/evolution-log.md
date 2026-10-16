@@ -2,6 +2,14 @@
 
 Reverse chronological - newest on top.
 
+## 2026-10-15 — Protect repos used by running processes, not only launchd jobs
+
+**Trigger**: In a full audit (96% full, 40 GB free → 168 GB free), the launchd-based exclusion list named 6 repos. Five more were in active use by running processes that no plist references, so the launchd guard alone would have deleted their `target/`, `.venv` and `node_modules`.
+
+**Fix**: Added a running-process guard to Phase 2.5. It unions in the repo roots named by `ps` command lines and by process working directories (`lsof -d cwd`).
+
+**Evidence**: The guard skipped 5 `target/` and 31 `.venv`/`node_modules` dirs. After cleanup, `launchctl list` showed no new failures: every non-zero exit had a log older than the run. Biggest wins were `uv cache prune` (39 GB), a stale IPSW (18 GB), `go-build` (11 GB) and Homebrew (7.6 GB). The pueue-hook heredoc parse error came up again and the documented Write-then-`bash` workaround fixed it.
+
 ## 2026-10-07 — Claude plugin cache is a top-5 category; `.venv` deletion can reclaim nothing
 
 **Trigger**: A full audit of a developer Mac found the Claude Code plugin cache holding tens of GB of superseded version folders (dozens of copies per plugin), never garbage-collected. In the same audit, deleting several uv-managed `.venv` folders that `du` sized at over 10 GB moved `df` by 0 GB, and a follow-up `uv cache prune` found no unused entries: the venv files were hardlinks shared with the uv cache and other live environments.
