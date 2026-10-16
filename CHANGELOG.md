@@ -1,3 +1,12 @@
+# [33.18.0](https://github.com/terrylica/cc-skills/compare/v33.17.0...v33.18.0) (2026-10-16)
+
+
+### Features
+
+* **pushover-commander:** separate vault scope for the login ([a793133](https://github.com/terrylica/cc-skills/commit/a793133c34bd980e95e498cfd11bcc09300dbb39))
+
+PUSHOVER_VAULT_LOGIN_SCOPE (default: PUSHOVER_VAULT_SCOPE) is used for login_email and login_password only, so the user key and app tokens can live in a less restricted scope than the dashboard login. Default behaviour is unchanged.
+
 # [33.17.0](https://github.com/terrylica/cc-skills/compare/v33.16.4...v33.17.0) (2026-10-16)
 
 
