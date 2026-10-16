@@ -1,3 +1,12 @@
+## [33.16.4](https://github.com/terrylica/cc-skills/compare/v33.16.3...v33.16.4) (2026-10-16)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** token_get reads the Keychain first; vault get only when the vault holds the key ([40ee7aa](https://github.com/terrylica/cc-skills/commit/40ee7aa479b64133e202b66b50028670cdb34b64))
+
+Every MCP server start (three per Claude session) ran `vault get chrome-extension-tokens <key>`, a sops decrypt that could ask for Touch ID, even for profiles with no vault entry. On 2026-10-16 it caused 6 of the MacBook's Touch ID storm prompts, and after the vault's master key is retired it would prompt on every start. Order now: the vault's own plain-Keychain mirror (vault set writes &lt;scope>-&lt;key>, so the vault's value still wins), this script's Keychain item, then `vault get` only when `vault list` (key names, no decrypt) shows the key. test-token-get.sh: five cases with stubbed security and vault.
+
 ## [33.16.3](https://github.com/terrylica/cc-skills/compare/v33.16.2...v33.16.3) (2026-10-16)
 
 
