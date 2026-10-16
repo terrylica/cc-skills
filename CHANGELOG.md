@@ -1,3 +1,15 @@
+## [33.16.3](https://github.com/terrylica/cc-skills/compare/v33.16.2...v33.16.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* pass curl secrets on stdin instead of argv ([2c5cf25](https://github.com/terrylica/cc-skills/commit/2c5cf25a80025082188ea41918c4eb253b666280)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+Every process's command line is readable by ps. Several scripts handed Pushover app tokens, user keys and a GitHub token to curl as arguments (--form-string token=..., --data-urlencode token=..., a ?token= URL, -H Authorization: ...). They now write those fields to a curl config on curl's stdin (-K -); non-secret fields stay as arguments.
+
+- pushover-commander: pushover-notify.sh and pushover-quota.sh use the config on stdin; pushover_core.ts calls fetch in-process (no curl), and its fetchRetry error message now drops the URL query, which can carry the app token.
+- asciinema-tools idle-chunker-daemon.sh and the devops-tools dual-channel-watchexec example notify-restart.sh: same change for their Pushover sends.
+
 ## [33.16.2](https://github.com/terrylica/cc-skills/compare/v33.16.1...v33.16.2) (2026-10-16)
 
 
