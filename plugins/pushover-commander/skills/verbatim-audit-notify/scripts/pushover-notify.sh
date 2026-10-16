@@ -86,6 +86,10 @@ OPTIONAL:
   --ttl <seconds>     Auto-expire on device after N seconds (low-signal events)
   --device <name>     Send only to specified Pushover device (e.g. iphone_13_mini)
   --sound <name>      Pushover sound (e.g. siren, magic, intermission, none)
+  --plain             The phone shows only --title and --message (no [service] → target, level,
+                      lookup or UUID lines); the JSONL entry, UUID included, is written as always.
+                      For messages a person reads at a glance (2026-10-16: the MacBook vault's
+                      Touch ID notices read as jargon on the phone).
   --extra <json>      Extra structured fields, merged into JSONL entry
   --help              This help
 
@@ -215,6 +219,7 @@ TTL=""
 EXTRA_JSON="{}"
 DEVICE=""   # iter 14: optional Pushover device name (e.g. iphone_13_mini); empty = all devices
 SOUND=""    # iter 14: optional Pushover sound name (e.g. siren, magic, etc.); empty = default
+PLAIN=0     # --plain: body = the message alone (the audit lines stay in the JSONL)
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -229,6 +234,7 @@ while [ $# -gt 0 ]; do
         --extra)    EXTRA_JSON="$2"; shift 2 ;;
         --device)   DEVICE="$2"; shift 2 ;;
         --sound)    SOUND="$2"; shift 2 ;;
+        --plain)    PLAIN=1; shift ;;
         --help|-h)  usage; exit 0 ;;
         *)          die "unknown flag: $1" 1 ;;
     esac
@@ -279,6 +285,7 @@ JSONL_ENTRY=$(/usr/bin/jq -c -n \
     --arg device "$DEVICE" \
     --arg sound "$SOUND" \
     --argjson extra "$EXTRA_JSON" \
+    --argjson plain "$PLAIN" \
     '{
         run_id: $run_id,
         ts: $ts,
@@ -293,7 +300,8 @@ JSONL_ENTRY=$(/usr/bin/jq -c -n \
         ttl: (if $ttl == "" then null else ($ttl | tonumber) end),
         device: (if $device == "" then null else $device end),
         sound: (if $sound == "" then null else $sound end),
-        extra: $extra
+        extra: $extra,
+        plain: (if $plain == 1 then true else null end)
     } | with_entries(select(.value != null))')
 
 # ---------------------------------------------------------------------------
@@ -315,6 +323,7 @@ LOOKUP_CMD="pushover-lookup ${UUID}"
 
 build_body() {
     local user_message="$1"
+    if [ "$PLAIN" = 1 ]; then /usr/bin/printf '%s' "$user_message"; return; fi
     /usr/bin/printf '%s\n%s%s %s\nlevel=%s priority=%s%s\n\nlookup: %s\n\nUUID: %s' \
         "$user_message" \
         "[$SERVICE]" \
