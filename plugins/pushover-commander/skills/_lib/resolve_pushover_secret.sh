@@ -20,6 +20,9 @@
 #
 # Config (set as env vars, or in the private config file below):
 #   PUSHOVER_VAULT_SCOPE                self-custody `vault` scope name (default: pushover-dashboard)
+#   PUSHOVER_VAULT_LOGIN_SCOPE          scope for login_email/login_password only (default: PUSHOVER_VAULT_SCOPE);
+#                                       lets the dashboard login sit in a stricter scope than the user key and
+#                                       app tokens, so routine sends never read the login's scope
 #   PUSHOVER_OP_VAULT                   your 1Password vault name
 #   PUSHOVER_OP_ITEM                    1Password item name/id holding the fields
 #   PUSHOVER_KEYCHAIN_SERVICE           macOS Keychain service for fallback (default: pushover-commander)
@@ -52,6 +55,8 @@ SVC="${PUSHOVER_KEYCHAIN_SERVICE:-pushover-commander}"
 # Self-custody vault scope, tried FIRST (see scs_read below). Self-custody is the preferred store;
 # 1Password is last resort and company-visible.
 SCS_SCOPE="${PUSHOVER_VAULT_SCOPE:-pushover-dashboard}"
+SCS_LOGIN_SCOPE="${PUSHOVER_VAULT_LOGIN_SCOPE:-$SCS_SCOPE}"
+case "$field" in login_email|login_password) SCS_SCOPE="$SCS_LOGIN_SCOPE" ;; esac
 
 # Read from the self-custody `vault` CLI if it is installed and the scope holds the field.
 # Silent on every failure so an absent vault simply falls through to the ladder below.
