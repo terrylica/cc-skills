@@ -56,11 +56,13 @@ token_key() { printf '%s' "$1" | tr '@.' '__'; }
 
 token_get() {
   local email="$1" t=""
+  # Both lookups read stdin from /dev/null: under `playwright-mcp` the script's stdin is the MCP
+  # client's JSON-RPC pipe, and `vault get` waited on it forever, so the server never started.
   if command -v vault >/dev/null 2>&1; then
-    t=$(vault get "$VAULT_SCOPE" "$(token_key "$email")" 2>/dev/null) || t=""
+    t=$(vault get "$VAULT_SCOPE" "$(token_key "$email")" </dev/null 2>/dev/null) || t=""
   fi
   if [ -z "$t" ]; then
-    t=$(security find-generic-password -s "$KC_SERVICE" -a "$email" -w 2>/dev/null) || t=""
+    t=$(security find-generic-password -s "$KC_SERVICE" -a "$email" -w </dev/null 2>/dev/null) || t=""
   fi
   # The extension shows the token as "PLAYWRIGHT_MCP_EXTENSION_TOKEN=<token>"; copying that whole line is natural.
   printf '%s' "${t#PLAYWRIGHT_MCP_EXTENSION_TOKEN=}"
