@@ -1,3 +1,17 @@
+## [33.16.2](https://github.com/terrylica/cc-skills/compare/v33.16.1...v33.16.2) (2026-10-16)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** shorten extension token exposure in argv ([6b36d77](https://github.com/terrylica/cc-skills/commit/6b36d774bc5979d6ff78fb0d589ce09f63707079))
+
+In extension mode the @playwright/mcp relay opens the extension connect page by spawning the Chrome binary with a URL that carries the auth token (CDPRelayServer._openConnectPageInBrowser in playwright-core). The token is then in that process argv, readable by any ps. With Chrome running, the spawned process forwards the URL and exits; with Chrome not running, it becomes the browser and the token stays on its command line until Chrome quits.
+
+- New chrome-connect-launch.sh, passed to the relay as --executable-path by chrome-profile.sh playwright-mcp: it moves its arguments to a pipe and re-execs without them, starts Chrome without any URL when it is not running and waits for it, then hands the URL to the running browser.
+- Measured with Chrome running: the forwarding process held the token for about 0.2 s (ps sampled every 39 ms). The launcher stage 1 and its printf subshell were not observed; their exposure time is unknown. The Chrome-not-running path was not measured in this change.
+- A race remains: if Chrome quits between the check and the hand-off, or is not yet listening after the 1 s wait, the hand-off process can still become the browser with the token in its argv.
+- The chrome-profile.sh header no longer claims the token never reaches a command line.
+
 ## [33.16.1](https://github.com/terrylica/cc-skills/compare/v33.16.0...v33.16.1) (2026-10-16)
 
 
