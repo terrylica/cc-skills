@@ -117,6 +117,13 @@ load_credentials() {
 # NOTIFICATIONS
 # ============================================================================
 
+# One curl config line, value quoted with \ and " escaped (curl config syntax). The value reaches sed through a
+# pipe, never its argv. Secrets go to curl through a config on stdin (`-K -`), never as arguments: every
+# process's argv is readable by `ps`.
+curl_cfg_line() {
+    printf '%s = "%s"\n' "$1" "$(printf '%s' "$2" | sed 's/[\\"]/\\&/g')"
+}
+
 notify_pushover() {
     local title="$1"
     local message="$2"
@@ -130,9 +137,10 @@ notify_pushover() {
     message=$(echo "$message" | sed 's/<[^>]*>//g')
 
     local response
-    response=$(curl -s \
-        --form-string "token=$PUSHOVER_APP_TOKEN" \
-        --form-string "user=$PUSHOVER_USER_KEY" \
+    response=$({
+        curl_cfg_line form-string "token=$PUSHOVER_APP_TOKEN"
+        curl_cfg_line form-string "user=$PUSHOVER_USER_KEY"
+    } | curl -s -K - \
         --form-string "title=$title" \
         --form-string "message=$message" \
         --form-string "priority=$priority" \

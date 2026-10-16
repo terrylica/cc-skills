@@ -21,7 +21,10 @@ fi
 # Check 2: GitHub release exists (using curl to avoid gh CLI process storm risks)
 echo "→ Checking GitHub release..."
 RELEASE_URL="https://api.github.com/repos/terrylica/cc-skills/releases/tags/v$VERSION"
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${GITHUB_TOKEN:-}" "$RELEASE_URL" 2>/dev/null || echo "000")
+# The token goes to curl in a config on stdin (-K -), never on its command line (argv is readable by `ps`); the
+# value reaches sed through a pipe. An empty token sends an empty header, as before.
+HTTP_STATUS=$(printf 'header = "Authorization: token %s"\n' "$(printf '%s' "${GITHUB_TOKEN:-}" | sed 's/[\\"]/\\&/g')" |
+    curl -s -o /dev/null -w "%{http_code}" -K - "$RELEASE_URL" 2>/dev/null || echo "000")
 if [[ "$HTTP_STATUS" == "200" ]]; then
     echo "  ✓ GitHub release v$VERSION exists"
 elif [[ "$HTTP_STATUS" == "404" ]]; then

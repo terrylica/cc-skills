@@ -50,7 +50,8 @@ async function fetchRetry(url: string, init?: RequestInit, tries = 3): Promise<R
       if (i < tries - 1) await sleep(400 * (i + 1));
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(`fetch failed: ${url}`);
+  // The URL's query can carry the app token (GET endpoints take ?token=): name the endpoint without it.
+  throw lastErr instanceof Error ? lastErr : new Error(`fetch failed: ${url.split("?")[0]}`);
 }
 
 function audit(record: Record<string, unknown>): void {

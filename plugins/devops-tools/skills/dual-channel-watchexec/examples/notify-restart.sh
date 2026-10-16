@@ -5,6 +5,13 @@
 # This is a self-contained example demonstrating the pattern.
 # Adapt paths and credentials loading for your project.
 
+# One curl config line, value quoted with \ and " escaped (curl config syntax). The value reaches sed through a
+# pipe, never its argv. Secrets go to curl through a config on stdin (`-K -`), never as arguments: every
+# process's argv is readable by `ps`.
+curl_cfg_line() {
+    printf '%s = "%s"\n' "$1" "$(printf '%s' "$2" | sed 's/[\\"]/\\&/g')"
+}
+
 set -euo pipefail
 
 # ============================================================================
@@ -320,9 +327,10 @@ Error: ${CRASH_SHORT:0:200}"
     # Send with curl
     DEVICE_NAME="${PUSHOVER_DEVICE:-default}"
 
-    curl -s \
-        --form-string "token=$PUSHOVER_APP_TOKEN" \
-        --form-string "user=$PUSHOVER_USER_KEY" \
+    {
+        curl_cfg_line form-string "token=$PUSHOVER_APP_TOKEN"
+        curl_cfg_line form-string "user=$PUSHOVER_USER_KEY"
+    } | curl -s -K - \
         --form-string "device=$DEVICE_NAME" \
         --form-string "title=$PUSHOVER_TITLE" \
         --form-string "message=$PUSHOVER_MESSAGE" \

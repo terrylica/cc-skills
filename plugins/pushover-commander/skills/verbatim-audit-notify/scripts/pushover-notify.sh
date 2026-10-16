@@ -360,14 +360,20 @@ load_credentials
 # Bypass HTTPS_PROXY for Pushover (proxy returns 502 on api.pushover.net)
 unset HTTPS_PROXY HTTP_PROXY 2>/dev/null || true
 
+# One curl config line, value quoted with \ and " escaped (curl config syntax). Secrets go to curl
+# through a config on stdin (`-K -`), never as arguments: every process's argv is readable by `ps`.
+curl_cfg_line() {
+    # The value reaches sed through a pipe, never its argv. (Bash's ${v//…} treats backslashes in the replacement
+    # differently in 3.2 and 5.2, so it is not used here.)
+    printf '%s = "%s"\n' "$1" "$(printf '%s' "$2" | sed 's/[\\"]/\\&/g')"
+}
+
 # Build curl args. Use --noproxy '*' for extra safety in case env is locked.
 CURL_ARGS=(
     --noproxy '*'
     --max-time 10
     -s
     -X POST "https://api.pushover.net/1/messages.json"
-    --data-urlencode "token=$PUSHOVER_TOKEN"
-    --data-urlencode "user=$PUSHOVER_USER"
     --data-urlencode "title=$TITLE"
     --data-urlencode "message=$BODY"
     --data-urlencode "priority=$PRIORITY"
@@ -387,7 +393,10 @@ if [ "$PRIORITY" = "2" ]; then
     )
 fi
 
-RESPONSE=$(/usr/bin/curl "${CURL_ARGS[@]}" 2>&1) || {
+RESPONSE=$({
+    curl_cfg_line data-urlencode "token=$PUSHOVER_TOKEN"
+    curl_cfg_line data-urlencode "user=$PUSHOVER_USER"
+} | /usr/bin/curl -K - "${CURL_ARGS[@]}" 2>&1) || {
     # Network failed — JSONL already written, log the dispatch failure
     /usr/bin/jq -c -n \
         --arg run_id "$UUID" \

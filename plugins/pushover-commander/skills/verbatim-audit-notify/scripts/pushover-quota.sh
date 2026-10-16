@@ -142,9 +142,16 @@ load_token() {
 
 load_token
 
-# Fetch limits — --noproxy bypasses any inherited HTTPS_PROXY
-RESPONSE=$(/usr/bin/curl -sS --noproxy '*' --max-time 10 \
-    "https://api.pushover.net/1/apps/limits.json?token=${PUSHOVER_TOKEN}" 2>&1) || \
+# One curl config line, value quoted with \ and " escaped (curl config syntax). The value reaches sed through a
+# pipe, never its argv. Secrets go to curl through a config on stdin (`-K -`), never as arguments: every
+# process's argv is readable by `ps`.
+curl_cfg_line() {
+    printf '%s = "%s"\n' "$1" "$(printf '%s' "$2" | sed 's/[\\"]/\\&/g')"
+}
+
+# Fetch limits — --noproxy bypasses any inherited HTTPS_PROXY. The URL carries the token, so it goes in the config.
+RESPONSE=$(curl_cfg_line url "https://api.pushover.net/1/apps/limits.json?token=${PUSHOVER_TOKEN}" |
+    /usr/bin/curl -sS --noproxy '*' --max-time 10 -K - 2>&1) || \
     die "curl failed: $RESPONSE" 2
 
 # Validate response shape

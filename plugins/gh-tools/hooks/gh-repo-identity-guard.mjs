@@ -16,10 +16,24 @@
 // - Cache prevents repeated API calls per session
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import { homedir } from "os";
 import { join } from "path";
 import { accountForOwner } from "./lib/path-owner-registry.mjs";
+
+/**
+ * GET a GitHub API URL with curl, the token passed in a curl config on stdin (`-K -`), never on a command
+ * line: every process's argv is readable by `ps`, and this hook runs on every gated gh command. No shell is
+ * involved. Throws on curl failure (the callers fail open).
+ */
+function githubGet(url, token) {
+  const quoted = String(token).replace(/[\\"]/g, "\\$&");
+  return execFileSync("curl", ["-sf", "--max-time", "5", "-K", "-", url], {
+    input: `header = "Authorization: token ${quoted}"\n`,
+    encoding: "utf-8",
+    timeout: 8000,
+  });
+}
 
 // ─── Read stdin ─────────────────────────────────────────────────────────────
 const input = await Bun.stdin.text();
@@ -251,10 +265,7 @@ if (cached) {
 } else {
   // API: curl to resolve user (no gh CLI — prevents process storm)
   try {
-    const result = execSync(
-      `curl -sf --max-time 5 -H "Authorization: token ${ghToken}" https://api.github.com/user`,
-      { encoding: "utf-8", timeout: 8000 }
-    );
+    const result = githubGet("https://api.github.com/user", ghToken);
     const userData = JSON.parse(result);
     authenticatedUser = userData.login;
     source = "API /user";
@@ -283,10 +294,7 @@ if (authenticatedUser === repoOwner) {
 let hasPush = false;
 let isPublicRepo = false;
 try {
-  const repoResult = execSync(
-    `curl -sf --max-time 5 -H "Authorization: token ${ghToken}" https://api.github.com/repos/${targetRepo}`,
-    { encoding: "utf-8", timeout: 8000 }
-  );
+  const repoResult = githubGet(`https://api.github.com/repos/${targetRepo}`, ghToken);
   const repoData = JSON.parse(repoResult);
   hasPush = repoData.permissions?.push === true;
   isPublicRepo = repoData.private === false;
