@@ -33,7 +33,14 @@
 
 import { createHash } from "node:crypto";
 
+import { homedir } from "node:os";
+import { resolve as resolvePath } from "node:path";
 import { splitShellWords } from "./shell-arg-extractor.ts";
+import { lexShellCommands } from "./shell-command-quote-aware-static-lexer.ts";
+import {
+  basename as invocationBasename,
+  skipAssignmentsAndWrappers,
+} from "./shell-command-invocation-walker.ts";
 
 // ---------------------------------------------------------------------------------------------
 // Command classification
@@ -89,7 +96,12 @@ const gitCommand = (rest: string) =>
 
 const GH_PR_READY = ghCommand(String.raw`pr\s+ready\b`);
 const GH_PR_CREATE = ghCommand(String.raw`pr\s+create\b`);
-const GIT_PUSH = gitCommand(String.raw`push\b`);
+/**
+ * `git push`, also after git's GLOBAL options (`git -C ../wt push`, `git -c k=v push`). Without them
+ * `git -C <worktree> push` was not recognised as a push at all, so a push to a branch in front of a
+ * reviewer went unmetered whenever it was written from another checkout (2026-10-17).
+ */
+const GIT_PUSH = gitCommand(String.raw`(?:(?:-[Cc]\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push\b`);
 
 /**
  * Flags are tested against the command with QUOTED SPANS REMOVED.
@@ -301,6 +313,132 @@ export function prCreateHeadBranch(command: string): string | null {
   return null;
 }
 
+/**
+ * The base branch a `gh pr create` names with `--base` / `-B` / `--base=`, or null.
+ *
+ * The record CLI and the gate must measure the SAME diff, and a stacked PR's diff is against its
+ * base, not against the default branch. Same word walk as {@link prCreateHeadBranch}.
+ */
+export function prCreateBaseBranch(command: string): string | null {
+  return ghFlagValue(command, ["pr", "create"], ["--base", "-B"]);
+}
+
+/** The `--repo` / `-R` a `gh pr …` command names, or null. Passed through to `gh pr view`. */
+export function ghRepoFlag(command: string): string | null {
+  return (
+    ghFlagValue(command, ["pr", "ready"], ["--repo", "-R"]) ??
+    ghFlagValue(command, ["pr", "create"], ["--repo", "-R"])
+  );
+}
+
+function ghFlagValue(command: string, verb: readonly string[], aliases: readonly string[]): string | null {
+  const words = splitShellWords(command);
+  for (let i = 0; i < words.length; i += 1) {
+    const head = words[i]!;
+    if (head.isOperator || !head.firstSegmentBare) continue;
+    if ((head.value.split("/").pop() ?? "").toLowerCase() !== "gh") continue;
+    if (verb.some((v, k) => words[i + 1 + k]?.value !== v)) continue;
+    for (let j = i + 1 + verb.length; j < words.length; j += 1) {
+      const arg = words[j]!;
+      if (arg.isOperator) return null;
+      for (const alias of aliases) {
+        if (arg.value === alias) {
+          const next = words[j + 1];
+          return next === undefined || next.isOperator || next.value === "" ? null : next.value;
+        }
+        if (alias.startsWith("--") && arg.value.startsWith(`${alias}=`)) {
+          return arg.value.slice(alias.length + 1) || null;
+        }
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * `gh pr ready [<number> | <url> | <branch>]`: the positional argument, with or without `--undo`.
+ * {@link undraftTarget} already skips every flag, `--undo` included, so this is the same walk; the
+ * second name exists so the ready path does not read as if it were about undrafting.
+ */
+export const prReadyTarget = undraftTarget;
+
+const DIRECTORY_CHANGERS: ReadonlySet<string> = new Set(["cd", "pushd"]);
+
+/**
+ * Expand the forms of a directory argument that are knowable from the command text alone (`~`,
+ * `$HOME`, `${HOME}`, `$PWD`) and resolve it against `base`. Null for anything else that the shell
+ * would expand (`$DIR`, `$(…)`, backticks, `-`): guessing a directory is how a gate measures the
+ * wrong repository, so an unknown directory means "not located" and the caller keeps its cwd.
+ */
+export function resolveDirectoryArgument(value: string, base: string, home: string = homedir()): string | null {
+  let v = value;
+  if (v === "~" || v.startsWith("~/")) v = home + v.slice(1);
+  v = v.replace(/^\$(?:\{HOME\}|HOME)(?=\/|$)/, home).replace(/^\$(?:\{PWD\}|PWD)(?=\/|$)/, base);
+  if (v === "" || v === "-" || /[$`]/.test(v)) return null;
+  return resolvePath(base, v);
+}
+
+/**
+ * The directory the gated command (`gh pr ready|create`, `git push`) actually runs in, or null when
+ * the command text does not move it away from the session's cwd.
+ *
+ * WHY. The gate used to read the repository, HEAD and branch from the SESSION's cwd. An agent
+ * standing in the main checkout writes `cd ../repo-feature && gh pr ready 12`, or
+ * `git -C ../repo-feature push`; the gate then measured `main` in the main checkout, found no
+ * record for it, and denied, although the record existed at the exact head of the worktree the
+ * command ran in (2026-10-17: every `gh pr create`/`ready` from a worktree needed the override).
+ *
+ * Follows `cd DIR` / `pushd DIR` in order up to the gated command, and `git -C DIR`. Assignments
+ * and wrappers (`env`, `nice`, `timeout`, …) are skipped the way every other guard sharing the
+ * invocation walker skips them. A directory that cannot be resolved from the text alone stops the
+ * walk with null, so an unknown directory never widens what the gate allows: the caller keeps the
+ * session cwd, which is the old behaviour.
+ */
+export function gatedCommandDirectory(command: string, sessionCwd: string, home: string = homedir()): string | null {
+  const { commands } = lexShellCommands(command);
+  let dir = sessionCwd;
+  let moved = false;
+  for (const words of commands) {
+    const k = skipAssignmentsAndWrappers(words);
+    if (k === -1) continue;
+    const program = invocationBasename(words[k]!.value);
+    const args = words.slice(k + 1).map((w) => w.value);
+
+    if (DIRECTORY_CHANGERS.has(program)) {
+      const target = args.find((a) => !a.startsWith("-") || a === "-");
+      const next = target === undefined ? home : resolveDirectoryArgument(target, dir, home);
+      if (next === null) return null;
+      dir = next;
+      moved = true;
+      continue;
+    }
+
+    if (program === "git") {
+      let a = 0;
+      let gitDir: string | null = null;
+      while (a < args.length && args[a]!.startsWith("-")) {
+        if (args[a] === "-C" && a + 1 < args.length) {
+          const resolved = resolveDirectoryArgument(args[a + 1]!, gitDir ?? dir, home);
+          if (resolved === null) return null;
+          gitDir = resolved;
+          a += 2;
+          continue;
+        }
+        // `-c key=value` and `--git-dir=…`/`--work-tree=…` take values; skip them conservatively.
+        a += args[a] === "-c" ? 2 : 1;
+      }
+      if (args[a] === "push") return gitDir ?? (moved ? dir : null);
+      continue;
+    }
+
+    if (program === "gh" && args[0] === "pr" && (args[1] === "ready" || args[1] === "create")) {
+      return moved ? dir : null;
+    }
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------------------------
 // The escape hatch
 // ---------------------------------------------------------------------------------------------
@@ -339,6 +477,8 @@ export interface ReviewRoundArtifact {
 export interface RepoFacts {
   readonly headSha: string;
   readonly baseSha: string;
+  /** Display name of the ref the base was resolved from (`github/main`); optional for fixtures. */
+  readonly baseRef?: string;
   readonly diffText: string;
   readonly changedPaths: readonly string[];
 }

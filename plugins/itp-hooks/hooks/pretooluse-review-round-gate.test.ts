@@ -17,7 +17,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -31,11 +31,16 @@ import {
 const HOOK_PATH = join(dirname(import.meta.path), "pretooluse-review-round-gate.ts");
 
 interface HookDecision {
-  hookSpecificOutput: { permissionDecision: "allow" | "deny" | "ask" };
+  hookSpecificOutput: { permissionDecision: "allow" | "deny" | "ask"; permissionDecisionReason?: string };
 }
 
-async function runHook(command: string, cwd: string): Promise<HookDecision> {
-  const proc = Bun.spawn(["bun", HOOK_PATH], { stdin: "pipe", stdout: "pipe", stderr: "pipe" });
+async function runHook(command: string, cwd: string, env?: Record<string, string>): Promise<HookDecision> {
+  const proc = Bun.spawn(["bun", HOOK_PATH], {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+    env: env === undefined ? process.env : { ...process.env, ...env },
+  });
   proc.stdin.write(JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd }));
   proc.stdin.end();
   const out = await new Response(proc.stdout).text();
@@ -211,5 +216,96 @@ describe("gh pr create --head measures the named branch's worktree, not cwd", ()
     const { main } = reviewedBranchInAWorktree("noworktree");
     const decision = await runHook("gh pr create --head some-other-branch --title t --body-file /tmp/b.md", main);
     expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+});
+
+/**
+ * A directory holding a fake `gh` that prints `stdout` and exits `code`, prepended to PATH.
+ *
+ * The number path of `gh pr ready N` asks GitHub for the PR's head and base. A test that reached
+ * the network would fail on a plane, so the lookup is answered by a stub with the same output shape
+ * as `gh pr view N --json headRefName,baseRefName`.
+ */
+function fakeGh(stdout: string, code = 0): Record<string, string> {
+  const dir = mkdtempSync(join(tmpdir(), "rrg-fakegh-"));
+  created.push(dir);
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  writeFileSync(join(bin, "gh"), `#!/bin/sh\nprintf '%s' '${stdout}'\nexit ${code}\n`);
+  chmodSync(join(bin, "gh"), 0o755);
+  return { PATH: `${bin}:${process.env.PATH ?? ""}` };
+}
+
+describe("the gate measures the directory the COMMAND runs in (2026-10-17)", () => {
+  // Reported from a session standing in the main checkout: `cd <worktree> && gh pr ready N` was
+  // denied after `review-round-cli.ts record` had been run in that worktree, because the gate read
+  // HEAD and branch from the session's cwd. Every allow below has a control that still denies.
+  test("cd <worktree> && gh pr ready is allowed when the worktree's head is recorded", async () => {
+    const { main, worktree } = reviewedBranchInAWorktree("cd-ready");
+    const decision = await runHook(`cd ${worktree} && gh pr ready`, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("cd <worktree> && gh pr create is allowed when the worktree's head is recorded", async () => {
+    const { main, worktree } = reviewedBranchInAWorktree("cd-create");
+    const decision = await runHook(`cd "${worktree}" && gh pr create --title t --body-file /tmp/b.md`, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: an edit after the record is denied, and the deny says what it measured", async () => {
+    const { main, worktree } = reviewedBranchInAWorktree("cd-edited");
+    writeFileSync(join(worktree, "a.txt"), "changed after review\n");
+    const decision = await runHook(`cd ${worktree} && gh pr ready`, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain(`Measured: ${worktree} on feature`);
+  });
+
+  test("a directory the text cannot resolve ($VAR) falls back to the session cwd and is denied", async () => {
+    const { main } = reviewedBranchInAWorktree("cd-var");
+    const decision = await runHook("cd $WT && gh pr ready", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  test("gh pr ready <branch> from the main checkout measures that branch's worktree", async () => {
+    const { main } = reviewedBranchInAWorktree("ready-branch");
+    const decision = await runHook("gh pr ready feature", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("gh pr ready <number> resolves the PR's head branch to its worktree", async () => {
+    const { main } = reviewedBranchInAWorktree("ready-number");
+    const env = fakeGh('{"headRefName":"feature","baseRefName":"main"}');
+    const decision = await runHook("gh pr ready 7", main, env);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: a failed PR lookup changes nothing, so the session cwd (main) is measured and denied", async () => {
+    const { main } = reviewedBranchInAWorktree("ready-number-fail");
+    const decision = await runHook("gh pr ready 7", main, fakeGh("", 1));
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  test("git -C <worktree> push is metered on the worktree's branch", async () => {
+    // TRUE POSITIVE that the old gate missed: the branch in the worktree is in front of a reviewer
+    // and its head has moved past the record, but measured from the main checkout (`main`, never
+    // marked) the push was allowed unmetered.
+    const { main, worktree } = reviewedBranchInAWorktree("dash-c-push");
+    const id = identifyRepo(worktree);
+    if (id === null) throw new Error("identifyRepo returned null");
+    markBranchReviewable(id, sh(["rev-parse", "HEAD"], worktree).trim());
+    writeFileSync(join(worktree, "a.txt"), "unreviewed follow-up\n");
+    sh(["commit", "-qam", "follow-up"], worktree);
+
+    expect((await runHook(`git -C ${worktree} push`, main)).hookSpecificOutput.permissionDecision).toBe("deny");
+    // Control: the same push from the main checkout, without -C, concerns `main`, which is not marked.
+    expect((await runHook("git push", main)).hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("a gh command quoted inside a heredoc body is data, not a gated command", async () => {
+    // Found while writing these tests: a heredoc whose BODY contained the text of a `gh pr ready`
+    // command was classified as one and denied, from a directory with nothing to submit.
+    const { main } = reviewedBranchInAWorktree("heredoc");
+    const command = ["cat > /tmp/notes.txt <<'EOF'", "then run: cd wt && gh pr ready 12", "EOF"].join("\n");
+    expect((await runHook(command, main)).hookSpecificOutput.permissionDecision).toBe("allow");
   });
 });

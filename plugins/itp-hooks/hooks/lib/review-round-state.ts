@@ -76,6 +76,55 @@ export function resolveHeadBranch(target: string, cwd: string): string | null {
 }
 
 /**
+ * Shorter than GH_TIMEOUT_MS on purpose: this lookup sits on the GATING path of `gh pr ready N`,
+ * inside the orchestrator's 4 s budget for this guard. If it ran out that budget the orchestrator
+ * would skip the guard (fail open); bounded at 2.5 s, a slow GitHub costs the precise measurement
+ * and the gate still decides on the command's own directory, exactly as before this lookup existed.
+ */
+const PR_LOOKUP_TIMEOUT_MS = 2500;
+
+export interface PrRefs {
+  readonly head: string;
+  /** The PR's base branch, or null when the target was a branch name (no lookup made). */
+  readonly base: string | null;
+}
+
+/**
+ * Head and base branch of the PR a `gh pr ready <target>` names.
+ *
+ * Why the gate needs it (2026-10-17): `gh pr ready 268` run from the main checkout was measured on
+ * the main checkout's branch, so a self-review recorded in the PR's own worktree could never
+ * satisfy it and every ready took the override. The head branch leads to the worktree that holds
+ * it (`worktreeForBranch`); the base makes the diff the PR's diff rather than the diff against
+ * whatever default branch happens to be checked out locally.
+ *
+ * A branch-name target needs no lookup. A number or URL costs one bounded `gh pr view`; null on any
+ * failure, and the caller then keeps the directory it already had.
+ */
+export function resolvePrRefs(target: string, cwd: string, repo: string | null = null): PrRefs | null {
+  if (!/^\d+$/.test(target) && !/^https?:\/\//i.test(target)) return { head: target, base: null };
+  try {
+    const args = ["pr", "view", target, "--json", "headRefName,baseRefName"];
+    if (repo) args.push("--repo", repo);
+    const out = execFileSync("gh", args, {
+      cwd,
+      encoding: "utf8",
+      timeout: PR_LOOKUP_TIMEOUT_MS,
+      maxBuffer: 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const parsed = JSON.parse(out) as { headRefName?: unknown; baseRefName?: unknown };
+    if (typeof parsed.headRefName !== "string" || parsed.headRefName === "") return null;
+    return {
+      head: parsed.headRefName,
+      base: typeof parsed.baseRefName === "string" && parsed.baseRefName !== "" ? parsed.baseRefName : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The path of the worktree of cwd's repository that has `branch` checked out, or null.
  *
  * Lets the gate measure the branch a `gh pr create --head <branch>` actually submits instead of
@@ -120,27 +169,94 @@ export function identifyRepo(cwd: string): RepoIdentity | null {
 }
 
 /**
- * The base commit this branch is measured against.
+ * Remote names in the order the base is looked up: the remote the current branch tracks, then
+ * `origin`, then every other remote.
  *
- * Falls back through the common default-branch spellings. If none resolves, the caller gets null
- * and the gate must fail OPEN -- a repository with no discoverable base is not one this gate can
- * make a judgement about, and blocking every push there would be a false positive with no remedy.
+ * WHY NOT JUST `origin`. The first version hard-coded `origin/main` and then fell back to the LOCAL
+ * `main`. A repository whose only remote is called something else (measured 2026-10-17: a repo
+ * whose remote is `github`) therefore measured every branch against a local `main` that had not
+ * been fast-forwarded for days, and the gate demanded verdicts for nine files the PR never touched.
  */
-export function resolveBase(cwd: string): string | null {
-  for (const ref of ["origin/main", "origin/master", "main", "master"]) {
+function remoteNamesInLookupOrder(cwd: string): string[] {
+  let names: string[] = [];
+  try {
+    names = git(["remote"], cwd)
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+  let upstreamRemote: string | null = null;
+  try {
+    const upstream = git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], cwd).trim();
+    upstreamRemote = names.find((n) => upstream.startsWith(`${n}/`)) ?? null;
+  } catch {
+    // No upstream configured: fine, the other remotes are still tried.
+  }
+  return [...new Set([upstreamRemote, "origin", ...names])].filter(
+    (n): n is string => n !== null && names.includes(n),
+  );
+}
+
+/**
+ * Candidate refs for the base, most authoritative first. Exported for tests.
+ *
+ * Remote-tracking refs come BEFORE local branches, always: a PR is measured against the base on
+ * the remote, and a local `main` is only as fresh as the last time someone pulled it. With an
+ * explicit base (`gh pr create --base X`, or the PR's `baseRefName`), `<remote>/X` is tried first;
+ * the default-branch spellings stay behind it so a base that has no local ref does not fail open.
+ */
+export function baseRefCandidates(cwd: string, baseBranch: string | null = null): string[] {
+  const remotes = remoteNamesInLookupOrder(cwd);
+  const refs: string[] = [];
+  if (baseBranch) {
+    for (const r of remotes) refs.push(`refs/remotes/${r}/${baseBranch}`);
+    refs.push(`refs/heads/${baseBranch}`);
+  }
+  for (const r of remotes) {
+    refs.push(`refs/remotes/${r}/HEAD`, `refs/remotes/${r}/main`, `refs/remotes/${r}/master`);
+  }
+  refs.push("refs/heads/main", "refs/heads/master");
+  return [...new Set(refs)];
+}
+
+export interface ResolvedBase {
+  readonly sha: string;
+  /** Short display name of the ref the base came from, e.g. `github/main`. */
+  readonly ref: string;
+}
+
+/**
+ * The base commit this branch is measured against, and the ref it came from.
+ *
+ * If no candidate resolves, the caller gets null and the gate must fail OPEN -- a repository with
+ * no discoverable base is not one this gate can make a judgement about, and blocking every push
+ * there would be a false positive with no remedy.
+ */
+export function resolveBase(cwd: string, baseBranch: string | null = null): ResolvedBase | null {
+  for (const ref of baseRefCandidates(cwd, baseBranch)) {
     try {
       const merged = git(["merge-base", ref, "HEAD"], cwd).trim();
-      if (merged) return merged;
+      if (merged) {
+        return { sha: merged, ref: ref.replace(/^refs\/(?:remotes|heads)\//, "") };
+      }
     } catch {
-      // try the next spelling
+      // try the next candidate
     }
   }
   return null;
 }
 
-export function collectFacts(cwd: string): RepoFacts | null {
-  const base = resolveBase(cwd);
-  if (base === null) return null;
+/**
+ * `baseBranch` is the PR's base when the caller knows it (`--base`, or `baseRefName` from GitHub);
+ * the record CLI accepts the same value through `--base`, so the producer and the gate measure the
+ * same diff.
+ */
+export function collectFacts(cwd: string, baseBranch: string | null = null): RepoFacts | null {
+  const resolved = resolveBase(cwd, baseBranch);
+  if (resolved === null) return null;
+  const base = resolved.sha;
   try {
     const root = git(["rev-parse", "--show-toplevel"], cwd).trim();
     const headSha = git(["rev-parse", "HEAD"], cwd).trim();
@@ -184,7 +300,7 @@ export function collectFacts(cwd: string): RepoFacts | null {
     }
 
     const changedPaths = [...new Set([...tracked, ...untracked])].toSorted();
-    return { headSha, baseSha: base, diffText, changedPaths };
+    return { headSha, baseSha: base, baseRef: resolved.ref, diffText, changedPaths };
   } catch {
     return null;
   }
