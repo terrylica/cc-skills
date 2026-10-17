@@ -69,6 +69,68 @@ $fix_guidance"
     jq -n --arg reason "$full_reason" '{decision: "block", reason: $reason}'
 }
 
+# --- Inline-ignore audit: the repository's own convention (2026-10-17) ---
+# A `# noqa: CODE` is not flagged when the repository has already decided on that code:
+#   1. its ruff configuration at the repository root names the code (ignore, extend-ignore or
+#      per-file-ignores), or
+#   2. the same code is suppressed inline in at least NOQA_CONVENTION_MIN_FILES other tracked
+#      Python files (an established pattern, not a one-off), or
+#   3. the code is E402 and the file changes sys.path before importing: the import has to follow
+#      the path change, and ruff has no rule-level way to say so.
+# Reported: `# noqa: E402` after `sys.path.insert(...)` was flagged in a repository that uses that
+# pattern in every script. Bare `# noqa` and `# type: ignore` / `# ty: ignore` are still flagged.
+# Written for bash 3.2 (macOS /bin/bash): no associative arrays.
+NOQA_CONVENTION_MIN_FILES=3
+
+noqa_code_is_repository_convention() {
+    local code="$1" file="$2" root="$3" rel="$4"
+    if [[ "$code" == "E402" ]] && grep -qE '^[[:space:]]*(sys\.path\.(insert|append)|site\.addsitedir)\(' "$file" 2>/dev/null; then
+        return 0
+    fi
+    [[ -n "$root" ]] || return 1
+    local cfg
+    for cfg in ruff.toml .ruff.toml pyproject.toml; do
+        if [[ -f "$root/$cfg" ]] && grep -qE "[\"']${code}[\"']" "$root/$cfg" 2>/dev/null; then
+            return 0
+        fi
+    done
+    local others=0
+    # Explicit boundaries, not \b: macOS's POSIX ERE (git grep -E there) has no \b.
+    others=$(git -C "$root" grep -l -E "noqa:([^#]*[:, ])?${code}([^0-9]|\$)" -- '*.py' '*.pyi' 2>/dev/null | grep -cvxF -- "$rel") || others=0
+    [[ "${others:-0}" -ge "$NOQA_CONVENTION_MIN_FILES" ]]
+}
+
+# Reads `LINE:text` lines on stdin; prints those that are NOT covered by the repository convention.
+drop_conventional_noqa_lines() {
+    local file="$1" root="" rel="" line codes code all
+    root=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null) || root=""
+    if [[ -n "$root" ]]; then
+        rel="${file#"$root"/}"
+    fi
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        # type: ignore / ty: ignore are not ruff codes; keep them flagged.
+        if [[ "$line" =~ \#[[:space:]]*(type|ty):[[:space:]]*ignore ]]; then
+            printf '%s\n' "$line"
+            continue
+        fi
+        codes=$(printf '%s\n' "$line" | grep -oE 'noqa:[[:space:]]*[A-Z]+[0-9]+([[:space:]]*,[[:space:]]*[A-Z]+[0-9]+)*' | sed -E 's/noqa:[[:space:]]*//; s/[[:space:]]//g' | tr ',' '\n') || codes=""
+        if [[ -z "$codes" ]]; then
+            printf '%s\n' "$line"  # bare `# noqa`: no code to look up
+            continue
+        fi
+        all=true
+        while IFS= read -r code; do
+            [[ -n "$code" ]] || continue
+            if ! noqa_code_is_repository_convention "$code" "$file" "$root" "$rel"; then
+                all=false
+                break
+            fi
+        done <<<"$codes"
+        [[ "$all" == "true" ]] || printf '%s\n' "$line"
+    done
+}
+
 # === BASH TOOL: Check exit code and stderr patterns ===
 if [[ "$TOOL_NAME" == "Bash" ]]; then
     # Iter-56 bash-branch-early-exit-jq-batching optimization:
@@ -499,6 +561,12 @@ Escape hatch: Add INLINE-IGNORE-OK on the same line if truly unavoidable."
     case "$FILE_PATH" in
         *.py|*.pyi)
             INLINE_IGNORES=$(grep -nE '# (ruff: )?noqa\b|# type:\s*ignore\b|# ty:\s*ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)
+            if [[ -n "$INLINE_IGNORES" ]]; then
+                # On any failure of the filter, keep every finding: never silence the audit by accident.
+                if FILTERED_INLINE_IGNORES=$(printf '%s\n' "$INLINE_IGNORES" | drop_conventional_noqa_lines "$FILE_PATH"); then
+                    INLINE_IGNORES="$FILTERED_INLINE_IGNORES"
+                fi
+            fi
             ;;
         *.js|*.ts|*.mjs|*.tsx|*.jsx)
             INLINE_IGNORES=$(grep -nE '//\s*eslint-disable(-next)?-line\b|/\*\s*eslint-disable\b|//\s*biome-ignore\b|//\s*oxlint-ignore\b' "$FILE_PATH" 2>/dev/null | grep -v 'INLINE-IGNORE-OK' || true)

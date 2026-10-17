@@ -29,6 +29,16 @@
 | ----------------- | ----------- | ------------------------------------------------------- |
 | PostToolUse audit | Write\|Edit | **WARN** about existing inline ignores (full-file scan) |
 
+### The repository's own convention (2026-10-17)
+
+A `# noqa: CODE` is not reported when the repository has already decided on that code. Reported case: `# noqa: E402` after `sys.path.insert(...)` was flagged in a repository that uses the pattern in every script. A line is skipped when every code on it is:
+
+- **E402 in a file that changes `sys.path`** (`sys.path.insert`, `sys.path.append`, `site.addsitedir`) — the import has to follow the path change, and ruff has no rule-level way to say so;
+- **named in the repository's ruff configuration** at its root (`ruff.toml`, `.ruff.toml`, `pyproject.toml`: `ignore`, `extend-ignore`, `per-file-ignores`); or
+- **suppressed inline in at least three other tracked Python files** (`git grep`) — an established pattern, not a one-off.
+
+Still reported: a bare `# noqa`, every `# type: ignore` / `# ty: ignore`, and any code without such a convention behind it. Test: `hooks/tests/test-code-correctness-guard-inline-ignore-convention.sh`.
+
 ### Escape Hatch
 
 Add `# INLINE-IGNORE-OK` or `// INLINE-IGNORE-OK` on the same line:
