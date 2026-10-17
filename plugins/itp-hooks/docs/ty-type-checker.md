@@ -28,7 +28,7 @@ output-format = "concise"
 ## Per-file check
 
 - Skips paths under `/.venv/` or `/node_modules/`, throwaway files in temp directories, and files no longer on disk.
-- If `ty` is not installed, shows an install reminder (`uv tool install ty`) once per session.
+- If `ty` is not installed, shows an install reminder (`uv tool install ty`) once per session, and nothing after that. Until 2026-10-17 this did not work through the resource guard: the guard runs the tool as `sh -c 'ulimit -t N; exec "$@"'`, so a missing `ty` was sh's exit 127 rather than a spawn failure, and "/bin/sh: 1: exec: ty: not found" was reported as ty output after every Python edit. The shared helper now resolves the program on PATH before wrapping it (and treats a guarded exit 127 with "not found" the same way), so a missing tool is `spawnFailed` again. The Stop-hook check tests `which ty` first and was already silent.
 - Exit codes 2 (configuration error) and 101 (ty internal bug) are treated as ty problems, not type errors, and report nothing; so do timeouts (the subprocess has its own 4000 ms limit).
 - Real diagnostics are shown to Claude as additional context with an error/warning summary line, capped at 30 lines and truncated below Claude Code's 10,000-character hook-output limit.
 

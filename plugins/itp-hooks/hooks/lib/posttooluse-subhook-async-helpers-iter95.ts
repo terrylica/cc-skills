@@ -183,6 +183,23 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
 
   // ── Resource guard (opt-in per tool; see incident 2026-07-30 in the guard module) ──
   const guardedToolName = options.residentMemoryGuardedToolName;
+
+  // A MISSING BINARY MUST READ AS spawnFailed, and through the guarded path it did not. The guard
+  // runs the tool as `sh -c 'ulimit -t N; exec "$@"'`, so posix_spawn always succeeds (it starts
+  // sh) and a missing tool surfaces as sh's exit 127 with "exec: ty: not found" on stderr. Callers
+  // test `spawnFailed` for "not installed", so the ty check fell through to its diagnostics branch
+  // and reported the shell's error after every Python edit (2026-10-17, a host without ty). Resolve
+  // the program first; not found is answered here, before a concurrency slot is taken.
+  if (guardedToolName && argv[0] !== undefined && !argv[0].includes("/") && Bun.which(argv[0]) === null) {
+    return {
+      exitCode: null,
+      stdoutText: "",
+      stderrText: `${argv[0]}: not found on PATH`,
+      spawnFailed: true,
+      timedOut: false,
+    };
+  }
+
   let concurrencySlot: AcquiredConcurrencySlot | null = null;
   if (guardedToolName) {
     concurrencySlot = tryAcquireMachineWideConcurrencySlotForGuardedSubprocess(guardedToolName);
@@ -234,11 +251,16 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
     ]);
     await subprocess.exited;
 
+    // Belt and braces for the check above: through the `sh -c … exec` wrapper, exit 127 with
+    // "not found" is the shell saying the program does not exist, not a result of the tool.
+    const shellReportedMissingProgram =
+      Boolean(guardedToolName) && subprocess.exitCode === 127 && /not found/i.test(stderrText);
+
     return {
       exitCode: subprocess.exitCode,
       stdoutText: stdoutText.trim(),
       stderrText: stderrText.trim(),
-      spawnFailed: false,
+      spawnFailed: shellReportedMissingProgram,
       timedOut: false,
       killedForExceedingMemoryCeiling:
         residentMemoryWatchdog?.wasKilledForExceedingMemoryCeiling() ?? false,
