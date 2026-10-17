@@ -343,6 +343,17 @@ done | sort
 STALE_EOF
 ```
 
+### Sudden loss: hunt by recent writes, not by age
+
+When free space drops by tens or hundreds of GB within hours, the age-based scan above won't find it, and neither will `du` of the usual directories (it often isn't under `$HOME`). Look for what was **written recently**, across the whole Data volume, `/private/tmp` included:
+
+```bash
+find /System/Volumes/Data -xdev -type f -mmin -180 -size +2G -exec ls -la {} + 2>/dev/null | sort -k5 -rn | head
+lsof "<file>"   # still open? Deleting an open file frees nothing until the writer exits; truncate it instead
+```
+
+Measured 2026-10-16: the Mac went from 293 GB to 14 GB free (99%) in a few hours. The cause was one 262 GB file in `/private/tmp`, written by a `cat run-*.log > run-all.log` whose output matched its own glob, so `cat` kept reading back its own output until the disk filled. The last line was `cat: stdout: No space left on device`. No process had it open, so `rm` freed the space at once. Check the volume's snapshots first, too (`diskutil apfs listSnapshots disk3s1`): if a snapshot predates your deletions, it keeps their blocks allocated.
+
 ### Two traps when hunting big files
 
 **1. Apparent size ≠ allocated size (sparse files).** `ls -l` and `find -size` report the file's _logical_ extent; `du` reports blocks actually on disk. A corrupted index or a database with a runaway seek produces a sparse file where these differ by orders of magnitude. Measured 2026-08-03 on a ChromaDB HNSW file:
@@ -499,6 +510,9 @@ After modifying this skill:
 | Stale file scan is slow                                                    | Deep directory tree                                                                                                                                                                            | Limit `-maxdepth` or exclude more paths                                                                                                                                                                                              |
 | Docker not accessible                                                      | Desktop app not running                                                                                                                                                                        | Start Docker.app or skip Docker cleanup                                                                                                                                                                                              |
 | `parse error near TASK_ID=$(pueue add ...)` from heredoc with spaced paths | A user shell hook (e.g. pueue submission) re-parses the command string and breaks on `${var}/Path With Spaces/*` globs inside heredocs                                                         | Write multi-line scripts to `/tmp/<name>.sh` first via Write tool, then invoke as `bash /tmp/<name>.sh` — bypasses the inline heredoc → hook re-quote path entirely                                                                  |
+| Freeing a remote Linux host's "old OS" partition | After an OS migration, the previous root left on the data drive looks like dead weight (`usr`, `opt`, `boot`, `swap.img`) | Before deleting it, read the host's migration docs and firmware boot entries (`efibootmgr -v`): it may be the documented rollback path for a soak period. No open files and no references does not mean unused. Measured 2026-10-15: a cleanup deleted a fallback root 25 days before its soak ended |
+| `rsync -a src/ dest/` loosens a directory you created as 0700 | `-a` copies the source directory's own mode onto `dest` | When staging sensitive data, `chmod 0700` after the rsync (or use `--chmod=D0700,F0600`) and check with `stat` before you rely on it |
+| Disk fills overnight on a host where agents create git worktrees | Every worktree checks out its own copy of LFS-tracked data | Count worktrees and size each one's data dir; remove only clean, idle, fully pushed worktrees with `git worktree remove`. The lasting fix is in the repo: set `lfs.fetchexclude` for the bulk data and symlink it into worktrees |
 | Removing a proto toolchain triggers immediate auto-reinstall               | A project's `.prototools` pins the version you just removed; proto reinstalls it on the next invocation from that project when `auto-install` is on, and fails the invocation when it is off   | Before `proto uninstall <tool> <version>`, grep all reachable `.prototools` files for the version. If pinned, leave it alone or update the pin first. Same applies to rustup toolchains vs. `rust-toolchain.toml` files in projects. |
 
 ### Hook-safe multi-line scripts

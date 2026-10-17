@@ -2,6 +2,14 @@
 
 Reverse chronological - newest on top.
 
+## 2026-10-16 — Hunt sudden losses by recent writes; three remote-host traps
+
+**Trigger**: Free space fell from 293 GB to 14 GB within hours. The age-based scan and the usual `du` targets missed the cause: a 262 GB log in `/private/tmp`, written by a `cat` whose glob matched its own output file. In the same session, work on a remote Linux data drive hit three more traps: deleting an old OS root that was still the documented rollback path, `rsync -a` loosening a 0700 staging directory, and agent worktrees each checking out a copy of LFS-tracked data.
+
+**Fix**: Added "Sudden loss: hunt by recent writes" before "Two traps" (a `find -mmin` sweep of the whole Data volume, `lsof` before deleting, a snapshot check) and three Troubleshooting rows.
+
+**Evidence**: `rm` of the one file took the Mac from 14 GB to 279 GB free. The remote cases are recorded in the operator's private host docs.
+
 ## 2026-10-15 — Protect repos used by running processes, not only launchd jobs
 
 **Trigger**: In a full audit (96% full, 40 GB free → 168 GB free), the launchd-based exclusion list named 6 repos. Five more were in active use by running processes that no plist references, so the launchd guard alone would have deleted their `target/`, `.venv` and `node_modules`.
