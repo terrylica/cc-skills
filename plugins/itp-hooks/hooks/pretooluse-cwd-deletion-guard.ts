@@ -47,8 +47,8 @@ export async function main() {
     return;
   }
 
-  // Skip if command doesn't contain rm (fast path)
-  if (!/\brm\b/.test(command)) {
+  // Skip if command doesn't contain rm, rmdir or mv (fast path)
+  if (!/\b(?:rm|rmdir|mv)\b/.test(command)) {
     allow();
     return;
   }

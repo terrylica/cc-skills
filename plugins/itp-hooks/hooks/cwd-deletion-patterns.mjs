@@ -14,7 +14,9 @@
  * ADR: /docs/adr/2026-02-09-cwd-deletion-guard.md
  */
 
+import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 /**
  * Iter-109: migrated to the iter-107 canonical shared escape-hatch-marker
@@ -68,12 +70,11 @@ function normalizePath(p) {
 }
 
 /**
- * Check if a target path would delete the CWD.
+ * Check if a resolved target path would delete the protected directory.
  *
  * Returns true if:
- * - target === cwd (exact match)
- * - target is a parent of cwd (deleting parent kills child)
- * - target is "." or "./" (relative CWD reference)
+ * - target === protected (exact match)
+ * - target is a parent of protected (deleting parent kills child)
  */
 function wouldDeleteCwd(targetPath, cwd) {
   const normalizedTarget = normalizePath(targetPath);
@@ -88,34 +89,83 @@ function wouldDeleteCwd(targetPath, cwd) {
   return false;
 }
 
+const GLOB_CHARS = /[*?[]/;
+
 /**
- * Extract rm target paths from a command string.
- * Handles: rm -rf /path, rm -rf ~/path, rm -rf $HOME/path
+ * Resolve one rm/rmdir/mv operand against the directory the command runs in.
+ *
+ * Knowable from the text alone: `.`, `..`, relative and absolute paths, `~`, `$HOME`, `${HOME}`,
+ * `$PWD`, `${PWD}`, `$(pwd)` and `` `pwd` `` (the last four are the directory the command is in at
+ * that point, which follows any `cd` before it). Any other expansion (`$DIR`, `$(cmd)`) is
+ * unknowable, returns null, and is not reported: the guard must not invent a target.
+ *
+ * Returns `{ path, glob }`: for an operand with a glob character, `path` is the directory part
+ * before the first glob segment and `glob` is true, because `../*` can match the cwd itself while
+ * `*` (children of the cwd) cannot.
  */
-function extractRmTargets(command) {
-  const targets = [];
+function resolveOperand(operand, dir, home) {
+  let v = operand;
+  v = v.replace(/^~(?=\/|$)/, home);
+  v = v.replace(/\$\{HOME\}|\$HOME\b/g, home);
+  v = v.replace(/\$\{PWD\}|\$PWD\b|\$\(pwd\)|`pwd`/g, dir);
+  if (/[$`]/.test(v) || v === "") return null;
+  const absolute = resolve(dir, v);
+  if (!GLOB_CHARS.test(v)) return { path: absolute, glob: false };
+  const segments = resolve(dir, v).split("/");
+  const firstGlob = segments.findIndex((s) => GLOB_CHARS.test(s));
+  return { path: segments.slice(0, firstGlob).join("/") || "/", glob: true };
+}
 
-  // Match rm with various flag combinations followed by paths
-  // Handles: rm -rf, rm -r -f, rm --recursive --force, rm -fr
-  // Iter-109 lint fix (pre-existing biome lint/suspicious/noAssignInExpressions
-  // issue surfaced by iter-109 file edit triggering full-file lint pass):
-  // replace the imperative `let match; while ((match = exec(command)) !== null)`
-  // pattern with the modern stateless `matchAll` iterator that yields each
-  // match without stewardship of `lastIndex`. Behavior-preserving.
-  const RM_TARGET_GLOBAL_REGEX_PATTERN =
-    /\brm\s+(?:(?:-[rRfidv]+\s+)*|(?:--(?:recursive|force|interactive|dir|verbose)\s+)*)(.+?)(?:\s*(?:&&|\|\||;|$|\||\n|2>&1|>[^&]))/g;
-  for (const singleRmInvocationMatch of command.matchAll(RM_TARGET_GLOBAL_REGEX_PATTERN)) {
-    const pathsPart = singleRmInvocationMatch[1].trim();
-    // Split on unquoted spaces to get individual paths
-    const paths = pathsPart.split(/\s+/).filter((p) => p && !p.startsWith("-"));
-    targets.push(...paths);
+/**
+ * The text of a lexed word, with command substitutions restored.
+ *
+ * The lexer replaces a substitution in a word's decoded `value` with a placeholder (`$(…)`, `` `…` ``)
+ * and keeps the source in `raw`. `$(pwd)` has to stay recognisable, so a word holding a placeholder
+ * is read from `raw` with its double quotes removed (inside double quotes a substitution still runs).
+ */
+function operandText(word) {
+  if (!word.value.includes("$(…)") && !word.value.includes("`…`")) return word.value;
+  return word.raw.replace(/"/g, "");
+}
+
+/** rm needs -r/-R/--recursive to remove a directory at all. */
+function rmIsRecursive(args) {
+  for (const a of args) {
+    if (a === "--") break;
+    if (a === "--recursive") return true;
+    if (/^-[A-Za-z]+$/.test(a) && /[rR]/.test(a)) return true;
   }
+  return false;
+}
 
-  return targets;
+/** Non-option operands (everything after `--` counts as an operand). */
+function operandsOf(args) {
+  const out = [];
+  let endOfOptions = false;
+  for (const a of args) {
+    if (!endOfOptions && a === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (!endOfOptions && a.startsWith("-") && a !== "-") continue;
+    out.push(a);
+  }
+  return out;
 }
 
 /**
  * Detect if a bash command would delete the CWD.
+ *
+ * WHAT COUNTS (2026-10-17). Only an `rm -r` / `rmdir` / `mv` (as a source) INVOCATION whose operand
+ * resolves to the protected directory or one of its parents. The previous version matched text:
+ * any `rm` with an `-f` flag anywhere, plus `$PWD` or `$(pwd)` anywhere, was a hit, so
+ * `pueue add -w "$PWD" -- cmd && rm -f reports/x.json` was denied as deleting the cwd. Invocations
+ * are found with the shared walker (lib/shell-command-invocation-walker.ts): quoted text, comments
+ * and heredocs written to files are not commands; `bash -c '…'` and `xargs` are looked through.
+ *
+ * Protected: the session cwd, always, and the directory the command has `cd`'d into by that point.
+ * Claude Code resumes in the session cwd after a command, so deleting it from elsewhere still
+ * strands the session. Relative operands resolve against the directory after any `cd`.
  *
  * @param {string} command - The bash command to check
  * @param {string} cwd - The current working directory
@@ -131,34 +181,56 @@ export function detectCwdDeletion(command, cwd) {
     return { detected: false, isGitOperation: false };
   }
 
-  // Check for $(pwd) or $PWD in rm commands
-  if (/\brm\s+.*(-[rRf]+|--recursive)/.test(command)) {
-    if (/\$\(pwd\)|\$PWD|\$\{PWD\}/.test(command)) {
-      const isGit = /\bgit\s+(clone|init)\b/.test(command);
-      return { detected: true, target: "$(pwd)", isGitOperation: isGit };
+  const home = process.env.HOME || homedir();
+  const sessionCwd = normalizePath(cwd);
+  let dir = sessionCwd;
+  let hit = null;
+
+  walkShellInvocations(command, /\b(?:rm|rmdir|mv|cd|pushd)\b/, (invocation) => {
+    if (hit !== null) return;
+    if (invocation.context === "ssh remote command") return; // another machine's filesystem
+    const args = invocation.args.map(operandText);
+
+    if ((invocation.program === "cd" || invocation.program === "pushd") && invocation.context === "command") {
+      const target = args.find((a) => !a.startsWith("-"));
+      const next = target === undefined ? { path: home, glob: false } : resolveOperand(target, dir, home);
+      // An unknowable `cd` leaves relative operands unknowable too; keep only the session cwd.
+      dir = next === null || next.glob ? sessionCwd : next.path;
+      return;
     }
-  }
 
-  // Check for "." or "./" as rm target
-  if (/\brm\s+.*(-[rRf]+|--recursive).*\s+\.(?:\/?\s|\/?\s*$|\/?\s*&&|\/?\s*;|\/?\s*\|)/.test(command)) {
-    return { detected: true, target: ".", isGitOperation: false };
-  }
-
-  // Extract and check explicit path targets
-  const targets = extractRmTargets(command);
-
-  for (const target of targets) {
-    if (wouldDeleteCwd(target, cwd)) {
-      // Determine if this is a git-related operation (rm before clone)
-      const isGit =
-        /\bgit\s+(clone|init)\b/.test(command) ||
-        /\bgh\s+repo\s+clone\b/.test(command);
-
-      return { detected: true, target, isGitOperation: isGit };
+    let operands;
+    if (invocation.program === "rm") {
+      if (!rmIsRecursive(args)) return;
+      operands = operandsOf(args);
+    } else if (invocation.program === "rmdir") {
+      operands = operandsOf(args);
+    } else if (invocation.program === "mv") {
+      operands = operandsOf(args).slice(0, -1); // sources only; the last operand is the destination
+    } else {
+      return;
     }
-  }
 
-  return { detected: false, isGitOperation: false };
+    for (const operand of operands) {
+      const resolved = resolveOperand(operand, dir, home);
+      if (resolved === null) continue;
+      for (const protectedDir of new Set([sessionCwd, dir])) {
+        const deletes = resolved.glob
+          ? protectedDir.startsWith(`${resolved.path.replace(/\/$/, "")}/`)
+          : wouldDeleteCwd(resolved.path, protectedDir);
+        if (deletes) {
+          hit = operand;
+          return;
+        }
+      }
+    }
+  });
+
+  if (hit === null) return { detected: false, isGitOperation: false };
+
+  // Determine if this is a git-related operation (rm before clone)
+  const isGit = /\bgit\s+(clone|init)\b/.test(command) || /\bgh\s+repo\s+clone\b/.test(command);
+  return { detected: true, target: hit, isGitOperation: isGit };
 }
 
 /**
@@ -185,10 +257,9 @@ export function formatDenial(target, cwd, isGitOperation) {
     lines.push("  git reset --hard origin/main\n");
     lines.push("This preserves CWD, avoids re-downloading, and keeps local branches.");
   } else {
-    lines.push("RECOMMENDED: cd to another directory BEFORE deleting:\n");
-    lines.push("  cd /tmp && rm -rf <target>");
-    lines.push("  # or");
-    lines.push(`  cd ~ && rm -rf ${target}`);
+    lines.push("RECOMMENDED: delete it from a session whose working directory is elsewhere.");
+    lines.push("A `cd` inside the same command does not help: the session resumes in its");
+    lines.push("working directory after the command, and that directory would be gone.");
   }
 
   lines.push("\nEscape hatch: Add '# CWD-DELETE-OK' comment if intentional.");
