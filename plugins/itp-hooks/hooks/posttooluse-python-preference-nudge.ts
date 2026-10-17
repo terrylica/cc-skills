@@ -32,8 +32,12 @@
  *   reason = "pandas-native ETL; migration tracked"
  *   issue  = "eon/mono#1234"                  # optional
  *
- * NO blanket suppression: being inside a Python project (even legacy) does
- * NOT exempt its files — every `.py` must be allowed individually.
+ * Python-native repositories (amended 2026-10-17, operator): a repository whose
+ * root declares Python (pyproject.toml, uv.lock or .python-version) is quiet. With
+ * a root python-allowlist.toml (maintained by the repository's own tooling) it is
+ * silent; without one it gets one short note per session. Greenfield files (no
+ * Python project at the repository root) still get the full reminder per file.
+ * See `pythonNativeRepositoryMode`.
  *
  * The ONE implicit exemption is ephemeral throwaway scratch under a temp dir
  * (`/tmp`, `$TMPDIR`, …) via the shared iter-124 helper — those files are
@@ -63,6 +67,7 @@ import {
 } from "./lib/posttooluse-subhook-contract-iter93.ts";
 import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
+import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 
 // --- Constants ---
 
@@ -168,13 +173,60 @@ export function isPythonFileExplicitlyAllowed(filePath: string): boolean {
 //  Nudge evaluation (pure, testable — gates minus the temp-scratch skip)
 // ══════════════════════════════════════════════════════════════════════════
 
+/**
+ * How loudly to nudge.
+ *
+ * - `per-file`: the full reminder on every unlisted `.py` (greenfield: no Python project here).
+ * - `once-per-session`: a short note, once per session, in a repository that declares Python but
+ *   keeps no allowlist.
+ */
+export type PythonPreferenceNudgeMode = "per-file" | "once-per-session";
+
 export interface PythonPreferenceNudgeEvaluation {
   shouldNudge: boolean;
   /** Display path for the reminder (project-relative when resolvable). */
   relativePath: string;
+  mode: PythonPreferenceNudgeMode;
 }
 
-const NO_NUDGE: PythonPreferenceNudgeEvaluation = { shouldNudge: false, relativePath: "" };
+const NO_NUDGE: PythonPreferenceNudgeEvaluation = { shouldNudge: false, relativePath: "", mode: "per-file" };
+
+/** Files at a repository root that declare it a Python project. */
+const PYTHON_PROJECT_MARKERS: readonly string[] = ["pyproject.toml", "uv.lock", ".python-version"];
+
+/** The nearest ancestor holding `.git` (stopping at home or the filesystem root), or null. */
+export function findRepositoryRoot(startDirectory: string): string | null {
+  const home = homedir();
+  let dir = resolve(startDirectory);
+  for (;;) {
+    if (existsSync(join(dir, ".git"))) return dir;
+    if (dir === home) return null;
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+/**
+ * AMENDMENT 2026-10-17 (operator): "make it quiet in repositories that are Python by design".
+ *
+ * The reminder fired its full text on every new `.py` file even in a repository whose root has
+ * `pyproject.toml` + `uv.lock` and a `python-allowlist.toml` that the repository's own tooling
+ * regenerates (`moon run repo:allowlist`) and checks before every commit. There the allowlist is
+ * already enforced by the repository, between the file's creation and its commit, and the hook
+ * firing first only repeats it. So:
+ *
+ * - Python-native root (any of {@link PYTHON_PROJECT_MARKERS}) WITH a root allowlist: silent; the
+ *   repository owns the per-file decision.
+ * - Python-native root WITHOUT an allowlist: one short note per session.
+ * - Anything else (greenfield): unchanged, the full reminder per unlisted file.
+ */
+export function pythonNativeRepositoryMode(filePath: string): "silent" | "once-per-session" | null {
+  const root = findRepositoryRoot(dirname(resolve(filePath)));
+  if (root === null) return null;
+  if (!PYTHON_PROJECT_MARKERS.some((marker) => existsSync(join(root, marker)))) return null;
+  return existsSync(join(root, PYTHON_ALLOWLIST_FILENAME)) ? "silent" : "once-per-session";
+}
 
 /** Project-relative display path when under CLAUDE_PROJECT_DIR, else basename. */
 function toDisplayRelativePath(filePath: string): string {
@@ -204,7 +256,22 @@ export function evaluatePythonPreferenceNudgeIgnoringTempScratch(
   if (!filePath.endsWith(".py")) return NO_NUDGE;
   if (NON_FIRST_PARTY_PATH_SEGMENTS.some((seg) => filePath.includes(seg))) return NO_NUDGE;
   if (isPythonFileExplicitlyAllowed(filePath)) return NO_NUDGE;
-  return { shouldNudge: true, relativePath: toDisplayRelativePath(filePath) };
+  const native = pythonNativeRepositoryMode(filePath);
+  if (native === "silent") return NO_NUDGE;
+  return {
+    shouldNudge: true,
+    relativePath: toDisplayRelativePath(filePath),
+    mode: native === "once-per-session" ? "once-per-session" : "per-file",
+  };
+}
+
+/** The once-per-session note for a Python-native repository without an allowlist. */
+export function buildPythonNativeRepositoryNote(relativePath: string): string {
+  return [
+    `[PY-PREFER] ${relativePath}: this repository declares Python (pyproject.toml, uv.lock or`,
+    `.python-version), so Python files here need no allow entry. Said once per session: new`,
+    `standalone tooling outside its Python lanes still defaults to Bun/TypeScript.`,
+  ].join("\n");
 }
 
 /** The Claude-visible reminder text. */
@@ -229,6 +296,15 @@ export function buildPythonPreferenceReminderMessage(relativePath: string): stri
   ].join("\n");
 }
 
+/**
+ * True the first time in a session (race-safe O_EXCL gate, shared helper). Without a session id
+ * there is nothing to key on, so the note is shown, as the per-file reminder always was.
+ */
+export function claimOncePerSessionNote(sessionId: string | undefined): boolean {
+  if (!sessionId) return true;
+  return tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName("python-preference-native", sessionId);
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 //  Pure classifier (orchestrator-imported)
 // ══════════════════════════════════════════════════════════════════════════
@@ -245,6 +321,11 @@ export async function classifyPythonPreferenceNudgeForPostToolUseOrchestrator(
 
     const evaluation = evaluatePythonPreferenceNudgeIgnoringTempScratch(input.tool_name, filePath);
     if (!evaluation.shouldNudge) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    if (evaluation.mode === "once-per-session") {
+      if (!claimOncePerSessionNote(input.session_id)) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+      return buildPostToolUseAdditionalContextDecision(buildPythonNativeRepositoryNote(evaluation.relativePath));
+    }
 
     return buildPostToolUseAdditionalContextDecision(
       truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
