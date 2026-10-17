@@ -37,9 +37,9 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                                      |
 | `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                                |
 | `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                                   |
-| `pretooluse-cargo-tty-guard.ts`                       | Bash orch.               | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                                     |
+| `pretooluse-cargo-tty-guard.ts`                       | Bash (in pueue-wrap)     | Backgrounded cargo to PUEUE (via pueue-wrap)  | [→](./docs/cargo-tty-guard.md)                                     |
 | `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
-| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 24 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
+| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 23 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
 | `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
 | `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                            |
 | `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |

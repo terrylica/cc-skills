@@ -16,7 +16,9 @@
  * Not included: the two guards that rewrite the command through `updatedInput`
  * (subprocess-stdin-inlet-guard, pueue-wrap-guard). Claude Code keeps only the last hook's
  * `updatedInput` (anthropics/claude-code#15897), so they stay separate entries, with
- * pueue-wrap-guard last, as the ordering audit requires.
+ * pueue-wrap-guard last, as the ordering audit requires. A guard registered HERE must never
+ * rewrite: its `updatedInput` is logged and dropped. cargo-tty-guard was registered here from
+ * 2026-10-01 to 2026-10-17 and its rewrite never took effect; it now runs inside pueue-wrap-guard.
  *
  * Aggregation follows Claude Code's own precedence for parallel hooks, deny > ask > allow:
  * - the first deny wins and stops the run;
@@ -40,7 +42,6 @@ import { main as cwdDeletionGuard } from "./pretooluse-cwd-deletion-guard.ts";
 import { main as uvEnforcementGuard } from "./pretooluse-uv-enforcement-guard.ts";
 import { main as pthContaminationGuard } from "./pretooluse-pth-contamination-guard.ts";
 import { main as pueueLocalGuard } from "./pretooluse-pueue-local-guard.ts";
-import { main as cargoTtyGuard } from "./pretooluse-cargo-tty-guard.ts";
 import { main as umbrellaNoRepoGuard } from "./pretooluse-umbrella-no-repo-guard.ts";
 import { main as parquetDuckdbNudge } from "./pretooluse-parquet-duckdb-nudge.ts";
 import { main as gitWorktreeGuard } from "./pretooluse-git-worktree-guard.ts";
@@ -79,7 +80,6 @@ export const BASH_GUARD_REGISTRY: readonly BashGuardEntry[] = [
   { name: "pretooluse-uv-enforcement-guard", main: uvEnforcementGuard, timeoutMs: 4000, description: "" },
   { name: "pretooluse-pth-contamination-guard", main: pthContaminationGuard, timeoutMs: 4000, description: "" },
   { name: "pretooluse-pueue-local-guard", main: pueueLocalGuard, timeoutMs: 4000, description: "" },
-  { name: "pretooluse-cargo-tty-guard", main: cargoTtyGuard, timeoutMs: 4000, description: "" },
   { name: "pretooluse-umbrella-no-repo-guard", main: umbrellaNoRepoGuard, timeoutMs: 4000, description: "" },
   { name: "pretooluse-parquet-duckdb-nudge", main: parquetDuckdbNudge, timeoutMs: 4000, description: "Nudge toward DuckDB for Parquet content analysis (soft, warn+allow)" },
   { name: "pretooluse-git-worktree-guard", main: gitWorktreeGuard, timeoutMs: 4000, description: "Enforces worktree-per-branch: denies bare branch creation (git checkout -b / switch -c / branch <new>, git-town hack|append|prepend, gh pr checkout) and steers to `git worktree add -b` or the EnterWorktree tool. Always allows `git worktree add`, switching to existing branches, branch list/delete/rename, and doc/echo/comment/commit-message mentions. Escape hatch: prefix with ALLOW_BARE_BRANCH=1. Fail-open. Spoke: docs/git-worktree-guard.md. ADR 2026-06-22." },

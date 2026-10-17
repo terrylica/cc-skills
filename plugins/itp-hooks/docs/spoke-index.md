@@ -9,7 +9,7 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | Spoke                                                                              | Topic                                                                                               |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process                            |
-| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 24 guards in one process; pueue-wrap-guard and why it stays last |
+| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 23 guards in one process; pueue-wrap-guard and why it stays last |
 | [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks; memory-efficiency reminder     |
 | [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                                            |
 | [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook output: where each event's output goes and how summaries are routed                       |
