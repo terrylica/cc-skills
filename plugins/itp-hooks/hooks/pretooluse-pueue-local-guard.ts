@@ -19,6 +19,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 /**
  * Remote hostnames to treat as remote-context indicators.
@@ -65,39 +66,91 @@ function escapeRegExp(s: string): string {
 /** Escape hatch — explicit opt-in for local pueue submission */
 const LOCAL_OK_COMMENT = /# *PUEUE-LOCAL-OK/i;
 
-/** Detect pueue add (the submission command) */
-const PUEUE_ADD = /\bpueue\s+add\b/;
+/** Cheap prefilter before lexing: nothing to do unless `pueue` appears at all. */
+const MENTIONS_PUEUE = /\bpueue\b/;
 
-/** Detect SSH-wrapped commands (already targeting remote) */
-const SSH_WRAPPED = /\bssh\s+\S+/;
+/** `/home/<user>` prefixes named in the text. */
+const HOME_PREFIX = /\/home\/([\w.-]+)/g;
 
 /**
- * Remote-context indicators — patterns that suggest a command
- * was intended for a remote Linux host, not the local macOS machine.
+ * Is a Linux `/home/<user>` path in this text REMOTE?
+ *
+ * The guard was written on a Mac, where no local path starts with `/home/`, so every `/home/` path
+ * was taken as proof of a remote target. On a Linux host (el02, the fleet's research machine) the
+ * same path is the local home directory, and every local `pueue add` naming a file in it was
+ * denied (2026-10-17; the repository there had to carry a standing PUEUE-LOCAL-OK rule). A
+ * `/home/<user>` that exists on THIS machine is local; one that does not is still an indicator.
  */
-const REMOTE_CONTEXT_PATTERNS: { pattern: RegExp; label: string }[] = [
-  // Remote temp paths (gen/sweep scripts only exist on the remote host)
-  { pattern: /\/tmp\/gen\d/, label: "/tmp/gen*" },
-  { pattern: /\/tmp\/sweep_/, label: "/tmp/sweep_*" },
+function namesNonLocalHome(text: string): boolean {
+  for (const match of text.matchAll(HOME_PREFIX)) {
+    if (!existsSync(`/home/${match[1]}`)) return true;
+  }
+  return false;
+}
 
-  // Linux home paths (macOS uses /Users/)
-  { pattern: /\/home\/\w/, label: "/home/ path" },
+/**
+ * Remote-context indicators — patterns that suggest a command was intended for a remote host, not
+ * this machine. Each one is tested against the `pueue add` invocation's own arguments, and the
+ * path and binary indicators only count when the thing they name does not exist locally.
+ */
+interface RemoteIndicator {
+  readonly label: string;
+  readonly test: (text: string) => boolean;
+}
 
-  // Remote-only binary paths
-  { pattern: /~\/\.local\/bin\//, label: "~/.local/bin/" },
+function remoteContextIndicators(): RemoteIndicator[] {
+  const localBin = join(homedir(), ".local", "bin");
+  return [
+    // Remote temp paths (gen/sweep scripts only exist on the remote host)
+    { label: "/tmp/gen*", test: (t) => /\/tmp\/gen\d/.test(t) },
+    { label: "/tmp/sweep_*", test: (t) => /\/tmp\/sweep_/.test(t) },
 
-  // Explicit hostname references — opt-in, see configuredRemoteHosts() above
-  ...configuredRemoteHosts().map((host) => ({
-    pattern: new RegExp(`\\b${escapeRegExp(host)}\\b`, "i"),
-    label: host,
-  })),
+    // Linux home paths, unless that home exists here
+    { label: "/home/ path not on this machine", test: namesNonLocalHome },
 
-  // Remote working directory flag
-  { pattern: /-w\s+\/home\//, label: "-w /home/" },
+    // Remote-only binary paths, unless this machine has ~/.local/bin too
+    { label: "~/.local/bin/", test: (t) => /~\/\.local\/bin\//.test(t) && !existsSync(localBin) },
 
-  // ClickHouse client (not installed locally)
-  { pattern: /\bclickhouse-client\b/, label: "clickhouse-client" },
-];
+    // Explicit hostname references — opt-in, see configuredRemoteHosts() above
+    ...configuredRemoteHosts().map((host) => {
+      const pattern = new RegExp(`\\b${escapeRegExp(host)}\\b`, "i");
+      return { label: host, test: (t: string) => pattern.test(t) };
+    }),
+
+    // ClickHouse client, unless it is installed here
+    { label: "clickhouse-client", test: (t) => /\bclickhouse-client\b/.test(t) && Bun.which("clickhouse-client") === null },
+  ];
+}
+
+/**
+ * The argument text of every real `pueue add` INVOCATION in the command.
+ *
+ * Matched with the shared invocation walker, so `pueue add` in a quoted grep pattern, a commit
+ * message, a comment or a heredoc written to a file is not an invocation (2026-10-17: a read-only
+ * `grep -rln 'TASK_ID=$(pueue add' ~/.claude/…` was denied because the text `pueue add` and a
+ * `/home/` path both appeared somewhere in it). `pueue add` inside `ssh host '…'` targets the remote
+ * already and is skipped, as the bare SSH check did before.
+ */
+export function localPueueAddArguments(command: string): string[] {
+  const found: string[] = [];
+  walkShellInvocations(command, MENTIONS_PUEUE, (invocation) => {
+    if (invocation.program !== "pueue" || invocation.args[0]?.value !== "add") return;
+    if (invocation.context === "ssh remote command") return;
+    found.push(invocation.args.map((w) => w.value).join(" "));
+  });
+  return found;
+}
+
+/** Labels of the remote-context indicators in the command's `pueue add` invocations. */
+export function remoteIndicatorsIn(command: string): string[] {
+  const invocations = localPueueAddArguments(command);
+  if (invocations.length === 0) return [];
+  const labels = new Set<string>();
+  for (const indicator of remoteContextIndicators()) {
+    if (invocations.some((args) => indicator.test(args))) labels.add(indicator.label);
+  }
+  return [...labels];
+}
 
 export async function main() {
   const input = await parseStdinOrAllow("PUEUE-LOCAL-GUARD");
@@ -113,8 +166,8 @@ export async function main() {
 
   const command = tool_input.command || "";
 
-  // Fast path: not a pueue add command
-  if (!PUEUE_ADD.test(command)) {
+  // Fast path: pueue not mentioned at all
+  if (!MENTIONS_PUEUE.test(command)) {
     allow();
     return;
   }
@@ -125,25 +178,14 @@ export async function main() {
     return;
   }
 
-  // Already SSH-wrapped — targeting remote correctly
-  if (SSH_WRAPPED.test(command)) {
+  const indicators = remoteIndicatorsIn(command);
+  if (indicators.length === 0) {
     allow();
     return;
   }
 
-  // Check for remote-context indicators
-  const matches = REMOTE_CONTEXT_PATTERNS.filter((p) =>
-    p.pattern.test(command)
-  );
-
-  if (matches.length === 0) {
-    allow();
-    return;
-  }
-
-  const indicators = matches.map((m) => m.label).join(", ");
   deny(
-    `BLOCKED: pueue add with remote-context indicators detected (${indicators}). ` +
+    `BLOCKED: pueue add with remote-context indicators detected (${indicators.join(", ")}). ` +
       `This command appears intended for a remote host but would execute locally. ` +
       `Wrap with SSH: \`ssh <remote-host> 'pueue add ...'\`. ` +
       `Add \`# PUEUE-LOCAL-OK\` to bypass this guard.`
