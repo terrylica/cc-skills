@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Stress-test the release:chronicle slicing logic against 30+ edge cases (boundary mtimes, .jsonl vs .jsonl.br, subagent recursion, hidden files, corrupted brotli, future timestamps, empty files, multi-GB simulation, malformed lines). No network, no upload — pure slicing assertion.
 set -uo pipefail
+# As the chronicle: the fleet toolbox (brotli) when this machine has it.
+[[ -d "$HOME/.local/state/fleet-toolbox/bin" ]] && PATH="$HOME/.local/state/fleet-toolbox/bin:$PATH"
 
 # Locate the chronicle script we're testing.
 # Iter-138 relocation: this test moved from tasks/release/test-chronicle-slicing

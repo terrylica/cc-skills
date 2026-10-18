@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Phase 4.5 of 5: Bundle sanitized session JSONLs from the previous release window into the GitHub release asset list. PRIVATE REPOS ONLY — public repos skip this phase silently. JSONLs are sanitized via plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py before upload.
 set -euo pipefail
+# The fleet toolbox (GNU userland, brotli) is opt-in: use it when this machine has it.
+[[ -d "$HOME/.local/state/fleet-toolbox/bin" ]] && PATH="$HOME/.local/state/fleet-toolbox/bin:$PATH"
 
 echo "═══════════════════════════════════════════════════════════"
 echo "  Phase 4.5: SESSION CHRONICLE (private repos only)"
@@ -104,6 +106,7 @@ trap 'rm -rf "$STAGING"' EXIT
 
 count_jsonl=0
 count_br=0
+skipped_br=0
 total_bytes=0
 
 # Use find -newermt for the time window; -newer + reference is also POSIX but mtime cmp is cleaner here.
@@ -125,12 +128,18 @@ while IFS= read -r f; do
             out="${flat%.br}"
             if command -v brotli >/dev/null 2>&1; then
                 brotli -d -c "$f" > "$RAW/$out" 2>/dev/null && count_br=$((count_br + 1)) || rm -f "$RAW/$out"
+            else
+                skipped_br=$((skipped_br + 1))       # reported below: never drop sessions silently
             fi
             ;;
     esac
     sz=$(file_size "$f")
     total_bytes=$((total_bytes + sz))
 done < <(find "$PROJ_DIR" -type f \( -name '*.jsonl' -o -name '*.jsonl.br' \) -newer "$SINCE_REF" 2>/dev/null)
+
+if [[ $skipped_br -gt 0 ]]; then
+    echo "  ⚠ $skipped_br compressed session(s) (.jsonl.br) skipped: brotli is not installed" >&2
+fi
 
 if [[ $((count_jsonl + count_br)) -eq 0 ]]; then
     echo "  ⊘ No session JSONLs in window — nothing to attach"
