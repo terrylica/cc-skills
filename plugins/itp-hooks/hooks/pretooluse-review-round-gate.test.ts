@@ -238,7 +238,6 @@ function otherRepoUnderFakeHome(prefix: string): { home: string; session: string
     sh(["add", "-A"], dir);
     sh(["commit", "-qm", "base"], dir);
   }
-  sh(["remote", "add", "github", "git@github.com:acme/other.git"], other);
   const worktree = join(home, "eon", "other-feature");
   sh(["worktree", "add", "-q", worktree, "-b", "feature"], other);
   writeFileSync(join(worktree, "a.txt"), "feature\n");
@@ -249,6 +248,10 @@ function otherRepoUnderFakeHome(prefix: string): { home: string; session: string
     [join(dirname(import.meta.path), "lib", "review-round-cli.ts"), "record", "--file", "a.txt=checked the one-line change"],
     { cwd: worktree, stdio: ["ignore", "ignore", "ignore"] },
   );
+  // The remote is added LAST: a machine-wide pre-commit hook may treat a repository with a GitHub
+  // remote as public and scan every commit (slow enough to time a test out); the lookup under test
+  // reads the remote only when the gate runs.
+  sh(["remote", "add", "github", "git@github.com:acme/other.git"], other);
   return { home, session, env: { HOME: home, ITP_HOOKS_REVIEW_ROUND_STATE_ROOT: STATE_ROOT } };
 }
 
