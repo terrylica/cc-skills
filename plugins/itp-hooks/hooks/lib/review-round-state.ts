@@ -13,7 +13,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { type Dirent, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 
@@ -145,6 +145,76 @@ export function worktreeForBranch(branch: string, cwd: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** `owner/repo`, lower-cased, from a remote URL or a `gh -R` value (`owner/repo`, an https or ssh URL). */
+export function repoSlugOf(value: string): string | null {
+  const v = value.trim().replace(/\/+$/, "");
+  const m = v.match(/(?:^|[:/])([^/:\s]+\/[^/:\s]+?)(?:\.git)?$/);
+  return m ? m[1].toLowerCase() : null;
+}
+
+/** Every remote URL slug in a clone's `.git/config` (read as text: no git process per candidate). */
+function cloneRemoteSlugs(dir: string): string[] {
+  try {
+    const cfg = readFileSync(join(dir, ".git", "config"), "utf8");
+    return [...cfg.matchAll(/^\s*url\s*=\s*(\S+)\s*$/gm)].map((m) => repoSlugOf(m[1]!)).filter((s): s is string => s !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The local clone of the repository a `gh pr … -R <owner/repo>` names, or null.
+ *
+ * WHY (2026-10-18, eonlabs-rnd/shunshi-wang-888#319): a session whose cwd is one repository opened a
+ * PR in another with `gh pr create -R owner/other --head <branch>`. `worktreeForBranch` looked for the
+ * branch among the CWD repository's worktrees, found nothing, and measured the cwd's HEAD, so the
+ * recorded self-review was invisible and the only way through was an override that asks the operator.
+ *
+ * Returns null when cwd's own repository already has a remote with that slug (nothing to change), and
+ * when no clone is found. Candidates are the operator's fixed layout -- `~/eon/<repo>`,
+ * `~/eon/quant/<repo>`, `~/gh/<org>/<repo>` -- main clones only (a `.git` directory; linked worktrees
+ * are reached through `worktreeForBranch` on the clone). Any remote may match, not only `origin`
+ * (el02's shunshi clone names its remote `github`).
+ */
+export function localCloneForRepo(repoFlag: string, cwd: string, home: string = homedir()): string | null {
+  const want = repoSlugOf(repoFlag);
+  if (want === null) return null;
+  try {
+    const own = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], cwd).trim();
+    if (cloneRemoteSlugs(dirname(own)).includes(want)) return null;
+  } catch {
+    // cwd is not a repository: look for the clone anyway
+  }
+  const roots = [join(home, "eon"), join(home, "eon", "quant")];
+  try {
+    for (const org of readdirSync(join(home, "gh"), { withFileTypes: true })) {
+      if (org.isDirectory()) roots.push(join(home, "gh", org.name));
+    }
+  } catch {
+    // no ~/gh
+  }
+  for (const root of roots) {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(root, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const dir = join(root, e.name);
+      let isClone = false;
+      try {
+        isClone = statSync(join(dir, ".git")).isDirectory();
+      } catch {
+        isClone = false;
+      }
+      if (isClone && cloneRemoteSlugs(dir).includes(want)) return dir;
+    }
+  }
+  return null;
 }
 
 /** null when cwd is not a git repository, or is in a detached/unborn state we cannot key on. */

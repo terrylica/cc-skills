@@ -40,6 +40,7 @@ import {
   resolveHeadBranch,
   resolvePrRefs,
   unmarkBranchReviewable,
+  localCloneForRepo,
   worktreeForBranch,
 } from "./lib/review-round-state.ts";
 
@@ -177,9 +178,14 @@ export async function main(): Promise<void> {
   cwd = gatedCommandDirectory(command, cwd) ?? cwd;
   // The PR's base, when the command or GitHub names one. null = the remote's default branch.
   let baseBranch: string | null = null;
+  // A `-R owner/other` names a repository other than cwd's: its head branch lives in THAT clone's
+  // worktrees (2026-10-18, shunshi-wang-888#319 asked the operator for an override although the
+  // branch's self-review existed). null = cwd's own repository, or no local clone found.
+  const repoFlag = ghRepoFlag(command);
+  const branchHome = (repoFlag === null ? null : localCloneForRepo(repoFlag, cwd)) ?? cwd;
   if (kind === "pr-create") {
     const headBranch = prCreateHeadBranch(command);
-    const headWorktree = headBranch === null ? null : worktreeForBranch(headBranch, cwd);
+    const headWorktree = headBranch === null ? null : worktreeForBranch(headBranch, branchHome);
     if (headWorktree !== null) cwd = headWorktree;
     baseBranch = prCreateBaseBranch(command);
   }
@@ -188,9 +194,9 @@ export async function main(): Promise<void> {
     // branch is where its record was written. One bounded lookup for a number or URL, none for a
     // branch name; on failure nothing changes and the command's directory is measured.
     const target = prReadyTarget(command);
-    const refs = target === null ? null : resolvePrRefs(target, cwd, ghRepoFlag(command));
+    const refs = target === null ? null : resolvePrRefs(target, cwd, repoFlag);
     if (refs !== null) {
-      const headWorktree = worktreeForBranch(refs.head, cwd);
+      const headWorktree = worktreeForBranch(refs.head, branchHome);
       if (headWorktree !== null) cwd = headWorktree;
       baseBranch = refs.base;
     }
