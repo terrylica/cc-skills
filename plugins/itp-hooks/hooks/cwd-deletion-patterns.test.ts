@@ -57,6 +57,10 @@ describe("true positives that must still be caught", () => {
     ["cd .. && rm -rf sub"],
     ["cd /tmp && rm -rf /work/repo/sub"],
     ["bash -c 'rm -rf ..'"],
+    // Found in review (2026-10-17): an assignment, a cd inside bash -c, and mv -t.
+    ['D=$PWD; rm -rf "$D"'],
+    ["bash -c 'cd .. && rm -rf sub'"],
+    ['mv -t /tmp "$PWD"'],
     ["rm -rf /work/repo && git clone https://example.invalid/r.git /work/repo"],
   ])("denies %s", (command) => {
     expect(hit(command)).toBe(true);

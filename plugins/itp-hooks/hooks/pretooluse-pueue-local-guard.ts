@@ -66,6 +66,9 @@ function escapeRegExp(s: string): string {
 /** Escape hatch — explicit opt-in for local pueue submission */
 const LOCAL_OK_COMMENT = /# *PUEUE-LOCAL-OK/i;
 
+/** pueue global options that take a value. */
+const PUEUE_GLOBAL_OPTIONS_WITH_VALUE: ReadonlySet<string> = new Set(["-c", "--config", "-p", "--profile", "--color"]);
+
 /** Cheap prefilter before lexing: nothing to do unless `pueue` appears at all. */
 const MENTIONS_PUEUE = /\bpueue\b/;
 
@@ -134,9 +137,16 @@ function remoteContextIndicators(): RemoteIndicator[] {
 export function localPueueAddArguments(command: string): string[] {
   const found: string[] = [];
   walkShellInvocations(command, MENTIONS_PUEUE, (invocation) => {
-    if (invocation.program !== "pueue" || invocation.args[0]?.value !== "add") return;
-    if (invocation.context === "ssh remote command") return;
-    found.push(invocation.args.map((w) => w.value).join(" "));
+    if (invocation.program !== "pueue" || invocation.context === "ssh remote command") return;
+    // pueue's GLOBAL options come before the subcommand (`pueue -p prof add`, `pueue --color
+    // never add`); found in review, 2026-10-17.
+    const args = invocation.args.map((w) => w.value);
+    let a = 0;
+    while (a < args.length && args[a]!.startsWith("-")) {
+      a += PUEUE_GLOBAL_OPTIONS_WITH_VALUE.has(args[a]!) ? 2 : 1;
+    }
+    if (args[a] !== "add") return;
+    found.push(args.join(" "));
   });
   return found;
 }

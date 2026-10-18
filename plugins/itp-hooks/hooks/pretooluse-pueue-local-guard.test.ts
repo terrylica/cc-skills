@@ -54,6 +54,11 @@ describe("remote-context indicators respect THIS machine", () => {
     expect(await decisionOf(`pueue add -w ${NOT_A_LOCAL_HOME}/proj -- python sweep.py`)).toBe("deny");
   });
 
+  test("TRUE POSITIVE: pueue global options before `add` do not hide it", () => {
+    expect(remoteIndicatorsIn(`pueue -p remote add -- python ${NOT_A_LOCAL_HOME}/x.py`)).toHaveLength(1);
+    expect(remoteIndicatorsIn(`pueue --color never add -- python ${NOT_A_LOCAL_HOME}/x.py`)).toHaveLength(1);
+  });
+
   test("TRUE POSITIVE: remote temp scripts are remote", () => {
     expect(remoteIndicatorsIn("pueue add -- bash /tmp/gen3_run.sh")).toContain("/tmp/gen*");
   });

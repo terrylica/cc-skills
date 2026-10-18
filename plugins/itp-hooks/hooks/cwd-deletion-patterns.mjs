@@ -17,6 +17,7 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
+import { lexShellCommands } from "./lib/shell-command-quote-aware-static-lexer.ts";
 
 /**
  * Iter-109: migrated to the iter-107 canonical shared escape-hatch-marker
@@ -103,8 +104,13 @@ const GLOB_CHARS = /[*?[]/;
  * before the first glob segment and `glob` is true, because `../*` can match the cwd itself while
  * `*` (children of the cwd) cannot.
  */
-function resolveOperand(operand, dir, home) {
+function resolveOperand(operand, dir, home, vars = new Map()) {
   let v = operand;
+  // One level of plain assignments made earlier in the command (`D=$PWD; rm -rf "$D"`).
+  v = v.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g, (whole, braced, bare) => {
+    const name = braced ?? bare;
+    return name !== "HOME" && name !== "PWD" && vars.has(name) ? vars.get(name) : whole;
+  });
   v = v.replace(/^~(?=\/|$)/, home);
   v = v.replace(/\$\{HOME\}|\$HOME\b/g, home);
   v = v.replace(/\$\{PWD\}|\$PWD\b|\$\(pwd\)|`pwd`/g, dir);
@@ -126,6 +132,35 @@ function resolveOperand(operand, dir, home) {
 function operandText(word) {
   if (!word.value.includes("$(…)") && !word.value.includes("`…`")) return word.value;
   return word.raw.replace(/"/g, "");
+}
+
+/**
+ * `NAME=value` from commands that consist only of assignments (`D=$PWD; rm -rf "$D"`). The walker
+ * never visits such a command, so they are collected from the lexer directly. A prefix assignment
+ * (`D=x rm "$D"`) is not one: the shell expands the operand before that assignment takes effect.
+ */
+function plainAssignments(command) {
+  const vars = new Map();
+  const isAssignment = (w) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(w.value);
+  lexShellCommands(command)
+    .commands.filter((words) => words.length > 0 && words.every(isAssignment))
+    .flat()
+    .forEach((w) => {
+      const m = /^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/.exec(operandText(w));
+      if (m) vars.set(m[1], m[2]);
+    });
+  return vars;
+}
+
+/**
+ * mv's SOURCE operands. Normally every operand but the last; with `-t DIR` / `--target-directory`
+ * every operand is a source (found in review: `mv -t /tmp "$PWD"` moves the cwd away).
+ */
+function mvSources(args) {
+  const t = args.findIndex((a) => a === "-t" || a === "--target-directory");
+  if (t !== -1) return operandsOf(args.filter((_, i) => i !== t + 1));
+  if (args.some((a) => /^-t./.test(a) || a.startsWith("--target-directory="))) return operandsOf(args);
+  return operandsOf(args).slice(0, -1);
 }
 
 /** rm needs -r/-R/--recursive to remove a directory at all. */
@@ -185,15 +220,18 @@ export function detectCwdDeletion(command, cwd) {
   const sessionCwd = normalizePath(cwd);
   let dir = sessionCwd;
   let hit = null;
+  const vars = plainAssignments(command);
 
   walkShellInvocations(command, /\b(?:rm|rmdir|mv|cd|pushd)\b/, (invocation) => {
     if (hit !== null) return;
     if (invocation.context === "ssh remote command") return; // another machine's filesystem
     const args = invocation.args.map(operandText);
 
-    if ((invocation.program === "cd" || invocation.program === "pushd") && invocation.context === "command") {
+    // A cd inside `bash -c '…'` moves what follows it in that script (found in review), so it is
+    // followed in every context; ssh was skipped above.
+    if (invocation.program === "cd" || invocation.program === "pushd") {
       const target = args.find((a) => !a.startsWith("-"));
-      const next = target === undefined ? { path: home, glob: false } : resolveOperand(target, dir, home);
+      const next = target === undefined ? { path: home, glob: false } : resolveOperand(target, dir, home, vars);
       // An unknowable `cd` leaves relative operands unknowable too; keep only the session cwd.
       dir = next === null || next.glob ? sessionCwd : next.path;
       return;
@@ -206,13 +244,13 @@ export function detectCwdDeletion(command, cwd) {
     } else if (invocation.program === "rmdir") {
       operands = operandsOf(args);
     } else if (invocation.program === "mv") {
-      operands = operandsOf(args).slice(0, -1); // sources only; the last operand is the destination
+      operands = mvSources(args);
     } else {
       return;
     }
 
     for (const operand of operands) {
-      const resolved = resolveOperand(operand, dir, home);
+      const resolved = resolveOperand(operand, dir, home, vars);
       if (resolved === null) continue;
       for (const protectedDir of new Set([sessionCwd, dir])) {
         const deletes = resolved.glob

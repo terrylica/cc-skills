@@ -71,41 +71,50 @@ $fix_guidance"
 
 # --- Inline-ignore audit: the repository's own convention (2026-10-17) ---
 # A `# noqa: CODE` is not flagged when the repository has already decided on that code:
-#   1. its ruff configuration at the repository root names the code (ignore, extend-ignore or
-#      per-file-ignores), or
-#   2. the same code is suppressed inline in at least NOQA_CONVENTION_MIN_FILES other tracked
-#      Python files (an established pattern, not a one-off), or
+#   1. its ruff configuration ignores the code for THIS file: `ignore` / `extend-ignore`, or a
+#      `per-file-ignores` glob that matches the file, read with a TOML parser
+#      (lib/ruff-ignored-codes.ts; a grep matched `select` lists and other files' globs too);
+#      ruff selectors are prefixes, so `E` or `E4` covers E402 and `ALL` covers everything; or
+#   2. the same code is suppressed inline in at least NOQA_CONVENTION_MIN_FILES other files
+#      COMMITTED at HEAD (an established pattern; counting the working tree would let a run of
+#      fresh suppressions vouch for each other); or
 #   3. the code is E402 and the file changes sys.path before importing: the import has to follow
 #      the path change, and ruff has no rule-level way to say so.
 # Reported: `# noqa: E402` after `sys.path.insert(...)` was flagged in a repository that uses that
 # pattern in every script. Bare `# noqa` and `# type: ignore` / `# ty: ignore` are still flagged.
-# Written for bash 3.2 (macOS /bin/bash): no associative arrays.
+# Written for bash 3.2 (macOS /bin/bash): no associative arrays; the per-code cache is a string.
 NOQA_CONVENTION_MIN_FILES=3
+CODE_CORRECTNESS_HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 noqa_code_is_repository_convention() {
-    local code="$1" file="$2" root="$3" rel="$4"
+    local code="$1" file="$2" root="$3" rel="$4" ruff_ignored="$5"
     if [[ "$code" == "E402" ]] && grep -qE '^[[:space:]]*(sys\.path\.(insert|append)|site\.addsitedir)\(' "$file" 2>/dev/null; then
         return 0
     fi
-    [[ -n "$root" ]] || return 1
-    local cfg
-    for cfg in ruff.toml .ruff.toml pyproject.toml; do
-        if [[ -f "$root/$cfg" ]] && grep -qE "[\"']${code}[\"']" "$root/$cfg" 2>/dev/null; then
+    local selector
+    while IFS= read -r selector; do
+        [[ -n "$selector" ]] || continue
+        if [[ "$selector" == "ALL" || "$code" == "$selector"* ]]; then
             return 0
         fi
-    done
+    done <<<"$ruff_ignored"
+    [[ -n "$root" ]] || return 1
     local others=0
     # Explicit boundaries, not \b: macOS's POSIX ERE (git grep -E there) has no \b.
-    others=$(git -C "$root" grep -l -E "noqa:([^#]*[:, ])?${code}([^0-9]|\$)" -- '*.py' '*.pyi' 2>/dev/null | grep -cvxF -- "$rel") || others=0
+    others=$(git -C "$root" grep -l -E "noqa:([^#]*[:, ])?${code}([^0-9]|\$)" HEAD -- '*.py' '*.pyi' 2>/dev/null | grep -cvxF -- "HEAD:$rel") || others=0
     [[ "${others:-0}" -ge "$NOQA_CONVENTION_MIN_FILES" ]]
 }
 
 # Reads `LINE:text` lines on stdin; prints those that are NOT covered by the repository convention.
 drop_conventional_noqa_lines() {
-    local file="$1" root="" rel="" line codes code all
+    local file="$1" root="" rel="" line codes code all ruff_ignored="" cache=" " verdict
     root=$(git -C "$(dirname "$file")" rev-parse --show-toplevel 2>/dev/null) || root=""
     if [[ -n "$root" ]]; then
-        rel="${file#"$root"/}"
+        # Relative path from git itself: stripping "$root" from "$file" fails whenever the file was
+        # reached through a symlink (git reports the resolved root; ~/.cache and ~/orca are symlinks
+        # on el02), and the per-file globs and the HEAD exclusion then never match.
+        rel="$(git -C "$(dirname "$file")" rev-parse --show-prefix 2>/dev/null)$(basename "$file")" || rel="${file#"$root"/}"
+        ruff_ignored=$(bun "$CODE_CORRECTNESS_HOOK_DIR/lib/ruff-ignored-codes.ts" "$root" "$rel" 2>/dev/null) || ruff_ignored=""
     fi
     while IFS= read -r line; do
         [[ -n "$line" ]] || continue
@@ -122,7 +131,16 @@ drop_conventional_noqa_lines() {
         all=true
         while IFS= read -r code; do
             [[ -n "$code" ]] || continue
-            if ! noqa_code_is_repository_convention "$code" "$file" "$root" "$rel"; then
+            # One lookup per code per file, however many lines carry it (the hook has a 10 s limit).
+            case "$cache" in
+                *" $code=1 "*) verdict=1 ;;
+                *" $code=0 "*) verdict=0 ;;
+                *)
+                    if noqa_code_is_repository_convention "$code" "$file" "$root" "$rel" "$ruff_ignored"; then verdict=1; else verdict=0; fi
+                    cache="$cache$code=$verdict "
+                    ;;
+            esac
+            if [[ "$verdict" != "1" ]]; then
                 all=false
                 break
             fi

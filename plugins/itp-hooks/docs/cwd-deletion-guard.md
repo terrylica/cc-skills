@@ -28,7 +28,8 @@ The `pretooluse-cwd-deletion-guard.ts` hook prevents commands that would delete 
 Only an `rm -r` (or `-R`, `--recursive`), `rmdir`, or `mv` whose SOURCE operand resolves to the protected directory or one of its parents. Invocations are found with the shared invocation walker, so quoted text, comments, commit messages and heredocs written to files are not commands, while `bash -c '…'` and `xargs` are looked through and `ssh host '…'` (another machine) is skipped.
 
 - The previous matcher read text: any `rm` with `-f` plus `$PWD` or `$(pwd)` anywhere in the command was a hit, so `pueue add -w "$PWD" -- cmd && rm -f reports/x.json` was denied. `-w "$PWD"` is not an rm operand.
-- Operands resolve against the directory after any `cd` earlier in the command; `$PWD`, `${PWD}`, `$(pwd)` and `` `pwd` `` mean that directory, `~` and `$HOME` the home directory. Any other expansion is unknowable and is not reported.
+- Operands resolve against the directory after any `cd` earlier in the command (also a `cd` inside `bash -c '…'`); `$PWD`, `${PWD}`, `$(pwd)` and `` `pwd` `` mean that directory, `~` and `$HOME` the home directory, and a variable set by a plain assignment earlier in the command (`D=$PWD; rm -rf "$D"`) is substituted. Any other expansion is unknowable and is not reported.
+- `mv -t DIR` / `--target-directory` makes every operand a source.
 - A glob counts when it can match the protected directory itself (`rm -rf ../*`), not when it only matches its children (`rm -rf *`).
 - Protected: the session's working directory always (Claude Code resumes there after the command, so `cd /tmp && rm -rf <cwd>` still strands the session), and the directory the command has `cd`'d into.
 

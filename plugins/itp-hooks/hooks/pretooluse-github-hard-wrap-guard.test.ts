@@ -366,6 +366,15 @@ describe("the same-command write bypass", () => {
     expect(d.hookSpecificOutput.permissionDecisionReason).toContain("via the printf in this command");
   });
 
+  it("a printf followed by another write to the same file is not taken as the body (found in review)", async () => {
+    const path = join(dir, "printf-then-append.md");
+    const d = await runHook(
+      `printf '%s\\n' 'short' > ${path} && cat ${join(dir, "more.md")} >> ${path} && gh issue comment 8 --body-file ${path}`,
+    );
+    expect(d.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(d.hookSpecificOutput.permissionDecisionReason).toContain("ONE step");
+  });
+
   it("a printf with an unmodelled conversion stays unreadable (deny), never guessed", async () => {
     const path = join(dir, "printf-width.md");
     const d = await runHook(`printf '%-20s\\n' 'x' > ${path}\ngh issue comment 8 --body-file ${path}`);

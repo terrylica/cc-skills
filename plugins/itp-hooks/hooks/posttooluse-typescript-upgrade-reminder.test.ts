@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { rmSync, existsSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -18,6 +18,7 @@ import {
   buildTypeScriptUpgradeReminderMessage,
 } from "./posttooluse-typescript-upgrade-reminder.ts";
 import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-iter93.ts";
+import { perUserGateDirectory } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Test fixtures
@@ -28,15 +29,19 @@ function freshSessionId(testName: string): string {
   return `test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** Clean up gate files after each test. */
-function cleanUpGateFile(_sessionId: string): void {
-  const gateDir = `/tmp/.claude-typescript-upgrade-reminder`;
-  if (existsSync(gateDir)) {
-    try {
-      rmSync(gateDir, { recursive: true, force: true });
-    } catch {
-      // Best effort; test gate-file namespace is isolated by sessionId anyway
-    }
+/**
+ * Remove THIS test session's gate file only.
+ *
+ * It used to delete the whole gate directory, which also deleted the gates of every live Claude
+ * session on the machine, so each test run re-armed the reminder in the operator's own sessions
+ * (observed 2026-10-17: the TS-7 reminder reappeared after every suite run).
+ */
+function cleanUpGateFile(sessionId: string): void {
+  const gateFile = join(perUserGateDirectory("/tmp/.claude-typescript-upgrade-reminder"), `${sessionId}.reminded`);
+  try {
+    rmSync(gateFile, { force: true });
+  } catch {
+    // Best effort; test gate-file namespace is isolated by sessionId anyway
   }
 }
 

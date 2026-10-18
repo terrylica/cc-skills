@@ -295,6 +295,16 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
+ * One gate directory PER USER. A shared `/tmp/.claude-<name>-reminder` is created by the first user
+ * to need it, with that user's umask (0755), and every other account on the host then fails the
+ * O_EXCL create and never sees the reminder at all (found in review, 2026-10-17; el02 is shared).
+ */
+export function perUserGateDirectory(base: string): string {
+  const uid = typeof process.getuid === "function" ? String(process.getuid()) : process.env.USER || "user";
+  return `${base}-${uid}`;
+}
+
+/**
  * Atomically create the install-reminder gate file. Returns `true` if THIS
  * call won the create race (we should surface the reminder), `false`
  * if the reminder was already surfaced this session OR the filesystem
@@ -316,7 +326,7 @@ export function tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolBy
   toolName: string,
   sessionId: string,
 ): boolean {
-  const gateDirectory = `/tmp/.claude-${toolName}-install-reminder`;
+  const gateDirectory = perUserGateDirectory(`/tmp/.claude-${toolName}-install-reminder`);
   try {
     mkdirSync(gateDirectory, { recursive: true });
   } catch {
@@ -347,8 +357,8 @@ export function tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolBy
  * Distinct from the iter-95 install-reminder helper because the gate-file
  * namespace differs:
  *
- *   - INSTALL reminder:  /tmp/.claude-${tool}-install-reminder/${sid}-${tool}-install.reminded
- *   - GENERIC reminder:  /tmp/.claude-${reminder}-reminder/${sid}.reminded
+ *   - INSTALL reminder:  /tmp/.claude-${tool}-install-reminder-${uid}/${sid}-${tool}-install.reminded
+ *   - GENERIC reminder:  /tmp/.claude-${reminder}-reminder-${uid}/${sid}.reminded
  *
  * The install-reminder shape is preserved verbatim for backward-compat with
  * existing ty/tsc/oxlint/biome classifiers (and their forensic gate-file
@@ -375,7 +385,7 @@ export function tryAtomicallyClaimOncePerSessionGenericReminderGateFileForRemind
   reminderName: string,
   sessionId: string,
 ): boolean {
-  const gateDirectory = `/tmp/.claude-${reminderName}-reminder`;
+  const gateDirectory = perUserGateDirectory(`/tmp/.claude-${reminderName}-reminder`);
   try {
     mkdirSync(gateDirectory, { recursive: true });
   } catch {

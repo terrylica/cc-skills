@@ -238,6 +238,18 @@ function commandWritesTo(command: string, rawPath: string): boolean {
   return patterns.some((p) => p.test(command));
 }
 
+/** How many writes (redirect, tee, -o/--output, sed -i) name `rawPath`. */
+function countWritesTo(command: string, rawPath: string): number {
+  const escaped = rawPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(String.raw`>>?\|?\s*["']?${escaped}["']?`, "g"),
+    new RegExp(String.raw`\btee\s+(?:-a\s+)?["']?${escaped}["']?`, "g"),
+    new RegExp(String.raw`(?:-o|--output)[=\s]+["']?${escaped}["']?`, "g"),
+    new RegExp(String.raw`\bsed\s+(?:-\w+\s+)*-i\S*\s+[^|;&\n]*${escaped}`, "g"),
+  ];
+  return patterns.reduce((n, p) => n + [...command.matchAll(p)].length, 0);
+}
+
 interface ResolvedBodyText {
   readonly text: string | null;
   readonly origin: "disk" | "heredoc" | "printf";
@@ -263,8 +275,12 @@ async function resolveBodyText(
 
   // A literal `printf … > path` in the same command has one knowable output (2026-10-17: writing
   // a body with printf and publishing it in one command used to be denied as unreadable).
-  const printed = staticPrintfWrites(command).find((w) => sameResolvedPath(w.path, rawPath, cwd));
-  if (printed) return { text: printed.text, origin: "printf", hiddenFromCollector: false };
+  // Only when that printf is the ONE write to the path: `printf … > b.md && cat more.md >> b.md`
+  // publishes more than the printf wrote (found in review), so it stays an unreadable write.
+  const printed = staticPrintfWrites(command).filter((w) => sameResolvedPath(w.path, rawPath, cwd));
+  if (printed.length === 1 && countWritesTo(command, rawPath) === 1) {
+    return { text: printed[0]!.text, origin: "printf", hiddenFromCollector: false };
+  }
 
   return { text: null, origin: "disk", hiddenFromCollector: commandWritesTo(command, rawPath) };
 }
