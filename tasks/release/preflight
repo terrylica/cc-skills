@@ -177,16 +177,16 @@ __iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_c
 __iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per_audit_log_exit_and_elapsed_ms_sidecar_capture() {
     local lane_count
     cc_knob lane_count PREFLIGHT_AUDIT_PARALLEL_LANES ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES "$(__iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic)"
+    # BSD xargs needs -S for long assembled commands; GNU xargs has no -S and rejects it
+    # (every test was then reported missing on Linux, 2026-10-17). Pass it only where accepted.
+    local -a XARGS_SIZE_FLAG=()
+    if xargs -S 16384 true </dev/null >/dev/null 2>&1; then XARGS_SIZE_FLAG=(-S 16384); fi
     # BSD-xargs hardening: -S 16384 to handle long task names (some
     # exceed 200 chars + the bash worker body). Same iter-90 hardening
     # pattern as the marketplace-suite runner.
     # shellcheck disable=SC2016
     # SC2016 false positive: $1 inside single-quoted bash -c body refers to
     # the positional arg passed to the NESTED bash, not the outer scope.
-    # BSD xargs needs -S for long assembled commands; GNU xargs has no -S and rejects it
-    # (every test was then reported missing on Linux, 2026-10-17). Pass it only where accepted.
-    XARGS_SIZE_FLAG=()
-    if xargs -S 16384 true </dev/null >/dev/null 2>&1; then XARGS_SIZE_FLAG=(-S 16384); fi
     printf '%s\n' "${iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename[@]}" | \
         xargs "${XARGS_SIZE_FLAG[@]}" -P "$lane_count" -I {} bash -c '
             pipe_separated_metadata_record="$1"
