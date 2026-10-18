@@ -189,8 +189,9 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
   // sh) and a missing tool surfaces as sh's exit 127 with "exec: ty: not found" on stderr. Callers
   // test `spawnFailed` for "not installed", so the ty check fell through to its diagnostics branch
   // and reported the shell's error after every Python edit (2026-10-17, a host without ty). Resolve
-  // the program first; not found is answered here, before a concurrency slot is taken.
-  if (guardedToolName && argv[0] !== undefined && !argv[0].includes("/") && Bun.which(argv[0]) === null) {
+  // the program first; not found is answered here, before a concurrency slot is taken. PATH is passed
+  // explicitly: Bun.which's default reads the PATH the process started with, not process.env.PATH.
+  if (guardedToolName && argv[0] !== undefined && !argv[0].includes("/") && Bun.which(argv[0], { PATH: process.env.PATH ?? "" }) === null) {
     return {
       exitCode: null,
       stdoutText: "",
