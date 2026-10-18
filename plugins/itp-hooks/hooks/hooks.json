@@ -80,7 +80,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
             "timeout": 15,
-            "description": "Denies an AskUserQuestion option that names a PR without its author and whether your review was requested, and supplies the exact annotation to append. Fails open."
+            "description": "Denies an AskUserQuestion option that asserts a review premise (review, approve, waiting on, blocking) about ANOTHER author's PR without that PR's author and whether your review was requested, and supplies the exact annotation to append. Your own PRs and options without review wording pass with no network call. Fails open."
           }
         ]
       },

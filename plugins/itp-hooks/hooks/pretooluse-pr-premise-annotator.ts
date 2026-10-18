@@ -21,6 +21,18 @@
  * are missing from the option text, deny with the exact one-line annotation, and the agent re-asks
  * with it included. Unresolved references are skipped. `allowWithInput` itself now refuses this tool.
  *
+ * WHEN IT ASKS AT ALL (2026-10-17). It used to deny every menu that named any pull request until
+ * each option carried `[#N: …]`, including the operator's OWN pull requests ("Merge #268?") and
+ * options that assert nothing about a review, and it spent up to three `gh` round trips on every
+ * such dialog. The defect it exists for is narrower: an option that asserts a REVIEW premise
+ * ("Review #656", "approve", "waiting on my review") about SOMEONE ELSE's pull request. So:
+ *   - an option is only examined when its text asserts a review premise (REVIEW_PREMISE); no
+ *     network call is made for any other menu;
+ *   - a pull request you authored needs no annotation (there is no review owed to yourself);
+ *   - only an option about another author's PR that lacks the facts is denied, as before.
+ * It cannot add the annotation itself: `updatedInput` on AskUserQuestion is read as "already
+ * answered" (86 of 86 dialogs lost, see above), so deny-and-re-ask stays the only safe channel.
+ *
  * WHY THE ANNOTATION IS ONE LINE. The sibling
  * pretooluse-askuserquestion-line-terminator-guard DENIES any newline inside an option's
  * `label` or `description`, because Claude Code renders one as U+FFFD. So the annotation is a
@@ -37,6 +49,10 @@ const CALL_TIMEOUT_MS = 2000;
 const MAX_PRS = 3;
 
 const PR_REFERENCE = /(?:https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/(\d+)|#(\d+))/g;
+
+/** Wording that asserts something about a review: the premise this hook exists to check. */
+export const REVIEW_PREMISE =
+  /\b(?:re-?review\w*|review\w*|approv\w*|request(?:ed|s)?\s+changes|changes\s+requested|waiting\s+(?:on|for)|blocking|lgtm|sign[- ]?off|owed)\b/i;
 
 interface PrFacts {
   author: string | null;
@@ -116,7 +132,8 @@ async function factsFor(cwd: string, repo: string | null, number: string, actor:
  */
 function annotation(number: string, facts: PrFacts, actor: string | null): string | null {
   if (!facts.author) return null;
-  if (actor && facts.author === actor) return `[#${number}: yours]`;
+  // Your own pull request: no review can be owed to you, so there is no premise to annotate.
+  if (actor && facts.author === actor) return null;
   const invitation =
     facts.invited === null
       ? "review request unknown"
@@ -135,7 +152,7 @@ function referencesIn(text: string): Array<{ repo: string | null; number: string
   return found;
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow(HOOK);
   if (!input) return;
   if (input.tool_name !== "AskUserQuestion") return allow();
@@ -149,6 +166,7 @@ async function main(): Promise<void> {
   for (const question of questions) {
     for (const option of (question as { options?: unknown[] }).options ?? []) {
       const text = `${(option as { label?: string }).label ?? ""} ${(option as { description?: string }).description ?? ""}`;
+      if (!REVIEW_PREMISE.test(text)) continue;
       for (const reference of referencesIn(text)) {
         const key = `${reference.repo ?? ""}#${reference.number}`;
         if (!wanted.has(key) && wanted.size < MAX_PRS) wanted.set(key, reference);
@@ -183,6 +201,7 @@ async function main(): Promise<void> {
     for (const option of (question as { options?: unknown[] }).options ?? []) {
       const typedOption = option as { label?: string; description?: string };
       const text = `${typedOption.label ?? ""} ${typedOption.description ?? ""}`;
+      if (!REVIEW_PREMISE.test(text)) continue;
       const notes = [
         ...new Set(
           referencesIn(text)
@@ -205,7 +224,9 @@ async function main(): Promise<void> {
   );
 }
 
-main().catch((error: unknown) => {
-  trackHookError(HOOK, `${HOOK}_FAILOPEN: ${error instanceof Error ? error.stack : String(error)}`);
-  allow();
-});
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    trackHookError(HOOK, `${HOOK}_FAILOPEN: ${error instanceof Error ? error.stack : String(error)}`);
+    allow();
+  });
+}
