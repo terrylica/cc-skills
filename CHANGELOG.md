@@ -1,3 +1,143 @@
+## [33.18.1](https://github.com/terrylica/cc-skills/compare/v33.18.0...v33.18.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **itp-hooks:** a missing ty is a once-per-session advisory, not an error after every Python edit ([1d3d84b](https://github.com/terrylica/cc-skills/commit/1d3d84becc270530950d57d17b1e1882193d0e69))
+
+The resource-guarded spawn runs the tool as `sh -c 'ulimit -t N; exec "$@"'`. posix_spawn therefore always succeeds (it starts sh), and a missing `ty` came back as sh's exit 127 with "/bin/sh: 1: exec: ty: not found", never as `spawnFailed`. The per-file ty check took that for diagnostics and reported it on every .py write, so its once-per-session install reminder was unreachable on any host without ty.
+
+- The shared helper resolves the program on PATH before wrapping it and returns `spawnFailed` before taking a concurrency slot; a guarded exit 127 with "not found" is also read as spawnFailed.
+- Every guarded caller benefits; today that is the ty per-file check. The Stop-hook project check already tested `which ty` and was silent.
+- Tests: posttooluse-ty-type-check.test.ts (new). Both cases fail on the previous helper and pass now: the guarded spawn of a missing program is spawnFailed, and with ty absent the first edit gets one advisory and the second gets nothing.
+
+* **itp-hooks:** cwd-deletion guard matches only rm/rmdir/mv operands that resolve to the cwd or a parent ([2c371b4](https://github.com/terrylica/cc-skills/commit/2c371b46e28d1871fca11dd00d4c3bcc3b082965))
+
+The detector matched text, not operands: any `rm` carrying an `-f` or `-r` flag, combined with `$PWD` or `$(pwd)` anywhere in the command, was reported as deleting the working directory. `pueue add -w "$PWD" -- cmd && rm -f reports/x.json` was denied with target `$(pwd)`. Its own advice, `cd /tmp && rm -rf <target>`, was also still a deletion of the session's directory.
+
+- Invocations come from the shared invocation walker: quoted text, comments, commit messages and heredocs written to files are not commands; `bash -c` and `xargs` are looked through; `ssh host '...'` is skipped.
+- rm needs -r/-R/--recursive; rmdir operands; mv SOURCES only. Each operand is resolved (`.`, `..`, `~`, `$HOME`, `$PWD`, `$(pwd)`, backtick pwd, relative paths after any earlier `cd`); unknowable expansions are not reported.
+- Globs count when they can match the protected directory itself (`../*`), not its children (`*`).
+- Protected: the session cwd always, plus the directory the command has cd'd into. The deny's advice now says to delete from a session started elsewhere.
+- Tests: cwd-deletion-patterns.test.ts (new): 14 false-positive commands that must pass, 17 true-positive commands that must still be denied, plus home-directory, git re-clone and escape-hatch cases.
+
+* **itp-hooks:** GitHub hard-wrap guard measures a literal printf body instead of refusing it ([6bfeb7b](https://github.com/terrylica/cc-skills/commit/6bfeb7b7d375ce2315e650df6ecbba9bef4a3df3))
+
+The guard reads a `--body-file` before the command runs. A body written by a heredoc in the same command was readable, but a body written by `printf ... > body.md` counted as "a form the guard cannot parse", so writing and publishing in one command was denied however well-formed the body was. The guard's purpose (no hard-wrapped prose published to GFM surfaces) is real and kept; this removes the false positive without widening anything.
+
+- New lib/static-printf-writes.ts: the output of a `printf FORMAT ARG... > file` whose format and arguments are literal (`%s`, `%b`, `%%`, common backslash escapes). Expansions outside single quotes, appends, `printf -v`, widths and other conversions return null, which keeps the existing deny.
+- The body collector uses it after the heredoc lookup, so the hard-wrap guard and the PR-citation guard both see the text; the label says "via the printf in this command".
+- Tests: lib/static-printf-writes.test.ts (new); in the guard's tests, an unwrapped literal printf body is allowed, a hard-wrapped one is denied as hard-wrapped (true positive), an unmodelled conversion stays an unreadable deny, and the existing "cannot read" test now uses an expansion.
+
+* **itp-hooks:** guarded-tool lookup reads the current PATH; gate test compares the resolved worktree path ([8ee8866](https://github.com/terrylica/cc-skills/commit/8ee886684760ada777d0e0d464fc4cd791c6b729))
+
+Bun.which without an explicit PATH reads the PATH the process started with, so with ty installed (the Mac) the ty-absent test still found it and the classifier returned noop; el02 has no ty and passed by accident. The review-round gate test expected the unresolved temp path, while on macOS the hook correctly measures /private/var/... Both failed the Mac release preflight.
+
+* **itp-hooks:** inline-ignore audit honours the repository's own noqa convention ([4e6c8ac](https://github.com/terrylica/cc-skills/commit/4e6c8acfa3a59f8da75510e0a0d0d1bd08503535))
+
+The INLINE-IGNORE-AUDIT flagged `# noqa: E402` after `sys.path.insert(...)` in a repository that uses that pattern in every script; ruff cannot express "this import must follow the path change", so the inline suppression is the correct form there, and the reminder was noise on every write.
+
+- A `# noqa: CODE` line is skipped when every code on it is: E402 in a file that changes sys.path (insert, append, site.addsitedir); named in the root ruff configuration (ruff.toml, .ruff.toml, pyproject.toml); or suppressed inline in at least three other tracked Python files.
+- Still reported: bare `# noqa`, `# type: ignore` / `# ty: ignore`, and any code without such a convention.
+- If the filter itself fails, every finding is kept; the audit is never silenced by accident. Written for bash 3.2 (macOS /bin/bash) and BSD ERE (no `\b`).
+- Test: hooks/tests/test-code-correctness-guard-inline-ignore-convention.sh (new), fixture outside temp and test paths so it cannot pass vacuously; cases A-C fail on the previous hook, D-F (true positives) pass on both.
+
+* **itp-hooks:** parquet-to-DuckDB nudge speaks once per session and only for sed/awk on a Parquet file ([48934f3](https://github.com/terrylica/cc-skills/commit/48934f3cf75a1462ebd96f77b88d97d8b65fb6bc))
+
+The nudge fired on any command that mentioned `.parquet` anywhere and ran sed or awk anywhere (reading a loader script with `sed -n`, listing a lake directory), and it repeated the same template on every read_parquet in a session. It is a preference, not a safety rule, so the repetition was pure noise.
+
+- sed/awk (and gawk, mawk, gsed) are matched as invocations through the shared walker, and only when a Parquet file is one of their own operands; quoted mentions are not invocations.
+- The nudge is shown once per session (O_EXCL gate keyed on session_id); a command that does not match never consumes it.
+- parquet-tools and the Python read_parquet / pyarrow.parquet / pq.read_table patterns are unchanged.
+- Tests: pretooluse-parquet-duckdb-nudge.test.ts (new).
+
+* **itp-hooks:** PR-premise annotator only stops options that assert a review premise about another author's PR ([30fbc28](https://github.com/terrylica/cc-skills/commit/30fbc28708f529e513f3bfe63c20f259bcc0033f))
+
+The annotator denied any AskUserQuestion whose options named a pull request until each carried a `[#N: ...]` annotation, including the operator's own pull requests and options that say nothing about a review, and it spent up to three `gh` round trips on every such dialog. The incident it exists for (2026-09-06) was narrower: "Review #656" offered about another author's PR, with no review request behind it.
+
+- An option is examined only when its text asserts a review premise (review, re-review, approve, request changes, waiting on, blocking, LGTM, sign-off, owed). Other menus pass with no network call.
+- A PR you authored needs no annotation: no review can be owed to yourself.
+- Another author's PR in a review-premise option without the facts is still denied with the exact one-line annotation, and the re-ask with it converges to allow.
+- It still cannot add the annotation itself: `updatedInput` on AskUserQuestion is read as "already answered", so deny-and-re-ask remains the only safe channel.
+- main() is exported and the top-level call gated on import.meta.main. Tests: pretooluse-pr-premise-annotator.test.ts (new), against a fake `gh` on PATH.
+
+* **itp-hooks:** pueue auto-wrap never emits a rewrite that does not parse; cargo TTY isolation applies again ([b6cbb1c](https://github.com/terrylica/cc-skills/commit/b6cbb1ce50cb0781019d45c6ef8ed510ce97c993))
+
+The pueue-wrap guard pasted the command after `pueue add ... --` with no quoting, so the outer shell parsed the command's own `;`, `do`, `&&` and quotes, and every loop it wrapped came out as a zsh parse error ("unmatched '", "parse error near `TASK_ID=$(pueue add`"). It also matched its loop patterns against heredoc bodies and quoted strings, so writing a script file that contained a loop, or running `bash -c '...for...'`, was rewritten. Separately, the cargo TTY guard has run inside the Bash guard orchestrator since 2026-10-01, which drops `updatedInput`, so its rewrite was silently discarded on every call.
+
+- New lib/pueue-safe-wrap.ts: the command goes to pueue as ONE single-quoted argument; the rewrite is emitted only if the original parses under bash, $SHELL and sh (pueue's shell) and the wrapper parses under bash and $SHELL (`-n -c`); otherwise the command passes through untouched.
+- The wrapper returns the TASK's exit code from `pueue status --json`. Measured on pueue 4.0.4: `pueue wait` exits 0 for a task that failed with exit 3, and `wait && log` hid the log of failed runs.
+- Patterns are matched on the command line only: data heredoc bodies and quoted spans removed, inline `python -c` snippets are not jobs. Loops are judged by the PROGRAM each body command runs, so `for f in *.py; do grep -l cache "$f"; done` is no longer wrapped.
+- Cargo: detection and wrapper stay in pretooluse-cargo-tty-guard.ts, now a library applied by pueue-wrap (the one rewriting hook); removed from the orchestrator registry (24 -> 23 guards). It wraps backgrounded cargo (`... &`) and CARGO-TTY-WRAP; foreground cargo stays unwrapped, as it has effectively been since 2026-10-01.
+- Tests: pretooluse-pueue-wrap-guard.test.ts (new), including an end-to-end run of the wrapper against a private pueue daemon through a PATH shim (quotes survive, exit code 3 comes back).
+
+* **itp-hooks:** pueue tasks run under the user's shell; exit code read with the hook's own bun; cargo never passes through unwrapped ([ad0ef2d](https://github.com/terrylica/cc-skills/commit/ad0ef2d00a8144fd8e3cf1780a43f86e01f6985c))
+
+Found in an independent review of this branch.
+
+- The task runs as `<shell> -c '<command>'` under the user's bash or zsh, not pueue's `sh -c`: on Linux sh is dash, and `dash -n` accepts bashisms (`${arr[@]}`, `${x//a/b}`) that dash then fails to run. The original is parsed under that shell; the wrapper under bash and $SHELL.
+- All syntax checks share a 2.5 s budget (per check 0.8 s), inside the hook's 5 s timeout; running out means no rewrite.
+- The exit-code reader uses `process.execPath` (the hook's own bun), so it does not depend on bun being on the PATH of the shell running the wrapper, and reads both the pueue 4 shape (`Done.result`) and the older one.
+- Cargo: when a safe wrapper cannot be built the command is denied, not passed through (unwrapped it is the backgrounded cargo that suspends the session); cargo tasks are written to the session task log so the Stop hook cleans them up.
+- Tests: zsh assertions skip when zsh is absent instead of passing vacuously; new cases for the task shell and the budget.
+
+* **itp-hooks:** pueue-local guard inspects real pueue add invocations and treats this machine's paths as local ([90dbe69](https://github.com/terrylica/cc-skills/commit/90dbe69868c3180119b48752d49df14754053d66))
+
+The guard denied any command in which the text `pueue add` and a `/home/` path appeared anywhere, including a read-only grep whose pattern was `TASK_ID=$(pueue add`. It also assumed a macOS host, so on a Linux machine every local `pueue add` naming a file in the local home directory was denied, and repositories there had to carry a standing PUEUE-LOCAL-OK rule.
+
+- Find `pueue add` with the shared invocation walker: quoted text, comments, commit messages and heredocs written to files are not submissions; `bash -c` and chained commands are still seen; `ssh host '...'` is skipped as before.
+- Indicators are read from the invocation's own arguments, and a path or binary indicator counts only when it does not exist on this machine (`/home/<user>`, `~/.local/bin`, `clickhouse-client`). `/tmp/gen*`, `/tmp/sweep_*` and configured hostnames count as before.
+- Tests: pretooluse-pueue-local-guard.test.ts (new), false positives plus the true positives the guard exists for.
+
+* **itp-hooks:** python-preference nudge is quiet in repositories that are Python by design ([0553551](https://github.com/terrylica/cc-skills/commit/0553551e78913a432be968c758917f467d4a7c91))
+
+The nudge printed its full PY-PREFER block on every new .py file, including in a repository whose root has pyproject.toml, uv.lock and a python-allowlist.toml that its own tooling regenerates and checks before each commit. There the allowlist is already enforced by the repository; the hook only repeated it, on every file. Amended at the operator's request (2026-10-17): quiet in Python-native repositories, unchanged for greenfield.
+
+- Repository root (nearest .git) with pyproject.toml, uv.lock or .python-version AND a root python-allowlist.toml: silent.
+- The same markers without an allowlist: one short note per session (O_EXCL gate shared with the other once-per-session reminders).
+- No Python markers at the root: the full per-file reminder, as before; a root allowlist alone does not change that.
+- Spoke and ADR amended (docs/adr/2026-06-25-python-preference-nudge-per-file-toml-allowlist.md, "Amendment 2026-10-17").
+- Tests: five new cases in posttooluse-python-preference-nudge.test.ts, including the greenfield true positive.
+
+* **itp-hooks:** review follow-ups for the cwd, pueue-local, inline-ignore and hard-wrap guards; per-user reminder gates ([960d723](https://github.com/terrylica/cc-skills/commit/960d723c6f05fed4df8d1a95a1a7e9720819da43))
+
+Found in an independent review of this branch.
+
+- cwd-deletion: plain assignments earlier in the command are substituted (`D=$PWD; rm -rf "$D"`), a `cd` inside `bash -c` moves what follows it, and `mv -t DIR` makes every operand a source.
+- pueue-local: pueue's global options before `add` (`pueue -p prof add`, `pueue --color never add`) no longer hide the invocation.
+- inline-ignore audit: the ruff configuration is read with a TOML parser (new lib/ruff-ignored-codes.ts): only `ignore`/`extend-ignore` and per-file globs that match THIS file count, with prefix selectors (`E7` covers E731, `ALL` everything); `select` no longer counts. The three-files convention counts files committed at HEAD only, each code is looked up once per file, and the relative path comes from git (stripping the root failed for files reached through a symlink such as ~/.cache or ~/orca on el02).
+- hard-wrap: a literal printf is taken as the body only when it is the one write to that path; `printf ... > b.md && cat more >> b.md` stays an unreadable deny.
+- Once-per-session gate directories are per user (`/tmp/.claude-<name>-reminder-<uid>`): a shared directory created 0755 by the first user silenced the reminder for every other account on a shared host.
+- posttooluse-typescript-upgrade-reminder.test.ts deleted the WHOLE gate directory in its cleanup, which re-armed the TS-7 reminder in every live session after each test run; it now removes only its own session's file.
+
+* **itp-hooks:** review-round gate follows a directory change only when it is certain, and keeps heredocs that will run ([dc5d16e](https://github.com/terrylica/cc-skills/commit/dc5d16e45a3d5b1a5fd2f251c369e7f8c149517b))
+
+Found in an independent review of this branch: three ways the new locating logic could let a true positive through.
+
+- A `cd` is followed only when it is unconditional: no subshell or brace group (`(cd wt && true); git push` pushes from the original directory), no `popd`, and every `cd`/`pushd` chained with `&&` (after `;` or a newline a failed cd leaves the gated command in the session cwd). Otherwise the session cwd is measured, as before this branch.
+- Data heredocs: a body is ignored only when nothing will run it: its consumer is not a shell or ssh, its opening line has no pipe (`cat <<'EOF' | bash`), and a file it is written to is not named again later (`cat > s.sh <<'EOF' ... EOF; bash s.sh`).
+- `git -C "../my wt" push` (a quoted path with a space) is recognised as a push.
+- Tests: new cases in lib/review-round-artifact.test.ts, new lib/shell-heredoc-data.test.ts.
+
+* **itp-hooks:** review-round gate measures the checkout the command runs in, against the remote base ([fed3835](https://github.com/terrylica/cc-skills/commit/fed3835421763c6ecf97abd5e6db949fc55f08ef))
+
+The gate read the repository, HEAD and branch from the session's cwd, so `cd <worktree> && gh pr ready N`, `gh pr ready <branch>` and `git -C <worktree> push` were measured on the main checkout, and a record written in the worktree at its exact head could never satisfy it. It also fell back to the LOCAL `main` whenever the remote was not called `origin`, which measured branches against a stale base and demanded verdicts for files the PR never touched.
+
+- Follow `cd DIR`, `pushd DIR` and `git -C DIR` to the directory the gated command runs in; an unresolvable directory ($VAR, $(...), cd -) keeps the session cwd, so nothing is ever widened.
+- `gh pr ready <number|url>` resolves the PR's head and base with one bounded `gh pr view` (2.5 s, inside the guard's 4 s budget); the head leads to its worktree. On failure nothing changes.
+- Base lookup: the branch's upstream remote, then origin, then every other remote (`<remote>/HEAD`, `main`, `master`), local branches last; `--base` (gh pr create) or the PR's baseRefName is tried first. The record CLI takes the same `--base`.
+- `git -C dir push` and other git global options before `push` are now recognised as a push (previously unmetered).
+- Data heredoc bodies (written to files) are no longer classified as gated commands; bodies fed to a shell still are (new lib/shell-heredoc-data.ts).
+- Every deny prints what it measured: checkout, branch, head, base ref, and the exact record command for that checkout.
+
+* **release:** keep the SC2016 directive on the preflight xargs line ([3123b6f](https://github.com/terrylica/cc-skills/commit/3123b6f8767b824cb0f3fb944c783ecb68c249b9))
+
+The xargs -S probe of 3f453da8 sat between "# shellcheck disable=SC2016" and the command it covers, so shellcheck reported SC2016 on the fan-out and test-iter169 failed. The probe now comes before the comment block, as a local array.
+
+* **tasks:** pass xargs -S only where xargs accepts it ([3f453da](https://github.com/terrylica/cc-skills/commit/3f453da817fb56f859f4d59864f502239c1c91c8))
+
+GNU xargs (Linux) has no -S and exits at once, so the hook regression suite and the release preflight's parallel audits reported every test missing on el02 ("SUITE DID NOT RUN: 0 of 116"). The flag is now probed once and passed only to BSD xargs. With it the suite runs on Linux: 112 of 116 pass; the 4 failures (chronicle slicing, iter115, iter158, iter160) fail identically on main and are clone-environment checks, not hooks.
+
 # [33.18.0](https://github.com/terrylica/cc-skills/compare/v33.17.0...v33.18.0) (2026-10-16)
 
 
