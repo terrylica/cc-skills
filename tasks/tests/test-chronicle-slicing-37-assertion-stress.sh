@@ -165,7 +165,7 @@ ln -s "$real_target" "$PROJ_DIR/include-symlink.jsonl"
 # Replicate the chronicle script's find logic in isolation to get a clean
 # answer — we want to assert WHAT IS PICKED, not the upload step.
 SINCE_REF="$SANDBOX/.since.ref"
-touch -t "$(date -r "$PREV_TAG_EPOCH" '+%Y%m%d%H%M.%S')" "$SINCE_REF"
+touch -t "$(date -r "$PREV_TAG_EPOCH" '+%Y%m%d%H%M.%S' 2>/dev/null || date -d "@$PREV_TAG_EPOCH" '+%Y%m%d%H%M.%S')" "$SINCE_REF"   # as chronicle's epoch_fmt
 
 PICKED=$(find "$PROJ_DIR" -type f \( -name '*.jsonl' -o -name '*.jsonl.br' \) -newer "$SINCE_REF" 2>/dev/null | sort)
 PICKED_COUNT=$(echo "$PICKED" | grep -c . || echo 0)

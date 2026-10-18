@@ -41,7 +41,8 @@ function compute_builder_test_input_fingerprint() {
   find "$GMAIL_DRAFT_SCRIPTS_DIR" -type f -name '*.ts' 2>/dev/null \
     | LC_ALL=C sort \
     | while IFS= read -r ts_file; do
-        stat -f '%N %z %m' "$ts_file" 2>/dev/null || true
+        # GNU first: GNU `stat -f` reports the filesystem, not the file, so on Linux the digest ignored edits
+        stat -c '%n %s %Y' "$ts_file" 2>/dev/null || stat -f '%N %z %m' "$ts_file" 2>/dev/null || true
       done \
     | shasum -a 256 | cut -d' ' -f1
 }
