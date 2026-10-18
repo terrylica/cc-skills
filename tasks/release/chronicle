@@ -58,14 +58,20 @@ fi
 
 PREV_TAG=$(git tag --sort=-creatordate --merged HEAD | grep -v "^${NEW_TAG}$" | head -1 || echo "")
 
+# Epoch seconds -> formatted local time. BSD `date -r EPOCH`; on GNU, -r names a FILE (no such file, so the GNU form
+# runs). Linux used to get an empty time here: the window reference kept the touch time and nothing was picked.
+epoch_fmt() { date -r "$1" "$2" 2>/dev/null || date -d "@$1" "$2"; }
+# File size in bytes. GNU first: GNU `stat -f` means filesystem status and succeeds with the wrong value.
+file_size() { stat -c%s "$1" 2>/dev/null || stat -f%z "$1" 2>/dev/null || echo 0; }
+
 if [[ -n "$PREV_TAG" ]]; then
     SINCE_EPOCH=$(git log -1 --format=%ct "$PREV_TAG" 2>/dev/null || echo "")
-    SINCE_DATE=$(date -r "$SINCE_EPOCH" '+%Y-%m-%d %H:%M' 2>/dev/null)
+    SINCE_DATE=$(epoch_fmt "$SINCE_EPOCH" '+%Y-%m-%d %H:%M')
     echo "  → Window: previous tag $PREV_TAG ($SINCE_DATE) → now"
 else
     # First release: take the past 7 days as a reasonable default.
     SINCE_EPOCH=$(date -v-7d +%s 2>/dev/null || date -d '7 days ago' +%s)
-    SINCE_DATE=$(date -r "$SINCE_EPOCH" '+%Y-%m-%d %H:%M' 2>/dev/null)
+    SINCE_DATE=$(epoch_fmt "$SINCE_EPOCH" '+%Y-%m-%d %H:%M')
     echo "  → Window: no previous tag, defaulting to last 7 days ($SINCE_DATE → now)"
 fi
 
@@ -102,7 +108,7 @@ total_bytes=0
 
 # Use find -newermt for the time window; -newer + reference is also POSIX but mtime cmp is cleaner here.
 SINCE_REF="$STAGING/.since.ref"
-touch -t "$(date -r "$SINCE_EPOCH" '+%Y%m%d%H%M.%S')" "$SINCE_REF"
+touch -t "$(epoch_fmt "$SINCE_EPOCH" '+%Y%m%d%H%M.%S')" "$SINCE_REF"
 
 while IFS= read -r f; do
     [[ -z "$f" ]] && continue
@@ -122,7 +128,7 @@ while IFS= read -r f; do
             fi
             ;;
     esac
-    sz=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo 0)
+    sz=$(file_size "$f")
     total_bytes=$((total_bytes + sz))
 done < <(find "$PROJ_DIR" -type f \( -name '*.jsonl' -o -name '*.jsonl.br' \) -newer "$SINCE_REF" 2>/dev/null)
 
@@ -173,7 +179,7 @@ cp "$REPORT" "$SANITIZED/REDACTION-REPORT.txt"
 
 ASSET="$STAGING/session-chronicle-${NEW_TAG}.tar.gz"
 tar -czf "$ASSET" -C "$STAGING" sanitized
-ASSET_SIZE_KB=$(($(stat -f%z "$ASSET" 2>/dev/null || stat -c%s "$ASSET") / 1024))
+ASSET_SIZE_KB=$(($(file_size "$ASSET") / 1024))
 echo "  → Bundle: $(basename "$ASSET") (${ASSET_SIZE_KB} KB)"
 
 # ────────────────────────────────────────────────────────────────

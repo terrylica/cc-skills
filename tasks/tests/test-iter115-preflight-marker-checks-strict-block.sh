@@ -121,7 +121,9 @@ __iter115_atomically_restore_shared_producer_file_via_same_directory_rename() {
     local target_absolute_path="$2"
     local staging_file_absolute_path target_directory preserved_octal_mode
     target_directory="${target_absolute_path%/*}"
-    preserved_octal_mode=$(stat -f '%Lp' "$target_absolute_path" 2>/dev/null || echo 644)
+    # GNU first: GNU `stat -f` is filesystem status and succeeds with a non-mode string (chmod then failed on
+    # Linux, and the injected line stayed in bot.ts)
+    preserved_octal_mode=$(stat -c '%a' "$target_absolute_path" 2>/dev/null || stat -f '%Lp' "$target_absolute_path" 2>/dev/null || echo 644)
     staging_file_absolute_path=$(mktemp "$target_directory/.iter193-atomic-producer-restore-XXXXXX")
     if ! cp -f "$content_source_file_absolute_path" "$staging_file_absolute_path" ||
         ! chmod "$preserved_octal_mode" "$staging_file_absolute_path" ||
