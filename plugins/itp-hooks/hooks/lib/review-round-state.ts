@@ -167,7 +167,7 @@ function cloneRemoteSlugs(dir: string): string[] {
 /**
  * The local clone of the repository a `gh pr … -R <owner/repo>` names, or null.
  *
- * WHY (2026-10-18, eonlabs-rnd/shunshi-wang-888#319): a session whose cwd is one repository opened a
+ * WHY (2026-10-18): a session whose cwd is one repository opened a
  * PR in another with `gh pr create -R owner/other --head <branch>`. `worktreeForBranch` looked for the
  * branch among the CWD repository's worktrees, found nothing, and measured the cwd's HEAD, so the
  * recorded self-review was invisible and the only way through was an override that asks the operator.
@@ -176,7 +176,7 @@ function cloneRemoteSlugs(dir: string): string[] {
  * when no clone is found. Candidates are the operator's fixed layout -- `~/eon/<repo>`,
  * `~/eon/quant/<repo>`, `~/gh/<org>/<repo>` -- main clones only (a `.git` directory; linked worktrees
  * are reached through `worktreeForBranch` on the clone). Any remote may match, not only `origin`
- * (el02's shunshi clone names its remote `github`).
+ * (a clone whose only remote is named `github` must still match).
  */
 export function localCloneForRepo(repoFlag: string, cwd: string, home: string = homedir()): string | null {
   const want = repoSlugOf(repoFlag);

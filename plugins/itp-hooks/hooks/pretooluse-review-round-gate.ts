@@ -179,7 +179,7 @@ export async function main(): Promise<void> {
   // The PR's base, when the command or GitHub names one. null = the remote's default branch.
   let baseBranch: string | null = null;
   // A `-R owner/other` names a repository other than cwd's: its head branch lives in THAT clone's
-  // worktrees (2026-10-18, shunshi-wang-888#319 asked the operator for an override although the
+  // worktrees (2026-10-18: a cross-repository PR asked the operator for an override although the
   // branch's self-review existed). null = cwd's own repository, or no local clone found.
   const repoFlag = ghRepoFlag(command);
   const branchHome = (repoFlag === null ? null : localCloneForRepo(repoFlag, cwd)) ?? cwd;

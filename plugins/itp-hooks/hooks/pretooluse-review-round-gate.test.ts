@@ -253,7 +253,7 @@ function otherRepoUnderFakeHome(prefix: string): { home: string; session: string
 }
 
 describe("gh pr create -R <other repo> --head measures that repo's worktree", () => {
-  // 2026-10-18, eonlabs-rnd/shunshi-wang-888#319: the session stood in one repository and opened a PR
+  // 2026-10-18: the session stood in one repository and opened a PR
   // in another with -R; the head branch's record existed in the other clone's worktree, but the gate
   // looked only among the session repository's worktrees, measured its HEAD, and the only way through
   // was an override that asks the operator.
