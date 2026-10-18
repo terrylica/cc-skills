@@ -1,3 +1,15 @@
+## [33.18.2](https://github.com/terrylica/cc-skills/compare/v33.18.1...v33.18.2) (2026-10-18)
+
+
+### Bug Fixes
+
+* GNU-first date and stat where BSD forms give wrong values ([e3a43ef](https://github.com/terrylica/cc-skills/commit/e3a43ef122356ea9ebbb5a7df554fbb008d3758a))
+
+- tasks/release/chronicle: `date -r EPOCH` names a file on GNU, so the window reference kept its touch time and the chronicle picked no session on Linux; `stat -f%z` is filesystem status on GNU and gave a wrong size. epoch_fmt and file_size try the working form for each system.
+- plugins/gmail-commander/hooks/gmail-draft-guard.sh: the builder fingerprint used `stat -f`, so on Linux it hashed filesystem data and ignored edits: the gate could trust stale test results.
+- test-iter115: the restore read the mode with `stat -f %Lp` (a non-mode string on GNU), chmod failed and the injected line stayed in bot.ts.
+- test-chronicle-slicing: its copy of the window reference uses the same fallback. Hook regression suite on el02 (Linux): 115 of 116 test files pass; the remaining one needs the brotli CLI, which el02 does not have (the chronicle also skips .br sessions without it).
+
 ## [33.18.1](https://github.com/terrylica/cc-skills/compare/v33.18.0...v33.18.1) (2026-10-18)
 
 
