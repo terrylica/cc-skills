@@ -44,8 +44,9 @@ Rules every rewrite follows since 2026-10-17 (`lib/pueue-safe-wrap.ts`), after a
 
 - Patterns are matched on the command line only: data heredoc bodies (`lib/shell-heredoc-data.ts`) and quoted spans are removed first, and an inline `python -c '…'` is not a job. Writing a script that contains a loop, or running a loop inside `bash -c '…'`, is not wrapped.
 - The command reaches pueue as one single-quoted argument. The old wrapper pasted it unquoted after `--`, so the outer shell parsed its `;`, `do`, `&&` and quotes.
-- The rewrite is emitted only when the original parses under bash, the user's `$SHELL` and `sh` (pueue's shell), and the wrapper parses under bash and `$SHELL` (`-n -c`). Otherwise the command passes through unchanged.
-- The wrapper ends with the task's exit code from `pueue status --json`: measured on pueue 4.0.4, `pueue wait` exits 0 when the task failed.
+- The task runs as `<shell> -c '<command>'` under the shell the Bash tool would have used (the user's bash or zsh), not pueue's default `sh -c` (dash on Linux, which parses but cannot run bashisms such as `${arr[@]}`).
+- The rewrite is emitted only when the original parses under that shell and the wrapper parses under bash and `$SHELL` (`-n -c`), all checks within a 2.5 s budget. Otherwise the command passes through unchanged; on the cargo path it is denied instead, because the unwrapped command is exactly the backgrounded cargo that suspends the session.
+- The wrapper ends with the task's exit code from `pueue status --json`, read with the hook's own bun (both the pueue 4 and the older JSON shape): measured on pueue 4.0.4, `pueue wait` exits 0 when the task failed. Cargo tasks are recorded in the session task log too, so the Stop hook cleans them up.
 
 It **must be the last PreToolUse entry** in `hooks.json`: Claude Code applies `updatedInput` last-writer-wins, so a later hook's `updatedInput`, even an undefined one, would replace the rewritten command. [`tasks/hook-lint/pueue-wrap-last.sh`](../../../tasks/hook-lint/pueue-wrap-last.sh) enforces this; it runs in `moon run repo:hook-lint` and as Check 4g of `tasks/release/preflight`.
 

@@ -18,7 +18,7 @@ import { join } from "node:path";
 
 import { buildWrappedCommand, commandLineForPatternMatching, shouldWrap } from "./pretooluse-pueue-wrap-guard.ts";
 import { buildSafeWrapper, cargoCommandNeedsPueueIsolation } from "./pretooluse-cargo-tty-guard.ts";
-import { buildPueueWrapper, parsesUnder, shellSingleQuote, wrapIsSafe } from "./lib/pueue-safe-wrap.ts";
+import { buildPueueWrapper, parsesUnder, shellSingleQuote, taskShell, wrapIsSafe } from "./lib/pueue-safe-wrap.ts";
 
 describe("shouldWrap: what is long-running", () => {
   test.each([
@@ -71,17 +71,21 @@ describe("the wrapper never breaks the command's quoting", () => {
     "printf '%s\\n' \"$(date)\" `whoami`; python x.py",
   ];
   for (const command of tricky) {
-    test(`parses under bash and zsh: ${command.slice(0, 50).replace(/\n/g, "⏎")}`, () => {
+    test(`parses under bash: ${command.slice(0, 50).replace(/\n/g, "⏎")}`, () => {
       const wrapped = buildWrappedCommand(command, "/tmp/dir with 'quote'");
       expect(parsesUnder("bash", wrapped)).toBe(true);
-      expect(parsesUnder("zsh", wrapped)).toBe(true);
       expect(wrapIsSafe(command, wrapped).ok).toBe(true);
+    });
+    // Not vacuous: parsesUnder() answers true for a shell that is not installed.
+    test.if(Bun.which("zsh") !== null)(`parses under zsh: ${command.slice(0, 50).replace(/\n/g, "⏎")}`, () => {
+      expect(parsesUnder("zsh", buildWrappedCommand(command, "/tmp/dir with 'quote'"))).toBe(true);
     });
   }
 
   test("the command reaches pueue as ONE single-quoted argument", () => {
     const command = "for f in a b; do echo \"it's $f\"; done";
-    expect(buildWrappedCommand(command, "/w")).toContain(`-- ${shellSingleQuote(command)} 2>&1`);
+    const task = `${taskShell()} -c ${shellSingleQuote(command)}`;
+    expect(buildWrappedCommand(command, "/w")).toContain(`-- ${shellSingleQuote(task)} 2>&1`);
   });
 
   test("an original that does not parse is never wrapped", () => {
@@ -89,10 +93,17 @@ describe("the wrapper never breaks the command's quoting", () => {
     expect(wrapIsSafe(broken, buildWrappedCommand(broken, "/w")).ok).toBe(false);
   });
 
-  test("an original sh cannot run (pueue's shell) is never wrapped", () => {
-    // Arrays are bash/zsh only; pueue runs the task with `sh -c`.
-    const bashOnly = "arr=(a b); for f in a b; do python x.py; done";
-    expect(wrapIsSafe(bashOnly, buildWrappedCommand(bashOnly, "/w"), ["bash"]).ok).toBe(Bun.which("sh") === null);
+  test("the task runs under the user's shell, not pueue's sh (dash on Linux)", () => {
+    // `dash -n` accepts `${arr[@]}`, which dash then fails to run; under bash it runs.
+    const bashism = 'arr=(a b); for f in "${arr[@]}"; do python x.py "$f"; done';
+    const wrapped = buildPueueWrapper({ command: bashism, cwd: "/w", onQueueFailure: "fail", label: "t", shell: "bash" });
+    expect(wrapped).toContain(`-- ${shellSingleQuote(`bash -c ${shellSingleQuote(bashism)}`)} 2>&1`);
+    expect(wrapIsSafe(bashism, wrapped, ["bash"], "bash").ok).toBe(true);
+  });
+
+  test("a check that runs out of budget means no rewrite", () => {
+    const command = "for f in a b; do python x.py; done";
+    expect(wrapIsSafe(command, buildWrappedCommand(command, "/w"), ["bash"], "bash", 0).ok).toBe(false);
   });
 });
 
@@ -113,9 +124,10 @@ describe("cargo TTY isolation (now applied by this hook)", () => {
 
   test("a chained cargo command stays inside the pueue task", () => {
     const wrapped = buildSafeWrapper("cargo test && cargo bench --bench 'x y' &", "/w");
-    expect(wrapped).toContain(`-- ${shellSingleQuote("cargo test && cargo bench --bench 'x y'")} 2>&1`);
+    const task = `${taskShell()} -c ${shellSingleQuote("cargo test && cargo bench --bench 'x y'")}`;
+    expect(wrapped).toContain(`-- ${shellSingleQuote(task)} 2>&1`);
     expect(parsesUnder("bash", wrapped)).toBe(true);
-    expect(parsesUnder("zsh", wrapped)).toBe(true);
+    if (Bun.which("zsh") !== null) expect(parsesUnder("zsh", wrapped)).toBe(true);
   });
 });
 

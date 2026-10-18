@@ -257,11 +257,16 @@ async function main() {
       );
       return;
     }
-    const wrapped = buildCargoWrapper(command, workingDir);
+    const wrapped = buildCargoWrapper(command, workingDir, SESSION_TASK_LOG);
     const verdict = wrapIsSafe(command.replace(/\s+&\s*$/, ""), wrapped);
     if (!verdict.ok) {
-      process.stderr.write(`[${HOOK_NAME}] cargo wrap skipped: ${verdict.reason}\n`);
-      passThrough(tool_name, command, opTokenInjected);
+      // NOT a pass-through: unwrapped, this is exactly the backgrounded cargo that suspends the
+      // session. Say why and let the agent rewrite it (found in review, 2026-10-17).
+      deny(
+        `[CARGO-TTY-GUARD] A backgrounded cargo command must run in pueue, and a safe wrapper could not be built (${verdict.reason}).\n` +
+          "Fix: run it in the foreground without `&`, or queue it yourself: pueue add -- <command>.\n" +
+          "Escape hatch: add `# CARGO-TTY-SKIP` to the command.",
+      );
       return;
     }
     allowWithInput(HOOK_NAME, tool_name, { command: wrapped });

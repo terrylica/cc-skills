@@ -140,13 +140,13 @@ export function ensurePueueDaemon(): boolean {
  * /dev/tty directly via libc open(). PUEUE process isolation is the ONLY
  * reliable protection. If PUEUE is unavailable, the command is denied.
  */
-export function buildSafeWrapper(command: string, cwd: string): string {
+export function buildSafeWrapper(command: string, cwd: string, taskLog?: string): string {
   // Remove trailing & from command (if present): pueue is the background now.
   const cleanCommand = command.replace(/\s+&\s*$/, "");
   // One quoted argument (lib/pueue-safe-wrap.ts): pasting it unquoted after `--` let `&&`, `|` and
   // quotes in the command be parsed by the outer shell. No run-directly fallback, for the reason
   // above: without pueue the command is exactly the one that suspends the session.
-  return buildPueueWrapper({ command: cleanCommand, cwd, onQueueFailure: "fail", label: "cargo-tty-guard" });
+  return buildPueueWrapper({ command: cleanCommand, cwd, taskLog, onQueueFailure: "fail", label: "cargo-tty-guard" });
 }
 
 export async function main() {
