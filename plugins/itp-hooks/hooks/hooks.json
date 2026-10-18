@@ -15,7 +15,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-bash-guard-orchestrator.ts",
             "timeout": 60,
-            "description": "Runs the 24 itp-hooks Bash guards listed in BASH_GUARD_REGISTRY in one bun process; the first deny wins and each guard fails open. Escape tokens are in each guard's registry entry."
+            "description": "Runs the 23 itp-hooks Bash guards listed in BASH_GUARD_REGISTRY in one bun process; the first deny wins and each guard fails open. Escape tokens are in each guard's registry entry."
           }
         ]
       },
@@ -80,7 +80,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
             "timeout": 15,
-            "description": "Denies an AskUserQuestion option that names a PR without its author and whether your review was requested, and supplies the exact annotation to append. Fails open."
+            "description": "Denies an AskUserQuestion option that asserts a review premise (review, approve, waiting on, blocking) about ANOTHER author's PR without that PR's author and whether your review was requested, and supplies the exact annotation to append. Your own PRs and options without review wording pass with no network call. Fails open."
           }
         ]
       },

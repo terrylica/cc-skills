@@ -25,11 +25,22 @@
  *   5. If PUEUE cannot be started, DENY the command (nohup is unsafe —
  *      it doesn't prevent cargo from opening /dev/tty directly)
  *
+ * HOW IT RUNS NOW (2026-10-17). This module is a LIBRARY of pretooluse-pueue-wrap-guard.ts, the one
+ * hook allowed to rewrite a Bash command. From 2026-10-01 it ran inside the Bash guard orchestrator,
+ * which does not apply `updatedInput` (anthropics/claude-code#15897), so its rewrite was dropped on
+ * every call while the deny path (pueue down) and the `pueued -d` side effect still fired. Folding it
+ * into the rewriting hook makes the documented behaviour real again, for the case the incident was
+ * about: a BACKGROUNDED cargo (`cargo bench … &`), plus any cargo command marked CARGO-TTY-WRAP.
+ * Foreground cargo is not wrapped: pueue-wrap-guard's NEVER_WRAP already lists cargo's subcommands
+ * as fast local commands, and that is what has been in force since 2026-10-01. The wrapper now quotes
+ * the command as one argument, so `cargo test && cargo bench &` cannot leak `&&` outside pueue.
+ *
  * Reference: https://github.com/anthropics/claude-code/issues/11898
  * ADR: docs/adr/2026-02-23-cargo-tty-suspension-prevention.md
  */
 
 import { allow, allowWithInput, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { buildPueueWrapper } from "./lib/pueue-safe-wrap.ts";
 
 /** Cargo commands known to spawn heavy subprocesses */
 const CARGO_COMMANDS = /^\s*cargo\s+(bench|test|build|run|check)\b/i;
@@ -65,31 +76,22 @@ const CARGO_TTY_GUARD_OPT_IN_FORCE_WRAP_ESCAPE_HATCH_CONFIGURATION: Pick<
   caseSensitivityMode: "CASE_INSENSITIVE",
 };
 
+/** A trailing `&`: the command is backgrounded in the Bash tool's shell. */
+const BACKGROUNDED = /\s&\s*$/;
+
 /**
- * Detect if cargo command needs TTY protection.
- * Now wraps BOTH foreground and background cargo commands with PUEUE
- * to prevent subprocess from directly opening /dev/tty and causing suspension.
+ * Does this cargo command need pueue isolation?
  *
- * Previously only protected background commands (`&`), but `< /dev/null`
- * doesn't prevent cargo from explicitly opening /dev/tty via libc open().
- * PUEUE process isolation is the only reliable protection.
+ * Yes for a backgrounded cargo (`cargo bench … &`), the case anthropics/claude-code#11898 is about,
+ * and for any cargo command marked CARGO-TTY-WRAP. No when it is already detached (nohup, stdin
+ * from /dev/null, tmux, screen, output to /tmp), marked CARGO-TTY-SKIP, or in the foreground.
  */
-function isUnsafeBackground(command: string): boolean {
-  // Must be a cargo command
+export function cargoCommandNeedsPueueIsolation(command: string): boolean {
   if (!CARGO_COMMANDS.test(command)) return false;
-
-  // Already detached or wrapped
   if (ALREADY_DETACHED.test(command)) return false;
-
-  // Explicit opt-out (iter-109: delegated to canonical shared helper).
   if (hasFileWideEscapeHatchMarkerInContent(command, CARGO_TTY_GUARD_OPT_OUT_SKIP_ESCAPE_HATCH_CONFIGURATION)) return false;
-
-  // Explicit force wrap (iter-109: delegated to canonical shared helper).
   if (hasFileWideEscapeHatchMarkerInContent(command, CARGO_TTY_GUARD_OPT_IN_FORCE_WRAP_ESCAPE_HATCH_CONFIGURATION)) return true;
-
-  // NOW: Wrap ALL cargo commands (foreground and background) for TTY protection
-  // This prevents cargo from opening /dev/tty directly, which bypasses stdin redirect
-  return true;
+  return BACKGROUNDED.test(command);
 }
 
 /**
@@ -97,7 +99,7 @@ function isUnsafeBackground(command: string): boolean {
  * Tries `pueue status` first. If that fails, attempts `pueued -d` to start it.
  * Returns true if PUEUE is available after preflight.
  */
-function ensurePueueDaemon(): boolean {
+export function ensurePueueDaemon(): boolean {
   const check = Bun.spawnSync(["pueue", "status"], {
     stdout: "ignore",
     stderr: "ignore",
@@ -129,37 +131,22 @@ function ensurePueueDaemon(): boolean {
  * - Foreground: `cargo test -p module` → queued, waits synchronously
  * - Background: `cargo test -p module &` → queued, waits synchronously (& removed)
  *
- * ANSI stripping: pueue can emit color codes even with --print-task-id when
- * its config has color output enabled. We strip ANSI escape sequences with sed
- * before extracting the task ID to prevent empty/corrupt IDs.
+ * Task id: `--print-task-id` prints the bare id; the wrapper keeps only a line
+ * that is all digits (the earlier GNU-only `sed 's/\x1b…//'` did nothing on
+ * macOS's BSD sed). The wrapper ends with the TASK's exit code, read from
+ * `pueue status --json`, because `pueue wait` exits 0 for a failed task.
  *
  * No nohup fallback: nohup + </dev/null does NOT prevent cargo from opening
  * /dev/tty directly via libc open(). PUEUE process isolation is the ONLY
  * reliable protection. If PUEUE is unavailable, the command is denied.
  */
-function buildSafeWrapper(command: string, cwd: string): string {
-  // Remove trailing & from command (if present)
+export function buildSafeWrapper(command: string, cwd: string, taskLog?: string): string {
+  // Remove trailing & from command (if present): pueue is the background now.
   const cleanCommand = command.replace(/\s+&\s*$/, "");
-
-  // Note: No quote escaping needed - the '--' in pueue separates options from command
-  // pueue passes everything after '--' as the command string as-is
-  const escapedCwd = cwd.replace(/'/g, "'\\''");
-
-  // Strip ANSI escape codes from pueue output before extracting task ID.
-  // sed pattern removes CSI sequences (\x1b[...m) that pueue emits with color enabled.
-  const stripAnsi = `sed 's/\\x1b\\[[0-9;]*m//g'`;
-
-  // Build pueue wrapper with proper output capture
-  // Returns: queue the job, wait for it, stream the output
-  return (
-    `TASK_ID=$(pueue add --print-task-id -w '${escapedCwd}' -- ${cleanCommand} 2>/dev/null | ${stripAnsi} | tail -1 | tr -cd '0-9') && ` +
-    `if [ -n "$TASK_ID" ]; then ` +
-    `echo "ℹ️  PUEUE task $TASK_ID queued" && ` +
-    `pueue wait "$TASK_ID" --quiet 2>/dev/null && ` +
-    `echo "✓ PUEUE task $TASK_ID completed" && ` +
-    `pueue log "$TASK_ID" 2>/dev/null; ` +
-    `else echo "⚠️ PUEUE task ID extraction failed — check pueue status" && exit 1; fi`
-  );
+  // One quoted argument (lib/pueue-safe-wrap.ts): pasting it unquoted after `--` let `&&`, `|` and
+  // quotes in the command be parsed by the outer shell. No run-directly fallback, for the reason
+  // above: without pueue the command is exactly the one that suspends the session.
+  return buildPueueWrapper({ command: cleanCommand, cwd, taskLog, onQueueFailure: "fail", label: "cargo-tty-guard" });
 }
 
 export async function main() {
@@ -178,7 +165,7 @@ export async function main() {
 
   // Check if this is a cargo command requiring TTY protection
   // (both foreground and background commands now wrapped with PUEUE)
-  if (!isUnsafeBackground(command)) {
+  if (!cargoCommandNeedsPueueIsolation(command)) {
     allow();
     return;
   }

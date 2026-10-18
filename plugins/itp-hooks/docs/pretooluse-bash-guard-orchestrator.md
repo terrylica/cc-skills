@@ -2,7 +2,7 @@
 
 > Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Issue: [#111](https://github.com/terrylica/cc-skills/issues/111).
 
-`hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's 24 Bash guards in one bun process. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
+`hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's 23 Bash guards in one bun process. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
 
 ## How a guard runs inside it
 
@@ -25,7 +25,7 @@ The orchestrator folds the guards' responses the way Claude Code folds parallel 
 | only allows                | Allow, with every guard's `additionalContext` joined by blank lines.              |
 | a guard throws or overruns | That guard is skipped (fail-open), as a crashed or timed-out standalone hook was. |
 
-Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orchestrator.test.ts` checks this differentially. For every command in its corpus, it runs all 24 guards standalone as Claude Code did, folds them with the rules above, and requires the orchestrator's response to be identical.
+Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orchestrator.test.ts` checks this differentially. For every command in its corpus, it runs all 23 guards standalone as Claude Code did, folds them with the rules above, and requires the orchestrator's response to be identical.
 
 ## What stays outside it
 
@@ -37,7 +37,16 @@ Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orch
 [`pretooluse-pueue-wrap-guard.ts`](../hooks/pretooluse-pueue-wrap-guard.ts) does two things, combined in one hook because only one hook's `updatedInput` survives:
 
 1. **Token injection**: prepends `OP_SERVICE_ACCOUNT_TOKEN="$(…)"` to commands that target the "Claude Automation" 1Password vault, avoiding biometric prompts. The substitution comes from a source you configure in Claude Code's environment: `OP_SA_TOKEN_CMD`, a command that prints the token (for example `vault get op-service-account token`), emitted as single-quoted words so the shell runs it with no expansion; or else `OP_SA_TOKEN_FILE`, a token file you name. There is no default path. Only the command or the path goes into the rewritten command, never the token, because Claude Code records the rewritten command in transcripts. Skipped when the command already sets the variable, when `OP_SERVICE_ACCOUNT_TOKEN` is already exported (the Bash tool inherits it), or when nothing is configured.
-2. **Pueue wrapping**: wraps known long-running Bash commands (an allowlist, `LONG_RUNNING_PATTERNS`) as `pueue add` → `pueue wait` → `pueue log`, so the output still flows back to Claude, and records the task ID for session-scoped cleanup. If queueing fails it runs the command directly. A `# PUEUE-WRAP` comment forces wrapping; `# PUEUE-SKIP` prevents it. Pueue commands, pueue scripts, already-backgrounded commands, fast local tools (`git`, linters, `cargo` subcommands) and SSH commands are never auto-wrapped.
+2. **Pueue wrapping**: wraps known long-running Bash commands (an allowlist, `LONG_RUNNING_PATTERNS`, plus loops whose body runs python, `uv run` or a populate/bulk/cache script) as `pueue add` → `pueue wait` → `pueue log` → the task's own exit code, so the output still flows back to Claude, and records the task ID for session-scoped cleanup. If queueing fails it runs the command directly. A `# PUEUE-WRAP` comment forces wrapping; `# PUEUE-SKIP` prevents it. Pueue commands, pueue scripts, already-backgrounded commands, fast local tools (`git`, linters, `cargo` subcommands) and SSH commands are never auto-wrapped.
+3. **Cargo TTY isolation** (from `pretooluse-cargo-tty-guard.ts`, which is now its library): a backgrounded `cargo bench|test|build|run|check … &`, or any cargo command marked `CARGO-TTY-WRAP`, runs in pueue; if the daemon cannot be started the command is denied. That guard sat inside this orchestrator from 2026-10-01 to 2026-10-17, where `updatedInput` is dropped, so its rewrite never took effect in that window.
+
+Rules every rewrite follows since 2026-10-17 (`lib/pueue-safe-wrap.ts`), after a session on a zsh host got parse errors from wrappers around commands it had written correctly:
+
+- Patterns are matched on the command line only: data heredoc bodies (`lib/shell-heredoc-data.ts`) and quoted spans are removed first, and an inline `python -c '…'` is not a job. Writing a script that contains a loop, or running a loop inside `bash -c '…'`, is not wrapped.
+- The command reaches pueue as one single-quoted argument. The old wrapper pasted it unquoted after `--`, so the outer shell parsed its `;`, `do`, `&&` and quotes.
+- The task runs as `<shell> -c '<command>'` under the shell the Bash tool would have used (the user's bash or zsh), not pueue's default `sh -c` (dash on Linux, which parses but cannot run bashisms such as `${arr[@]}`).
+- The rewrite is emitted only when the original parses under that shell and the wrapper parses under bash and `$SHELL` (`-n -c`), all checks within a 2.5 s budget. Otherwise the command passes through unchanged; on the cargo path it is denied instead, because the unwrapped command is exactly the backgrounded cargo that suspends the session.
+- The wrapper ends with the task's exit code from `pueue status --json`, read with the hook's own bun (both the pueue 4 and the older JSON shape): measured on pueue 4.0.4, `pueue wait` exits 0 when the task failed. Cargo tasks are recorded in the session task log too, so the Stop hook cleans them up.
 
 It **must be the last PreToolUse entry** in `hooks.json`: Claude Code applies `updatedInput` last-writer-wins, so a later hook's `updatedInput`, even an undefined one, would replace the rewritten command. [`tasks/hook-lint/pueue-wrap-last.sh`](../../../tasks/hook-lint/pueue-wrap-last.sh) enforces this; it runs in `moon run repo:hook-lint` and as Check 4g of `tasks/release/preflight`.
 

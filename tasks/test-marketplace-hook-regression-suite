@@ -488,9 +488,13 @@ done
 # a test failed. `|| true` keeps `set -e` from aborting before the aggregation
 # phase below, which is what actually reports failures (and which already treats
 # a missing `.exit` file as a FAIL rather than a silent pass).
+# BSD xargs needs -S for long assembled commands; GNU xargs has no -S and rejects it
+# (every test was then reported missing on Linux, 2026-10-17). Pass it only where accepted.
+XARGS_SIZE_FLAG=()
+if xargs -S 16384 true </dev/null >/dev/null 2>&1; then XARGS_SIZE_FLAG=(-S 16384); fi
 if (( ${#ITER186_PARALLEL_PASS_TEST_FILES[@]} > 0 )); then
     printf '%s\n' "${ITER186_PARALLEL_PASS_TEST_FILES[@]}" | \
-        xargs -S 16384 -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} \
+        xargs "${XARGS_SIZE_FLAG[@]}" -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} \
             bash -c "$ITER186_SHARED_PER_TEST_WORKER_BODY" _ {} "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY" || true
 fi
 

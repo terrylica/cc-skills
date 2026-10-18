@@ -45,12 +45,19 @@ const CORPUS: string[] = [
   "git push origin main",
 ];
 
+/**
+ * A FRESH session id per run. Some guards speak once per session (the parquet nudge since
+ * 2026-10-17); with one fixed id, whichever of the two runs came second found the gate already
+ * claimed, and the comparison measured the order of the runs instead of the orchestrator.
+ */
+let sessionCounter = 0;
 function inputFor(command: string): PreToolUseInput {
+  sessionCounter += 1;
   return {
     tool_name: "Bash",
     tool_input: { command },
     cwd: sandbox,
-    session_id: "bash-orchestrator-test",
+    session_id: `bash-orchestrator-test-${process.pid}-${Date.now()}-${sessionCounter}`,
     tool_use_id: "toolu_test",
     hook_event_name: "PreToolUse",
   } as PreToolUseInput;

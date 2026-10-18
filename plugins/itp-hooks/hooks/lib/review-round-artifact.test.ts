@@ -11,7 +11,10 @@
 import { describe, expect, test } from "bun:test";
 import {
   classify,
+  gatedCommandDirectory,
+  ghRepoFlag,
   overrideReason,
+  prCreateBaseBranch,
   sha256,
   prCreateHeadBranch,
   undraftTarget,
@@ -297,4 +300,64 @@ describe("prCreateHeadBranch — which branch a gh pr create submits", () => {
       expect(prCreateHeadBranch(command)).toBe(expected as never);
     });
   }
+});
+
+describe("gatedCommandDirectory: where the gated command runs (2026-10-17)", () => {
+  const S = "/home/u/repo";
+  const H = "/home/u";
+  const cases: Array<[string, string | null]> = [
+    ["gh pr ready 12", null],
+    ["cd ../repo-wt && gh pr ready 12", "/home/u/repo-wt"],
+    ['cd "/abs/wt" && gh pr create --title t', "/abs/wt"],
+    ["cd ~/wt && gh pr ready", "/home/u/wt"],
+    // Not followed (found in review): the gated command may not run where the cd went.
+    ["cd ~/wt; gh pr ready", null],
+    ["cd ~/wt\ngh pr ready", null],
+    ["(cd ../wt && true); git push", null],
+    ["{ cd ../wt; }; git push", null],
+    ["pushd ../wt && popd && git push", null],
+    ['git -C "../my wt" push', "/home/u/my wt"],
+    ["cd $HOME/wt && git push", "/home/u/wt"],
+    ["git -C ../wt push", "/home/u/wt"],
+    ["git -C ../wt -c push.default=current push origin HEAD", "/home/u/wt"],
+    ["cd sub && git -C ../other push", "/home/u/repo/other"],
+    ["cd $WT && gh pr ready", null],
+    ["cd - && gh pr ready", null],
+    ["cd $(git rev-parse --show-toplevel) && gh pr ready", null],
+    ["cd ../wt && ls", null],
+    ["env -u GH_TOKEN gh pr ready 3", null],
+    ["cd ../wt && env -u GH_TOKEN gh pr ready 3", "/home/u/wt"],
+  ];
+  for (const [command, expected] of cases) {
+    test(`${command} → ${expected ?? "null"}`, () => {
+      expect(gatedCommandDirectory(command, S, H)).toBe(expected);
+    });
+  }
+});
+
+describe("prCreateBaseBranch / ghRepoFlag", () => {
+  test("--base, -B and --base= are read; absent is null", () => {
+    expect(prCreateBaseBranch("gh pr create --base develop --title t")).toBe("develop");
+    expect(prCreateBaseBranch("gh pr create -B release/1 --title t")).toBe("release/1");
+    expect(prCreateBaseBranch("gh pr create --base=main")).toBe("main");
+    expect(prCreateBaseBranch("gh pr create --title 'about --base x'")).toBeNull();
+  });
+  test("--repo is read from gh pr ready and gh pr create", () => {
+    expect(ghRepoFlag("gh pr ready 5 --repo o/r")).toBe("o/r");
+    expect(ghRepoFlag("gh pr create -R o/r --title t")).toBe("o/r");
+    expect(ghRepoFlag("gh pr ready 5")).toBeNull();
+  });
+});
+
+describe("git push after git's global options is a push", () => {
+  test.each([
+    ["git -C ../wt push", "push"],
+    ["git -c core.x=y push origin HEAD", "push"],
+    ["git --no-pager push", "push"],
+    ['git -C "../my wt" push', "push"],
+    ["git -C '../my wt' push origin HEAD", "push"],
+    ["git -C ../wt log --oneline", null],
+  ])("%s → %s", (command, expected) => {
+    expect(classify(command).kind).toBe(expected as never);
+  });
 });

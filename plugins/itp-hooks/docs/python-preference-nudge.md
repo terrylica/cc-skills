@@ -24,7 +24,8 @@ A file is **allowed** iff some ancestor allowlist has an `[[allow]]` entry whose
 
 ### Rules
 
-- **No blanket suppression.** Being inside a Python project (even legacy) does not exempt anything — every `.py` is allowed individually.
+- **Python-native repositories are quiet (amended 2026-10-17, operator: "make it quiet in such repositories").** When the repository root (the nearest `.git`) has `pyproject.toml`, `uv.lock` or `.python-version`, the repository is Python by design. With a root `python-allowlist.toml` as well, the hook is silent: the repository's own tooling maintains and checks that allowlist (e.g. `moon run repo:allowlist` before a commit), so firing on file creation only repeated it. Without an allowlist, one short note per session. The original rule below still holds for every other repository.
+- **No blanket suppression outside Python-native repositories.** A repository with no Python markers at its root (greenfield, or Python files in a TypeScript project) gets the full reminder for every unlisted `.py`, which must be allowed individually. A root allowlist alone, without Python markers, does not change that.
 - **Reason-gated.** A blank/whitespace-only `reason` is treated as NOT allowed.
 - **Reason-gated, PR-reviewed — no hash pinning.** Editing an already-listed file stays silent (the audit gate is the human reviewing the allowlist diff).
 - **Multiple allowlists compose.** In a monorepo, a nested directory can carry its own `python-allowlist.toml`; nearest-first, any ancestor match allows.

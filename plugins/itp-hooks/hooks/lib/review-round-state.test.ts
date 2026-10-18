@@ -21,6 +21,7 @@ import { join } from "node:path";
 
 import {
   STATE_ROOT,
+  baseRefCandidates,
   collectFacts,
   identifyRepo,
   isBranchReviewable,
@@ -332,5 +333,85 @@ describe("store robustness", () => {
     commit(dir, "slashed\n");
 
     expect(isBranchReviewable(idOf(dir))).toBe(false);
+  });
+});
+
+describe("the base is the REMOTE's branch, whatever the remote is called (2026-10-17)", () => {
+  // Reported: a repository whose only remote is `github` had no `origin/main`, so the gate fell back
+  // to the LOCAL `main`, days behind, and demanded verdicts for nine files the PR never touched.
+  function remoteNamedGithubWithStaleLocalMain(prefix: string): { work: string } {
+    const bare = mkdtempSync(join(tmpdir(), `rrs-${prefix}-bare-`));
+    created.push(bare);
+    sh(["init", "-q", "--bare", "-b", "main"], bare);
+
+    const seed = mkdtempSync(join(tmpdir(), `rrs-${prefix}-seed-`));
+    created.push(seed);
+    sh(["clone", "-q", bare, seed], seed);
+    sh(["config", "user.email", "t@e.st"], seed);
+    sh(["config", "user.name", "t"], seed);
+    writeFileSync(join(seed, "a.txt"), "one\n");
+    sh(["add", "-A"], seed);
+    sh(["commit", "-qm", "base"], seed);
+    sh(["push", "-q", "origin", "HEAD:main"], seed);
+
+    const work = mkdtempSync(join(tmpdir(), `rrs-${prefix}-work-`));
+    created.push(work);
+    sh(["clone", "-q", "-o", "github", bare, work], work);
+    sh(["config", "user.email", "t@e.st"], work);
+    sh(["config", "user.name", "t"], work);
+
+    // Others land two files on the remote's main; the local `main` in `work` is never updated.
+    writeFileSync(join(seed, "landed-1.txt"), "x\n");
+    writeFileSync(join(seed, "landed-2.txt"), "y\n");
+    sh(["add", "-A"], seed);
+    sh(["commit", "-qm", "landed elsewhere"], seed);
+    sh(["push", "-q", "origin", "HEAD:main"], seed);
+    sh(["checkout", "-q", "-b", "develop"], seed);
+    writeFileSync(join(seed, "develop-only.txt"), "z\n");
+    sh(["add", "-A"], seed);
+    sh(["commit", "-qm", "develop"], seed);
+    sh(["push", "-q", "origin", "develop"], seed);
+
+    sh(["fetch", "-q", "github"], work);
+    sh(["checkout", "-q", "-b", "feature", "github/main"], work);
+    writeFileSync(join(work, "feature.txt"), "mine\n");
+    sh(["add", "-A"], work);
+    sh(["commit", "-qm", "feature"], work);
+    return { work };
+  }
+
+  test("only the branch's own files are changed, measured against github/*", () => {
+    const { work } = remoteNamedGithubWithStaleLocalMain("github-remote");
+    const facts = factsOf(work);
+    expect(facts.changedPaths).toEqual(["feature.txt"]);
+    expect(facts.baseRef?.startsWith("github/")).toBe(true);
+  });
+
+  test("an explicit base (a stacked PR's baseRefName) is measured against <remote>/<base>", () => {
+    const { work } = remoteNamedGithubWithStaleLocalMain("explicit-base");
+    // A stacked branch cut from develop: its own change is stacked.txt alone.
+    sh(["checkout", "-q", "-b", "stacked", "github/develop"], work);
+    writeFileSync(join(work, "stacked.txt"), "on top of develop\n");
+    sh(["add", "-A"], work);
+    sh(["commit", "-qm", "stacked"], work);
+
+    const againstDevelop = collectFacts(work, "develop");
+    expect(againstDevelop?.baseRef).toBe("github/develop");
+    expect(againstDevelop?.changedPaths).toEqual(["stacked.txt"]);
+    // Control: against the default branch, develop's own commit would be demanded too.
+    expect(factsOf(work).changedPaths).toEqual(["develop-only.txt", "stacked.txt"]);
+  });
+
+  test("an explicit base with no ref anywhere falls back to the default branch, not to null", () => {
+    const { work } = remoteNamedGithubWithStaleLocalMain("missing-base");
+    const facts = collectFacts(work, "no-such-branch");
+    expect(facts).not.toBeNull();
+    expect(facts?.changedPaths).toEqual(["feature.txt"]);
+  });
+
+  test("candidate order: remote refs before local branches", () => {
+    const { work } = remoteNamedGithubWithStaleLocalMain("order");
+    const candidates = baseRefCandidates(work);
+    expect(candidates.indexOf("refs/remotes/github/HEAD")).toBeLessThan(candidates.indexOf("refs/heads/main"));
   });
 });

@@ -11,12 +11,12 @@
  *     and any deliberate non-DuckDB use.
  *   - Detects Bash commands that combine a `.parquet` reference with a known
  *     non-DuckDB analysis tool.
- *   - Emits a stderr reminder with a concrete `duckdb -c` template Claude can adapt.
+ *   - Emits a reminder with a concrete `duckdb -c` template Claude can adapt, ONCE per session.
  *
  * Triggers ONLY when both conditions hold:
  *   1. Command references at least one `.parquet` path/glob.
  *   2. Command uses an analysis tool that's a poor fit for parquet:
- *      - `awk` / `sed` (line-oriented, won't parse columnar binary)
+ *      - `awk` / `sed` given a `.parquet` file as an operand (line-oriented, won't parse columnar binary)
  *      - Inline Python with `read_parquet` / `pq.read_table` / `pyarrow.parquet`
  *      - `parquet-tools` (slower than duckdb for content queries)
  *   3. Command does NOT already invoke `duckdb`.
@@ -29,6 +29,8 @@
  */
 
 import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
+import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 // Tight match: `.parquet` must be followed by a path-terminator (whitespace,
 // quote, end of string, common punctuation). Avoids false positives on
@@ -36,10 +38,15 @@ import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-h
 // is followed by another `.` (it's a Python module path, not a file path).
 const PARQUET_REF = /\.parquet(?=$|[\s'"`,;)\]}>])/i;
 
-/** Patterns that indicate content analysis with non-DuckDB tools */
+/**
+ * Patterns that indicate content analysis with non-DuckDB tools.
+ *
+ * awk and sed are NOT here any more: they are matched as invocations, and only when one of their
+ * own operands is a Parquet file (see `lineToolOnParquet`). The regexes they replaced fired on any
+ * command that mentioned `.parquet` anywhere and ran sed or awk anywhere, e.g. `sed -n 1,80p
+ * scripts/load.py` in a command that also listed a Parquet directory (2026-10-17).
+ */
 const ANTI_PATTERNS: { name: string; rx: RegExp }[] = [
-  { name: "awk", rx: /(?:^|\|\s*|;\s*|&&\s*)awk\s/i },
-  { name: "sed", rx: /(?:^|\|\s*|;\s*|&&\s*)sed\s/i },
   { name: "parquet-tools", rx: /\bparquet-tools\b/i },
   { name: "python read_parquet", rx: /\bread_parquet\s*\(/i },
   { name: "python pyarrow.parquet", rx: /\bpyarrow\.parquet\b/i },
@@ -58,6 +65,31 @@ const SKIP_COMMENT = /#\s*DUCKDB-SKIP/i;
  *  Avoids false positives from `file.parquet` matching `\bfile\b`. */
 const FORENSICS_PATTERN =
   /(?:^|\|\s*|;\s*|&&\s*)(xxd|od|file|hexdump|stat)\s+\S|\bhead\s+-c\b|\btail\s+-c\b/i;
+
+const LINE_TOOLS: ReadonlySet<string> = new Set(["awk", "gawk", "mawk", "sed", "gsed"]);
+
+/** awk/sed INVOCATION with a Parquet file among its own operands, or null. Exported for tests. */
+export function lineToolOnParquet(command: string): string | null {
+  let found: string | null = null;
+  walkShellInvocations(command, /\b(?:g|m)?awk\b|\bg?sed\b/, (invocation) => {
+    if (found !== null || !LINE_TOOLS.has(invocation.program)) return;
+    if (invocation.args.some((w) => PARQUET_REF.test(w.value))) found = invocation.program;
+  });
+  return found;
+}
+
+/** The anti-pattern this command uses on Parquet, or null. Exported for tests. */
+export function findParquetAntiPattern(command: string): { name: string } | null {
+  const lineTool = lineToolOnParquet(command);
+  if (lineTool !== null) return { name: lineTool };
+  return ANTI_PATTERNS.find(({ rx }) => rx.test(command)) ?? null;
+}
+
+/** True the first time in a session; without a session id there is nothing to key on. */
+function claimOncePerSessionNudge(sessionId: unknown): boolean {
+  if (typeof sessionId !== "string" || sessionId === "") return true;
+  return tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName("parquet-duckdb-nudge", sessionId);
+}
 
 function buildNudge(matchedTool: string, command: string): string {
   // Match path-like substrings only (word chars, /, ., =, *, ?, -).
@@ -121,8 +153,15 @@ export async function main() {
   }
 
   // Find the first matching anti-pattern
-  const matched = ANTI_PATTERNS.find(({ rx }) => rx.test(command));
+  const matched = findParquetAntiPattern(command);
   if (!matched) {
+    allow();
+    return;
+  }
+
+  // ONCE PER SESSION (2026-10-17). It is a preference, not a safety rule, and repeating the same
+  // template on every read_parquet in a session where the agent has already seen it was noise.
+  if (!claimOncePerSessionNudge(input.session_id)) {
     allow();
     return;
   }

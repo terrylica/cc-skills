@@ -17,10 +17,15 @@
 
 import { allow, ask, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { stripDataHeredocBodies } from "./lib/shell-heredoc-data.ts";
 import {
   classify,
+  gatedCommandDirectory,
+  ghRepoFlag,
   overrideReason,
+  prCreateBaseBranch,
   prCreateHeadBranch,
+  prReadyTarget,
   undraftTarget,
   validateArtifact,
   type GatedKind,
@@ -33,6 +38,7 @@ import {
   readArtifact,
   recordOverride,
   resolveHeadBranch,
+  resolvePrRefs,
   unmarkBranchReviewable,
   worktreeForBranch,
 } from "./lib/review-round-state.ts";
@@ -57,7 +63,31 @@ function limitsBlock(): string {
   ].join("\n");
 }
 
-function denyMessage(kind: GatedKind, matched: string, failures: readonly string[]): string {
+/**
+ * Which checkout, branch, head and base the verdict was computed on. Printed in every deny so a
+ * misfire (wrong worktree, stale base) is visible in the message itself instead of needing a
+ * debugging session -- the 2026-10-17 report took one because the deny never said what it measured.
+ */
+function measuredLine(
+  repo: { root: string; branch: string },
+  headSha: string,
+  baseRef: string | undefined,
+  baseBranch: string | null,
+): string {
+  const base = baseRef ?? "(unknown base)";
+  const baseFlag = baseBranch === null ? "" : ` --base ${baseBranch}`;
+  return [
+    `Measured: ${repo.root} on ${repo.branch} at ${headSha.slice(0, 12)}, against ${base}.`,
+    `Record there: cd ${repo.root} && ${RECORD_COMMAND}${baseFlag} --file '…'`,
+  ].join("\n");
+}
+
+function denyMessage(
+  kind: GatedKind,
+  matched: string,
+  failures: readonly string[],
+  measured: string,
+): string {
   const what =
     kind === "pr-ready"
       ? "marking this PR ready for review"
@@ -77,6 +107,7 @@ function denyMessage(kind: GatedKind, matched: string, failures: readonly string
     ...(failures.length > 3 ? [`    …and ${failures.length - 3} more.`] : []),
     "",
     `Matched: ${matched}`,
+    measured,
     "",
     "Fix: audit the diff, then record it (local only, no network):",
     `    ${RECORD_COMMAND} --file 'path=what you checked and what survived' …`,
@@ -118,11 +149,15 @@ export async function main(): Promise<void> {
   if (input === null) return allow();
   if (input.tool_name !== "Bash") return allow();
 
-  const command = String(input.tool_input?.command ?? "");
-  if (!command) return allow();
+  const rawCommand = String(input.tool_input?.command ?? "");
+  if (!rawCommand) return allow();
+  // A heredoc body written to a file is DATA. Matching it as if it were the command line denied
+  // `cat > notes.md <<'EOF'` whenever the notes mentioned a `gh pr ready` (2026-10-17). Bodies fed
+  // to a shell (`bash <<'EOF'`) are kept: there they ARE commands.
+  const command = stripDataHeredocBodies(rawCommand);
 
   // Cheap prefilter. The overwhelming majority of Bash commands leave here without spawning git.
-  if (!/\bgh\b/.test(command) && !/\bgit\s+push\b/.test(command)) return allow();
+  if (!/\bgh\b/.test(command) && !/\bgit\b[^\n;&|]*\bpush\b/.test(command)) return allow();
 
   const { kind, matched } = classify(command);
   if (kind === null) return allow();
@@ -132,11 +167,33 @@ export async function main(): Promise<void> {
   // worktree) used to be measured on `main` and denied, although the branch's self-review was
   // recorded at its exact commit (2026-09-28, example-org/relay-monitor#133). When a local
   // worktree has the named branch checked out, its facts are the right ones; otherwise cwd, as before.
+  //
+  // THE COMMAND'S OWN DIRECTORY COMES FIRST (2026-10-17). `cd ../repo-feature && gh pr ready 12`
+  // and `git -C ../repo-feature push` run in the worktree, not in the session's cwd; measuring the
+  // session's checkout denied every such command although its record existed at the worktree's
+  // exact head. `gatedCommandDirectory` returns null whenever the directory cannot be read from the
+  // text alone, and the session cwd then stands, as before.
   let cwd = input.cwd ?? process.cwd();
+  cwd = gatedCommandDirectory(command, cwd) ?? cwd;
+  // The PR's base, when the command or GitHub names one. null = the remote's default branch.
+  let baseBranch: string | null = null;
   if (kind === "pr-create") {
     const headBranch = prCreateHeadBranch(command);
     const headWorktree = headBranch === null ? null : worktreeForBranch(headBranch, cwd);
     if (headWorktree !== null) cwd = headWorktree;
+    baseBranch = prCreateBaseBranch(command);
+  }
+  if (kind === "pr-ready") {
+    // `gh pr ready 268` names a PR, and the PR names its head branch; the worktree holding that
+    // branch is where its record was written. One bounded lookup for a number or URL, none for a
+    // branch name; on failure nothing changes and the command's directory is measured.
+    const target = prReadyTarget(command);
+    const refs = target === null ? null : resolvePrRefs(target, cwd, ghRepoFlag(command));
+    if (refs !== null) {
+      const headWorktree = worktreeForBranch(refs.head, cwd);
+      if (headWorktree !== null) cwd = headWorktree;
+      baseBranch = refs.base;
+    }
   }
   const repo = identifyRepo(cwd);
   // Not a git repo, or detached HEAD: nothing to anchor an artifact to. Fail OPEN rather than
@@ -164,7 +221,7 @@ export async function main(): Promise<void> {
     return allow();
   }
 
-  const reason = overrideReason(command);
+  const reason = overrideReason(rawCommand);
   if (reason !== null) {
     recordOverride(repo, kind, reason, command);
     return ask(
@@ -180,13 +237,15 @@ export async function main(): Promise<void> {
   // A push only counts as a review round once the branch is actually in front of someone.
   if (kind === "push" && !isBranchReviewable(repo)) return allow();
 
-  const facts = collectFacts(cwd);
+  const facts = collectFacts(cwd, baseBranch);
   // No resolvable base branch. Same reasoning as a missing repo: fail open rather than block with
   // a remedy the operator cannot perform.
   if (facts === null) return allow();
 
   const verdict = validateArtifact(readArtifact(repo), facts);
-  if (!verdict.ok) return deny(denyMessage(kind, matched, verdict.failures));
+  if (!verdict.ok) {
+    return deny(denyMessage(kind, matched, verdict.failures, measuredLine(repo, facts.headSha, facts.baseRef, baseBranch)));
+  }
 
   // Allowed, and the transition is now observable: remember that this branch is reviewable so
   // subsequent pushes are metered too.

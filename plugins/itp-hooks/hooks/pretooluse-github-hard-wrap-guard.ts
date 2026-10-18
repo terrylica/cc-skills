@@ -176,7 +176,7 @@ function buildUnreadableReminder(unreadable: readonly UnreadableWrittenFile[]): 
     "  call 2:  gh issue comment N --body-file /tmp/body.md",
     "",
     "A heredoc redirected straight into the published path IS readable and needs no split — this",
-    "message means the write used a form the guard cannot parse (printf, tee, a script).",
+    "message means the write used a form the guard cannot evaluate (printf with expansions, tee, a script).",
     "",
     "Override: add GH-HARD-WRAP-OK anywhere in the command.",
   ].join("\n");

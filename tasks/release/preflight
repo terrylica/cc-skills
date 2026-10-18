@@ -183,8 +183,12 @@ __iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per
     # shellcheck disable=SC2016
     # SC2016 false positive: $1 inside single-quoted bash -c body refers to
     # the positional arg passed to the NESTED bash, not the outer scope.
+    # BSD xargs needs -S for long assembled commands; GNU xargs has no -S and rejects it
+    # (every test was then reported missing on Linux, 2026-10-17). Pass it only where accepted.
+    XARGS_SIZE_FLAG=()
+    if xargs -S 16384 true </dev/null >/dev/null 2>&1; then XARGS_SIZE_FLAG=(-S 16384); fi
     printf '%s\n' "${iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename[@]}" | \
-        xargs -S 16384 -P "$lane_count" -I {} bash -c '
+        xargs "${XARGS_SIZE_FLAG[@]}" -P "$lane_count" -I {} bash -c '
             pipe_separated_metadata_record="$1"
             # Use cut -d"|" (PIPE delimiter). See array-definition header comment
             # for the BSD-xargs-collapses-TAB-to-SPACE empirical forensic.

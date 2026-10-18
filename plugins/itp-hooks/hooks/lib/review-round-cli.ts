@@ -2,8 +2,13 @@
 /**
  * Producer for the review-round gate.
  *
- *   bun review-round-cli.ts record --file 'path=verdict' [--file 'path=verdict' …]
- *   bun review-round-cli.ts status
+ *   bun review-round-cli.ts record [--base BRANCH] --file 'path=verdict' [--file 'path=verdict' …]
+ *   bun review-round-cli.ts status [--base BRANCH]
+ *
+ * Run it in the checkout (worktree) of the branch being submitted. The base defaults to the remote's
+ * default branch (the branch's upstream remote first, then `origin`, then any other remote; a local
+ * `main` only when no remote ref exists). Pass `--base` for a PR whose base is another branch: the
+ * gate measures against the PR's base, and the deny message prints the exact command to run.
  *
  * The gate never writes an artifact itself. That separation is the point: recording a pass is an
  * act the operator performs deliberately, at a moment when they have actually looked at the diff.
@@ -37,6 +42,18 @@ function parseFiles(argv: string[]): { path: string; verdict: string }[] {
   return files;
 }
 
+function parseBase(argv: string[]): string | null {
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--base") {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) fail("--base needs a branch name");
+      return value;
+    }
+    if (argv[i]?.startsWith("--base=")) return argv[i]!.slice("--base=".length) || null;
+  }
+  return null;
+}
+
 function main(): void {
   const argv = process.argv.slice(2);
   const sub = argv[0];
@@ -45,8 +62,10 @@ function main(): void {
   const repo = identifyRepo(cwd);
   if (repo === null) fail("not inside a git repository with a named branch");
 
-  const facts = collectFacts(cwd);
-  if (facts === null) fail("could not resolve a base branch (tried origin/main, origin/master, main, master)");
+  const facts = collectFacts(cwd, parseBase(argv));
+  if (facts === null) {
+    fail("could not resolve a base branch (tried <remote>/HEAD, <remote>/main, <remote>/master for every remote, then main, master)");
+  }
 
   if (sub === "status") {
     process.stdout.write(
@@ -54,7 +73,7 @@ function main(): void {
         `repo    ${repo.slug}`,
         `branch  ${repo.branch}`,
         `head    ${facts.headSha.slice(0, 12)}`,
-        `base    ${facts.baseSha.slice(0, 12)}`,
+        `base    ${facts.baseSha.slice(0, 12)} (${facts.baseRef ?? "?"})`,
         `files   ${facts.changedPaths.length} changed since base`,
         ...facts.changedPaths.map((p) => `        ${p}`),
       ].join("\n") + "\n",
@@ -102,7 +121,7 @@ function main(): void {
 
   const path = writeArtifact(repo, artifact);
   process.stdout.write(
-    `recorded ${files.length} verdict(s) at ${facts.headSha.slice(0, 12)}\n  ${path}\n`,
+    `recorded ${files.length} verdict(s) at ${facts.headSha.slice(0, 12)} against ${facts.baseRef ?? "?"}\n  ${path}\n`,
   );
 }
 
