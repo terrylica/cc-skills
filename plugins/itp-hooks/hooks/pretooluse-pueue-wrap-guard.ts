@@ -106,8 +106,12 @@ const LONG_RUNNING_PATTERNS = [
   // quote mangling when auto-wrapping `ssh <remote-host> 'for sym in ...; do curl ...; done'`.
 ];
 
-/** `python -c ''` / `uv run … python -c ''` after quoted spans are emptied: an inline snippet. */
-const INLINE_PYTHON_SNIPPET = /(?:\S*\/)?\bpython[\d.]*\s+-c\s+(?:''|"")/gi;
+/**
+ * `python -c ''` / `uv run … python -c ''` after quoted spans are emptied: an inline snippet. Short options may come
+ * before `-c` (`python3 -I -c`, the isolated mode used on untrusted files; `-u`, `-B`, `-E`, `-S`, `-s`, `-O`): a
+ * read-only `for` loop running `python3 -I -c '…'` was queued in pueue as a batch job (2026-10-18).
+ */
+const INLINE_PYTHON_SNIPPET = /(?:\S*\/)?\bpython[\d.]*(?:\s+-(?!c\b)[A-Za-z]+)*\s+-c\s+(?:''|"")/gi;
 const UV_RUN_INLINE_SNIPPET = /\buv\s+run\b[^;&|\n]*?INLINE_SNIPPET/gi;
 
 /**
