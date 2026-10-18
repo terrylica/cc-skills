@@ -309,7 +309,14 @@ describe("gatedCommandDirectory: where the gated command runs (2026-10-17)", () 
     ["gh pr ready 12", null],
     ["cd ../repo-wt && gh pr ready 12", "/home/u/repo-wt"],
     ['cd "/abs/wt" && gh pr create --title t', "/abs/wt"],
-    ["cd ~/wt; gh pr ready", "/home/u/wt"],
+    ["cd ~/wt && gh pr ready", "/home/u/wt"],
+    // Not followed (found in review): the gated command may not run where the cd went.
+    ["cd ~/wt; gh pr ready", null],
+    ["cd ~/wt\ngh pr ready", null],
+    ["(cd ../wt && true); git push", null],
+    ["{ cd ../wt; }; git push", null],
+    ["pushd ../wt && popd && git push", null],
+    ['git -C "../my wt" push', "/home/u/my wt"],
     ["cd $HOME/wt && git push", "/home/u/wt"],
     ["git -C ../wt push", "/home/u/wt"],
     ["git -C ../wt -c push.default=current push origin HEAD", "/home/u/wt"],
@@ -347,6 +354,8 @@ describe("git push after git's global options is a push", () => {
     ["git -C ../wt push", "push"],
     ["git -c core.x=y push origin HEAD", "push"],
     ["git --no-pager push", "push"],
+    ['git -C "../my wt" push', "push"],
+    ["git -C '../my wt' push origin HEAD", "push"],
     ["git -C ../wt log --oneline", null],
   ])("%s → %s", (command, expected) => {
     expect(classify(command).kind).toBe(expected as never);

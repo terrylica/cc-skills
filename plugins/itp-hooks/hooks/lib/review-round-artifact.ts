@@ -101,7 +101,11 @@ const GH_PR_CREATE = ghCommand(String.raw`pr\s+create\b`);
  * `git -C <worktree> push` was not recognised as a push at all, so a push to a branch in front of a
  * reviewer went unmetered whenever it was written from another checkout (2026-10-17).
  */
-const GIT_PUSH = gitCommand(String.raw`(?:(?:-[Cc]\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push\b`);
+const GIT_PUSH = gitCommand(
+  // A quoted value (`-C "../my wt"`) is one shell word with spaces in it; matching it as \S+ left
+  // such a push unrecognised and therefore unmetered (found in review, 2026-10-17).
+  String.raw`(?:(?:-[Cc]\s+(?:"[^"]*"|'[^']*'|\S+)|--[\w-]+(?:=\S+)?)\s+)*push\b`,
+);
 
 /**
  * Flags are tested against the command with QUOTED SPANS REMOVED.
@@ -395,7 +399,45 @@ export function resolveDirectoryArgument(value: string, base: string, home: stri
  * walk with null, so an unknown directory never widens what the gate allows: the caller keeps the
  * session cwd, which is the old behaviour.
  */
+/**
+ * True when every `cd`/`pushd` in the command changes the directory of what FOLLOWS it for sure:
+ * no subshell or brace group anywhere (`(cd x && true); git push` runs the push in the original
+ * directory), no `popd`, and every directory change chained with `&&` (after `cd x;` or a newline
+ * a failed cd would leave the gated command in the session's cwd). Found in review, 2026-10-17:
+ * without this, a record in another worktree could approve a push made from the session's checkout.
+ */
+function directoryChangesAreUnconditional(command: string): boolean {
+  const words = splitShellWords(command);
+  let atCommandPosition = true;
+  let lastProgram: string | null = null;
+  for (const w of words) {
+    const raw = command.slice(w.start, w.end);
+    if (w.isOperator || w.precededByNewline) {
+      if ((lastProgram === "cd" || lastProgram === "pushd") && !(w.isOperator && w.value === "&&")) return false;
+      if (w.isOperator) {
+        atCommandPosition = true;
+        lastProgram = null;
+        continue;
+      }
+      atCommandPosition = true;
+      lastProgram = null;
+    }
+    // A bare `(`, `{`, `)` or `}` at a word boundary opens or closes a group; `$(…)` inside a word
+    // is a substitution, not a group.
+    if (w.firstSegmentBare && (/^[({]/.test(raw) || (/[)}]$/.test(raw) && !/\$\(|\$\{/.test(raw)))) return false;
+    if (!atCommandPosition) continue;
+    if (w.firstSegmentBare && /^[A-Za-z_][A-Za-z0-9_]*=/.test(w.value)) continue;
+    atCommandPosition = false;
+    lastProgram = invocationBasename(w.value);
+    if (lastProgram === "popd") return false;
+  }
+  return true;
+}
+
 export function gatedCommandDirectory(command: string, sessionCwd: string, home: string = homedir()): string | null {
+  // Grouping, popd, or a cd not chained by `&&`: the text cannot say for certain which directory
+  // the gated command runs in, so it is not located and the session cwd stands (the old behaviour).
+  if (!directoryChangesAreUnconditional(command)) return null;
   const { commands } = lexShellCommands(command);
   let dir = sessionCwd;
   let moved = false;
