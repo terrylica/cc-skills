@@ -17,7 +17,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -257,7 +257,7 @@ describe("the gate measures the directory the COMMAND runs in (2026-10-17)", () 
     writeFileSync(join(worktree, "a.txt"), "changed after review\n");
     const decision = await runHook(`cd ${worktree} && gh pr ready`, main);
     expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
-    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain(`Measured: ${worktree} on feature`);
+    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain(`Measured: ${realpathSync(worktree)} on feature`); // macOS: /var is /private/var
   });
 
   test("a directory the text cannot resolve ($VAR) falls back to the session cwd and is denied", async () => {
