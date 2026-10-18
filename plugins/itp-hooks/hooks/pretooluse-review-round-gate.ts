@@ -18,6 +18,7 @@
 import { allow, ask, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import { stripDataHeredocBodies } from "./lib/shell-heredoc-data.ts";
+import { isRemoteCommand } from "./lib/readonly-command-detector.ts";
 import {
   classify,
   gatedCommandDirectory,
@@ -156,6 +157,11 @@ export async function main(): Promise<void> {
   // `cat > notes.md <<'EOF'` whenever the notes mentioned a `gh pr ready` (2026-10-17). Bodies fed
   // to a shell (`bash <<'EOF'`) are kept: there they ARE commands.
   const command = stripDataHeredocBodies(rawCommand);
+
+  // A command run on ANOTHER host (`ssh host '... gh pr create ...'`, also behind `timeout`) is not
+  // this checkout's to meter: the review record lives where the command runs, and judging it here
+  // asked the operator to approve a PR whose record existed on the remote host (2026-10-18).
+  if (isRemoteCommand(command)) return allow();
 
   // Cheap prefilter. The overwhelming majority of Bash commands leave here without spawning git.
   if (!/\bgh\b/.test(command) && !/\bgit\b[^\n;&|]*\bpush\b/.test(command)) return allow();

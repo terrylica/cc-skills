@@ -378,3 +378,24 @@ describe("the gate measures the directory the COMMAND runs in (2026-10-17)", () 
     expect((await runHook(command, main)).hookSpecificOutput.permissionDecision).toBe("allow");
   });
 });
+
+
+describe("a command that runs on another host is not metered here", () => {
+  // 2026-10-18: `timeout --foreground 300 ssh mac '... gh pr create ...'` was judged against the LOCAL
+  // checkout (no record there) and could only pass by an override that asks the operator.
+  test("ssh behind timeout, carrying gh pr create, is allowed", async () => {
+    const { main } = reviewedBranchInAWorktree("remote-timeout");
+    const cmd = "timeout --foreground 300 ssh -o BatchMode=yes otherhost 'cd ~/x && gh pr create --title t --body-file /tmp/b.md'";
+    const decision = await runHook(cmd, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: the same gh pr create run locally is still denied", async () => {
+    // Plain `gh` as the first word: the shape the classifier meters. (`timeout gh …` and
+    // `ssh localhost '…'` are not classified as gh commands at all, so they cannot serve as
+    // controls; localhost is covered by isRemoteCommand's own tests.)
+    const { main } = reviewedBranchInAWorktree("remote-control");
+    const decision = await runHook("gh pr create --title t --body-file /tmp/b.md", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+});
