@@ -220,6 +220,72 @@ describe("gh pr create --head measures the named branch's worktree, not cwd", ()
 });
 
 /**
+ * The operator's layout in a fake HOME: `~/eon/other` is a clone whose remote (named `github`, not
+ * `origin`) is acme/other, with branch `feature` reviewed in its own worktree; `~/eon/session` is an
+ * unrelated repository on `main` where the "session" stands.
+ */
+function otherRepoUnderFakeHome(prefix: string): { home: string; session: string; env: Record<string, string> } {
+  const home = mkdtempSync(join(tmpdir(), `rrg-${prefix}-home-`));
+  created.push(home);
+  const other = join(home, "eon", "other");
+  const session = join(home, "eon", "session");
+  for (const dir of [other, session]) {
+    mkdirSync(dir, { recursive: true });
+    sh(["init", "-q", "-b", "main"], dir);
+    sh(["config", "user.email", "t@e.st"], dir);
+    sh(["config", "user.name", "t"], dir);
+    writeFileSync(join(dir, "a.txt"), "base\n");
+    sh(["add", "-A"], dir);
+    sh(["commit", "-qm", "base"], dir);
+  }
+  sh(["remote", "add", "github", "git@github.com:acme/other.git"], other);
+  const worktree = join(home, "eon", "other-feature");
+  sh(["worktree", "add", "-q", worktree, "-b", "feature"], other);
+  writeFileSync(join(worktree, "a.txt"), "feature\n");
+  sh(["add", "-A"], worktree);
+  sh(["commit", "-qm", "feature"], worktree);
+  execFileSync(
+    "bun",
+    [join(dirname(import.meta.path), "lib", "review-round-cli.ts"), "record", "--file", "a.txt=checked the one-line change"],
+    { cwd: worktree, stdio: ["ignore", "ignore", "ignore"] },
+  );
+  return { home, session, env: { HOME: home, ITP_HOOKS_REVIEW_ROUND_STATE_ROOT: STATE_ROOT } };
+}
+
+describe("gh pr create -R <other repo> --head measures that repo's worktree", () => {
+  // 2026-10-18, eonlabs-rnd/shunshi-wang-888#319: the session stood in one repository and opened a PR
+  // in another with -R; the head branch's record existed in the other clone's worktree, but the gate
+  // looked only among the session repository's worktrees, measured its HEAD, and the only way through
+  // was an override that asks the operator.
+  test("a reviewed branch in another clone, named by -R and --head, is allowed", async () => {
+    const { session, env } = otherRepoUnderFakeHome("repo-flag");
+    const decision = await runHook("gh pr create -R acme/other --head feature --title t --body-file /tmp/b.md", session, env);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("the URL form of -R resolves the same clone", async () => {
+    const { session, env } = otherRepoUnderFakeHome("repo-url");
+    const cmd = "gh pr create --repo https://github.com/acme/other --head feature --title t --body-file /tmp/b.md";
+    const decision = await runHook(cmd, session, env);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: an -R with no local clone falls back to cwd and is denied", async () => {
+    const { session, env } = otherRepoUnderFakeHome("repo-missing");
+    const cmd = "gh pr create -R acme/absent --head feature --title t --body-file /tmp/b.md";
+    const decision = await runHook(cmd, session, env);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  test("control: a branch changed after its review is still denied through -R", async () => {
+    const { home, session, env } = otherRepoUnderFakeHome("repo-changed");
+    writeFileSync(join(home, "eon", "other-feature", "a.txt"), "changed after review\n");
+    const decision = await runHook("gh pr create -R acme/other --head feature --title t --body-file /tmp/b.md", session, env);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+});
+
+/**
  * A directory holding a fake `gh` that prints `stdout` and exits `code`, prepended to PATH.
  *
  * The number path of `gh pr ready N` asks GitHub for the PR's head and base. A test that reached

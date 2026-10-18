@@ -415,3 +415,16 @@ describe("the base is the REMOTE's branch, whatever the remote is called (2026-1
     expect(candidates.indexOf("refs/remotes/github/HEAD")).toBeLessThan(candidates.indexOf("refs/heads/main"));
   });
 });
+
+describe("repoSlugOf reads every form a remote URL or gh -R takes", () => {
+  test("owner/repo, https, ssh, scp-style with a host alias, .git and trailing slash", () => {
+    const { repoSlugOf } = require("./review-round-state.ts") as typeof import("./review-round-state.ts");
+    expect(repoSlugOf("Acme/Other")).toBe("acme/other");
+    expect(repoSlugOf("https://github.com/acme/other")).toBe("acme/other");
+    expect(repoSlugOf("https://github.com/acme/other.git/")).toBe("acme/other");
+    expect(repoSlugOf("git@github.com:acme/other.git")).toBe("acme/other");
+    expect(repoSlugOf("git@github.com-terrylica:acme/other.git")).toBe("acme/other");
+    expect(repoSlugOf("ssh://git@github.com/acme/other.git")).toBe("acme/other");
+    expect(repoSlugOf("other")).toBeNull();
+  });
+});
