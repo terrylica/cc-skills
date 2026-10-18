@@ -30,6 +30,8 @@ describe("shouldWrap: what is long-running", () => {
     // Multi-line loops: the body is judged by the program each command runs.
     ['while read sym; do\n  ./populate_cache.sh "$sym"\ndone < symbols.txt'],
     ['for f in a b\ndo\n  uv run x.py "$f"\ndone'],
+    // An option before a SCRIPT is still a script run, not a snippet.
+    ['for f in a b; do python3 -u run.py "$f"; done'],
   ])("wraps %s", (command) => {
     expect(shouldWrap(command)).toBe(true);
   });
@@ -42,6 +44,9 @@ describe("shouldWrap: what is long-running", () => {
     // An inline snippet per item is not a batch job.
     ["for f in *.json; do python3 -c 'import json,sys; json.load(open(sys.argv[1]))' \"$f\"; done"],
     ["for f in a b; do uv run --with numpy python -c 'print(1)'; done"],
+    // Short options before -c are still an inline snippet (2026-10-18: `python3 -I -c` was queued).
+    ['for d in a b; do [ -f "x/$d" ] && python3 -I -c "import csv,sys; print(1)" "x/$d"; done'],
+    ["for f in a b; do python3 -u -B -c 'print(1)' \"$f\"; done"],
     // Read-only loops.
     ["for f in *.py; do grep -l cache \"$f\"; done"],
     ["grep -rn 'for x in y; do python' ."],
