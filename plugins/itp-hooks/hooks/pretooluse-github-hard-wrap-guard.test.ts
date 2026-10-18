@@ -339,13 +339,38 @@ describe("the same-command write bypass", () => {
   });
 
   it("refuses to fail open when the body is written by a means it cannot read", async () => {
+    // A printf whose argument is an EXPANSION has no knowable output at hook time.
     const path = join(dir, "written-by-printf.md");
     const d = await runHook(
-      `printf 'wrapped\\nprose\\n' > ${path}\ngh issue comment 8 --body-file ${path}`,
+      `printf '%s\\n' "$BODY" > ${path}\ngh issue comment 8 --body-file ${path}`,
     );
     expect(d.hookSpecificOutput.permissionDecision).toBe("deny");
     expect(d.hookSpecificOutput.permissionDecisionReason).toContain("ONE step");
     expect(d.hookSpecificOutput.permissionDecisionReason).toContain(path);
+  });
+
+  // 2026-10-17: a LITERAL printf has one knowable output, so writing the body with printf and
+  // publishing it in the same command is measured instead of refused.
+  it("measures a literal printf body: unwrapped prose written and published in one command is allowed", async () => {
+    const path = join(dir, "printf-unwrapped.md");
+    const command = `printf '%s\\n' '${REFLOWED_V240_OPENING}' '' '- one item' > ${path} && gh issue comment 8 --body-file ${path}`;
+    expect(await decisionOf(command)).toBe("allow");
+  });
+
+  it("TRUE POSITIVE: a literal printf body with hard-wrapped prose is denied as hard-wrapped", async () => {
+    const path = join(dir, "printf-wrapped.md");
+    const lines = REAL_V240_OPENING.split("\n").map((l) => `'${l}'`).join(" ");
+    const d = await runHook(`printf '%s\\n' ${lines} > ${path}\ngh issue comment 8 --body-file ${path}`);
+    expect(d.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(d.hookSpecificOutput.permissionDecisionReason).toContain("hard-wrapped prose");
+    expect(d.hookSpecificOutput.permissionDecisionReason).toContain("via the printf in this command");
+  });
+
+  it("a printf with an unmodelled conversion stays unreadable (deny), never guessed", async () => {
+    const path = join(dir, "printf-width.md");
+    const d = await runHook(`printf '%-20s\\n' 'x' > ${path}\ngh issue comment 8 --body-file ${path}`);
+    expect(d.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(d.hookSpecificOutput.permissionDecisionReason).toContain("ONE step");
   });
 
   it("still allows a --body-file that simply does not exist and is not written here", async () => {

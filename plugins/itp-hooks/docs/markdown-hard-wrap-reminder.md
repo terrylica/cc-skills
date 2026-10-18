@@ -35,6 +35,8 @@ Three cover the **publish** boundary. The authoring boundary is covered three wa
 | Authoring a `.md` (Bash)           | [`posttooluse-bash-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-bash-markdown-hard-wrap-reminder.ts) — reminds | `MD-HARD-WRAP-OK` |
 | `git commit` of a `.md`            | [`pretooluse-markdown-commit-hard-wrap-guard.ts`](../hooks/pretooluse-markdown-commit-hard-wrap-guard.ts) — denies      | `MD-HARD-WRAP-OK` |
 
+The GitHub guard reads a `--body-file` before the command runs. When the same command creates the file, it reads the body from a heredoc redirected into it, and since 2026-10-17 also from a literal `printf FORMAT ARG… > file` (only `%s`, `%b`, `%%` and the common escapes; [`lib/static-printf-writes.ts`](../hooks/lib/static-printf-writes.ts)). A printf with an expansion, an append, or any other writer still gets the "write first, publish second" deny, because its output cannot be known at hook time.
+
 All of them share the one detector, [`lib/hard-wrap-detector.ts`](../hooks/lib/hard-wrap-detector.ts). The three authoring surfaces also share the net-new layer above it, [`lib/markdown-net-new-hard-wraps.ts`](../hooks/lib/markdown-net-new-hard-wraps.ts): the joiner filter, the shape signature, the multiset diff, the escape marker and the repair command, so they cannot disagree about what counts as a new wrap.
 
 ### The Bash and commit surfaces

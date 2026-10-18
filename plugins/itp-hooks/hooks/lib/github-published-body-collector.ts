@@ -29,6 +29,7 @@ import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
 import { extractFlagValues, extractHeredocs, type Heredoc } from "./shell-arg-extractor.ts";
+import { staticPrintfWrites } from "./static-printf-writes.ts";
 
 /** One body the command will publish, with a human-readable label naming its origin. */
 export interface CollectedBody {
@@ -239,7 +240,7 @@ function commandWritesTo(command: string, rawPath: string): boolean {
 
 interface ResolvedBodyText {
   readonly text: string | null;
-  readonly origin: "disk" | "heredoc";
+  readonly origin: "disk" | "heredoc" | "printf";
   readonly hiddenFromCollector: boolean;
 }
 
@@ -259,6 +260,11 @@ async function resolveBodyText(
 
   const heredoc = heredocWritingTo(heredocs, rawPath, cwd);
   if (heredoc) return { text: heredoc.body, origin: "heredoc", hiddenFromCollector: false };
+
+  // A literal `printf … > path` in the same command has one knowable output (2026-10-17: writing
+  // a body with printf and publishing it in one command used to be denied as unreadable).
+  const printed = staticPrintfWrites(command).find((w) => sameResolvedPath(w.path, rawPath, cwd));
+  if (printed) return { text: printed.text, origin: "printf", hiddenFromCollector: false };
 
   return { text: null, origin: "disk", hiddenFromCollector: commandWritesTo(command, rawPath) };
 }
@@ -333,7 +339,12 @@ export async function collectGitHubPublishedBodies(
       if (resolved.hiddenFromCollector) unreadable.push({ flag, rawPath });
       return;
     }
-    const via = resolved.origin === "heredoc" ? " (via the heredoc in this command)" : "";
+    const via =
+      resolved.origin === "heredoc"
+        ? " (via the heredoc in this command)"
+        : resolved.origin === "printf"
+          ? " (via the printf in this command)"
+          : "";
     bodies.push({ label: `${flag} "${rawPath}"${via}`, text: resolved.text });
   };
 
