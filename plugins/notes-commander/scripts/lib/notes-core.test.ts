@@ -569,7 +569,11 @@ test("hasVisibleText: tags and nbsp alone are not text", () => {
 	expect(hasVisibleText("<div>&amp;</div>")).toBe(true);
 });
 
-test("htmlToText: an empty note converts to empty without error", () => {
+// htmlToText shells out to textutil, which exists only on macOS (Apple Notes is macOS-only too). On a
+// Linux host the converter is absent, so these tests would only measure that (2026-10-19, el02).
+const NO_TEXTUTIL = process.platform !== "darwin" || Boolean(process.env.SANDBOX_RUNTIME);
+
+test.skipIf(NO_TEXTUTIL)("htmlToText: an empty note converts to empty without error", () => {
 	expect(htmlToText("<div><br></div>", {}).trim()).toBe("");
 });
 
@@ -593,7 +597,7 @@ test("hasVisibleText: numeric non-breaking spaces are not text", () => {
 // Bun's spawnSync default buffer (~1 MiB) returned status 0 + ENOBUFS with TRUNCATED stdout, which
 // htmlToText used to hand back as a success (measured 2026-09-27). textutil cannot run inside Claude
 // Code's sandbox, so this one needs the real converter and skips there.
-test.skipIf(Boolean(process.env.SANDBOX_RUNTIME))(
+test.skipIf(NO_TEXTUTIL)(
 	"htmlToText returns the WHOLE text past the old 1 MiB spawn ceiling",
 	() => {
 		const line = "abcdefghij".repeat(10);
