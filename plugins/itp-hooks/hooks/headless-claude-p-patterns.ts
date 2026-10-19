@@ -110,8 +110,8 @@ function flagValue(segment: string, flag: string): string | null {
  *   - stream-json without --verbose: the CLI refuses and emits nothing at all.
  *   - CLAUDE_EFFORT=...: not an input the CLI reads; it looks like reasoning control and is a no-op.
  *   - --effort <not in enum>: accepted with exit 0 and silently ignored, so the intent is discarded.
- * Calling WITHOUT --effort is deliberately NOT here: it defaults to `high`, which is often what you
- * want. Blocking it would make the guard noise, and noisy guards get disabled.
+ * Calling WITHOUT --effort is deliberately NOT here: it runs at the resolved default (env
+ * CLAUDE_CODE_EFFORT_LEVEL, then saved settings, then the model's default), which is often what you want. Blocking it would make the guard noise, and noisy guards get disabled.
  */
 export function findHeadlessViolations(command: string): HeadlessViolation[] {
   const violations: HeadlessViolation[] = [];
