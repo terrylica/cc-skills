@@ -27,20 +27,18 @@ fi
 major="${BASH_REMATCH[1]}"
 minor="${BASH_REMATCH[2]}"
 
-reasons=()
+below_floor=0
 if (( major < MIN_MAJOR || (major == MIN_MAJOR && minor < MIN_MINOR) )); then
-    reasons+=("it is older than ${MIN_MAJOR}.${MIN_MINOR}")
+    below_floor=1
 fi
+apple_git=0
 if [[ "$git_path" == "/usr/bin/git" && "$(uname -s)" == "Darwin" ]]; then
-    reasons+=("it is Apple's /usr/bin/git")
+    apple_git=1
 fi
-if (( ${#reasons[@]} == 0 )); then
-    exit 0
+fix="Use /opt/homebrew/bin/git, or put Homebrew first on PATH (export PATH=\"/opt/homebrew/bin:\$PATH\")."
+if (( below_floor )); then
+    echo "[itp-hooks] The git first on PATH is ${git_path} (${version_text}), older than ${MIN_MAJOR}.${MIN_MINOR}. Config-based git hooks in ~/.gitconfig need git >= ${MIN_MAJOR}.${MIN_MINOR}; this git silently skips them, so the old-git guard will refuse git commit/push/merge/pull/rebase/cherry-pick/revert/am here. ${fix}"
+elif (( apple_git )); then
+    echo "[itp-hooks] The git first on PATH is Apple's /usr/bin/git (${version_text}). It meets the ${MIN_MAJOR}.${MIN_MINOR} floor for config-based hooks today, but it changes only with Xcode updates and has trailed Homebrew git by several releases. ${fix}"
 fi
-
-joined="${reasons[0]}"
-if (( ${#reasons[@]} > 1 )); then
-    joined="${reasons[0]} and ${reasons[1]}"
-fi
-echo "[itp-hooks] The git first on PATH is ${git_path} (${version_text}), and ${joined}. Config-based git hooks in ~/.gitconfig need git >= ${MIN_MAJOR}.${MIN_MINOR}; this git silently skips them, so the old-git guard will refuse git commit/push/merge/rebase/cherry-pick/am here. Use /opt/homebrew/bin/git, or put Homebrew first on PATH (export PATH=\"/opt/homebrew/bin:\$PATH\")."
 exit 0
