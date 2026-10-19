@@ -1,3 +1,28 @@
+# [33.20.0](https://github.com/[secure]/cc-skills/compare/v33.19.0...v33.20.0) (2026-10-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** session warning states what each old-git case means ([c3dca61](https://github.com/[secure]/cc-skills/commit/c3dca61e222139471b67bdc9ce688baeba3d9f29))
+
+The SessionStart warning now distinguishes a git below 2.54 (the guard will refuse hook-firing commands, listed in full) from Apple's /usr/bin/git that already meets the floor (advice only).
+
+* **release:** release commit uses the repository's noreply identity ([a13eb40](https://github.com/[secure]/cc-skills/commit/a13eb40ff7fa3a3e9e7307bdae892fc95b5f1369))
+
+semantic-release stamped its bot address on the release commit, which the public-repo identity check in the privacy gate refuses, so 33.20.0 failed at @semantic-release/git after the version was computed. The version phase now exports GIT_AUTHOR_*/GIT_COMMITTER_* from the repository's git config.
+
+
+
+### Features
+
+* **itp-hooks:** old-git guard blocks hook-firing git below 2.54 ([8e301ce](https://github.com/[secure]/cc-skills/commit/8e301cecab571ff8a3c7bf0e52403c86929658e8))
+
+Config-based hooks (hook.&lt;name>.event in ~/.gitconfig) need git 2.54 or newer. An older git, such as Apple's /usr/bin/git, reads the same config and silently runs none of them, so every hook defined there is skipped.
+
+- pretooluse-old-git-guard (Bash orchestrator): denies commit, push, merge, pull, rebase, cherry-pick, revert and am, including git -C and wrapper forms, when the git that would run (explicit path, or first on PATH) reports a version below 2.54. Read-only git and ssh remote commands are never checked. Versions cached per session keyed by path, mtime and size; no network; fails open. Escape OLD-GIT-OK: &lt;reason>.
+- sessionstart-git-version-check.sh: warns once at session start when the git on PATH is below 2.54 or is /usr/bin/git on macOS.
+- Tests with stub git binaries, marker registry entry, regenerated marker reference, spoke docs/old-git-guard.md, hub rows.
+
 # [33.19.0](https://github.com/terrylica/cc-skills/compare/v33.18.3...v33.19.0) (2026-10-19)
 
 
