@@ -1,3 +1,30 @@
+# [33.19.0](https://github.com/terrylica/cc-skills/compare/v33.18.3...v33.19.0) (2026-10-19)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** mcp-drive runs its server in a private temp dir ([96377e4](https://github.com/terrylica/cc-skills/commit/96377e4ba4698089ca6eef210964562c9b4cd12f))
+
+The Playwright and DevTools MCP servers write console and snapshot logs into ./.playwright-mcp of their working directory, so a run started inside a repository left page content there; on 2026-10-18 it tripped a repository's leak scrub. The server now starts in a fresh mkdtemp directory that is removed on exit.
+
+* **itp-hooks:** review-round gate finds the head branch in the clone a gh -R names ([93dcfbf](https://github.com/terrylica/cc-skills/commit/93dcfbfcacedd6231e9e87f123dee24e6d4544be))
+* **release:** drop references to non-public repos from release notes ([b8ed9ce](https://github.com/terrylica/cc-skills/commit/b8ed9cec6e43e20c50d2e49dc58316b80da98981))
+
+A commit message in this public repository can mention an issue or pull request in another repository. The commit parser lifts every owner/repo#N into the commit's references, and the commit template renders them as ", closes owner/repo#N" beside the bullet, so a reference to a private repository reached the generated CHANGELOG. On 2026-10-18 that stopped release-full at the privacy gate, which refused the release commit.
+
+The release-notes transform now checks each cross-repository reference against the repository's visibility on GitHub, once per repository per release. References to this repository, and to repositories GitHub reports as public, are kept unchanged, so upstream bug reports stay cited. Any other reference is dropped from the references list, and generalised in the subject, body and breaking-change notes, including github.com URLs. A failed lookup counts as not public, so being offline can only generalise a public reference, never publish a private one. The release log reports a count, never the repository.
+
+- scripts/redact-foreign-references.ts: the redactor and a cached gh api visibility lookup with a 15 s SIGKILL timeout.
+- release.config.cjs: the transform applies it before rendering; a module that cannot load aborts the release instead of falling back to raw text.
+
+
+
+### Features
+
+* **chrome-profiles:** mcp-drive.ts drives an on-demand browser MCP server from Bash (ext and cdp modes) ([9aa0f2b](https://github.com/terrylica/cc-skills/commit/9aa0f2b0d8afcdd826c0609de07ea911c39fb02a))
+
+No Claude Code restart: ext mode runs a profile's Playwright Extension server on its stored token; cdp mode runs chrome-devtools-mcp --autoConnect across every profile, with {{uid:}}/{{page:}} placeholders resolved within one run. Skill notes: one fresh tab per ext run, the code sandbox cannot spawn so secrets leave by Blob download, and the focus-free chips workaround for a password-manager detach. dashboard-forge drift log: Cloudflare member invites need Create policy; account-owned tokens and the Workers Scripts (Legacy) group.
+
 ## [33.18.3](https://github.com/terrylica/cc-skills/compare/v33.18.2...v33.18.3) (2026-10-18)
 
 
