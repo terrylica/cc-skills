@@ -1,3 +1,20 @@
+## [33.21.1](https://github.com/terrylica/cc-skills/compare/v33.21.0...v33.21.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** review gate reads heredoc bodies as text ([339011b](https://github.com/terrylica/cc-skills/commit/339011bf3acb2b0ab529c23df80c58356c3f8765))
+
+The review-round gate parsed heredoc bodies as if they were shell. Measured 2026-10-19 while opening terrylica/cc-skills#20: a command that wrote the PR body with `cat > body.md <<'EOF'` and then changed into the worktree and opened the PR was denied although a valid self-review record existed for the worktree's HEAD. The body contained "(now 25 guards)"; the group check took that `(` for a subshell, stopped following the `cd`, and measured the session checkout on main instead. Separately, a body that merely mentioned the gated command was classified as running it, and this commit's own message, written through a heredoc, was blocked the same way.
+
+- New `withoutNonShellHeredocBodies()` in shell-arg-extractor.ts, beside extractHeredocs and sharing its opener and terminator rules: blanks the body and terminator of every heredoc not fed to a shell, keeping the line count.
+- classify() and the cd/group check both use it. A heredoc fed to bash/sh/zsh/dash/ksh is code and is kept, so a gated command inside `bash <<EOF` is still gated; an unterminated heredoc is left untouched, so nothing becomes more permissive than before.
+- The group check slices the same stripped string its word offsets index (blanking lines shifts offsets).
+- Tests: 6 classify cases, 4 gatedCommandDirectory cases, 5 helper cases. Four mutants (classify not stripped, group check not stripped, shell-fed bodies stripped, unterminated bodies stripped) are each killed.
+- Not fixed here: a quoted mention outside a heredoc (a grep pattern containing the gated command) still matches, because detection is a command-position regex on raw text. Moving it to the shared shell walker is tracked separately.
+
+Verified: 170/170 (extractor, artifact, gate suites) on el02 (Linux) and the MacBook Pro (macOS 15.8.1).
+
 # [33.21.0](https://github.com/terrylica/cc-skills/compare/v33.20.1...v33.21.0) (2026-10-19)
 
 
