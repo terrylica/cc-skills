@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 40 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 41 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (33; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (34; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -29,6 +29,7 @@ Jump directly to any of the 40 registered markers below. Markers are listed alph
 - [`GH-HARD-WRAP-OK`](#gh-hard-wrap-ok)
 - [`GMAIL-BODY-OK`](#gmail-body-ok)
 - [`GMAIL-SEND-OK`](#gmail-send-ok)
+- [`HAIKU-MONITOR-SKIP`](#haiku-monitor-skip)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
@@ -76,7 +77,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (33 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (34 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -316,6 +317,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # GMAIL-SEND-OK: explain the deliberate exception here in at least 10 characters
+```
+
+## `HAIKU-MONITOR-SKIP`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-long-runtime-haiku-monitor-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Silence the long-runtime Haiku monitor reminder (pretooluse-long-runtime-haiku-monitor-reminder.ts), a SOFT reminder that never denies. It fires on a Bash call that may run past 5 minutes (run_in_background, a timeout above 300000 ms, or `pueue add` at a command position) and asks for a background health-check monitor started with the Agent tool and the bare alias `model: "haiku"`. Use the marker when the run is known to be short or something else already watches it. Spoke: plugins/itp-hooks/docs/long-runtime-haiku-monitor-reminder.md.
+
+**Example usage**:
+
+```
+# HAIKU-MONITOR-SKIP
 ```
 
 ## `INIT-MONOLITH-OK`
