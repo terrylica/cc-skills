@@ -1,3 +1,42 @@
+# [33.21.0](https://github.com/terrylica/cc-skills/compare/v33.20.1...v33.21.0) (2026-10-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** haiku-monitor review fixes (walker, subagents) ([611f895](https://github.com/terrylica/cc-skills/commit/611f895e797deb1195399819a587fc089c8c7c5b))
+
+Independent review of the haiku health-monitor reminder found no blocking bugs and six fixable gaps; all are fixed here.
+
+- pueue detection uses the shared static shell walker instead of a hand-written regex: sudo, env, leading space, bash -c, ssh host '...', $(...) and `pueue --color never add` now count; quoted text, commit messages, comments and heredocs fed to cat no longer do; `git add pueue.yml` and `pueue status -- add` never did and are now tested.
+- The reminder gives the monitor's sleep its Bash timeout (`timeout: 270000`): without it the default 2-minute limit cuts `sleep 240` short. Calls made inside a subagent (non-empty agent_id) are skipped, so a monitor is never reminded about its own checks.
+- The escape check uses the shared iter-107 helper, as sibling guards do.
+- Tests leave nothing in the real /tmp: the in-process orchestrator test and pretooluse-bash-guard-orchestrator.test.ts now use a throwaway TMPDIR (Bun's os.tmpdir() re-reads TMPDIR per call, measured), and the stamp mutant points at the sandboxed HOME.
+- Mutation harness: a kill must be an assertion failure (compiles, a `(fail)` line, no timeout), otherwise the mutant is reported invalid; the mutant run refuses to start unless the control passed; 36 mutants, all killed. The exactly-one-site check caught one stale mutant during this round.
+- Spoke corrected: the sleep keeps the monitor's own prompt cache warm, not the parent's.
+
+Verified: 83/83 (58 hermetic, 4 mutation-harness, 21 orchestrator) on el02 (Linux, bun 1.3.14) and the MacBook Pro (macOS 15.8.1, bun 1.4.3), with no stamp left in either real temp directory.
+
+* **notes-commander:** skip textutil tests off macOS ([d5d5f97](https://github.com/terrylica/cc-skills/commit/d5d5f9734a151c6d6171e71a49b8c23affae092e))
+
+htmlToText shells out to macOS textutil. On a Linux host (el02) the two tests that need the real converter failed with "Executable not found in $PATH: textutil", which turned `moon run repo:check` red on every Linux run, including unmodified main. They now skip unless process.platform is darwin (and still skip inside Claude Code's sandbox, as before).
+
+Verified: el02 60 pass / 2 skip / 0 fail; MacBook Pro (macOS 15.8.1) 62 pass / 0 fail, so both tests still run where they mean something.
+
+
+
+### Features
+
+* **itp-hooks:** haiku health-monitor reminder for long runs ([580f5ef](https://github.com/terrylica/cc-skills/commit/580f5efdd84cbf43b0b23426a789a6bfcd6413bb))
+
+A gate that normally takes 7 to 9 minutes ran for 77 minutes, hung, before anyone looked, and the operator had to ask by hand for intermittent monitoring with a Haiku agent. The new PreToolUse:Bash reminder makes that the default: when a Bash call is backgrounded, carries a timeout above 300000 ms, or runs `pueue add` at a command position, it adds context asking for a background monitor started with the Agent tool and the bare alias `model: "haiku"`. The alias resolves to the newest Haiku release when the agent starts, so the monitor follows each new release with no edit here; the reminder forbids dated or numbered ids because a pinned id goes stale at the next release.
+
+- Soft: adds context, never denies. At most once per 20 minutes per session; the stamp lives under os.tmpdir() (per-user /var/folders on macOS, /tmp on Linux) with a per-uid directory. Escape HAIKU-MONITOR-SKIP. Fails open.
+- The monitor checks about every 4 minutes (sleep 240, inside the 5-minute prompt-cache window), never kills or restarts anything, and ends with its report as its final answer. SendMessage to main is not used: a monitor started from the main session measured that it cannot reach it.
+- Runs inside the Bash guard orchestrator (now 25 guards; the stale 23/24 counts in hooks.json, the hub, the spoke index and the orchestrator spoke are corrected).
+- Hermetic suite (43 tests): fresh temp dir per test, subprocesses see only PATH, HOME and TMPDIR. Mutation suite: 32 single-site mutants, each run in its own temp dir, all must fail the hermetic suite after a passing control run. The first run caught a real gap (minutes-floor survived a suite that only tested exactly 10 minutes).
+- Verified on el02 (Linux, bun 1.3.14) and the MacBook Pro (macOS 15.8.1 arm64, bun 1.4.3): 66/66 tests including all 32 mutants killed.
+- Marker registered in the iter-111 registry; marketplace marker reference regenerated. Spoke: plugins/itp-hooks/docs/long-runtime-haiku-monitor-reminder.md.
+
 ## [33.20.1](https://github.com/terrylica/cc-skills/compare/v33.20.0...v33.20.1) (2026-10-19)
 
 
