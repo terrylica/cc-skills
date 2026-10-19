@@ -361,3 +361,33 @@ describe("git push after git's global options is a push", () => {
     expect(classify(command).kind).toBe(expected as never);
   });
 });
+
+// 2026-10-19: a PR body written with `cat > body.md <<'EOF'` containing "(now 25 guards)" made the
+// gate measure the session checkout instead of the worktree and deny a valid record; a body that
+// merely mentioned the gated command was classified as running it. Heredoc bodies written to a file
+// are text. Bodies fed to a shell are code and still count; an unterminated heredoc stays as it was.
+describe("heredoc bodies are text unless a shell runs them (2026-10-19)", () => {
+  const BODY_PARENS = "cat > /tmp/b.md <<'EOF'\nnow 25 guards (was 24) {and more}\nEOF\n";
+
+  test.each([
+    [BODY_PARENS + "cd /abs/wt && gh pr create --title t", "/abs/wt"],
+    ["cat <<EOF > /tmp/b.md\n(x)\nEOF\ncd ../wt && gh pr ready 3", "/home/u/wt"],
+    // A body fed to a shell is code: a `(` there is a real group, so the walk stops.
+    ["bash <<'EOF'\n(cd /elsewhere)\nEOF\ncd /abs/wt && gh pr ready", null],
+    // Unterminated: nothing is stripped, so the `(` still stops the walk.
+    ["cat > /tmp/b.md <<'EOF'\n(x)\ncd /abs/wt && gh pr ready", null],
+  ])("gatedCommandDirectory %j → %s", (command, expected) => {
+    expect(gatedCommandDirectory(command, "/home/u/repo", "/home/u")).toBe(expected as never);
+  });
+
+  test.each([
+    ["cat > /tmp/b.md <<'EOF'\ngh pr create --fill\nEOF\nls", null],
+    ["cat > /tmp/b.md <<'EOF'\n- then git push origin main\nx | gh pr ready 3\nEOF\necho done", null],
+    ["bash <<'EOF'\ngh pr create --fill\nEOF", "pr-create"],
+    ["sh -s <<EOF\ngit push origin HEAD\nEOF", "push"],
+    ["cat <<EOF\ngh pr create --fill", "pr-create"],
+    [BODY_PARENS + "gh pr create --title t", "pr-create"],
+  ])("classify %j → %s", (command, expected) => {
+    expect(classify(command).kind).toBe(expected as never);
+  });
+});

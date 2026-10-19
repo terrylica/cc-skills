@@ -292,6 +292,44 @@ export function extractHeredocs(command: string): Heredoc[] {
   return found;
 }
 
+/** An opening line that feeds its heredoc to a shell, whose body is therefore CODE, not text. */
+const SHELL_FED_HEREDOC_LINE = /(?:^|[\s;&|(])(?:[\w./-]*\/)?(?:bash|sh|zsh|dash|ksh)(?:\s+-\w+)*\s*(?:-s\s*)?<<-?/;
+
+/**
+ * The command with the body and terminator line of every heredoc that is NOT fed to a shell
+ * replaced by empty lines, so line numbers and the opening line survive.
+ *
+ * Why: a guard that matches command text sees a heredoc body as if it were shell. Prose written with
+ * `cat > body.md <<'EOF'` that contains `(now 25 guards)` or a `gh pr create` example is text that
+ * never runs (measured 2026-10-19: both misfired the review-round gate). A body fed to `bash`/`sh`
+ * is code and is kept. Same opener rule and terminator rule as {@link extractHeredocs}; an
+ * unterminated heredoc is left untouched, so the result is never more permissive than the input.
+ */
+export function withoutNonShellHeredocBodies(command: string): string {
+  const lines = command.replace(/\r\n/g, "\n").split("\n");
+  let lineIndex = 0;
+  while (lineIndex < lines.length) {
+    const line = lines[lineIndex];
+    HEREDOC_OPENER.lastIndex = 0;
+    const openers = [...line.matchAll(HEREDOC_OPENER)].map((m) => m[1] ?? m[2] ?? m[3] ?? "");
+    if (openers.length === 0) {
+      lineIndex++;
+      continue;
+    }
+    const keep = SHELL_FED_HEREDOC_LINE.test(line);
+    let cursor = lineIndex + 1;
+    for (const delimiter of openers) {
+      let terminator = cursor;
+      while (terminator < lines.length && lines[terminator].trim() !== delimiter) terminator++;
+      if (terminator >= lines.length) break; // unterminated: leave the rest as it is
+      if (!keep) for (let i = cursor; i <= terminator; i++) lines[i] = "";
+      cursor = terminator + 1;
+    }
+    lineIndex = cursor > lineIndex ? cursor : lineIndex + 1;
+  }
+  return lines.join("\n");
+}
+
 // =================================================================================================
 // Shell WORD splitting
 // =================================================================================================

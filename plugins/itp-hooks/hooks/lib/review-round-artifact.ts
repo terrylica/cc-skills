@@ -35,7 +35,7 @@ import { createHash } from "node:crypto";
 
 import { homedir } from "node:os";
 import { resolve as resolvePath } from "node:path";
-import { splitShellWords } from "./shell-arg-extractor.ts";
+import { splitShellWords, withoutNonShellHeredocBodies } from "./shell-arg-extractor.ts";
 import { lexShellCommands } from "./shell-command-quote-aware-static-lexer.ts";
 import {
   basename as invocationBasename,
@@ -163,7 +163,10 @@ const PUBLISHES_A_BODY = ghCommand(
   String.raw`(?:pr\s+(?:create|comment|review)|issue\s+(?:create|comment))\b`,
 );
 
-export function classify(command: string): Classification {
+export function classify(rawCommand: string): Classification {
+  // Heredoc bodies written to a file (`cat > body.md <<'EOF'`) are text, not commands: a PR body
+  // that mentions `gh pr create` must not be classified as one (2026-10-19). Bodies fed to a shell stay.
+  const command = withoutNonShellHeredocBodies(rawCommand);
   if (hasFlag(command, READY_UNDO) && GH_PR_READY.test(command)) {
     return { kind: "pr-undraft", matched: "gh pr ready --undo" };
   }
@@ -406,7 +409,11 @@ export function resolveDirectoryArgument(value: string, base: string, home: stri
  * a failed cd would leave the gated command in the session's cwd). Found in review, 2026-10-17:
  * without this, a record in another worktree could approve a push made from the session's checkout.
  */
-function directoryChangesAreUnconditional(command: string): boolean {
+function directoryChangesAreUnconditional(rawCommand: string): boolean {
+  // A `(` or `{` in a heredoc body written to a file is prose, not a group (2026-10-19: a PR body
+  // containing "(now 25 guards)" sent the gate back to the session cwd and denied a valid record).
+  // Word offsets below index THIS string, so it must be the one sliced, never rawCommand.
+  const command = withoutNonShellHeredocBodies(rawCommand);
   const words = splitShellWords(command);
   let atCommandPosition = true;
   let lastProgram: string | null = null;
