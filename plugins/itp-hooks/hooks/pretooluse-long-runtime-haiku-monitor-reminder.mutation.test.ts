@@ -9,7 +9,9 @@
  * it through HAIKU_MONITOR_HOOK_UNDER_TEST. A mutant the suite does not fail on has SURVIVED: either
  * the suite is missing a test or the mutated code is dead. Either way this file fails.
  *
- * A control run (no mutation) must PASS first, so a broken harness cannot report every mutant killed.
+ * A control run (no mutation) must PASS first, and the mutant run refuses to start otherwise, so a
+ * broken harness cannot report every mutant killed. A kill must also be an assertion failure: a
+ * mutant that does not compile, or a suite that only timed out, is reported as invalid.
  * Every search string must occur exactly once in the hook, so an edit to the hook cannot silently turn
  * a mutant into a no-op; update the mutant along with the code.
  */
@@ -33,11 +35,14 @@ const MUTANTS: readonly Mutant[] = [
   { id: "minutes-floor", search: "Math.round(toolInput.timeout / 60000)", replace: "Math.floor(toolInput.timeout / 60000)" },
   { id: "background-loosened", search: "toolInput.run_in_background === true", replace: "toolInput.run_in_background !== false" },
   { id: "background-dropped", search: 'if (toolInput.run_in_background === true) return "it runs in the background";', replace: "" },
-  { id: "escape-dropped", search: "if (command.includes(ESCAPE_MARKER)) return null;", replace: "" },
-  { id: "pueue-dropped", search: 'if (PUEUE_ADD_AT_COMMAND_POSITION.test(command)) return "it queues a pueue job";', replace: "" },
-  { id: "pueue-unanchored", search: "/(?:^|[;&|(]\\s*|\\n\\s*)(?:\\S+\\/)?pueue", replace: "/(?:)(?:\\S+\\/)?pueue" },
-  { id: "pueue-no-path-prefix", search: "(?:\\S+\\/)?pueue", replace: "pueue" },
-  { id: "pueue-any-subcommand", search: "pueue\\s+(?:--?\\S+\\s+)*add\\b", replace: "pueue\\s+\\w+" },
+  { id: "escape-dropped", search: "if (hasFileWideEscapeHatchMarkerInContent(command, ESCAPE_HATCH)) return null;", replace: "" },
+  { id: "pueue-dropped", search: 'if (invokesPueueAdd(command)) return "it queues a pueue job";', replace: "" },
+  { id: "pueue-any-subcommand", search: 'if (head.some((w) => w.value === "add")) found = true;', replace: "found = true;" },
+  { id: "pueue-any-program", search: 'if (found || invocation.program !== "pueue") return;', replace: "if (found) return;" },
+  { id: "pueue-past-double-dash", search: "const head = end === -1 ? invocation.args : invocation.args.slice(0, end);", replace: "const head = invocation.args;" },
+  { id: "pueue-regex-instead-of-walker", search: "if (invokesPueueAdd(command))", replace: "if (/pueue\\s+add/.test(command))" },
+  { id: "subagent-not-skipped", search: ' || (typeof agentId === "string" && agentId !== "")', replace: "" },
+  { id: "empty-agent-id-skips", search: 'typeof agentId === "string" && agentId !== ""', replace: 'typeof agentId === "string"' },
   // Cooldown
   { id: "cooldown-shortened", search: "REMINDER_COOLDOWN_MS = 20 * 60 * 1000", replace: "REMINDER_COOLDOWN_MS = 10 * 60 * 1000" },
   { id: "cooldown-inclusive", search: "nowMs - last < REMINDER_COOLDOWN_MS", replace: "nowMs - last <= REMINDER_COOLDOWN_MS" },
@@ -48,24 +53,49 @@ const MUTANTS: readonly Mutant[] = [
   { id: "sessionless-silenced", search: '|| /[/\\\\]/.test(sessionId)) return true;', replace: '|| /[/\\\\]/.test(sessionId)) return false;' },
   { id: "traversal-guard-dropped", search: ' || /[/\\\\]/.test(sessionId)', replace: "" },
   { id: "write-error-silences", search: "// Unwritable /tmp: remind anyway.", replace: "return false;" },
-  { id: "stamp-in-slash-tmp", search: "baseDir: string = tmpdir()", replace: 'baseDir: string = "/tmp"' },
+  // Points at the run's sandboxed HOME rather than the real /tmp, so this mutant writes nothing outside it.
+  { id: "stamp-ignores-tmpdir", search: "baseDir: string = tmpdir()", replace: 'baseDir: string = process.env.HOME ?? "/nonexistent"' },
   // Text
   { id: "model-pinned", search: '`model: \\"haiku\\"`', replace: '`model: \\"claude-haiku-4-5\\"`' },
   { id: "foreground-monitor", search: "`run_in_background: true`. ", replace: "" },
-  { id: "cadence-dropped", search: "(`sleep 240` between checks, ", replace: "(" },
+  { id: "cadence-dropped", search: "`sleep 240` as a foreground Bash call", replace: "a foreground Bash call" },
+  { id: "sleep-timeout-dropped", search: " with `timeout: 270000`", replace: "" },
   { id: "report-channel-dropped", search: "ends with its report as its final answer, which reaches you as a completion notification, and it ", replace: "" },
   { id: "monitor-may-kill", search: "It never kills or restarts anything", replace: "It may kill a stalled run" },
   { id: "escape-not-mentioned", search: "put ${ESCAPE_MARKER} in the command", replace: "say so" },
   { id: "tag-renamed", search: "`[LONG-RUNTIME-HEALTH-CHECK] ", replace: "`[HEALTH] " },
   { id: "signal-not-shown", search: "(${signal})", replace: "" },
   // Wiring
-  { id: "any-tool", search: 'if (input.tool_name !== "Bash") {', replace: "if (false) {" },
+  { id: "any-tool", search: 'input.tool_name !== "Bash" ||', replace: "false ||" },
   { id: "denies", search: 'hookEventName: "PreToolUse",\n      additionalContext', replace: 'hookEventName: "PreToolUse",\n      permissionDecision: "deny",\n      additionalContext' },
   { id: "silent", search: "additionalContext: buildReminder(signal),", replace: "" },
 ];
 
-/** Run the hermetic suite against `source`; returns the bun test exit code. */
-async function runSuiteAgainst(source: string): Promise<{ exitCode: number; tail: string }> {
+type Verdict = "passed" | "killed" | "invalid";
+
+/**
+ * A mutant counts as KILLED only when it compiles and the suite fails on an assertion: exit non-zero,
+ * at least one `(fail)` line, and no timeout. A mutant that does not compile, or a suite that fails
+ * only by timing out (load), is INVALID, not killed, so a harness fault cannot inflate the score.
+ */
+function classify(exitCode: number, output: string): Verdict {
+  if (exitCode === 0) return "passed";
+  if (!/^\(fail\) /m.test(output) || /timed out after \d+/i.test(output)) return "invalid";
+  return "killed";
+}
+
+const transpiler = new Bun.Transpiler({ loader: "ts" });
+function compiles(source: string): boolean {
+  try {
+    transpiler.transformSync(source);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Run the hermetic suite against `source`. */
+async function runSuiteAgainst(source: string): Promise<{ exitCode: number; output: string; tail: string }> {
   const dir = mkdtempSync(join(tmpdir(), "haiku-monitor-mutant-"));
   try {
     const path = join(dir, "hook-under-test.ts");
@@ -76,12 +106,13 @@ async function runSuiteAgainst(source: string): Promise<{ exitCode: number; tail
       env: { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: dir, TMPDIR: dir, HAIKU_MONITOR_HOOK_UNDER_TEST: path },
       cwd: dir,
     });
-    const [, stderr, exitCode] = await Promise.all([
+    const [stdout, stderr, exitCode] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
       proc.exited,
     ]);
-    return { exitCode, tail: stderr.split("\n").slice(-6).join("\n") };
+    const output = `${stdout}\n${stderr}`;
+    return { exitCode, output, tail: stderr.split("\n").slice(-6).join("\n") };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -111,17 +142,26 @@ describe("mutation testing", () => {
     expect(new Set(MUTANTS.map((m) => m.id)).size).toBe(MUTANTS.length);
   });
 
+  let controlPassed = false;
+
   test("control: the unmutated hook passes the suite through the same harness", async () => {
     const { exitCode, tail } = await runSuiteAgainst(HOOK_SOURCE);
     expect({ exitCode, tail }).toEqual({ exitCode: 0, tail: expect.any(String) });
+    controlPassed = true;
   }, 60_000);
 
-  test("every mutant is killed", async () => {
+  test("every mutant compiles", () => {
+    const broken = MUTANTS.filter((m) => !compiles(HOOK_SOURCE.replace(m.search, m.replace))).map((m) => m.id);
+    expect(broken).toEqual([]);
+  });
+
+  test("every mutant is killed by an assertion", async () => {
+    // Gate: with a failing control every mutant would "fail" too, which proves nothing.
+    if (!controlPassed) throw new Error("control run did not pass; mutant results would be meaningless");
     const outcomes = await mapBounded(MUTANTS, async (m) => {
-      const { exitCode } = await runSuiteAgainst(HOOK_SOURCE.replace(m.search, m.replace));
-      return { id: m.id, killed: exitCode !== 0 };
+      const { exitCode, output } = await runSuiteAgainst(HOOK_SOURCE.replace(m.search, m.replace));
+      return { id: m.id, verdict: classify(exitCode, output) };
     });
-    const survivors = outcomes.filter((o) => !o.killed).map((o) => o.id);
-    expect(survivors).toEqual([]);
+    expect(outcomes.filter((o) => o.verdict !== "killed")).toEqual([]);
   }, 300_000);
 });

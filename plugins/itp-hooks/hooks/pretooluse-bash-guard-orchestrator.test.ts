@@ -21,9 +21,18 @@ const HOOKS_DIR = new URL(".", import.meta.url).pathname;
 const ORCHESTRATOR = join(HOOKS_DIR, "pretooluse-bash-guard-orchestrator.ts");
 const sandbox = mkdtempSync(join(tmpdir(), "bash-orchestrator-test-"));
 const fakeHome = mkdtempSync(join(tmpdir(), "bash-orchestrator-home-"));
+// A throwaway TMPDIR too, for the subprocesses (ENV below) and the in-process runs alike, so guards
+// that keep per-session state under os.tmpdir() (old-git cache, haiku-monitor cooldown) leave nothing
+// in the real /tmp. Bun's os.tmpdir() re-reads TMPDIR on every call (measured 2026-10-19).
+const fakeTmp = mkdtempSync(join(tmpdir(), "bash-orchestrator-tmp-"));
+const realTmpdirEnv = process.env.TMPDIR;
+process.env.TMPDIR = fakeTmp;
 afterAll(() => {
+  if (realTmpdirEnv === undefined) delete process.env.TMPDIR;
+  else process.env.TMPDIR = realTmpdirEnv;
   rmSync(sandbox, { recursive: true, force: true });
   rmSync(fakeHome, { recursive: true, force: true });
+  rmSync(fakeTmp, { recursive: true, force: true });
 });
 
 // One command per guard family, plus pass-throughs and wrapped forms. Each deny/ask/context case
@@ -63,7 +72,7 @@ function inputFor(command: string): PreToolUseInput {
   } as PreToolUseInput;
 }
 
-const ENV = { ...process.env, HOME: fakeHome };
+const ENV = { ...process.env, HOME: fakeHome, TMPDIR: fakeTmp };
 
 interface Folded {
   decision: string;

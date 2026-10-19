@@ -4,8 +4,9 @@
  * Run with: bun test plugins/itp-hooks/hooks/pretooluse-long-runtime-haiku-monitor-reminder.test.ts
  *
  * Hermetic: every test gets its own fresh temp directory. Subprocess runs get an environment of only
- * PATH, HOME and TMPDIR, with HOME and TMPDIR both inside that directory, so neither the developer's
- * real /tmp stamps nor their home directory can change an outcome. Nothing here touches the network.
+ * PATH, HOME and TMPDIR, with HOME and TMPDIR both inside that directory, and the in-process
+ * orchestrator test points TMPDIR there too, so neither the developer's real /tmp stamps nor their
+ * home directory can change an outcome, and no run leaves a file behind. No network.
  *
  * Mutation-structured: the companion runner (`...reminder.mutation.test.ts`) points this suite at a
  * mutated copy of the hook through HAIKU_MONITOR_HOOK_UNDER_TEST and requires it to FAIL for every
@@ -102,14 +103,28 @@ describe("which Bash calls count as long-running", () => {
     ["/opt/homebrew/bin/pueue add -- sleep 900"],
     ["/home/linuxbrew/.linuxbrew/bin/pueue add -- sleep 900"],
     ["true; pueue add -- x"],
-  ])("pueue add at a command position fires: %s", (command) => {
+    ["  pueue add -- x"],
+    ["sudo pueue add -- x"],
+    ["env A=1 pueue add -- x"],
+    ["pueue --color never add -- x"],
+    ["bash -c 'pueue add -- make check'"],
+    ["ssh bigblack 'pueue add -- make check'"],
+    ["id=$(pueue add --print-task-id -- make check)"],
+  ])("a pueue add invocation fires: %s", (command) => {
     expect(longRuntimeSignal({ command })).toBe("it queues a pueue job");
   });
 
   test.each([
     ["pueue status"],
+    ["pueue log 3"],
+    ["pueue status -- add"],
     ["echo 'remember to pueue add it later'"],
+    ["echo 'a; pueue add b'"],
+    ["git commit -m 'x; pueue add later'"],
     ["grep -n 'pueue add' notes.md"],
+    ["cat <<'EOF'\npueue add -- x\nEOF"],
+    ["# pueue add -- x"],
+    ["git add pueue.yml"],
   ])("a pueue mention or a short pueue command does not fire: %s", (command) => {
     expect(longRuntimeSignal({ command })).toBeNull();
   });
@@ -193,6 +208,7 @@ describe("the reminder text", () => {
     ["the trigger", "(it runs in the background)"],
     ["backgrounding", "`run_in_background: true`"],
     ["the cadence", "`sleep 240`"],
+    ["the sleep's Bash timeout", "`timeout: 270000`"],
     ["the report channel", "its report as its final answer"],
     ["the hands-off rule", "never kills or restarts"],
     ["the escape", "HAIKU-MONITOR-SKIP"],
@@ -232,6 +248,15 @@ describe("end to end, as Claude Code runs it (hermetic subprocess)", () => {
     expect(r.decision).toBe("allow");
   });
 
+  test("a subagent's call (agent_id present) is ignored, so a monitor never monitors itself", async () => {
+    const input = JSON.parse(bashInput({ command: "sleep 240", run_in_background: true }, "sub"));
+    const r = await runHook(JSON.stringify({ ...input, agent_id: "a123", agent_type: "general-purpose" }));
+    expect(r.context).toBeUndefined();
+    expect(r.decision).toBe("allow");
+    const empty = await runHook(JSON.stringify({ ...input, agent_id: "" }));
+    expect(empty.context).toBeDefined();
+  });
+
   test("a non-Bash tool is ignored even when backgrounded", async () => {
     const r = await runHook(bashInput({ prompt: "x", run_in_background: true }, "s-1", "Agent"));
     expect(r.context).toBeUndefined();
@@ -255,6 +280,9 @@ describe("end to end, as Claude Code runs it (hermetic subprocess)", () => {
 // Integration with the real orchestrator. Skipped under mutation: it imports the unmutated hook.
 describe.skipIf(UNDER_MUTATION)("inside the Bash guard orchestrator", () => {
   test("it is registered and its context reaches the aggregated response", async () => {
+    // In-process run: point os.tmpdir() at the sandbox so the cooldown stamp stays out of /tmp.
+    const realTmpdirEnv = process.env.TMPDIR;
+    process.env.TMPDIR = sandbox;
     const { BASH_GUARD_REGISTRY, runBashGuards } = await import("./pretooluse-bash-guard-orchestrator.ts");
     expect(BASH_GUARD_REGISTRY.map((e) => e.name)).toContain("pretooluse-long-runtime-haiku-monitor-reminder");
     const result = await runBashGuards({
@@ -263,7 +291,10 @@ describe.skipIf(UNDER_MUTATION)("inside the Bash guard orchestrator", () => {
       cwd: sandbox,
       session_id: `orchestrator-${process.pid}-${Date.now()}`,
     });
+    if (realTmpdirEnv === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = realTmpdirEnv;
     expect(result.decision).toBe("allow");
     expect(result.additionalContext.join("\n")).toContain("[LONG-RUNTIME-HEALTH-CHECK]");
+    expect(readdirSync(sandbox)).toContain(`.claude-haiku-monitor-reminder-${UID_SUFFIX}`);
   });
 });

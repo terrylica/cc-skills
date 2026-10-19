@@ -14,36 +14,40 @@ The reminder tells the model to write the bare alias `haiku`, never a dated or n
 
 ## When it fires
 
-| Bash call                                                                        | Fires                   |
-| -------------------------------------------------------------------------------- | ----------------------- |
-| `run_in_background: true`                                                        | yes                     |
-| `timeout` above 300000 ms                                                        | yes                     |
-| `timeout` of 300000 ms or less, no other signal                                  | no                      |
-| `pueue add …` at a command position (after `;`, `&&`, `\|`, `(`, or a full path) | yes                     |
-| `pueue status`, `echo 'pueue add'`, `grep 'pueue add' notes.md`                  | no                      |
-| any command containing `HAIKU-MONITOR-SKIP`                                      | no                      |
-| any tool other than Bash                                                         | no                      |
-| a second long call in the same session within 20 minutes                         | no (cooldown)           |
-| no session id, or a session id containing a path separator                       | yes (no cooldown kept)  |
-| malformed hook input                                                             | no; allows (fails open) |
+| Bash call                                                                                                                                 | Fires                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `run_in_background: true`                                                                                                                 | yes                     |
+| `timeout` above 300000 ms                                                                                                                 | yes                     |
+| `timeout` of 300000 ms or less, no other signal                                                                                           | no                      |
+| a `pueue add` the shell would run: plain, full path, `sudo`, `env`, `bash -c '…'`, `ssh host '…'`, `$(…)`                                 | yes                     |
+| `pueue status`, `git add pueue.yml`, and mentions: `echo 'pueue add'`, `git commit -m '… pueue add …'`, a heredoc fed to `cat`, a comment | no                      |
+| a call made inside a subagent (hook input carries a non-empty `agent_id`)                                                                 | no                      |
+| any command containing `HAIKU-MONITOR-SKIP`                                                                                               | no                      |
+| any tool other than Bash                                                                                                                  | no                      |
+| a second long call in the same session within 20 minutes                                                                                  | no (cooldown)           |
+| no session id, or a session id containing a path separator                                                                                | yes (no cooldown kept)  |
+| malformed hook input                                                                                                                      | no; allows (fails open) |
 
 ## What the reminder asks for
 
 - A monitor started with the Agent tool, `model: "haiku"`, `run_in_background: true`.
 - Inputs for the monitor: the PID or pueue task id, the log path, the expected duration, and what healthy and stalled look like.
-- A check about every 4 minutes (`sleep 240`), which keeps the parent's prompt cache within its 5-minute window.
+- A check about every 4 minutes: `sleep 240` as a foreground Bash call with `timeout: 270000`. Without the timeout, the default 2-minute Bash limit cuts the sleep short. 270000 ms is under the hook's own 300000 ms threshold, and subagent calls are skipped anyway, so a monitor is never reminded about its own checks. The interval keeps the monitor's own prompt cache warm; the main session hears nothing until the monitor finishes.
 - The monitor ends, with its report as its final answer, only on a stall, a failure, an overrun of about twice the expected duration, or completion. The final answer reaches the main session as a completion notification. SendMessage to `main` is not used: measured 2026-10-19, a monitor started from the main session reported "this session is not a background subagent" and returned its report as its result instead.
 - The monitor observes and reports only. It never kills or restarts anything; the main session decides.
 
 ## Cooldown and portability
 
-The cooldown stamp is `<os.tmpdir()>/.claude-haiku-monitor-reminder-<uid>/<session>.last`. `os.tmpdir()` honours `TMPDIR`, which is the per-user `/var/folders/…/T/` on macOS and usually `/tmp` on Linux. The `<uid>` suffix keeps accounts apart on shared hosts such as el02. The hook uses only `node:fs`, `node:os` and `node:path` under bun, with no shell-outs and no network calls, so it behaves the same on macOS and Linux. An unreadable or corrupt stamp, or an unwritable temp directory, still lets the reminder through: a repeated reminder costs less than a missed one.
+The cooldown stamp is `<os.tmpdir()>/.claude-haiku-monitor-reminder-<uid>/<session>.last`. `os.tmpdir()` honours `TMPDIR`, which is the per-user `/var/folders/…/T/` on macOS and usually `/tmp` on Linux. The `<uid>` suffix keeps accounts apart on shared hosts such as el02. The hook uses only `node:fs`, `node:os` and `node:path` under bun, with no shell-outs and no network calls, so it behaves the same on macOS and Linux. `pueue add` is found with the plugin's shared static shell walker (`hooks/lib/shell-command-invocation-walker.ts`), the same lexer the kill guards use, and the escape marker with the shared iter-107 helper. An unreadable or corrupt stamp, or an unwritable temp directory, still lets the reminder through: a repeated reminder costs less than a missed one.
 
 ## Validation
 
-- `pretooluse-long-runtime-haiku-monitor-reminder.test.ts` is the **hermetic** suite. Each test runs in a fresh temp directory, and each subprocess run gets an environment of only `PATH`, `HOME` and `TMPDIR`, with both directories inside that temp directory. It covers detection boundaries, cooldown timing, the reminder text, end-to-end subprocess runs (including a macOS-style `TMPDIR` with a space and a trailing slash), and a run through the real orchestrator.
-- `pretooluse-long-runtime-haiku-monitor-reminder.mutation.test.ts` is the **mutation** suite. It applies 32 single-site defects to the hook: boundary shifts, dropped checks, a pinned model id, a deny, a monitor allowed to kill, and others. It runs the hermetic suite against each mutant in its own temp directory, at most 4 at a time, and fails if any mutant survives. A control run on the unmutated hook must pass first. Each mutant's search string must match exactly once, so editing the hook without updating its mutants fails loudly.
-- Measured 2026-10-19: all 32 mutants killed on el02 (Linux, bun 1.3.14) and on the MacBook Pro (macOS 15.8.1 arm64, bun 1.4.3). The first run had one survivor, `minutes-floor`, because the only minutes case was exactly 10 minutes. A 5.5-minute case was added to kill it.
+- `pretooluse-long-runtime-haiku-monitor-reminder.test.ts` is the **hermetic** suite (58 tests). Each test runs in a fresh temp directory. Each subprocess run gets an environment of only `PATH`, `HOME` and `TMPDIR`, with both directories inside that temp directory, and the in-process orchestrator test points `TMPDIR` there too, so no run leaves a file in the real `/tmp`. It covers detection boundaries, cooldown timing, the reminder text, end-to-end subprocess runs (including a macOS-style `TMPDIR` with a space and a trailing slash, and a subagent call), and a run through the real orchestrator. `pretooluse-bash-guard-orchestrator.test.ts` now gives its runs a throwaway `TMPDIR` as well.
+- `pretooluse-long-runtime-haiku-monitor-reminder.mutation.test.ts` is the **mutation** suite. It applies 36 single-site defects to the hook: boundary shifts, dropped checks, a regex in place of the shell walker, a subagent not skipped, a pinned model id, a deny, a monitor allowed to kill, and others. It runs the hermetic suite against each mutant in its own temp directory, at most 4 at a time.
+  - A mutant counts as killed only if it compiles and the suite fails on an assertion (a `(fail)` line and no timeout). A mutant that does not compile, or a suite that only timed out, is reported as invalid, so a harness fault cannot inflate the score.
+  - A control run on the unmutated hook must pass, and the mutant run refuses to start otherwise.
+  - Each mutant's search string must match exactly once, so editing the hook without updating its mutants fails loudly. This caught a stale mutant during the review round.
+- Measured 2026-10-19: all mutants killed on el02 (Linux, bun 1.3.14) and on the MacBook Pro (macOS 15.8.1 arm64, bun 1.4.3). The first run had one survivor, `minutes-floor`, because the only minutes case was exactly 10 minutes. A 5.5-minute case was added to kill it.
 
 ## Escape
 

@@ -18,8 +18,11 @@
  * Fires when ANY of these holds (the signals a Bash call carries about its own duration):
  *   - `run_in_background: true` (the harness reports completion, but not a hang);
  *   - an explicit `timeout` above 300000 ms (the caller expects more than 5 minutes);
- *   - `pueue add` at a command position (queued jobs are long by this fleet's convention).
+ *   - a `pueue add` invocation (queued jobs are long by this fleet's convention), found with the
+ *     shared shell walker, so `sudo`, `env`, `bash -c`, `ssh host '…'` and `$(…)` forms count and
+ *     quoted text, comments and heredocs fed to `cat` do not.
  * At most once per 20 minutes per session, so a burst of background calls produces one reminder.
+ * Skipped inside a subagent (input carries `agent_id`), so a monitor is never told to monitor itself.
  *
  * Escape: HAIKU-MONITOR-SKIP anywhere in the command. Fails open.
  * Spoke: docs/long-runtime-haiku-monitor-reminder.md.
@@ -31,6 +34,11 @@ import { join } from "node:path";
 
 import { allow, output, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { perUserGateDirectory } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
+import {
+  type EscapeHatchMarkerDetectionConfiguration,
+  hasFileWideEscapeHatchMarkerInContent,
+} from "./lib/escape-hatch-marker-detection-iter107.ts";
+import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 /** Runs at or under this long need no monitor; the operator's threshold. */
 export const LONG_RUNTIME_THRESHOLD_MS = 5 * 60 * 1000;
@@ -38,7 +46,25 @@ export const LONG_RUNTIME_THRESHOLD_MS = 5 * 60 * 1000;
 export const REMINDER_COOLDOWN_MS = 20 * 60 * 1000;
 
 const ESCAPE_MARKER = "HAIKU-MONITOR-SKIP";
-const PUEUE_ADD_AT_COMMAND_POSITION = /(?:^|[;&|(]\s*|\n\s*)(?:\S+\/)?pueue\s+(?:--?\S+\s+)*add\b/;
+const ESCAPE_HATCH: Pick<
+  EscapeHatchMarkerDetectionConfiguration,
+  "markerNameTokenIncludingSuffix" | "requireMinimumReasonCharacterCountAfterColonOrZeroForOptional"
+> = {
+  markerNameTokenIncludingSuffix: ESCAPE_MARKER,
+  requireMinimumReasonCharacterCountAfterColonOrZeroForOptional: 0,
+};
+
+/** True when `command` invokes `pueue add` anywhere the shell would actually run it. */
+export function invokesPueueAdd(command: string): boolean {
+  let found = false;
+  walkShellInvocations(command, /\bpueue\b/, (invocation) => {
+    if (found || invocation.program !== "pueue") return;
+    const end = invocation.args.findIndex((w) => w.value === "--");
+    const head = end === -1 ? invocation.args : invocation.args.slice(0, end);
+    if (head.some((w) => w.value === "add")) found = true;
+  });
+  return found;
+}
 
 export interface BashToolInput {
   command?: string;
@@ -49,12 +75,12 @@ export interface BashToolInput {
 /** Why this call is likely to run past the threshold, or null if nothing says it will. */
 export function longRuntimeSignal(toolInput: BashToolInput): string | null {
   const command = typeof toolInput.command === "string" ? toolInput.command : "";
-  if (command.includes(ESCAPE_MARKER)) return null;
+  if (hasFileWideEscapeHatchMarkerInContent(command, ESCAPE_HATCH)) return null;
   if (toolInput.run_in_background === true) return "it runs in the background";
   if (typeof toolInput.timeout === "number" && toolInput.timeout > LONG_RUNTIME_THRESHOLD_MS) {
     return `its timeout is ${Math.round(toolInput.timeout / 60000)} minutes`;
   }
-  if (PUEUE_ADD_AT_COMMAND_POSITION.test(command)) return "it queues a pueue job";
+  if (invokesPueueAdd(command)) return "it queues a pueue job";
   return null;
 }
 
@@ -87,7 +113,7 @@ export function buildReminder(signal: string): string {
     `[LONG-RUNTIME-HEALTH-CHECK] This command may run past 5 minutes (${signal}). Do not wait blind: give it intermittent health checks.`,
     "- Start a monitor with the Agent tool: `model: \"haiku\"`, `run_in_background: true`. Write the bare alias `haiku`. It resolves to the newest Haiku release when the agent starts. Never write a dated or numbered id (claude-haiku-4-5-..., \"haiku 5.5\"): a pinned id goes stale at the next release.",
     "- Give the monitor: the PID or pueue task id, the log path, the expected duration, what healthy looks like (the log keeps growing, CPU above zero, a progress counter advancing) and what a stall looks like.",
-    "- Cadence: one check about every 4 minutes (`sleep 240` between checks, under the 5-minute prompt-cache window). It ends with its report as its final answer, which reaches you as a completion notification, and it ends only on a stall, a failure, an overrun of about twice the expected duration, or completion.",
+    "- Cadence: one check about every 4 minutes: `sleep 240` as a foreground Bash call with `timeout: 270000` (the default Bash timeout is 2 minutes, which would cut the sleep short). It ends with its report as its final answer, which reaches you as a completion notification, and it ends only on a stall, a failure, an overrun of about twice the expected duration, or completion.",
     "- The monitor observes and reports. It never kills or restarts anything; you check its report and decide.",
     `- Skip when the run is known to be short or something else already watches it: put ${ESCAPE_MARKER} in the command.`,
   ].join("\n");
@@ -96,7 +122,9 @@ export function buildReminder(signal: string): string {
 export async function main() {
   const input = await parseStdinOrAllow("LONG-RUNTIME-HAIKU-MONITOR-REMINDER");
   if (!input) return;
-  if (input.tool_name !== "Bash") {
+  // A subagent's tool call carries agent_id: the monitor's own checks must not trigger this.
+  const agentId = (input as { agent_id?: unknown }).agent_id;
+  if (input.tool_name !== "Bash" || (typeof agentId === "string" && agentId !== "")) {
     allow();
     return;
   }

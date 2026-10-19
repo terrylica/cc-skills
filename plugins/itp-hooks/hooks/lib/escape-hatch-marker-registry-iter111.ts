@@ -371,7 +371,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Silence the long-runtime Haiku monitor reminder (pretooluse-long-runtime-haiku-monitor-reminder.ts), a SOFT reminder that never denies. It fires on a Bash call that may run past 5 minutes (run_in_background, a timeout above 300000 ms, or `pueue add` at a command position) and asks for a background health-check monitor started with the Agent tool and the bare alias `model: \"haiku\"`. Use the marker when the run is known to be short or something else already watches it. Spoke: plugins/itp-hooks/docs/long-runtime-haiku-monitor-reminder.md.",
+        "Silence the long-runtime Haiku monitor reminder (pretooluse-long-runtime-haiku-monitor-reminder.ts), a SOFT reminder that never denies. It fires on a Bash call that may run past 5 minutes (run_in_background, a timeout above 300000 ms, or a `pueue add` invocation) and asks for a background health-check monitor started with the Agent tool and the bare alias `model: \"haiku\"`. Use the marker when the run is known to be short or something else already watches it. Spoke: plugins/itp-hooks/docs/long-runtime-haiku-monitor-reminder.md.",
     },
     {
       markerNameTokenIncludingSuffix: "OLD-GIT-OK",
