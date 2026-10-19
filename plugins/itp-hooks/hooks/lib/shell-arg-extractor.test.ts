@@ -7,6 +7,7 @@ import {
   hasUnparseableCatHeredoc,
   readShellArg,
   splitShellWords,
+  withoutNonShellHeredocBodies,
 } from "./shell-arg-extractor.ts";
 
 describe("readShellArg", () => {
@@ -154,5 +155,34 @@ describe("splitShellWords", () => {
     // The three existing consumers depend on readShellArg, not on this function. This pins that
     // adding word splitting did not change the single-argument reader they rely on.
     expect(readShellArg(String.raw`'don'\''t' rest`)?.value).toBe("don");
+  });
+});
+
+describe("withoutNonShellHeredocBodies (2026-10-19)", () => {
+  it("blanks the body and terminator of a heredoc written to a file, keeping the line count", () => {
+    const input = "cat > f <<'EOF'\nline (one)\nline two\nEOF\nls";
+    const out = withoutNonShellHeredocBodies(input);
+    expect(out).toBe("cat > f <<'EOF'\n\n\n\nls");
+    expect(out.split("\n").length).toBe(input.split("\n").length);
+  });
+
+  it("keeps a body fed to a shell, which is code", () => {
+    for (const input of ["bash <<'EOF'\n(x)\nEOF", "sh -s <<EOF\n(x)\nEOF", "/bin/zsh <<-EOF\n(x)\nEOF"]) {
+      expect(withoutNonShellHeredocBodies(input)).toBe(input);
+    }
+  });
+
+  it("leaves an unterminated heredoc untouched", () => {
+    const input = "cat <<EOF\n(x)\nmore";
+    expect(withoutNonShellHeredocBodies(input)).toBe(input);
+  });
+
+  it("handles two heredocs on one line and leaves a here-string alone", () => {
+    expect(withoutNonShellHeredocBodies("paste <<A <<B\na1\nA\nb1\nB\nend")).toBe("paste <<A <<B\n\n\n\n\nend");
+    expect(withoutNonShellHeredocBodies("cat <<< '(x)'\nls")).toBe("cat <<< '(x)'\nls");
+  });
+
+  it("normalises CRLF the way extractHeredocs does", () => {
+    expect(withoutNonShellHeredocBodies("cat <<EOF\r\n(x)\r\nEOF\r\nls")).toBe("cat <<EOF\n\n\nls");
   });
 });
