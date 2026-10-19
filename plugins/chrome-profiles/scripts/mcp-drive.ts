@@ -23,7 +23,8 @@
 // `process` and no dynamic import, so it cannot spawn a process: a secret leaves the page only by a
 // Blob download (then `vault set --stdin` and delete the file).
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 type Step = { tool: string; args?: Record<string, unknown>; quiet?: boolean; max?: number };
@@ -45,7 +46,11 @@ if (mode === "ext" && a1 && a2) {
 } else usage();
 
 const steps = JSON.parse(readFileSync(stepsPath, "utf8")) as Step[];
-const child = spawn(cmd[0], cmd.slice(1), { stdio: ["pipe", "pipe", "pipe"] });
+// The servers write console/snapshot logs into ./.playwright-mcp of their working directory; run them in a
+// private temp dir so a run from inside a repository never leaves page content there (it tripped a leak
+// scrub on 2026-10-18). Removed on exit.
+const workDir = mkdtempSync(join(tmpdir(), "mcp-drive-"));
+const child = spawn(cmd[0], cmd.slice(1), { stdio: ["pipe", "pipe", "pipe"], cwd: workDir });
 child.stderr.on("data", () => {}); // server logs are noise and may echo page content; never printed
 
 let buf = "";
@@ -116,4 +121,5 @@ try {
   code = 1;
 }
 child.kill();
+rmSync(workDir, { recursive: true, force: true });
 process.exit(code);
