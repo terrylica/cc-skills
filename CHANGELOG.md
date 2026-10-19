@@ -1,3 +1,16 @@
+## [33.20.1](https://github.com/terrylica/cc-skills/compare/v33.20.0...v33.20.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** review gate skips commands run on another host ([eac2389](https://github.com/terrylica/cc-skills/commit/eac238978a44a018eff8b45c26f43042c2db147b))
+
+isRemoteCommand only recognised a command that STARTS with ssh, but the operator's rules require 'timeout --foreground N' around ssh, so 'timeout --foreground 300 ssh host ...' looked local to every guard that consults it. The review-round gate, which never consulted it, judged a remote 'gh pr create' against the local checkout and could only pass through an override that asks the operator (2026-10-18).
+
+- stripLaunchWrappers(): removes a leading 'exec &lt; /dev/null' statement, environment assignments, 'timeout [options] DURATION' and 'nice [-n N]' before the ssh test; localhost and loopback stay local.
+- The review-round gate allows a remote command early, as the other guards do.
+- Tests: 10 isRemoteCommand cases plus wrapper stripping; gate wiring for ssh behind timeout (allowed) with a local control (denied).
+
 # [33.20.0](https://github.com/[secure]/cc-skills/compare/v33.19.0...v33.20.0) (2026-10-19)
 
 
