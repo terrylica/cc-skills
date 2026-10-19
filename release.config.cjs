@@ -61,18 +61,23 @@ const NEVER_MATCHES = /(?!)/;
  * Body-preserving clone of conventional-changelog-angular's writerOpts.transform
  * (node_modules/conventional-changelog-angular/src/writer.js). Reproduced inline
  * — rather than imported — because the preset ships ESM and this config is CJS.
- * The ONLY functional change vs. upstream is the added `body` field on the
- * returned object (marked below); everything else mirrors the preset so grouping
+ * Two functional changes vs. upstream, both marked below: the added `body` field on
+ * the returned object, and the redaction of references to non-public repositories
+ * (scripts/redact-foreign-references.ts); everything else mirrors the preset so grouping
  * (Features / Bug Fixes / …), scope handling, issue/user autolinking, and
  * reference de-duplication stay byte-for-byte identical to the default output.
  */
 function transformCommitPreservingBody(commit, context) {
   let discard = true;
   const issues = [];
+  // Second addition vs upstream: references to non-public repositories are generalised
+  // in the subject, body and notes, and dropped from `references`, before anything below
+  // renders them. See scripts/redact-foreign-references.ts.
+  const redactor = foreignReferenceRedactor(context);
 
   const notes = commit.notes.map((note) => {
     discard = false;
-    return { ...note, title: "BREAKING CHANGES" };
+    return { ...note, text: redactor.text(note.text), title: "BREAKING CHANGES" };
   });
 
   let { type } = commit;
@@ -94,7 +99,7 @@ function transformCommitPreservingBody(commit, context) {
       ? commit.hash.substring(0, COMMIT_HASH_DISPLAY_LENGTH)
       : commit.shortHash;
 
-  let { subject } = commit;
+  let subject = redactor.text(commit.subject);
   if (typeof subject === "string") {
     let url = context.repository
       ? `${context.host}/${context.owner}/${context.repository}`
@@ -113,7 +118,16 @@ function transformCommitPreservingBody(commit, context) {
     }
   }
 
-  const references = commit.references.filter((reference) => !issues.includes(reference.issue));
+  const references = redactor
+    .references(commit.references)
+    .filter((reference) => !issues.includes(reference.issue));
+  const body = reflowCommitBodyForGfm(redactor.text(commit.body));
+  if (redactor.redactedCount > 0) {
+    // A count only: naming the repository here would publish it into release logs.
+    console.error(
+      `[release.config] ${shortHash}: generalised ${redactor.redactedCount} reference(s) to non-public repositories`,
+    );
+  }
 
   return {
     notes,
@@ -122,7 +136,8 @@ function transformCommitPreservingBody(commit, context) {
     shortHash,
     subject,
     references,
-    // ← the one addition: surface the multi-paragraph body, REFLOWED.
+    // ← the first addition: surface the multi-paragraph body, REFLOWED (computed above,
+    // after redaction).
     //
     // Reflowing here is not cosmetic. A commit body is correctly hard-wrapped at ~72
     // columns; GitHub renders a release body as GFM, where every newline inside a
@@ -134,8 +149,23 @@ function transformCommitPreservingBody(commit, context) {
     // create`, but semantic-release publishes through the GitHub API via
     // @semantic-release/github, which the guard never sees. `moon run repo:release-augment`
     // reflows too, and is the manual/cross-repo companion — it is not on this path.
-    body: reflowCommitBodyForGfm(commit.body),
+    body,
   };
+}
+
+/**
+ * The redactor for one commit, sharing ONE visibility lookup (and its cache) across every
+ * commit of the release so each foreign repository costs one `gh api` call.
+ *
+ * Unlike the reflow below, a failure here is FATAL. Falling back to the raw text would
+ * publish exactly what this exists to withhold, so a module that cannot load aborts the
+ * release instead (the privacy gate would refuse the CHANGELOG commit anyway).
+ */
+let visibilityLookup;
+function foreignReferenceRedactor(context) {
+  const mod = require("./scripts/redact-foreign-references.ts");
+  visibilityLookup ??= mod.githubVisibilityLookup();
+  return new mod.ForeignReferenceRedactor(context.owner, context.repository, visibilityLookup);
 }
 
 /**
