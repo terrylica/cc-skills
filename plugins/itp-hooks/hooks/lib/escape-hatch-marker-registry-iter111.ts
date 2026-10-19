@@ -364,6 +364,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the broad process-signal guard (pretooluse-broad-process-signal-guard.ts, kill guard v2), which DENIES a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a target, a shared runtime or host program by name (`pkill node`, `killall bun`, `kill $(pgrep claude)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters. It checks Bash commands and the text of shell scripts written with Write/Edit. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `BROAD-PROCESS-SIGNAL-OK: <reason>` with at least 10 characters. You should almost never need it: signal the PID you started (`cmd & pid=$!; kill \"$pid\"`), or list with `pgrep -fl '<specific command line>'` and kill by PID. `kill -1 <pid>` (SIGHUP), `kill -0 <pid>` probes, `pgrep` alone and mere mentions are never flagged, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/broad-process-signal-guard.md.",
     },
     {
+      markerNameTokenIncludingSuffix: "OLD-GIT-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-old-git-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the old-git guard (pretooluse-old-git-guard.ts), which DENIES a hook-firing git command (commit, push, merge, pull, rebase, cherry-pick, revert, am) when the git that would run is older than 2.54, including an explicit /usr/bin/git on macOS. Config-based hooks (hook.<name>.event in ~/.gitconfig) need git >= 2.54, and an older git silently runs none of them. A JUSTIFICATION IS MANDATORY: write `OLD-GIT-OK: <reason>` with at least 10 characters. The right fix is almost always /opt/homebrew/bin/git or Homebrew first on PATH; use the marker only where no config-based hook gate applies. Spoke: plugins/itp-hooks/docs/old-git-guard.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "PKILL-OPTION-ORDER-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-pkill-option-after-pattern-guard.ts",

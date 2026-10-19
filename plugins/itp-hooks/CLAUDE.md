@@ -39,7 +39,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                                   |
 | `pretooluse-cargo-tty-guard.ts`                       | Bash (in pueue-wrap)     | Backgrounded cargo to PUEUE (via pueue-wrap)  | [→](./docs/cargo-tty-guard.md)                                     |
 | `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
-| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 23 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
+| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 24 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
 | `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
 | `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                            |
 | `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |
@@ -50,6 +50,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-askuserquestion-line-terminator-guard.ts` | AskUserQuestion          | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md)        |
 | `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.               | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)                    |
 | `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                          |
+| `pretooluse-old-git-guard.ts`                         | Bash orch.               | Blocks hook-firing git below 2.54             | [→](./docs/old-git-guard.md)                                       |
 
 ### PostToolUse
 
@@ -84,6 +85,7 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | Hook                                | Purpose                                          | Spoke                                  |
 | ----------------------------------- | ------------------------------------------------ | -------------------------------------- |
 | `sessionstart-proto-floor-check.sh` | Warns when proto is too old for bare `bun` hooks | [→](./scripts/proto-floor.sh) (header) |
+| `sessionstart-git-version-check.sh` | Warns when the git on PATH is below 2.54         | [→](./docs/old-git-guard.md)           |
 
 ### Stop
 
@@ -112,6 +114,7 @@ Add the token to the file or command to suppress a guard. Every token needs a re
 | `CHROME-DEBUG-PORT-OK: <reason>`       | Chrome debug-port guard (reason ≥10 chars)         |
 | `BROAD-PROCESS-SIGNAL-OK: <reason>`    | Broad process-signal guard (reason ≥10 chars)      |
 | `PKILL-OPTION-ORDER-OK: <reason>`      | pkill/pgrep option-order checks (reason ≥10 chars) |
+| `OLD-GIT-OK: <reason>`                 | Old-git guard (reason ≥10 chars)                   |
 | `PROCESS-STORM-OK`                     | Process-storm guard                                |
 | `CWD-DELETE-OK`                        | CWD-deletion guard                                 |
 | `TCC-ORDERING-OK: <reason>`            | TCC grant-ordering guard (reason ≥10 chars)        |

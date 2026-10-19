@@ -270,6 +270,12 @@
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/sessionstart-proto-floor-check.sh",
             "timeout": 5,
             "description": "Warns into session context when bun is a proto shim and proto is older than 0.61.3, below which bare `bun` hook commands can have their decisions discarded. Plain bash so it does not run through that shim. Silent otherwise; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/sessionstart-git-version-check.sh",
+            "timeout": 5,
+            "description": "Warns into session context when the git first on PATH is older than 2.54 (config-based hooks in ~/.gitconfig need it) or is Apple's /usr/bin/git. Plain bash, one `git --version`. Silent otherwise; never blocks. The PreToolUse old-git guard does the refusing."
           }
         ]
       }

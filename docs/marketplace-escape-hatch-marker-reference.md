@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 39 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 40 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (32; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (33; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -36,6 +36,7 @@ Jump directly to any of the 39 registered markers below. Markers are listed alph
 - [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
 - [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
 - [`MD-TABLE-OK`](#md-table-ok)
+- [`OLD-GIT-OK`](#old-git-ok)
 - [`PII-SCAN-OK`](#pii-scan-ok)
 - [`PKILL-OPTION-ORDER-OK`](#pkill-option-order-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
@@ -75,7 +76,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (32 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (33 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -434,6 +435,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # MD-TABLE-OK
+```
+
+## `OLD-GIT-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-old-git-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Suppress the old-git guard (pretooluse-old-git-guard.ts), which DENIES a hook-firing git command (commit, push, merge, pull, rebase, cherry-pick, revert, am) when the git that would run is older than 2.54, including an explicit /usr/bin/git on macOS. Config-based hooks (hook.<name>.event in ~/.gitconfig) need git >= 2.54, and an older git silently runs none of them. A JUSTIFICATION IS MANDATORY: write `OLD-GIT-OK: <reason>` with at least 10 characters. The right fix is almost always /opt/homebrew/bin/git or Homebrew first on PATH; use the marker only where no config-based hook gate applies. Spoke: plugins/itp-hooks/docs/old-git-guard.md.
+
+**Example usage**:
+
+```
+# OLD-GIT-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `PII-SCAN-OK`

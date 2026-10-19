@@ -2,7 +2,7 @@
 
 > Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Issue: [#111](https://github.com/terrylica/cc-skills/issues/111).
 
-`hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's 23 Bash guards in one bun process. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
+`hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's 24 Bash guards in one bun process. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
 
 ## How a guard runs inside it
 
@@ -25,7 +25,7 @@ The orchestrator folds the guards' responses the way Claude Code folds parallel 
 | only allows                | Allow, with every guard's `additionalContext` joined by blank lines.              |
 | a guard throws or overruns | That guard is skipped (fail-open), as a crashed or timed-out standalone hook was. |
 
-Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orchestrator.test.ts` checks this differentially. For every command in its corpus, it runs all 23 guards standalone as Claude Code did, folds them with the rules above, and requires the orchestrator's response to be identical.
+Reasons are the deciding guard's own text, verbatim. `pretooluse-bash-guard-orchestrator.test.ts` checks this differentially. For every command in its corpus, it runs all 24 guards standalone as Claude Code did, folds them with the rules above, and requires the orchestrator's response to be identical.
 
 ## What stays outside it
 
