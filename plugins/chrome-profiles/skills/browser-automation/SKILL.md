@@ -16,16 +16,16 @@ CP="$(cc-plugin-root chrome-profiles)/scripts/chrome-profile.sh"
 
 ## 1. Pick the rung — start at the top
 
-| Rung | Mechanism | Use when |
-| --- | --- | --- |
-| 0. **An API or OAuth token** | the site's API with a scoped, short-lived token from the vault/Keychain | The site has an API for the job. **No browser at all**: the most reliable and the safest identity. |
-| 1. **No browser, plain HTTP** | `curl` / `httpx` | The page renders server-side. |
+| Rung                                  | Mechanism                                                                                                                                                            | Use when                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 0. **An API or OAuth token**          | the site's API with a scoped, short-lived token from the vault/Keychain                                                                                              | The site has an API for the job. **No browser at all**: the most reliable and the safest identity.                                  |
+| 1. **No browser, plain HTTP**         | `curl` / `httpx`                                                                                                                                                     | The page renders server-side.                                                                                                       |
 | 2. **A browser with its own profile** | the `playwright-throwaway-headless` MCP server or `chromium.launch()` (throwaway); a per-tool, sign-in-once profile on a debug port (`chrome-debug-port-control.sh`) | You need JavaScript; and, if a login is needed, the tool signs in once in **its own** profile. The default for anything unattended. |
-| 3. **Your real Chrome** | the servers below | Supervised work that needs **your own signed-in session**, or a site that blocks automated browsers. |
+| 3. **Your real Chrome**               | the servers below                                                                                                                                                    | Supervised work that needs **your own signed-in session**, or a site that blocks automated browsers.                                |
 
 ## Who signs in, and how
 
-- **Unattended work never runs in your real profile.** It uses rung 0, or a per-tool profile (rung 2) that holds only the one site it needs, so a mistake or a hostile page can reach that site and nothing else. This is how the agent platforms do it too (Browserbase *Contexts*, Steel and Kernel *Profiles*).
+- **Unattended work never runs in your real profile.** It uses rung 0, or a per-tool profile (rung 2) that holds only the one site it needs, so a mistake or a hostile page can reach that site and nothing else. This is how the agent platforms do it too (Browserbase _Contexts_, Steel and Kernel _Profiles_).
 - **Your real profile (rung 3) is for work you are watching or have explicitly asked for.** It acts with every session in that profile at once.
 - **When a per-tool profile's session expires, refill the login from the Keychain or vault, never by having the AI read or type the password**:
 
@@ -62,19 +62,36 @@ bash "$CP" setup-main               # optional: one server that sees every profi
 
 `setup <email>`: resolves the profile → opens the Chrome Web Store page for Microsoft's **Playwright Extension** in that profile only (you click _Add to Chrome_) → opens the extension's status page and asks for its token in a hidden macOS dialog → stores it in the login Keychain → registers an MCP server (default name `chrome-<local part of the email>`) that starts `@playwright/mcp --extension` pinned to that profile. **Restart Claude Code** so the new tools load.
 
-| Server                                         | Reaches                                                                                                                                                                       | Clicks                                                                                                                                                       |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `chrome-<name>` (from `setup`)                 | ONE profile, resolved by email at every start                                                                                                                                 | **None**, once the token is stored. Chrome shows a "started debugging this browser" bar while attached — leave it; it is the visible sign automation is live |
-| `chrome-main` (from `setup-main`)              | Every profile's tabs in one list. Target a page by opening it with `open <email> <url>` first, then selecting it; confirm the signed-in account **on the page** before acting | Chrome's **Allow** dialog, once per Claude Code session. It cannot be remembered (by design)                                                                 |
-| `playwright-throwaway-headless` (`npx -y @playwright/mcp@latest --headless --isolated`) | Its own throwaway browser (rung 2), in memory, no window | None |
+| Server                                                                                  | Reaches                                                                                                                                                                       | Clicks                                                                                                                                                       |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `chrome-<name>` (from `setup`)                                                          | ONE profile, resolved by email at every start                                                                                                                                 | **None**, once the token is stored. Chrome shows a "started debugging this browser" bar while attached — leave it; it is the visible sign automation is live |
+| `chrome-main` (from `setup-main`)                                                       | Every profile's tabs in one list. Target a page by opening it with `open <email> <url>` first, then selecting it; confirm the signed-in account **on the page** before acting | Chrome's **Allow** dialog, once per Claude Code session. It cannot be remembered (by design)                                                                 |
+| `playwright-throwaway-headless` (`npx -y @playwright/mcp@latest --headless --isolated`) | Its own throwaway browser (rung 2), in memory, no window                                                                                                                      | None                                                                                                                                                         |
 
 Prefer `chrome-<name>` for unattended work. Use `chrome-main` when you need DevTools-level inspection (network, performance) or a page in a profile you have not set up.
+
+### No restart needed: drive a server from Bash
+
+When the server you need is registered on demand (in `~/.claude/mcp-browser.json`) and this session did not load it, do not restart Claude Code. `scripts/mcp-drive.ts` starts it as a stdio process and runs a JSON list of tool calls:
+
+```bash
+D="$(cc-plugin-root chrome-profiles)/scripts/mcp-drive.ts"
+bun "$D" ext <account-email> steps.json   # that profile's extension server: stored token, no Allow dialog
+bun "$D" cdp steps.json                   # chrome-devtools-mcp --autoConnect: every profile's tabs (Allow once)
+```
+
+Each step is `{"tool": "...", "args": {...}, "quiet": true|false, "max": N}`; `quiet` prints only ok/ERROR and a length. In `cdp` mode `{{uid:REGEX}}` and `{{page:REGEX}}` resolve against the last `take_snapshot` / `list_pages` of the same run (page ids are renumbered per connection, so never reuse one from an earlier run). Use `cdp` for a profile that has no extension installed.
+
+Two things learned driving it (2026-10-18):
+
+- **Every `ext` run attaches to a fresh tab**, so a multi-step form (a wizard, a reveal) must run inside ONE `browser_run_code_unsafe` step with Playwright locators, re-navigating at its start.
+- **That code runs in a sandbox with no `process` and no dynamic import**, so it cannot hand a secret to a local process. Never return a secret from a step. Write it out of the page as a Blob download, then `vault set --stdin` from the file and `rm -P` it; avoid the clipboard, whose history managers keep a copy.
 
 ## 5. Things that will bite
 
 - **The throwaway server must be headless, isolated and named as such.** Registered as plain `playwright`, it opened a visible, signed-out Chrome window (with an "unsupported command-line flag: --disable-blink-features=AutomationControlled" bar) in every session that called it, and since its tools share names with the signed-in extension servers, sessions wanting your signed-in profile picked it by mistake. `doctor` flags a throwaway registration without `--headless --isolated` or without `throwaway` in its name.
 - **Install the extension in the target profile only.** Every profile that has it is drivable by anything holding its token.
-- **A password manager's inline menu can break the extension's connection** (another extension's frame in the page detaches it). Turn off that extension's site access for the sites you automate, or finish that page through `chrome-main`.
+- **A password manager's inline menu can break the extension's connection** (another extension's frame in the page detaches it). Turn off that extension's site access for the sites you automate, or finish that page through `chrome-main`. Measured 2026-10-18 on an email "chips" field in the Google Cloud console: even a scripted `fill` detached it, because the field took focus. What worked without focus: set the value through the element, dispatch `input`, then dispatch a synthetic `keydown` Enter whose `keyCode` is defined as 13.
 - **Set form values by script rather than synthetic keystrokes** when a field misbehaves; it also stops autofill pop-ups from opening.
 - **Never trust on-page "success" text** for a state change. Re-read the state, and prove the negative.
 - **Never retry a login form** on a surprise (captcha, 2FA, odd page): stop and look.
