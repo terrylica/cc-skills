@@ -10,9 +10,9 @@ The investigation that produced this cost most of a day, and every wrong turn in
 
 ## The six things that will bite you
 
-### 1. Omitting `--effort` is NOT "no reasoning" — it is `high`
+### 1. Omitting `--effort` is NOT "no reasoning", and it is not always `high`
 
-Anthropic's CLI reference documents `--effort` as defaulting to **`high` on every model that supports effort**. So a bare `claude -p "..."` is an extended-thinking call at high depth, billed accordingly.
+With no `--effort`, the level still resolves from other sources. Claude Code's [model configuration](https://code.claude.com/docs/en/model-config) gives the order: "An explicit choice: the `CLAUDE_CODE_EFFORT_LEVEL` environment variable, launching with `--effort`, or `/effort` in the session", then "Your settings: the level you saved for the model or an `effortLevel` key", then "The model's default effort: `high` on every model that supports effort, except that Opus 5.5, Sonnet 5.5, and Haiku 5.5 default to `medium`, Opus 4.7 defaults to `xhigh`". Saved settings are machine-local and the `/model` picker rewrites them, so read `settings.json` instead of assuming. Either way, a bare `claude -p "..."` is a reasoning call, billed accordingly.
 
 Verified on the real path with `--output-format stream-json --verbose --include-partial-messages`, identical reasoning-heavy prompt:
 
@@ -22,17 +22,17 @@ Verified on the real path with `--output-format stream-json --verbose --include-
 | **no flag**    | present                   |       **196** |
 | `--effort max` | present                   |           373 |
 
-Monotonic, ~7×. If you are doing bulk structured extraction and never set `--effort`, you are paying for `high` reasoning on every call and have never decided to.
+Monotonic, ~7×. (Measured before the 5.5 models; on a model whose default is `high`, "no flag" is `high`.) If you are doing bulk structured extraction and never set `--effort`, you are paying for whatever the resolution above picks on every call, and have never decided to.
 
 ### 2. An invalid `--effort` value is accepted SILENTLY
 
 `--effort bogus-level` → **exit 0**, normal answer. There is no enum validation on this path, so a typo (`--effort hight`) does not fail — it quietly runs at the default. **Never assume an effort level applied because the command succeeded.** Confirm via output tokens on a reasoning-heavy prompt.
 
-### 3. `CLAUDE_EFFORT` the environment variable does nothing
+### 3. `CLAUDE_EFFORT` does nothing; `CLAUDE_CODE_EFFORT_LEVEL` beats the flag
 
 It appears in no shell init, no `settings.json` schema, and no `--help` output. Measured across 8 calls (4 `low` / 4 `xhigh`): no separation (883.5 ± 81.8 vs 834.2 ± 126.9, Welch p ≈ 0.53).
 
-**Only the `--effort` FLAG works.** An env var and a flag are not the same knob. Conflating them produced a confidently wrong conclusion ("effort is inert on this path") that survived two review passes before the flag was tested directly.
+`CLAUDE_EFFORT` is not a real variable. The real one is `CLAUDE_CODE_EFFORT_LEVEL`, and it wins over the flag: Claude Code's [environment variable reference](https://code.claude.com/docs/en/env-vars) says "`CLAUDE_CODE_EFFORT_LEVEL` overrides `--effort` and `/effort`". So a level set in the environment silently replaces the one on the command line. A wrong variable name produced a confidently wrong conclusion ("effort is inert on this path") that survived two review passes before the flag was tested directly.
 
 ### 4. `--output-format stream-json` emits NOTHING in `-p` without `--verbose`
 

@@ -74,7 +74,7 @@ describe("MUST STAY SILENT — correct or unrelated commands", () => {
   test.each([
     [`claude -p "hi" --output-format stream-json --verbose`, "stream-json WITH --verbose"],
     [`claude -p "hi" --output-format json --model claude-opus-5`, "plain json"],
-    [`claude -p "hi"`, "bare headless call — defaults to high, often correct"],
+    [`claude -p "hi"`, "bare headless call — resolved default effort, often correct"],
     ...VALID_EFFORT_LEVELS.map((l) => [`claude -p "hi" --effort ${l}`, `valid effort ${l}`] as const),
     [`claude -p "hi" --effort=max`, "equals form of a valid level"],
     [`claude`, "interactive, no -p"],
