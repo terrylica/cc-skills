@@ -364,6 +364,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the broad process-signal guard (pretooluse-broad-process-signal-guard.ts, kill guard v2), which DENIES a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a target, a shared runtime or host program by name (`pkill node`, `killall bun`, `kill $(pgrep claude)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters. It checks Bash commands and the text of shell scripts written with Write/Edit. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `BROAD-PROCESS-SIGNAL-OK: <reason>` with at least 10 characters. You should almost never need it: signal the PID you started (`cmd & pid=$!; kill \"$pid\"`), or list with `pgrep -fl '<specific command line>'` and kill by PID. `kill -1 <pid>` (SIGHUP), `kill -0 <pid>` probes, `pgrep` alone and mere mentions are never flagged, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/broad-process-signal-guard.md.",
     },
     {
+      markerNameTokenIncludingSuffix: "HAIKU-MONITOR-SKIP",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-long-runtime-haiku-monitor-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Silence the long-runtime Haiku monitor reminder (pretooluse-long-runtime-haiku-monitor-reminder.ts), a SOFT reminder that never denies. It fires on a Bash call that may run past 5 minutes (run_in_background, a timeout above 300000 ms, or a `pueue add` invocation) and asks for a background health-check monitor started with the Agent tool and the bare alias `model: \"haiku\"`. Use the marker when the run is known to be short or something else already watches it. Spoke: plugins/itp-hooks/docs/long-runtime-haiku-monitor-reminder.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "OLD-GIT-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-old-git-guard.ts",

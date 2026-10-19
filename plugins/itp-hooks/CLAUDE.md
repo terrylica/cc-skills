@@ -39,7 +39,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                                   |
 | `pretooluse-cargo-tty-guard.ts`                       | Bash (in pueue-wrap)     | Backgrounded cargo to PUEUE (via pueue-wrap)  | [→](./docs/cargo-tty-guard.md)                                     |
 | `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
-| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 24 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
+| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 25 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
 | `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
 | `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                            |
 | `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |
@@ -51,6 +51,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.               | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)                    |
 | `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                          |
 | `pretooluse-old-git-guard.ts`                         | Bash orch.               | Blocks hook-firing git below 2.54             | [→](./docs/old-git-guard.md)                                       |
+| `pretooluse-long-runtime-haiku-monitor-reminder.ts`   | Bash orch.               | Long run: start a `haiku` health monitor      | [→](./docs/long-runtime-haiku-monitor-reminder.md)                 |
 
 ### PostToolUse
 
@@ -124,6 +125,7 @@ Add the token to the file or command to suppress a guard. Every token needs a re
 | `# PUEUE-SKIP` / `# PUEUE-WRAP`        | Pueue auto-wrap: prevent / force                   |
 | `CARGO-TTY-SKIP` / `CARGO-TTY-WRAP`    | Cargo TTY guard: pass through / force PUEUE        |
 | `# DUCKDB-SKIP`                        | Parquet → DuckDB nudge                             |
+| `HAIKU-MONITOR-SKIP`                   | Long-runtime Haiku monitor reminder                |
 | `ALLOW-LEGACY-TS`, `ALLOW_LEGACY_TS=1` | TypeScript version guards (marker or env prefix)   |
 | `ALLOW_UMBRELLA_REPO=1`                | Umbrella no-repo guard                             |
 | `ALLOW_BARE_BRANCH=1`                  | Git worktree guard (env var, not a marker)         |
