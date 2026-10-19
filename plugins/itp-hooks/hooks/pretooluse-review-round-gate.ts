@@ -18,6 +18,7 @@
 import { allow, ask, deny, parseStdinOrAllow } from "./pretooluse-helpers.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import { stripDataHeredocBodies } from "./lib/shell-heredoc-data.ts";
+import { isRemoteCommand } from "./lib/readonly-command-detector.ts";
 import {
   classify,
   gatedCommandDirectory,
@@ -157,6 +158,11 @@ export async function main(): Promise<void> {
   // to a shell (`bash <<'EOF'`) are kept: there they ARE commands.
   const command = stripDataHeredocBodies(rawCommand);
 
+  // A command run on ANOTHER host (`ssh host '... gh pr create ...'`, also behind `timeout`) is not
+  // this checkout's to meter: the review record lives where the command runs, and judging it here
+  // asked the operator to approve a PR whose record existed on the remote host (2026-10-18).
+  if (isRemoteCommand(command)) return allow();
+
   // Cheap prefilter. The overwhelming majority of Bash commands leave here without spawning git.
   if (!/\bgh\b/.test(command) && !/\bgit\b[^\n;&|]*\bpush\b/.test(command)) return allow();
 
@@ -179,7 +185,7 @@ export async function main(): Promise<void> {
   // The PR's base, when the command or GitHub names one. null = the remote's default branch.
   let baseBranch: string | null = null;
   // A `-R owner/other` names a repository other than cwd's: its head branch lives in THAT clone's
-  // worktrees (2026-10-18, shunshi-wang-888#319 asked the operator for an override although the
+  // worktrees (2026-10-18: a cross-repository PR asked the operator for an override although the
   // branch's self-review existed). null = cwd's own repository, or no local clone found.
   const repoFlag = ghRepoFlag(command);
   const branchHome = (repoFlag === null ? null : localCloneForRepo(repoFlag, cwd)) ?? cwd;

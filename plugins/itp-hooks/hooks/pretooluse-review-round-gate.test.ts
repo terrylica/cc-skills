@@ -238,7 +238,6 @@ function otherRepoUnderFakeHome(prefix: string): { home: string; session: string
     sh(["add", "-A"], dir);
     sh(["commit", "-qm", "base"], dir);
   }
-  sh(["remote", "add", "github", "git@github.com:acme/other.git"], other);
   const worktree = join(home, "eon", "other-feature");
   sh(["worktree", "add", "-q", worktree, "-b", "feature"], other);
   writeFileSync(join(worktree, "a.txt"), "feature\n");
@@ -249,11 +248,15 @@ function otherRepoUnderFakeHome(prefix: string): { home: string; session: string
     [join(dirname(import.meta.path), "lib", "review-round-cli.ts"), "record", "--file", "a.txt=checked the one-line change"],
     { cwd: worktree, stdio: ["ignore", "ignore", "ignore"] },
   );
+  // The remote is added LAST: a machine-wide pre-commit hook may treat a repository with a GitHub
+  // remote as public and scan every commit (slow enough to time a test out); the lookup under test
+  // reads the remote only when the gate runs.
+  sh(["remote", "add", "github", "git@github.com:acme/other.git"], other);
   return { home, session, env: { HOME: home, ITP_HOOKS_REVIEW_ROUND_STATE_ROOT: STATE_ROOT } };
 }
 
 describe("gh pr create -R <other repo> --head measures that repo's worktree", () => {
-  // 2026-10-18, eonlabs-rnd/shunshi-wang-888#319: the session stood in one repository and opened a PR
+  // 2026-10-18: the session stood in one repository and opened a PR
   // in another with -R; the head branch's record existed in the other clone's worktree, but the gate
   // looked only among the session repository's worktrees, measured its HEAD, and the only way through
   // was an override that asks the operator.
@@ -373,5 +376,26 @@ describe("the gate measures the directory the COMMAND runs in (2026-10-17)", () 
     const { main } = reviewedBranchInAWorktree("heredoc");
     const command = ["cat > /tmp/notes.txt <<'EOF'", "then run: cd wt && gh pr ready 12", "EOF"].join("\n");
     expect((await runHook(command, main)).hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+});
+
+
+describe("a command that runs on another host is not metered here", () => {
+  // 2026-10-18: `timeout --foreground 300 ssh mac '... gh pr create ...'` was judged against the LOCAL
+  // checkout (no record there) and could only pass by an override that asks the operator.
+  test("ssh behind timeout, carrying gh pr create, is allowed", async () => {
+    const { main } = reviewedBranchInAWorktree("remote-timeout");
+    const cmd = "timeout --foreground 300 ssh -o BatchMode=yes otherhost 'cd ~/x && gh pr create --title t --body-file /tmp/b.md'";
+    const decision = await runHook(cmd, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: the same gh pr create run locally is still denied", async () => {
+    // Plain `gh` as the first word: the shape the classifier meters. (`timeout gh …` and
+    // `ssh localhost '…'` are not classified as gh commands at all, so they cannot serve as
+    // controls; localhost is covered by isRemoteCommand's own tests.)
+    const { main } = reviewedBranchInAWorktree("remote-control");
+    const decision = await runHook("gh pr create --title t --body-file /tmp/b.md", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
   });
 });

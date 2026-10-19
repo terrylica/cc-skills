@@ -252,7 +252,28 @@ export function isReadOnly(command: string): boolean {
  * Excludes localhost/loopback to avoid bypassing guards for local SSH.
  */
 export function isRemoteCommand(command: string): boolean {
-  return /^\s*ssh\s+(?!localhost\b|127\.0\.0\.1\b|::1\b)/.test(command.trim());
+  return /^ssh\s+(?!localhost\b|127\.0\.0\.1\b|::1\b)/.test(stripLaunchWrappers(command));
+}
+
+/**
+ * The command with the wrappers that only LAUNCH it removed from the front: a leading
+ * `exec < /dev/null` statement, environment assignments, `timeout [options] DURATION` and
+ * `nice [-n N]`, in any order and repeated.
+ *
+ * WHY (2026-10-18): the operator's rules require `timeout --foreground N` around ssh, so
+ * `timeout --foreground 300 ssh host '...'` is the normal shape of a remote command; the old
+ * `^ssh` test missed it and every local guard judged a remote command against the local machine
+ * (the review-round gate asked the operator to approve a PR opened on another host).
+ */
+export function stripLaunchWrappers(command: string): string {
+  let c = command.trim().replace(/^exec\s*<\s*\/dev\/null\s*(?:\n|;|&&)\s*/, "");
+  const wrapper =
+    /^(?:[A-Za-z_][A-Za-z0-9_]*=(?:'[^']*'|"[^"]*"|[^\s'"]*)\s+|timeout\s+(?:(?:--foreground|--preserve-status|--verbose|-v|(?:-k|-s)\s+\S+|--(?:kill-after|signal)=\S+)\s+)*\d+(?:\.\d+)?[smhd]?\s+|nice\s+(?:-n\s*-?\d+\s+)?)/;
+  for (;;) {
+    const m = c.match(wrapper);
+    if (m === null) return c;
+    c = c.slice(m[0].length);
+  }
 }
 
 /**
