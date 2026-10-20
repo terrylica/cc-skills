@@ -12,13 +12,14 @@ Priority-2 emergency notification with receipt polling, via the TS core `pushove
 ```bash
 env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" emergency \
   --title "Title" --message "what happened + the one action needed" \
-  [--retry 30] [--expire 300] [--sound piano] [--attach report.png] [--app main|test]
+  [--retry 30] [--expire 300] [--sound piano] [--attach report.png] [--app main|test] [--no-wait]
 ```
 
 ## Behavior (verified on a physical device 2026-05-30)
 
 - priority 2 **requires** `retry` (≥ 30 s) and `expire` (≤ 10800 s) — Pushover returns HTTP 400 without them. The core supplies defaults (30 / 300) automatically.
 - The response returns a `receipt`; the core polls `/1/receipts/{receipt}.json` every 5 s and prints `{acknowledged, acknowledged_at, expired}` when you ack (verified ack at t+35 s) or it expires.
+- `--no-wait` skips the receipt poll: the core prints `{status, request, receipt}` and exits 0 as soon as Pushover accepted the message. Use it whenever the caller runs the core under a timeout shorter than `--expire` (web-forge's login gate does): otherwise the timeout kills the poll and an alert that was delivered looks like a failure.
 - `sound=piano` is a custom sound on this account; `pianobar` is the built-in fallback — use `custom-sounds resolve piano pianobar`.
 - Attach a `render-incident-report-image` PNG for full detail; keep `--message` ≤ 1024.
 
