@@ -1,3 +1,25 @@
+# [34.0.0](https://github.com/terrylica/cc-skills/compare/v33.22.1...v34.0.0) (2026-10-20)
+
+
+* feat(web-forge)!: merge gws-admin-console into one console harness ([6c1e9ac](https://github.com/terrylica/cc-skills/commit/6c1e9aca0efe16727597dc993d45a1d186e7b934))
+
+The marketplace had two plugins for the same job, driving a vendor console that has no API: web-forge (supervised dashboard forges over CDP with a persistent per-site profile, DOM-to-vault secrets, the step-and-shoot method and its Vendor Quirks log) and gws-admin-console (released in v33.22.0: recipes as data, idempotent ensure, read-back after Save, a screenshot per step, a re-authentication gate that never types a password, driven through a signed-in everyday-Chrome profile). A fix to one never reached the other, and someone writing a new console automation had to learn both. They are now one plugin, web-forge, with the Google Admin console as its first recipe family, and the browser connection, step runner, login gate, secret sink and recipe-spec format each live in exactly one place.
+
+- gws-admin-console is removed. Its CLI is now plugins/web-forge/scripts/web-forge.ts (same subcommands, flags, JSON output and exit codes), its skill is web-forge:admin-console, and its recipe lives at scripts/recipes/google-admin/gmail-default-routing.ts. Callers change `cc-plugin-root gws-admin-console` + `scripts/gws-admin-console.ts` to `cc-plugin-root web-forge` + `scripts/web-forge.ts`.
+- One browser-connection layer for both runtimes: lib/forge-chrome.mjs knows both connection modes, extension (an account's everyday-Chrome profile through the Playwright Extension) and cdp (a persistent per-site profile on its own debug port, launched and shut down by chrome-profiles' port script). The recipe runner gains `--connect cdp --site <name>`, which points Playwright MCP at that profile with --cdp-endpoint. The cdp mode is unit-tested only; no live browser was driven for this change.
+- One secret sink: lib/vault.mjs, used by the node forge scripts and by the new Driver.extractToVault, which pipes a page value to `vault set --stdin`, never screenshots, logs only the length, and withholds a failed step's error text because a reveal page's error can contain the value.
+- One login gate: scripts/lib/gate.ts (loginGate) with a per-family page classifier; the Google classifier moved to recipes/google-admin/family.ts and reports "ready" instead of "admin".
+- One recipe-spec format: `--spec <file.json>` maps flag names to values and feeds the same parser, so a project can keep its invocation as reviewed JSON in its own repository; command-line flags win.
+- Environment names: GWS_ADMIN_BRIDGE_PORT, GWS_ADMIN_NOTIFY, GWS_ADMIN_PUSHOVER_CORE and GWS_ADMIN_CHROME_PROFILE_SH become WEB_FORGE_BRIDGE_PORT, WEB_FORGE_NOTIFY, WEB_FORGE_PUSHOVER_CORE and CHROME_PROFILES_PROFILE_SH; failure screenshots move from ~/.local/state/gws-admin-console/failures to ~/.local/state/web-forge/failures. A bridge now identifies its target as extension:&lt;account> or cdp:&lt;site> and refuses any other.
+- lib/browser-forge.mjs keeps its path and its exact export list (re-exporting the shared modules), because private forge scripts import it by absolute path. The two cf-access-wall scripts now import it relatively instead of from a hard-coded home-directory checkout path, so they also work from the plugin cache.
+- Tests: all 39 gws-admin-console tests kept (moved; the classifier test now expects "ready"), plus 17 new tests for target selection, the MCP command per mode, spec files and the vault extraction. web-forge had no tests before. The marketplace now lists 40 plugins.
+
+
+
+### BREAKING CHANGES
+
+* the gws-admin-console plugin and its skill gws-admin-console:admin-console are gone. Use web-forge (skill web-forge:admin-console, CLI scripts/web-forge.ts) and rename the GWS_ADMIN_* environment variables as listed above.
+
 ## [33.22.1](https://github.com/terrylica/cc-skills/compare/v33.22.0...v33.22.1) (2026-10-20)
 
 
