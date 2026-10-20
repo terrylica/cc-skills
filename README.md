@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hooks for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-40-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-41-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -26,6 +26,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hoo
 | [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation, fork intelligence, and issue creation tooling                                                                                                                                                       | development   |
 | [git-town-workflow](./plugins/git-town-workflow/)       | Prescriptive git-town workflow enforcement for fork-based development                                                                                                                                                                                                | devops        |
 | [gmail-commander](./plugins/gmail-commander/)           | Gmail CLI + draft builder with 1Password OAuth; shared Telegram bot code (commands, on-demand triage, Agent SDK routing) imported by a private deployment                                                                                                            | productivity  |
+| [gws-admin-console](./plugins/gws-admin-console/) | Console-only Google Workspace Admin settings (no API, no GAM) through a signed-in Chrome profile: recipes as data, idempotent ensure, read-back after Save, per-step screenshots; first recipe Gmail Default routing | devops |
 | [html-showcase](./plugins/html-showcase/)               | Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, dashboards); single design-system SSoT via jsDelivr, per-page CSS overrides                                                                                                      | documents     |
 | [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release                                                                                                                                                              | productivity  |
 | [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement + code correctness: PreToolUse / PostToolUse / Stop hooks for SSoT principles, file-size guard, type checks, ASCII art blocking, ty/oxlint/biome lint                                                                                       | enforcement   |
@@ -61,8 +62,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 40 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
-for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf orca-tools plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
+# 2. Install all 41 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
+for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander gws-admin-console html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf orca-tools plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -459,8 +460,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (40 plugins) — SSoT
-├── plugins/                      # 40 marketplace plugins (each with its own CLAUDE.md)
+│   └── marketplace.json          # Plugin registry (41 plugins) — SSoT
+├── plugins/                      # 41 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools

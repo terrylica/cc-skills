@@ -77,7 +77,7 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (40)
+## All Plugins (41)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
@@ -97,6 +97,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [gh-tools](./gh-tools/CLAUDE.md)
 - [git-town-workflow](./git-town-workflow/CLAUDE.md)
 - [gmail-commander](./gmail-commander/CLAUDE.md)
+- [gws-admin-console](./gws-admin-console/CLAUDE.md) — console-only Google Admin settings through a signed-in Chrome profile (recipes, idempotent ensure, read-back)
 - [html-showcase](./html-showcase/CLAUDE.md)
 - [itp](./itp/CLAUDE.md)
 - [itp-hooks](./itp-hooks/CLAUDE.md)
