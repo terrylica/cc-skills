@@ -67,7 +67,7 @@ The Admin console periodically sends an administrator to accounts.google.com for
 
 1. **Detects** it (host `accounts.google.com` with "Verify it's you", "Enter your password" or "To continue, first verify"; any other accounts.google.com page counts as sign-in).
 2. **Never types a password** or any credential. There is no flag to make it.
-3. **Alerts** the operator: `--alert local` (default) posts a desktop notice through `~/.claude/tools/notify` when present; `--alert emergency` also sends a Pushover Emergency (priority 2, retry 60 s, expire 600 s) through the pushover-commander plugin with the HTTP(S) proxy variables removed. Use `emergency` for crown-level admin steps.
+3. **Alerts** the operator: `--alert local` (default) posts a desktop notice through `~/.claude/tools/notify` when present; `--alert emergency` also sends a Pushover Emergency (priority 2, retry 60 s, expire 600 s) through the pushover-commander plugin with the HTTP(S) proxy variables removed. The core is called with `--no-wait`, so it returns once Pushover accepted the page instead of polling for the acknowledgement; the log then reads `emergency alert sent`, and a real failure names its exit code, signal or spawn error. Use `emergency` for crown-level admin steps.
 4. **Polls the tab without reloading it** (every 5 s, up to `--reauth-wait`, default 600 s), because a reload discards what the operator is typing. When the tab reaches admin.google.com the run continues.
 5. On timeout it exits 4. If the check was passed in a **different** tab of the same profile, this tab does not notice: just re-run, the command is idempotent.
 

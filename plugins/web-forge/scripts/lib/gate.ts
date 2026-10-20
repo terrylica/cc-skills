@@ -24,7 +24,59 @@ export interface Family {
 
 export type AlertLevel = "none" | "local" | "emergency";
 
-export function alertOperator(level: AlertLevel, title: string, message: string, log: (s: string) => void): void {
+/** How long the emergency send may take. The core returns once Pushover accepted the message (`--no-wait`). */
+export const EMERGENCY_SEND_TIMEOUT_MS = 60_000;
+
+/** The parts of a spawnSync result that say how a child ended. */
+export interface ChildOutcome {
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  error?: Error | undefined;
+}
+
+/**
+ * Say how a child process ended, in words. Never "exit null": a null status means the child was killed by a
+ * signal (a timeout kill is SIGTERM) or never started (the spawn error says why), and the message must say which.
+ */
+export function describeChildOutcome(r: ChildOutcome, timeoutMs: number): string {
+  const code = (r.error as NodeJS.ErrnoException | undefined)?.code;
+  if (code === "ETIMEDOUT") return `timed out after ${timeoutMs / 1000}s and was killed (${r.signal ?? "SIGTERM"})`;
+  if (r.error) return `could not run: ${code ? `${code} ` : ""}${r.error.message}`;
+  if (r.signal) return `killed by ${r.signal}`;
+  return `exit ${r.status}`;
+}
+
+/**
+ * Send the Pushover Emergency through the pushover-commander core and return null on success or a description
+ * of the failure.
+ *
+ * `--no-wait` is essential. Without it the core polls the receipt until the operator acknowledges or `--expire`
+ * (600 s) runs out, while this call has a 60 s timeout: every unacknowledged page was delivered, then the poll was
+ * killed by SIGTERM, status came back null, and the harness reported "emergency alert failed (exit null)" for an
+ * alert that had reached the phone. Waiting for the ack is also wrong here on its own terms: spawnSync blocks, and
+ * the gate must be polling the tab while the operator verifies.
+ *
+ * The child runs under this process's own bun (`process.execPath`), so a PATH without bun cannot break it.
+ */
+export function sendEmergency(core: string, title: string, message: string, timeoutMs = EMERGENCY_SEND_TIMEOUT_MS): string | null {
+  // Proxies are stripped: the fleet's HTTPS proxy does not pass api.pushover.net.
+  const env = { ...process.env };
+  delete env.HTTPS_PROXY;
+  delete env.HTTP_PROXY;
+  delete env.https_proxy;
+  delete env.http_proxy;
+  const r = spawnSync(process.execPath, [core, "emergency", "--title", title, "--message", message, "--retry", "60", "--expire", "600", "--no-wait"], {
+    env,
+    stdio: ["ignore", "ignore", "pipe"],
+    encoding: "utf8",
+    timeout: timeoutMs,
+  });
+  if (r.status === 0 && !r.error) return null;
+  const detail = (r.stderr ?? "").trim().split("\n").filter(Boolean).at(-1);
+  return `${describeChildOutcome(r, timeoutMs)}${detail ? `: ${detail.slice(0, 300)}` : ""}`;
+}
+
+export function alertOperator(level: AlertLevel, title: string, message: string, log: (s: string) => void, opts: { emergencyTimeoutMs?: number } = {}): void {
   log(`ALERT ${title}: ${message}`);
   if (level === "none") return;
   const notify = process.env.WEB_FORGE_NOTIFY ?? join(homedir(), ".claude", "tools", "notify");
@@ -32,7 +84,6 @@ export function alertOperator(level: AlertLevel, title: string, message: string,
   else process.stderr.write("\x07");
   if (level !== "emergency") return;
   // Pushover Emergency (priority 2, repeats until acknowledged) through the pushover-commander plugin.
-  // Proxies are stripped: the fleet's HTTPS proxy does not pass api.pushover.net.
   let core = process.env.WEB_FORGE_PUSHOVER_CORE ?? "";
   if (!core) {
     try {
@@ -45,13 +96,8 @@ export function alertOperator(level: AlertLevel, title: string, message: string,
     log("emergency alert unavailable (pushover-commander not installed): local notice only");
     return;
   }
-  const env = { ...process.env };
-  delete env.HTTPS_PROXY;
-  delete env.HTTP_PROXY;
-  delete env.https_proxy;
-  delete env.http_proxy;
-  const r = spawnSync("bun", [core, "emergency", "--title", title, "--message", message, "--retry", "60", "--expire", "600"], { env, stdio: "ignore", timeout: 60_000 });
-  if (r.status !== 0) log(`emergency alert failed (exit ${r.status}): local notice was still sent`);
+  const failure = sendEmergency(core, title, message, opts.emergencyTimeoutMs);
+  log(failure ? `emergency alert failed (${failure}): local notice was still sent` : "emergency alert sent (Pushover accepted it; it repeats until acknowledged)");
 }
 
 const READ_STATE = `async (page, args, H) => H.state()`;

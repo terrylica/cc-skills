@@ -69,7 +69,7 @@ function parseArgs(argv: string[]): Args {
   const _: string[] = [];
   const flags: Record<string, string> = {};
   const bools = new Set<string>();
-  const boolNames = new Set(["emergency", "headed", "html", "monospace", "force"]);
+  const boolNames = new Set(["emergency", "headed", "html", "monospace", "force", "no-wait"]);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a.startsWith("--")) {
@@ -197,6 +197,11 @@ type SendOpts = {
   attach?: string; sound?: string; url?: string; urlTitle?: string;
   html?: boolean; monospace?: boolean;
   retry?: number; expire?: number; validateFirst?: boolean; force?: boolean;
+  // waitForReceipt=false: return as soon as Pushover accepted a priority-2 message instead of polling
+  // the receipt until ack/expiry (up to `expire` seconds). Callers that run the core under a timeout
+  // (web-forge's login gate) must not wait: the timeout killed the poll and the delivered page
+  // was reported as a failure.
+  waitForReceipt?: boolean;
   // ttl (official API parameter, re-verified 2026-06-11): message
   // self-deletes from devices after N seconds. IGNORED by the API for
   // priority 2; needs device clients >= 4.0. Employ for routine/heartbeat
@@ -273,7 +278,7 @@ async function sendMessage(o: SendOpts): Promise<any> {
     console.error(`po: WARN quota low — ${remaining} messages left this month`);
   }
   if (j.status !== 1) throw new Error(`po: send failed: ${JSON.stringify(j.errors ?? j)}`);
-  if (j.receipt) await pollReceipt(token, j.receipt, o.expire ?? 300);
+  if (j.receipt && o.waitForReceipt !== false) await pollReceipt(token, j.receipt, o.expire ?? 300);
   return j;
 }
 
@@ -338,6 +343,8 @@ async function cmdSend(a: Args, emergency: boolean): Promise<void> {
     // API param; the API ignores it on priority 2 and we skip setting it).
     ...(ttl !== undefined ? { ttl } : {}),
     force: a.bools.has("force"),
+    // --no-wait: print the receipt and exit once Pushover accepted the message; do not poll for the ack.
+    waitForReceipt: !a.bools.has("no-wait"),
   });
   console.log(JSON.stringify({ status: j.status, request: j.request, receipt: j.receipt ?? null }));
 }
