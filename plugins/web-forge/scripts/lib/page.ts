@@ -9,7 +9,11 @@
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { vaultSet } from "../../lib/vault.mjs";
 import type { Browser } from "./mcp.ts";
+
+/** Where failure screenshots go when --screenshots is not given: never inside a repository. */
+export const FAILURE_DIR = join(homedir(), ".local", "state", "web-forge", "failures");
 
 /**
  * Page-side primitive library. Lessons baked in (measured on the Google Admin console, 2026-10-19):
@@ -218,7 +222,23 @@ export class Driver {
     if (r.isError) throw new StepError("navigate", r.text.slice(0, 500));
   }
 
-  /** Save a PNG of the viewport when --screenshots is set, and always on failure (to ~/.local/state/gws-admin-console/failures when no dir is given: never inside a repository). */
+  /**
+   * Run a step whose result is a SECRET and send it straight to the SCS vault. The value never reaches a log, a
+   * screenshot (this step is never shot) or stdout; only its length is returned. `fn` must return a non-empty string.
+   */
+  async extractToVault(name: string, fn: StepFn, args: unknown, scope: string, path: string): Promise<{ vaulted: string; length: number }> {
+    this.log(`· ${name} (secret: to vault ${scope} ${path})`);
+    const r = await this.browser.call("browser_run_code_unsafe", { code: buildStepCode(fn, args) }, 120_000);
+    const out = parseRunCodeResult(r.text, r.isError);
+    // On failure report the step only: the error text of a reveal page may itself contain the value.
+    if (!out.ok) throw new StepError(name, "the extraction step failed (detail withheld: the page may hold a secret)");
+    if (typeof out.value !== "string" || out.value.length === 0) throw new StepError(name, "the extraction step returned no string");
+    await vaultSet(scope, path, out.value);
+    this.log(`  vaulted ${scope} ${path} (len ${out.value.length})`);
+    return { vaulted: `${scope} ${path}`, length: out.value.length };
+  }
+
+  /** Save a PNG of the viewport when --screenshots is set, and always on failure (to FAILURE_DIR when no dir is given). */
   async shoot(name: string, failed = false): Promise<string | null> {
     if (!this.shotsDir && !failed) return null;
     this.n += 1;
@@ -227,7 +247,7 @@ export class Driver {
     try {
       const r = await this.browser.call("browser_take_screenshot", { type: "png", filename: tmp, scale: "css" }, 30_000);
       if (r.isError || !existsSync(tmp)) return null;
-      const dir = this.shotsDir ?? join(homedir(), ".local", "state", "gws-admin-console", "failures");
+      const dir = this.shotsDir ?? FAILURE_DIR;
       mkdirSync(dir, { recursive: true });
       const dest = join(dir, file);
       copyFileSync(tmp, dest);

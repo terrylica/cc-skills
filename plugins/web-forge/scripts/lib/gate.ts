@@ -1,31 +1,25 @@
-// reauth.ts — the Admin console's "verify it's you" gate.
+// gate.ts — the login / re-authentication gate every recipe passes before it touches a console.
 //
-// Google asks an administrator for a FRESH password on accounts.google.com before admin pages, every so often.
-// Policy (baked in, not optional): the harness DETECTS this, NEVER types a password or any credential, alerts
-// the operator, and polls the tab WITHOUT reloading it (a reload would discard what the operator is typing)
-// until the admin page is back or the wait runs out.
+// Consoles periodically send a signed-in user back to a sign-in or "verify it's you" page. Policy (baked in, not
+// optional): the harness DETECTS this through the recipe family's classifier, NEVER types a password or any
+// credential, alerts the operator, and polls the tab WITHOUT reloading it (a reload would discard what the operator
+// is typing) until the console is back or the wait runs out.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Driver } from "./page.ts";
 
-export type PageKind = "admin" | "reauth" | "signin" | "other";
+/** ready: the console itself · reauth: a fresh-password prompt · signin: any other sign-in page · other: elsewhere. */
+export type PageKind = "ready" | "reauth" | "signin" | "other";
 
-/** Pure: classify a page by its URL and visible text. */
-export function classifyPage(url: string, text: string): PageKind {
-  let host = "";
-  try {
-    host = new URL(url).hostname;
-  } catch {
-    return "other";
-  }
-  if (host === "accounts.google.com") {
-    if (/verify it'?s you|verify it’s you|enter your password|confirm it'?s you|to continue, first verify/i.test(text)) return "reauth";
-    return "signin";
-  }
-  if (host === "admin.google.com") return "admin";
-  return "other";
+/** A recipe family: one vendor console, and how to tell its pages apart. */
+export interface Family {
+  name: string;
+  /** Human name of the console, used in alerts. */
+  console: string;
+  /** Pure: classify a page by its URL and visible text. */
+  classify(url: string, text: string): PageKind;
 }
 
 export type AlertLevel = "none" | "local" | "emergency";
@@ -33,13 +27,13 @@ export type AlertLevel = "none" | "local" | "emergency";
 export function alertOperator(level: AlertLevel, title: string, message: string, log: (s: string) => void): void {
   log(`ALERT ${title}: ${message}`);
   if (level === "none") return;
-  const notify = process.env.GWS_ADMIN_NOTIFY ?? join(homedir(), ".claude", "tools", "notify");
+  const notify = process.env.WEB_FORGE_NOTIFY ?? join(homedir(), ".claude", "tools", "notify");
   if (existsSync(notify)) spawnSync(notify, [title, message], { stdio: "ignore", timeout: 15_000 });
   else process.stderr.write("\x07");
   if (level !== "emergency") return;
   // Pushover Emergency (priority 2, repeats until acknowledged) through the pushover-commander plugin.
   // Proxies are stripped: the fleet's HTTPS proxy does not pass api.pushover.net.
-  let core = process.env.GWS_ADMIN_PUSHOVER_CORE ?? "";
+  let core = process.env.WEB_FORGE_PUSHOVER_CORE ?? "";
   if (!core) {
     try {
       core = join(execFileSync("cc-plugin-root", ["pushover-commander"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(), "skills", "_lib", "pushover_core.ts");
@@ -63,28 +57,28 @@ export function alertOperator(level: AlertLevel, title: string, message: string,
 const READ_STATE = `async (page, args, H) => H.state()`;
 
 /**
- * Make sure the tab shows an admin page. If Google wants re-authentication, alert once and poll without
- * reloading. Returns the final page kind; throws on timeout.
+ * Make sure the tab shows the family's console. If it asks for sign-in or re-authentication, alert once and poll
+ * without reloading. Throws ReauthTimeout when the wait runs out.
  */
-export async function adminGate(d: Driver, opts: { account: string; alert: AlertLevel; waitSec: number; log: (s: string) => void }): Promise<void> {
+export async function loginGate(d: Driver, family: Family, opts: { who: string; alert: AlertLevel; waitSec: number; log: (s: string) => void }): Promise<void> {
   let s = await d.step<{ url: string; text: string }>("read page state", READ_STATE, null, { shoot: false });
-  let kind = classifyPage(s.url, s.text);
-  if (kind === "admin") return;
-  if (kind === "other") throw new Error(`expected admin.google.com, the tab is on ${new URL(s.url).hostname}`);
+  let kind = family.classify(s.url, s.text);
+  if (kind === "ready") return;
+  if (kind === "other") throw new Error(`expected the ${family.console}, the tab is on ${new URL(s.url).hostname}`);
   await d.shoot(`reauth-${kind}`);
   alertOperator(
     opts.alert,
-    "Admin console needs you",
-    `${opts.account}: Google asks to ${kind === "reauth" ? "verify it's you (password)" : "sign in"} before the Admin console. Complete it in the Chrome tab that is now in front. The harness never types a password; it waits ${opts.waitSec}s.`,
+    `${family.console} needs you`,
+    `${opts.who}: ${kind === "reauth" ? "asked to verify it's you (password)" : "asked to sign in"} before the ${family.console}. Complete it in the Chrome tab that is now in front. The harness never types a password; it waits ${opts.waitSec}s.`,
     opts.log,
   );
   const deadline = Date.now() + opts.waitSec * 1000;
   while (Date.now() < deadline) {
     await Bun.sleep(5000);
     s = await d.step("poll page state", READ_STATE, null, { shoot: false, quiet: true });
-    kind = classifyPage(s.url, s.text);
-    if (kind === "admin") {
-      opts.log("re-authentication passed; continuing");
+    kind = family.classify(s.url, s.text);
+    if (kind === "ready") {
+      opts.log("sign-in passed; continuing");
       return;
     }
   }

@@ -1,14 +1,6 @@
 ---
 name: dashboard-forge
-description: >
-  Supervised browser automation of vendor dashboards for operations that have NO public API —
-  minting scoped API tokens, creating OAuth apps, flipping account-level toggles. Drives a real
-  Chrome over CDP with a persistent per-site profile (human logs in once, supervised; scripts do
-  the rest), extracts secrets DOM-to-vault without ever exposing them, and survives UI drift via
-  the step-and-shoot method. Use when a task needs a dashboard click-path (Cloudflare token/Zero
-  Trust, GitHub OAuth apps, any admin console) and the vendor offers no API or your token lacks
-  the scope to grant itself more. Triggers: "no API for this", "create an OAuth app", "mint a
-  token in the dashboard", "automate the admin console", "browser-automate the setup".
+description: Supervised browser automation of vendor dashboards and admin consoles for operations that have NO public API — minting scoped API tokens, creating OAuth apps, flipping account-level toggles, console-only settings. The method skill of web-forge, the one harness for this - recipes as data run by the web-forge CLI (idempotent ensure, read-back, a screenshot per step, a login gate that never types a credential) or node forge scripts; two connection modes (a signed-in profile of your everyday Chrome through the Playwright Extension, or a persistent per-site profile over CDP where a human logs in once); secrets extracted DOM-to-vault without ever being exposed; UI drift survived via the step-and-shoot method and a dated Vendor Quirks log. Use when a task needs a dashboard click-path (Cloudflare token/Zero Trust, GitHub OAuth apps, any admin console) and the vendor offers no API or your token lacks the scope to grant itself more. Triggers - "no API for this", "create an OAuth app", "mint a token in the dashboard", "automate the admin console", "browser-automate the setup", "write a console recipe".
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -16,21 +8,26 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Some operations exist ONLY behind a vendor's web UI (GitHub fine-grained PATs and OAuth apps have no creation API; a Cloudflare token cannot grant itself new scopes). This skill is the canonical method for automating those click-paths safely: the human supervises and handles logins/2FA; the scripts do everything else, reproducibly.
 
-**Harness (SSoT):** [`../../lib/browser-forge.mjs`](../../lib/browser-forge.mjs) — per-site persistent Chrome profiles + CDP attach + login-wait + identity preflight + consent dismissal + vault sinks. node ONLY (Bun's `connectOverCDP` times out). Requires `playwright-core` (pinned at the repo root) and Chrome at the standard macOS path.
+**Harness (SSoT): this plugin, in two forms on shared foundations** ([plugin CLAUDE.md](../../CLAUDE.md) has the file map):
 
-**Route choice:** if the session you need is already signed in to a profile of your everyday Chrome, drive that profile instead of launching a per-site one: [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md) (`chrome-profile.sh setup <email>`, zero clicks). This harness is for supervised flows that want their own isolated profile. Route ladder and Chrome-136 mechanics: that plugin is the SSoT.
+- **Recipes** — [`scripts/web-forge.ts`](../../scripts/web-forge.ts) (Bun): the step-and-shoot method as a CLI. A recipe is data (flags or a `--spec` JSON file → form operations), with idempotent ensure, read-back from a fresh load, a screenshot per step, a login gate that never types a credential, and `Driver.extractToVault` for reveals. **Write new console automation as a recipe.** Worked family: [admin-console](../admin-console/SKILL.md) (Google Admin). `bun "$(cc-plugin-root web-forge)/scripts/web-forge.ts" recipes --json` lists every recipe, flag and exit code.
+- **Forge scripts** — [`lib/browser-forge.mjs`](../../lib/browser-forge.mjs) (node ONLY: Bun's `connectOverCDP` times out; needs `playwright-core`, pinned at the repo root): Playwright held directly over CDP, for flows a recipe does not cover yet — token capture off the wire (`captureBearer`), consent dismissal, exact-name clicks. The cf-access-wall and azure-provision scripts use it.
 
-> **Self-Evolving Skill**: dashboards drift constantly. When a selector misses or a flow changes, fix the forge script AND append the drift note to the Vendor Quirks section below — immediately, not later. Only update for real, reproducible breakage.
+Both take their browser from [`lib/forge-chrome.mjs`](../../lib/forge-chrome.mjs) and their secret sink from [`lib/vault.mjs`](../../lib/vault.mjs).
+
+**Route choice — the two connection modes.** If the session you need is already signed in to a profile of your everyday Chrome, use **extension** mode (recipes: `--connect extension`, the default): [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md) (`chrome-profile.sh setup <email>`, zero clicks). For a supervised flow that wants its own isolated, persistent profile, use **cdp** mode (recipes: `--connect cdp --site <name>`; forge scripts: `launchChrome(site)`). Route ladder and Chrome-136 mechanics: chrome-profiles is the SSoT.
+
+> **Self-Evolving Skill**: dashboards drift constantly. When a selector misses or a flow changes, fix the recipe or forge script AND append the drift note to the Vendor Quirks section below — immediately, not later. Only update for real, reproducible breakage.
 
 ## The method — step-and-shoot
 
 Write the forge as small, resumable steps against a LONG-LIVED Chrome (launch once; each step connects, acts, disconnects — `browser.close()` on a CDP connection only detaches, Chrome keeps running). Never author one monolithic script against an unseen UI.
 
-1. **Launch + human login.** `launchChrome(site, loginUrl)`; the human signs in (incl. 2FA). Detect completion with `waitForLogin(ctx, probeUrl, ok)` — poll an authenticated endpoint via `ctx.request` with the context cookies. NEVER navigate a visible tab to poll: you would reload a half-typed login form.
+1. **Launch + human login.** `launchChrome(site, loginUrl)` (a recipe: its family's login gate); the human signs in (incl. 2FA). Detect completion with `waitForLogin(ctx, probeUrl, ok)` — poll an authenticated endpoint via `ctx.request` with the context cookies. NEVER navigate a visible tab to poll: you would reload a half-typed login form.
 2. **Identity preflight.** Before ANY mutating step, extract the signed-in identity (a meta tag, a settings-page marker, an API echo) and `assertIdentity(actual, expected, resource)`. An account-owned resource created under the wrong login is a silent disaster (it happened: an OAuth app landed under the wrong GitHub user mid-forge because the human switched accounts).
 3. **Act in small steps, screenshot between.** One interaction cluster per step; `shot(page, name)` after each. When a locator misses, READ the latest shot, adapt, re-run just that step. Prefer role/label-based locators (`getByRole`, description-text anchoring) over CSS classes; for checkbox grids, `page.evaluate` walking from a UNIQUE description text up to its row is far more drift-proof than nth-child chains.
 4. **Expect interceptors.** Cookie/consent overlays (OneTrust & co.) swallow clicks and produce pure timeouts with no visible cause — call `dismissConsent(page)` when a click times out mysteriously, then retry. GitHub-style sudo/2FA walls mid-flow: pause and let the supervising human clear them (or see gh-fine-grained-pat's `autosudo.mjs` for the autonomous passkey path).
-5. **Extract secrets DOM-only.** On a token/secret reveal page: `page.evaluate` → match the value → `vaultSet(scope, path, value)`. **NEVER screenshot a reveal page** — an agent reading that screenshot puts the secret into the conversation context permanently. If a reveal was accidentally captured, purge the file AND treat the secret as context-exposed (rotate if the transcript leaves the machine).
+5. **Extract secrets DOM-only.** On a token/secret reveal page: `page.evaluate` → match the value → `vaultSet(scope, path, value)` (a recipe: `Driver.extractToVault`, which never shoots and logs only the length). **NEVER screenshot a reveal page** — an agent reading that screenshot puts the secret into the conversation context permanently. If a reveal was accidentally captured, purge the file AND treat the secret as context-exposed (rotate if the transcript leaves the machine).
 6. **End-of-run hygiene.** `purgeShots()` (breadcrumbs can show near-secret state), then `teardown(site)` — shuts down through chrome-profiles' port script (exact port flag), never `pkill -f` (process-storm policy, `~/.claude/CLAUDE.md`).
 
 ## Hybrid rule — forge the key, then use the door

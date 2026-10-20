@@ -1,55 +1,54 @@
 # CLAUDE.md — web-forge
 
-> Supervised dashboard automation for operations with NO public API, plus the declarative
-> Cloudflare Access wall built on top of it. Canonicalized 2026-07-23 after the rule of two:
-> the gh-fine-grained-pat harness (April) drove a second vendor's dashboards unchanged
-> (example-client: Cloudflare scoped-token forge + GitHub OAuth-app forge + Access wall, one
-> supervised session).
+**Hub**: [plugins/CLAUDE.md](../CLAUDE.md) | **Sibling**: [README.md](./README.md)
+
+Browser automation for operations with **no API**: console settings, token and OAuth-app mints, account-level toggles. The one place for this in the marketplace. Canonicalized 2026-07-23 after the rule of two (the gh-fine-grained-pat harness drove a second vendor's dashboards unchanged); the `gws-admin-console` plugin (v33.22.x) was merged in on 2026-10-19 as the Google Admin recipe family, so there is one harness to learn and fix.
 
 ## Structure
 
-| Path                      | Role                                                                                                                                                                                                                                                                                                                             |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/browser-forge.mjs`   | **The shared harness (SSoT for NEW forges).** Per-SITE persistent Chrome profiles + CDP attach + `waitForLogin` + `assertIdentity` preflight + `dismissConsent` + screenshot breadcrumbs/purge + SCS-vault stdin sinks + generic API caller. node ONLY (Bun `connectOverCDP` times out).                                         |
-| `skills/dashboard-forge/` | The METHOD skill — step-and-shoot doctrine, secrets discipline, Vendor Quirks drift log. Read it before writing any new forge.                                                                                                                                                                                                   |
-| `skills/cf-access-wall/`  | Declarative JSON spec (Schema 2020-12) → idempotent Access provisioning + GitHub OAuth-app forge. Spec instances live in project repos, never here.                                                                                                                                                                              |
-| `skills/azure-provision/` | Azure service-principal bootstrap when `az login` is Conditional-Access blocked (error 530035) but the portal is not. **Zero selectors**: the portal's own Graph token carries `Application.ReadWrite.All`, so the browser contributes a TOKEN, not clicks. Then RG + Cognitive Services via ARM, key+endpoint vaulted together. |
+| Path                                     | Role                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/forge-chrome.mjs`                   | **Where browsers come from, for both runtimes.** The two connection modes: `extension` (a profile of the everyday Chrome chosen by account email, through chrome-profiles' Playwright Extension) and `cdp` (a persistent per-SITE profile on its own debug port, launched and shut down by chrome-profiles' `chrome-debug-port-control.sh`). `mcpCommand(mode)` is the MCP server argv per mode. No Playwright import |
+| `lib/vault.mjs`                          | The SCS vault sinks (`vaultSet` over stdin, `vaultGet`). Shared by both runtimes                                                                                                                                                                                                                                                                                                                                      |
+| `lib/browser-forge.mjs`                  | Playwright-over-CDP helpers for **node forge scripts**: `connect`, `waitForLogin`, `assertIdentity`, `clickExact`, `probeControls`, `captureBearer`, `dismissConsent`, `shot`/`purgeShots`, `apiCaller`; re-exports `forge-chrome.mjs` and `vault.mjs`. node ONLY (Bun `connectOverCDP` times out). **Keep its path and exports**: private project forge scripts import it by absolute path                           |
+| `scripts/web-forge.ts`                   | **The recipe runner CLI** (Bun): `recipes [--json]`, `<recipe> <verb>`, `serve`, `stop`; `--connect extension\|cdp`, `--spec <file.json>`. JSON on stdout, progress on stderr                                                                                                                                                                                                                                         |
+| `scripts/lib/mcp.ts`                     | Transports over a Playwright MCP server: one-run stdio session, or the long-lived bridge from `serve` (GET `/info` names its target; a mismatched bridge is refused)                                                                                                                                                                                                                                                  |
+| `scripts/lib/page.ts`                    | `PRELUDE` (page-side primitives), `buildStepCode`, `parseRunCodeResult`, `Driver` (step + screenshots + `extractToVault`)                                                                                                                                                                                                                                                                                             |
+| `scripts/lib/form.ts`                    | `FormOp` data type, `applyOps`, `READ_FORM`, `PRESS_DIALOG_BUTTON`                                                                                                                                                                                                                                                                                                                                                    |
+| `scripts/lib/gate.ts`                    | The login / re-authentication gate (`loginGate`, per-family classifier), operator alerts                                                                                                                                                                                                                                                                                                                              |
+| `scripts/lib/args.ts`                    | Declarative flag parser; the FlagSpec list is also the machine-readable CLI description; `argvFromSpec` turns a spec file into the same flags                                                                                                                                                                                                                                                                         |
+| `scripts/recipes/index.ts` + `<family>/` | One module per recipe, grouped by recipe family (one vendor console + its page classifier), registered in the index. Family today: `google-admin`                                                                                                                                                                                                                                                                     |
+| `scripts/**/*.test.ts`                   | Unit tests of the pure parts (run by `moon run repo:test`)                                                                                                                                                                                                                                                                                                                                                            |
+| `skills/dashboard-forge/`                | The METHOD skill — step-and-shoot doctrine, secrets discipline, Vendor Quirks drift log. Read it before writing any new forge or recipe                                                                                                                                                                                                                                                                               |
+| `skills/admin-console/`                  | The Google Admin console recipe family (`gmail-default-routing`), its re-authentication policy and measured console lessons                                                                                                                                                                                                                                                                                           |
+| `skills/cf-access-wall/`                 | Declarative JSON spec (Schema 2020-12) → idempotent Access provisioning + GitHub OAuth-app forge. Spec instances live in project repos, never here                                                                                                                                                                                                                                                                    |
+| `skills/azure-provision/`                | Azure service-principal bootstrap when `az login` is Conditional-Access blocked (error 530035) but the portal is not. **Zero selectors**: the portal's own Graph token does the work over REST                                                                                                                                                                                                                        |
+
+**Two runtimes, one set of foundations.** Recipes (`scripts/`, Bun) run page-side steps through a Playwright MCP server and work in either connection mode. Forge scripts (`skills/*/scripts/*.mjs`, node) hold Playwright directly over CDP. Both take their browser from `forge-chrome.mjs` and their secret sink from `vault.mjs`. Write NEW console automation as a recipe; the node forge scripts stay until each is ported in a deliberate, live-tested pass.
 
 ## Invariants (do not regress)
 
-1. **node, not bun**, for anything touching `connectOverCDP`.
-2. **Specific-PID teardown** via lsof on the CDP port — never `pkill -f` (process-storm policy,
-   `~/.claude/CLAUDE.md`).
-3. **Secrets**: DOM-extract → `vault set --stdin`. NEVER screenshot a secret-reveal page (a shot
-   read back by the agent leaks the value into conversation context). `purgeShots()` at end of
-   every run.
-4. **Identity preflight** (`assertIdentity`) before creating any account-owned resource — the
-   browser-world mirror of the GitHub-Owner-Per-Path doctrine.
-5. **Hybrid rule**: browser-automate only the credential mint; everything after goes through the
-   vendor's real API as a GET-before-POST idempotent bootstrap.
-6. Profile dirs under `~/.local/share/web-forge/` hold live login sessions — sensitive, never
-   committed, credential-equivalent.
-7. **Never confirm a mutation from the same console's default list view.** Promoted from a
-   vendor quirk to an invariant on 2026-08-12 under the rule of two: Azure Portal's "Owned
-   applications" denied an app registration it had just created, and Google Admin's Groups list
-   rendered "your organization doesn't have any groups yet" after a group was created. Both were
-   convincing and both were false. Confirm from a DIFFERENT system — ideally one that would fail
-   on a non-existent object, so the confirmation is a real test rather than a second opinion.
-8. **A borrowed session is not an owned one.** Driving a browser a human already authenticated
-   (AppleScript + `execute javascript`) is legitimate where a passkey or step-up must not be
-   automated — you type inside a door somebody else opened, and never touch the credential. It
-   has no sandbox: it can see every other tab. Never quit or restart the operator's browser.
+1. **node, not bun**, for anything touching `connectOverCDP` (the recipe runner never does: the MCP server attaches).
+2. **Specific-PID / exact-port teardown** through chrome-profiles' port script, never `pkill -f` (process-storm policy, `~/.claude/CLAUDE.md`).
+3. **Secrets**: DOM-extract → `vault set --stdin` (`vaultSet`, or `Driver.extractToVault`, which never shoots, logs only the length, and withholds a failed step's error text). NEVER screenshot a secret-reveal page (a shot read back by the agent leaks the value into conversation context). `purgeShots()` at the end of every node forge run.
+4. **Identity preflight** before creating any account-owned resource (`assertIdentity`; the bridge refuses a different target) — the browser-world mirror of the GitHub-Owner-Per-Path doctrine.
+5. **Hybrid rule**: browser-automate only what has no API; everything after goes through the vendor's real API as a GET-before-POST idempotent bootstrap.
+6. **Profile dirs** under `~/.local/share/web-forge/` hold live login sessions — sensitive, never committed, credential-equivalent.
+7. **Never confirm a mutation from the same console's default list view.** Promoted from a vendor quirk on 2026-08-12 under the rule of two (Azure "Owned applications", Google Admin Groups list). Confirm from a DIFFERENT system, ideally one that would fail on a non-existent object. Recipes read back from a fresh page load through the object's own edit dialog, and say that an end-to-end test is still the independent confirmation.
+8. **A borrowed session is not an owned one.** Driving a browser a human already authenticated is legitimate where a passkey or step-up must not be automated; never quit or restart the operator's browser.
+9. **Never type a password or any credential.** Sign-in and re-authentication are detected by the recipe family's classifier, the operator is alerted, the tab is polled and never reloaded.
+10. **Public plugin: no tenant data.** No real domain, address, group, rule ID, screenshot or customer name in code, tests, docs or commit messages. Fixtures use example.com; captured live shapes are anonymised first. Each tenant's invocation (flags or a `--spec` file) is recorded in that tenant's own repository.
+11. **Recipe selectors by accessible role and visible label text**, never CSS classes or jsnames; every click is `bringToFront()` + `{ force: true }`; page-side code is source text run by `browser_run_code_unsafe`, with arguments as a JSON literal only.
+12. **Never leave a half-filled form**: a failed step before Save screenshots, cancels and reloads. Failure shots go where `--screenshots` says or to `~/.local/state/web-forge/failures/`, never into a repository; the MCP server runs in a private temp directory.
 
 ## Boundary with gh-fine-grained-pat (gh-tools)
 
-That skill keeps its own battle-tested harness copy + GitHub-specific machinery (autosudo /
-webauthn / multi-account gated blobs). NEW forges use `lib/browser-forge.mjs`. Migrating the PAT
-skill onto this lib is a deliberate future pass with its own testing — never a casual DRY edit.
+That skill keeps its own battle-tested harness copy + GitHub-specific machinery (autosudo / webauthn / multi-account gated blobs). Migrating it onto this plugin is a deliberate future pass with its own testing — never a casual DRY edit.
 
 ## Privacy split (operator doctrine, 2026-07-23)
 
-Agnostic/universal → this plugin (cc-skills, public repo): harness, method, schema, example
-specs with placeholder values ONLY. Personal/secret → NEVER here: real spec instances (team
-emails) live in each project's repo; credentials live in the SCS vault; login sessions live in
-the local profile dirs; anything inherently personal belongs in `~/.claude` per the user-memory
-hub policy.
+Agnostic/universal → this plugin (cc-skills, public repo): harness, method, schemas, example specs with placeholder values ONLY. Personal/secret → NEVER here: real spec instances live in each project's repo; credentials live in the SCS vault; login sessions live in the local profile dirs.
+
+## Recent changes
+
+- 2026-10-19 — merged `gws-admin-console` in: its CLI became `scripts/web-forge.ts`, its skill `web-forge:admin-console`, its Google classifier the `google-admin` family. Shared now: `forge-chrome.mjs` (both connection modes, with a `cdp` mode added to the recipe runner), `vault.mjs` (with `Driver.extractToVault`), the generic `loginGate`, and the `--spec` file format. `browser-forge.mjs` kept its path and exports. The recipe runner's `cdp` mode is unit-tested only; it has not driven a live browser yet.

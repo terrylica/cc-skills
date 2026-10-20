@@ -12,91 +12,16 @@
 //   • Secrets: DOM-extract → vault stdin sink. NEVER screenshot a secret-reveal page — a screenshot
 //     read back by the agent puts the secret into the conversation context (learned the hard way).
 //   • Mutating anything account-owned? assertIdentity() FIRST (wrong-account OAuth-app incident).
-import { spawn, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { chromium } from "playwright-core";
+import { cdpUrl, sleep } from "./forge-chrome.mjs";
 
-// ── launch / shutdown: the chrome-profiles plugin's chrome-debug-port-control.sh is the SSoT ──────
-// It pins a non-default --user-data-dir (Chrome 136+ ignores the debug port otherwise), waits for the
-// port, reports the profile ACTUALLY attached, and shuts down by the exact port flag. This harness keeps
-// only what is its own: which profile and port, and the CDP attach.
-function portControlScript() {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    process.env.CHROME_PROFILES_PORT_CONTROL,
-    join(here, "../..", "chrome-profiles", "scripts", "chrome-debug-port-control.sh"), // repo / marketplace checkout
-    join(homedir(), ".claude", "plugins", "marketplaces", "cc-skills", "plugins", "chrome-profiles", "scripts", "chrome-debug-port-control.sh"),
-  ].filter(Boolean);
-  const found = candidates.find((p) => existsSync(p));
-  if (!found) throw new Error("chrome-profiles plugin not found (needed for chrome-debug-port-control.sh); install it from cc-skills");
-  return found;
-}
-function portControl(action, { port, profile, chrome }) {
-  return execFileSync("bash", [portControlScript(), action], {
-    encoding: "utf8",
-    env: { ...process.env, CHROME_DEBUG_PORT: String(port), CHROME_DEBUG_PROFILE: profile, ...(chrome ? { CHROME_DEBUG_BINARY: chrome } : {}) },
-  });
-}
-/** Open a URL as a tab in the already-running instance on that profile. */
-function openInProfile(chrome, profile, url) {
-  if (!url) return;
-  const child = spawn(chrome, [`--user-data-dir=${profile}`, url], { detached: true, stdio: "ignore" });
-  child.unref();
-}
-
-const BASE_DIR = join(homedir(), ".local", "share", "web-forge");
-const BASE_PORT = Number(process.env.WEB_FORGE_CDP_PORT ?? 9250);
-const CHROME_BIN =
-  process.env.WEB_FORGE_CHROME_BIN ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-export const VAULT_BIN = process.env.WEB_FORGE_VAULT_BIN ?? join(homedir(), ".local/bin/vault");
-
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-const siteHash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 80;
-
-/** Per-site persistent profile (login sessions survive across runs; dir is sensitive). */
-export function profileDir(site) {
-  return process.env.WEB_FORGE_PROFILE_DIR ?? join(BASE_DIR, `profile-${site}`);
-}
-export function port(site) {
-  return BASE_PORT + siteHash(site);
-}
-const cdpUrl = (site) => `http://127.0.0.1:${port(site)}`;
-
-/** PID listening on the site's CDP port, or null. */
-export function chromePidOnPort(site) {
-  try {
-    const out = execFileSync("/usr/sbin/lsof", ["-nP", `-iTCP:${port(site)}`, "-sTCP:LISTEN", "-t"], {
-      encoding: "utf8",
-    });
-    const pid = out.split("\n").map((s) => s.trim()).filter(Boolean)[0];
-    return pid ? Number(pid) : null;
-  } catch {
-    return null; // lsof non-zero = nothing listening
-  }
-}
-
-async function cdpReady(site) {
-  try {
-    return (await fetch(`${cdpUrl(site)}/json/version`)).ok;
-  } catch {
-    return false;
-  }
-}
-
-/** Launch (or reuse) the visible per-site Chrome with CDP, through the shared port script. Returns { pid, reused }. */
-export async function launchChrome(site, openUrl) {
-  const dir = profileDir(site);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const reused = Boolean(chromePidOnPort(site) && (await cdpReady(site)));
-  if (!reused) portControl("up", { port: port(site), profile: dir, chrome: CHROME_BIN });
-  if (!(await cdpReady(site))) throw new Error(`Chrome CDP not up on ${cdpUrl(site)}`);
-  openInProfile(CHROME_BIN, dir, openUrl);
-  return { pid: chromePidOnPort(site), reused };
-}
+// The browser lifecycle (per-site profiles, ports, launch, teardown) and the vault sinks are shared with the
+// recipe runner (scripts/web-forge.ts); they live in their own modules and are re-exported here so every forge
+// script keeps importing one file.
+export { chromePidOnPort, launchChrome, port, profileDir, sleep, teardown } from "./forge-chrome.mjs";
+export { VAULT_BIN, vaultGet, vaultSet } from "./vault.mjs";
 
 /** Attach Playwright over CDP. browser.close() only DISCONNECTS (Chrome keeps running). */
 export async function connect(site) {
@@ -117,14 +42,6 @@ export async function connect(site) {
   const browser = await chromium.connectOverCDP(wsUrl);
   const ctx = browser.contexts()[0] ?? (await browser.newContext());
   return { browser, ctx };
-}
-
-/** Shut the site's Chrome down through the shared port script (matches the exact port flag; never pkill -f). */
-export async function teardown(site) {
-  const pid = chromePidOnPort(site);
-  if (!pid) return { killed: false, reason: "no listener" };
-  portControl("down", { port: port(site), profile: profileDir(site) });
-  return { killed: chromePidOnPort(site) !== pid, pid };
 }
 
 // ── supervised-run helpers ──────────────────────────────────────────────────────────────────────
@@ -317,8 +234,10 @@ export async function dismissConsent(page) {
 
 export const DEFAULT_SHOT_DIR = "/tmp/web-forge";
 
-/** Breadcrumb screenshot. NEVER call on a secret-reveal page — DOM-extract instead. */
 /**
+ * Breadcrumb screenshot of a step. NEVER call on a secret-reveal page — DOM-extract instead.
+ * Returns the path, or `null` if the capture failed.
+ *
  * Screenshot a step, returning the path — or `null` if the capture failed.
  *
  * It used to swallow the error (`.catch(() => {})`) and return the intended path regardless,
@@ -351,26 +270,6 @@ export function purgeShots(dir = DEFAULT_SHOT_DIR) {
   const files = readdirSync(dir).filter((f) => f.endsWith(".png"));
   for (const f of files) rmSync(join(dir, f), { force: true });
   return files.length;
-}
-
-// ── SCS vault sinks (values ride pipes, never argv/stdout/transcript) ───────────────────────────
-
-export function vaultSet(scope, path, value) {
-  return new Promise((resolve, reject) => {
-    const p = spawn(VAULT_BIN, ["set", "--stdin", scope, path], { stdio: ["pipe", "inherit", "inherit"] });
-    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`vault set ${scope} ${path} → exit ${code}`))));
-    p.stdin.write(value);
-    p.stdin.end();
-  });
-}
-
-export function vaultGet(scope, path) {
-  return new Promise((resolve, reject) => {
-    const p = spawn(VAULT_BIN, ["get", scope, path], { stdio: ["ignore", "pipe", "inherit"] });
-    let out = "";
-    p.stdout.on("data", (d) => (out += d));
-    p.on("exit", (code) => (code === 0 ? resolve(out.trim()) : reject(new Error(`vault get ${scope} ${path} → exit ${code}`))));
-  });
 }
 
 /** Minimal JSON API caller (bearer-style headers) for the idempotent-bootstrap half of a forge. */

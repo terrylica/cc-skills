@@ -6,21 +6,21 @@ allowed-tools: Bash, Read
 
 # admin-console — a harness for console-only Google Admin settings
 
-> **Self-Evolving Skill**: This skill improves through use. When Google changes a console page, a step fails, or a control needs a new trick, fix the primitive in `scripts/lib/page.ts` or the recipe, add a unit test where the part is pure, and record the lesson here immediately. Only update for real, reproducible issues, and never add a real tenant, address, group or screenshot.
+> **Self-Evolving Skill**: This skill improves through use. When Google changes a console page, a step fails, or a control needs a new trick, fix the primitive in `scripts/lib/page.ts` or the recipe in `scripts/recipes/google-admin/`, add a unit test where the part is pure, and record the lesson here immediately. Only update for real, reproducible issues, and never add a real tenant, address, group or screenshot.
 
-Some Google Workspace settings exist only in the Admin console: Gmail **Default routing** is absent from the Cloud Identity Policy API's supported settings, and GAM cannot set it. This skill drives those pages through your own signed-in Chrome profile, the same way every time, and proves the result by reading it back.
+Some Google Workspace settings exist only in the Admin console: Gmail **Default routing** is absent from the Cloud Identity Policy API's supported settings, and GAM cannot set it. This skill drives those pages through your own signed-in Chrome profile, the same way every time, and proves the result by reading it back. It is the Google Admin recipe family of the web-forge recipe runner: the browser connection, step runner, screenshots, re-authentication gate and secret handling are web-forge's own, shared with every other recipe; the method behind them is the [dashboard-forge](../dashboard-forge/SKILL.md) skill.
 
 Use an API whenever one exists. Reach for this only when the setting is console-only.
 
 ## Prerequisites
 
-- The **chrome-profiles** plugin, with the admin account's Chrome profile set up for zero-click control: `chrome-profile.sh setup <admin-email>`, then `chrome-profile.sh doctor`. The harness reaches the browser through `chrome-profile.sh playwright-mcp <admin-email>`.
+- The **chrome-profiles** plugin, with the admin account's Chrome profile set up for zero-click control: `chrome-profile.sh setup <admin-email>`, then `chrome-profile.sh doctor`. The default connection mode (`--connect extension`) reaches the browser through `chrome-profile.sh playwright-mcp <admin-email>`. `--connect cdp [--site <name>]` uses a persistent web-forge profile instead (default site `google-admin`; a human signs in there once). Google binds sessions to the profile's device key, so a copied cookie jar does not sign a cdp profile in (dashboard-forge Vendor Quirks, 2026-08-13).
 - The account must be a Workspace administrator with rights to the page.
 
 ```bash
-GAC="$(cc-plugin-root gws-admin-console)/scripts/gws-admin-console.ts"
-bun "$GAC" --help            # human-readable flags
-bun "$GAC" recipes --json    # machine-readable: every recipe, verb, flag and exit code
+WF="$(cc-plugin-root web-forge)/scripts/web-forge.ts"
+bun "$WF" --help            # human-readable flags
+bun "$WF" recipes --json    # machine-readable: every recipe, verb, flag and exit code
 ```
 
 ## Run a recipe
@@ -28,21 +28,21 @@ bun "$GAC" recipes --json    # machine-readable: every recipe, verb, flag and ex
 ```bash
 # 1. Keep one browser session (one tab) open across runs. Optional but recommended: a re-auth prompt
 #    passed in that tab stays passed for the next run. Runs in the foreground: background it.
-bun "$GAC" serve --account admin@example.com --port 47811 &
+bun "$WF" serve --account admin@example.com --port 47811 &
 
 # 2. Plan only: navigate, fill the dialog, read the form back, then CANCEL. Nothing is saved.
-bun "$GAC" gmail-default-routing ensure --account admin@example.com --port 47811 \
+bun "$WF" gmail-default-routing ensure --account admin@example.com --port 47811 \
   --description "Staff mail → shared inbox" --match group:staff-mail@example.com \
   --change-envelope-recipient inbox@example.com --add-original-to-header --scope non-recognized \
   --dry-run --screenshots ./shots
 
 # 3. The same command without --dry-run creates the rule and verifies it; with --verify it only reads back.
-bun "$GAC" stop --port 47811
+bun "$WF" stop --port 47811
 ```
 
-Without `--port` (or `GWS_ADMIN_BRIDGE_PORT`) each run opens its own session; Microsoft's extension then attaches to a **fresh tab**, which stays open afterwards. A bridge that serves a different account is refused, so a run cannot drive the wrong identity.
+Without `--port` (or `WEB_FORGE_BRIDGE_PORT`) each run opens its own session; in extension mode Microsoft's extension then attaches to a **fresh tab**, which stays open afterwards. A bridge that serves a different target (another account, or another cdp site) is refused, so a run cannot drive the wrong identity. Any flag set can also come from a JSON file kept in the tenant's own repository: `--spec routing.json` (`{"account": "…", "match": "group:…", "add-original-to-header": true}`); flags on the command line win.
 
-**Output:** one JSON object on stdout (`ok`, `action`, `spec`, `rule`, `observed`, `diff`, `steps`); progress and screenshot paths on stderr. **Exit codes:** 0 ok · 1 failed or read-back mismatch · 2 usage · 3 rule exists but differs and `--update` was not given · 4 re-authentication not completed in time.
+**Output:** one JSON object on stdout (`ok`, `action`, `spec`, `rule`, `observed`, `diff`, `steps`); progress and screenshot paths on stderr. **Exit codes:** 0 ok · 1 failed or read-back mismatch · 2 usage · 3 rule exists but differs and `--update` was not given · 4 sign-in or re-authentication not completed in time.
 
 ### `gmail-default-routing ensure`
 
@@ -63,7 +63,7 @@ Every other "Modify message" checkbox is set **clear**: the rule matches the spe
 
 ## Re-authentication policy ("verify it's you")
 
-The Admin console periodically sends an administrator to accounts.google.com for a fresh password before admin pages. The harness:
+The Admin console periodically sends an administrator to accounts.google.com for a fresh password before admin pages. The shared gate (`scripts/lib/gate.ts`), with this family's classifier (`scripts/recipes/google-admin/family.ts`):
 
 1. **Detects** it (host `accounts.google.com` with "Verify it's you", "Enter your password" or "To continue, first verify"; any other accounts.google.com page counts as sign-in).
 2. **Never types a password** or any credential. There is no flag to make it.
@@ -80,23 +80,23 @@ The Admin console periodically sends an administrator to accounts.google.com for
 - **The "Select Groups" picker — the answer.** Type the address into "Search Groups", then click the matching **row**: the click selects the group at once (it appears in the outer dialog as "Name(email)" with a Delete link). There is **no checkbox and no confirm button**; the picker is multi-select and stays open, so close it with its **"Close dialog"** (X) button. While it is open the outer dialog is aria-hidden, so role queries for the outer dialog find nothing. A row click that "did nothing" earlier was in fact a selection hidden behind the still-open picker: look at a screenshot, not just the accessibility tree.
 - **Row text matching:** Playwright's `hasText` matches `textContent`, where a `<br>` leaves no space ("Name (x)<name@example.com>"), so an address is bounded by any character that cannot belong to one, not by whitespace.
 - **Save** closes the dialog, toasts "Default routing settings updated", and the table shows the new rule (Order, Status Enabled, Actions "Edit - Disable - Delete - Reorder", a short ID). No page-level save step.
-- **Failure path:** any failed step saves a screenshot (with `--screenshots`, or under `~/.local/state/gws-admin-console/failures/`), presses **Cancel**, and reloads the page, so a half-filled rule is never saved.
+- **Failure path:** any failed step saves a screenshot (with `--screenshots`, or under `~/.local/state/web-forge/failures/`), presses **Cancel**, and reloads the page, so a half-filled rule is never saved.
 
 ## Debug visually
 
-Pass `--screenshots <dir>` to save one PNG per step (navigation, dialog open, every selection, Save, read-back), then read them. The console is complicated; the accessibility tree alone misled us once (above). Keep screenshots out of repositories: they show tenant data.
+Pass `--screenshots <dir>` to save one PNG per step (failures are always saved, by default under `~/.local/state/web-forge/failures/`) (navigation, dialog open, every selection, Save, read-back), then read them. The console is complicated; the accessibility tree alone misled us once (above). Keep screenshots out of repositories: they show tenant data.
 
 ## Add a recipe
 
 1. Explore the page by hand through a bridge (`serve`), taking screenshots after every action. Write down accessible roles and visible label text, never CSS classes.
-2. Create `scripts/recipes/<name>.ts` exporting: `URL`, the dialog name regex, `LABELS`, `FLAGS` (a `FlagSpec[]`), and **pure** functions `specFromFlags`, `planForm(spec) → FormOp[]`, `observedFromForm(FormState)`, `diffRule`, plus `run(verb, flags, driver, gate)`. Reuse `applyOps`, `READ_FORM`, `PRESS_DIALOG_BUTTON` and the primitives in `lib/page.ts` (`select`, `tick`, `fill`, `radio`, `pick`, `readForm`, `readGrid`). Add a primitive there only when a new control type needs one.
-3. Register it in `scripts/recipes/index.ts`; `--help` and `recipes --json` pick it up.
+2. Create `scripts/recipes/google-admin/<name>.ts` (another console: a new `scripts/recipes/<family>/` with a `family.ts` classifier) exporting: `URL`, the dialog name regex, `LABELS`, `FLAGS` (a `FlagSpec[]`), and **pure** functions `specFromFlags`, `planForm(spec) → FormOp[]`, `observedFromForm(FormState)`, `diffRule`, plus `run(verb, flags, driver, gate)`. Reuse `applyOps`, `READ_FORM`, `PRESS_DIALOG_BUTTON`, `Driver.extractToVault` (for any secret the page reveals) and the primitives in `scripts/lib/page.ts` (`select`, `tick`, `fill`, `radio`, `pick`, `readForm`, `readGrid`). Add a primitive there only when a new control type needs one.
+3. Register it in `scripts/recipes/index.ts` with its `family`; `--help` and `recipes --json` pick it up.
 4. Unit-test the pure parts with a FormState **captured from the live page and anonymised** (example.com). Live steps are tested only by a live `--dry-run`, then the real run, then `--verify`.
 5. Record each project's invocation in that project's repository, never here: this plugin is public.
 
 ## Known fragility
 
-Google changes the console without notice. Selectors use accessible roles and the words on screen, so a reworded label ("Change envelope recipient") or a restructured dialog breaks a recipe loudly (a step fails, a screenshot is saved, the dialog is cancelled) rather than silently. The English UI is assumed. Tested live: create, `--dry-run`, `--verify`, `unchanged`, `differs`. Not yet exercised live: `--update`, `single`/`pattern`/`all` matches, and the re-authentication wait (classification is unit-tested).
+Google changes the console without notice. Selectors use accessible roles and the words on screen, so a reworded label ("Change envelope recipient") or a restructured dialog breaks a recipe loudly (a step fails, a screenshot is saved, the dialog is cancelled) rather than silently. The English UI is assumed. Tested live: create, `--dry-run`, `--verify`, `unchanged`, `differs`. Not yet exercised live: `--connect cdp`, `--update`, `single`/`pattern`/`all` matches, and the re-authentication wait (classification is unit-tested).
 
 ## Post-Execution Reflection
 

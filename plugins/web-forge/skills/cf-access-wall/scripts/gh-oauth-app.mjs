@@ -9,11 +9,8 @@
 //
 // Secrets: client_secret → vault <scope>/github_oauth.client_secret via stdin sink (never printed,
 // never screenshotted — the reveal is DOM-extracted). client_id is public and logged.
-import { homedir } from "node:os";
-import { join } from "node:path";
 
-const FORGE = await import(join(homedir(), "eon/cc-skills/plugins/web-forge/lib/browser-forge.mjs"));
-const { launchChrome, connect, assertIdentity, shot, purgeShots, sleep, vaultSet } = FORGE;
+import { launchChrome, connect, assertIdentity, shot, purgeShots, sleep, vaultSet } from "../../../lib/browser-forge.mjs";
 
 const arg = (n) => {
   const i = process.argv.indexOf(`--${n}`);

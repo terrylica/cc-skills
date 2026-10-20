@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { parseFlags, UsageError, type FlagSpec } from "./args.ts";
 import { buildStepCode, parseRunCodeResult, PRELUDE } from "./page.ts";
-import { classifyPage } from "./reauth.ts";
 
 describe("parseFlags", () => {
   const specs: FlagSpec[] = [
@@ -58,18 +57,5 @@ describe("buildStepCode", () => {
   test("the prelude is syntactically valid JavaScript", () => {
     // biome-ignore lint/security/noGlobalEval: compiling (not running) our own constant
     expect(() => new Function(`return (${PRELUDE});`)).not.toThrow();
-  });
-});
-
-describe("classifyPage", () => {
-  test.each([
-    ["https://admin.google.com/ac/apps/gmail/defaultrouting", "Default routing", "admin"],
-    ["https://accounts.google.com/v3/signin/challenge/pwd", "Verify it's you\nTo continue, first verify it's you", "reauth"],
-    ["https://accounts.google.com/v3/signin/challenge/pwd", "Enter your password", "reauth"],
-    ["https://accounts.google.com/v3/signin/identifier", "Sign in\nUse your Google Account", "signin"],
-    ["https://example.com/", "", "other"],
-    ["not a url", "", "other"],
-  ])("%s", (url, text, want) => {
-    expect(classifyPage(url, text)).toBe(want);
   });
 });

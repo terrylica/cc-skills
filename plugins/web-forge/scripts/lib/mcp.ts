@@ -1,16 +1,29 @@
-// mcp.ts — reach a signed-in Chrome profile through Microsoft's Playwright Extension MCP server.
+// mcp.ts — reach a browser through a Playwright MCP server, in either connection mode (lib/forge-chrome.mjs):
+//   • extension — a signed-in profile of the operator's everyday Chrome, chosen by account email (chrome-profiles'
+//                 Playwright Extension). The extension attaches each session to a FRESH tab, which stays open.
+//   • cdp       — the persistent per-site forge profile on its own debug port (launched here if it is not up).
 //
 // Two transports, one interface (`Browser.call(tool, args)`):
-//   • StdioBrowser  — spawns `chrome-profile.sh playwright-mcp <email>` for this run only. The extension
-//                     attaches the session to a FRESH tab, which stays open after the run.
-//   • BridgeBrowser — talks to a long-lived bridge started by `gws-admin-console serve`, so successive
-//                     runs share ONE tab (useful while a human passes a "verify it's you" prompt in it).
-// The bridge answers GET /info with {account, workDir}; a client refuses a bridge that serves a different
-// account, so a run can never drive the wrong identity's browser.
-import { spawn, type ChildProcessWithoutNullStreams, execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
+//   • StdioBrowser  — spawns the mode's MCP server for this run only.
+//   • BridgeBrowser — talks to a long-lived bridge started by `web-forge serve`, so successive runs share ONE tab
+//                     (useful while a human passes a "verify it's you" prompt in it).
+// The bridge answers GET /info with {target, workDir}; a client refuses a bridge that serves a different target,
+// so a run can never drive the wrong identity's browser.
+import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
+import { launchChrome, mcpCommand } from "../../lib/forge-chrome.mjs";
+
+export type Connect = "extension" | "cdp";
+
+/** What to drive: an account's everyday-Chrome profile, or a per-site forge profile. */
+export type Target = { mode: "extension"; account: string } | { mode: "cdp"; site: string };
+
+/** Pure: a stable key for a target; a bridge serves exactly one. */
+export function targetKey(t: Target): string {
+  return t.mode === "extension" ? `extension:${t.account.toLowerCase()}` : `cdp:${t.site}`;
+}
 
 export interface CallResult {
   text: string;
@@ -23,22 +36,6 @@ export interface Browser {
   readonly workDir: string;
   call(tool: string, args?: Record<string, unknown>, timeoutMs?: number): Promise<CallResult>;
   close(): Promise<void>;
-}
-
-/** Locate chrome-profile.sh from the sibling chrome-profiles plugin. */
-export function chromeProfileScript(): string {
-  const env = process.env.GWS_ADMIN_CHROME_PROFILE_SH;
-  if (env) return env;
-  try {
-    const root = execFileSync("cc-plugin-root", ["chrome-profiles"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    const p = join(root, "scripts", "chrome-profile.sh");
-    if (root && existsSync(p)) return p;
-  } catch {
-    /* resolver absent: fall through to the sibling checkout layout */
-  }
-  const sibling = resolve(dirname(import.meta.path), "..", "..", "..", "chrome-profiles", "scripts", "chrome-profile.sh");
-  if (existsSync(sibling)) return sibling;
-  throw new Error("chrome-profiles plugin not found: install it, or set GWS_ADMIN_CHROME_PROFILE_SH");
 }
 
 function resultText(m: any): CallResult {
@@ -77,11 +74,14 @@ export class StdioSession {
     child.stderr.on("data", () => {});
   }
 
-  static async start(account: string, workDir: string): Promise<StdioSession> {
-    const child = spawn("bash", [chromeProfileScript(), "playwright-mcp", account], { stdio: ["pipe", "pipe", "pipe"], cwd: workDir });
+  static async start(target: Target, workDir: string): Promise<StdioSession> {
+    if (target.mode === "cdp") await launchChrome(target.site);
+    const [cmd, ...args] = mcpCommand(target.mode, target) as string[];
+    const child = spawn(cmd!, args, { stdio: ["pipe", "pipe", "pipe"], cwd: workDir });
     const s = new StdioSession(child);
-    const exited = new Promise<never>((_, rej) => child.once("exit", (c) => rej(new Error(`playwright-mcp exited (${c}) before initialising: is ${account} a Chrome profile with the Playwright Extension set up? (chrome-profile.sh doctor)`))));
-    await Promise.race([s.rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "gws-admin-console", version: "1" } }, 60_000), exited]);
+    const hint = target.mode === "extension" ? `is ${target.account} a Chrome profile with the Playwright Extension set up? (chrome-profile.sh doctor)` : `is the ${target.site} forge Chrome up?`;
+    const exited = new Promise<never>((_, rej) => child.once("exit", (c) => rej(new Error(`playwright-mcp exited (${c}) before initialising: ${hint}`))));
+    await Promise.race([s.rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "web-forge", version: "1" } }, 60_000), exited]);
     child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
     return s;
   }
@@ -114,15 +114,24 @@ export class StdioSession {
   }
 }
 
+function privateWorkDir(prefix: string): string {
+  const workDir = mkdtempSync(join(tmpdir(), prefix));
+  mkdirSync(join(workDir, ".playwright-mcp"), { recursive: true });
+  return workDir;
+}
+
 export class StdioBrowser implements Browser {
   readonly describe: string;
-  private constructor(private s: StdioSession, readonly workDir: string, account: string) {
-    this.describe = `stdio playwright-mcp for ${account}`;
+  private constructor(
+    private s: StdioSession,
+    readonly workDir: string,
+    target: Target,
+  ) {
+    this.describe = `stdio playwright-mcp for ${targetKey(target)}`;
   }
-  static async open(account: string): Promise<StdioBrowser> {
-    const workDir = mkdtempSync(join(tmpdir(), "gws-admin-console-"));
-    mkdirSync(join(workDir, ".playwright-mcp"), { recursive: true });
-    return new StdioBrowser(await StdioSession.start(account, workDir), workDir, account);
+  static async open(target: Target): Promise<StdioBrowser> {
+    const workDir = privateWorkDir("web-forge-");
+    return new StdioBrowser(await StdioSession.start(target, workDir), workDir, target);
   }
   call(tool: string, args: Record<string, unknown> = {}, ms?: number): Promise<CallResult> {
     return this.s.call(tool, args, ms);
@@ -135,12 +144,16 @@ export class StdioBrowser implements Browser {
 
 export class BridgeBrowser implements Browser {
   readonly describe: string;
-  private constructor(private base: string, readonly workDir: string, account: string) {
-    this.describe = `bridge ${base} for ${account}`;
+  private constructor(
+    private base: string,
+    readonly workDir: string,
+    key: string,
+  ) {
+    this.describe = `bridge ${base} for ${key}`;
   }
-  static async open(port: number, account: string): Promise<BridgeBrowser | null> {
+  static async open(port: number, target: Target): Promise<BridgeBrowser | null> {
     const base = `http://127.0.0.1:${port}`;
-    let info: { account?: string; workDir?: string };
+    let info: { target?: string; workDir?: string };
     try {
       const r = await fetch(`${base}/info`, { signal: AbortSignal.timeout(3000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -148,10 +161,9 @@ export class BridgeBrowser implements Browser {
     } catch {
       return null; // nothing (or not ours) listening
     }
-    if (!info.account || info.account.toLowerCase() !== account.toLowerCase()) {
-      throw new Error(`the bridge on port ${port} serves ${info.account ?? "an unknown account"}, not ${account}: refusing to drive it`);
-    }
-    return new BridgeBrowser(base, info.workDir ?? tmpdir(), account);
+    const want = targetKey(target);
+    if (info.target !== want) throw new Error(`the bridge on port ${port} serves ${info.target ?? "an unknown target"}, not ${want}: refusing to drive it`);
+    return new BridgeBrowser(base, info.workDir ?? tmpdir(), want);
   }
   async call(tool: string, args: Record<string, unknown> = {}, ms = 180_000): Promise<CallResult> {
     const r = await fetch(`${this.base}/`, { method: "POST", body: JSON.stringify({ tool, args, timeoutMs: ms }), signal: AbortSignal.timeout(ms + 5000) });
@@ -162,20 +174,20 @@ export class BridgeBrowser implements Browser {
   }
 }
 
-/** Reuse a bridge on `port` when one serves `account`; otherwise open a stdio session for this run. */
-export async function connect(account: string, port?: number): Promise<Browser> {
+/** Reuse a bridge on `port` when one serves `target`; otherwise open a stdio session for this run. */
+export async function connect(target: Target, port?: number): Promise<Browser> {
   if (port) {
-    const b = await BridgeBrowser.open(port, account);
+    const b = await BridgeBrowser.open(port, target);
     if (b) return b;
   }
-  return StdioBrowser.open(account);
+  return StdioBrowser.open(target);
 }
 
 /** Foreground bridge: one stdio session, served on 127.0.0.1:<port>. GET /quit stops it. */
-export async function serve(account: string, port: number): Promise<void> {
-  const workDir = mkdtempSync(join(tmpdir(), "gws-admin-console-bridge-"));
-  mkdirSync(join(workDir, ".playwright-mcp"), { recursive: true });
-  const s = await StdioSession.start(account, workDir);
+export async function serve(target: Target, port: number): Promise<void> {
+  const workDir = privateWorkDir("web-forge-bridge-");
+  const s = await StdioSession.start(target, workDir);
+  const key = targetKey(target);
   const stop = (code: number) => {
     s.kill();
     rmSync(workDir, { recursive: true, force: true });
@@ -190,7 +202,7 @@ export async function serve(account: string, port: number): Promise<void> {
     idleTimeout: 255,
     async fetch(req) {
       const path = new URL(req.url).pathname;
-      if (path === "/info") return Response.json({ account, workDir, pid: process.pid });
+      if (path === "/info") return Response.json({ target: key, workDir, pid: process.pid });
       if (path === "/quit") {
         setTimeout(() => stop(0), 100);
         return new Response("bye");
@@ -204,5 +216,5 @@ export async function serve(account: string, port: number): Promise<void> {
       }
     },
   });
-  console.log(JSON.stringify({ ok: true, serving: account, port, workDir, pid: process.pid }));
+  console.log(JSON.stringify({ ok: true, serving: key, port, workDir, pid: process.pid }));
 }

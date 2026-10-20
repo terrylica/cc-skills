@@ -407,32 +407,6 @@
       "strict": false
     },
     {
-      "name": "gws-admin-console",
-      "description": "Drive console-only Google Workspace Admin settings (no API, no GAM) through a signed-in Chrome profile - recipes as data, idempotent ensure, read-back verification after Save, per-step screenshots, and a re-authentication gate that alerts a human and never types a password. First recipe: Gmail Default routing",
-      "version": "33.22.1",
-      "source": "./plugins/gws-admin-console",
-      "category": "devops",
-      "author": {
-        "name": "terrylica",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "google-workspace",
-        "admin-console",
-        "gmail",
-        "default-routing",
-        "browser-automation",
-        "playwright",
-        "playwright-extension",
-        "no-api",
-        "idempotent"
-      ],
-      "strict": false,
-      "requires": [
-        "chrome-profiles"
-      ]
-    },
-    {
       "name": "html-showcase",
       "description": "Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, contractor portfolios, telemetry dashboards). Single design-system SSoT served via jsDelivr CDN; pages stay pure HTML with optional per-page CSS overrides.",
       "version": "33.22.1",
@@ -956,7 +930,7 @@
     },
     {
       "name": "web-forge",
-      "description": "Supervised dashboard automation for API-less operations - persistent-profile CDP harness, secrets-safe token/OAuth-app forging, declarative Cloudflare Access walls (GitHub SSO + email OTP) that work directly on *.workers.dev",
+      "description": "Browser automation for API-less operations, one harness - console recipes as data (idempotent ensure, read-back after Save, per-step screenshots, a login gate that alerts a human and never types a password; first family: Google Workspace Admin, e.g. Gmail Default routing), two connection modes (signed-in everyday-Chrome profile via the Playwright Extension, or a persistent per-site CDP profile), secrets-safe token/OAuth-app forging DOM-to-vault, and declarative Cloudflare Access walls (GitHub SSO + email OTP) that work directly on *.workers.dev",
       "version": "33.22.1",
       "source": "./plugins/web-forge",
       "category": "devops",
@@ -976,7 +950,14 @@
         "vault",
         "workers",
         "sso",
-        "otp"
+        "otp",
+        "google-workspace",
+        "admin-console",
+        "gmail",
+        "default-routing",
+        "playwright-extension",
+        "no-api",
+        "idempotent"
       ],
       "strict": false,
       "requires": [

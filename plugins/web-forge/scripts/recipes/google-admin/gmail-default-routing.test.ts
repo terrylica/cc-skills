@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { UsageError } from "../lib/args.ts";
-import type { FormState } from "../lib/form.ts";
+import { UsageError } from "../../lib/args.ts";
+import type { FormState } from "../../lib/form.ts";
 import { candidates, diffRule, LABELS, observedFromForm, parseTable, planForm, sameMatch, type Spec, specFromFlags } from "./gmail-default-routing.ts";
 
 const flags = {

@@ -67,3 +67,27 @@ export function helpText(specs: FlagSpec[]): string {
     })
     .join("\n");
 }
+
+/**
+ * A recipe spec file is the same flags as data — `{"match": "group:team@example.com", "add-original-to-header": true}` —
+ * so a project can keep its invocation as reviewed JSON in its own repository. Pure: the object becomes argv tokens
+ * for the one parser above (flags given on the command line come later and win). `true` is a bare boolean flag;
+ * `false` and `null` are omitted.
+ */
+export function argvFromSpec(spec: unknown, specs: FlagSpec[]): string[] {
+  if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new UsageError("a spec file must hold one JSON object of flag names to values");
+  const byName = new Map(specs.map((s) => [s.name, s]));
+  const out: string[] = [];
+  for (const [name, v] of Object.entries(spec as Record<string, unknown>)) {
+    if (name.startsWith("$")) continue; // $schema, $comment
+    const s = byName.get(name);
+    if (!s) throw new UsageError(`spec: unknown flag "${name}"`);
+    if (v === false || v === null) continue;
+    if (s.type === "bool") {
+      if (v !== true) throw new UsageError(`spec: "${name}" must be true or false`);
+      out.push(`--${name}`);
+    } else if (typeof v === "string" || typeof v === "number") out.push(`--${name}`, String(v));
+    else throw new UsageError(`spec: "${name}" must be a string or a number`);
+  }
+  return out;
+}

@@ -10,11 +10,8 @@
 // team emails. The scoped API token + minted service-token secrets ride the SCS vault; nothing
 // secret is ever printed.
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 
-const FORGE = await import(join(homedir(), "eon/cc-skills/plugins/web-forge/lib/browser-forge.mjs"));
-const { vaultGet, vaultSet, apiCaller } = FORGE;
+import { vaultGet, vaultSet, apiCaller } from "../../../lib/browser-forge.mjs";
 
 const specPath = process.argv[2];
 if (!specPath) {

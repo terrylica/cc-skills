@@ -10,10 +10,10 @@
 // Identity: the Default routing dialog has NO description field (measured 2026-10-19: the dialog's only text
 // fields are the match value and the action values). A rule is therefore identified by its MATCH (kind + value).
 // --description is carried in the JSON result for the caller's own records; Google never stores it.
-import type { FlagSpec, Flags } from "../lib/args.ts";
-import { UsageError } from "../lib/args.ts";
-import { applyOps, type FormOp, type FormState, PRESS_DIALOG_BUTTON, READ_FORM } from "../lib/form.ts";
-import type { Driver } from "../lib/page.ts";
+import type { FlagSpec, Flags } from "../../lib/args.ts";
+import { UsageError } from "../../lib/args.ts";
+import { applyOps, type FormOp, type FormState, PRESS_DIALOG_BUTTON, READ_FORM } from "../../lib/form.ts";
+import type { Driver } from "../../lib/page.ts";
 
 export const URL = "https://admin.google.com/ac/apps/gmail/defaultrouting";
 /** Accessible names of the rule dialog when adding and when editing. */
@@ -61,7 +61,6 @@ export interface Spec {
 }
 
 export const FLAGS: FlagSpec[] = [
-  { name: "account", type: "string", required: true, help: "Admin account whose Chrome profile drives the console (chrome-profile.sh resolves it by email)" },
   { name: "description", type: "string", help: "Your label for the rule. Google's Default routing has no description field, so it only appears in this tool's JSON result", default: "" },
   { name: "match", type: "string", help: "Envelope recipients to match: group:<email> | single:<email> | pattern:<regex> | all" },
   { name: "change-envelope-recipient", type: "string", help: "Replace the envelope recipient with this address" },
