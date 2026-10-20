@@ -1,3 +1,30 @@
+# [34.1.0](https://github.com/terrylica/cc-skills/compare/v34.0.0...v34.1.0) (2026-10-20)
+
+
+### Bug Fixes
+
+* **web-forge:** delivered emergency page no longer logged as exit null ([e37371f](https://github.com/terrylica/cc-skills/commit/e37371ff0296ec4d177c8046669b08e2f65de40f))
+
+When a console asked the signed-in account to verify it's you, `--alert emergency` logged "emergency alert failed (exit null)" although the Pushover audit trail shows the priority-2 message was accepted (status 1, receipt issued). Root cause: `pushover_core.ts emergency` polls the receipt until the operator acknowledges or --expire (600 s) runs out, while the gate ran it with spawnSync and a 60 s timeout. Every unacknowledged page was therefore killed by SIGTERM mid-poll, spawnSync returned status null, and the log printed that null. Reproduced with a hanging stub: {status: null, signal: SIGTERM, error: ETIMEDOUT}.
+
+- pushover-commander: `emergency --no-wait` prints the receipt and exits once Pushover accepted the message, skipping the ack poll; documented in emergency-priority2-receipt.
+- web-forge gate: calls the core with --no-wait under process.execPath, logs "emergency alert sent" on success, and names the exit code, signal, timeout or spawn error (plus the core's last stderr line) on a real failure, never "exit null".
+- New scripts/lib/gate.test.ts drives alertOperator against stub cores (never a real send): --no-wait passed, proxies stripped, exit code reported, timeout kill reported, missing core reported as unavailable.
+
+
+
+### Features
+
+* **gmail-commander:** draft builder renders [text](url) as a named link ([e43b306](https://github.com/terrylica/cc-skills/commit/e43b3062b5fef3c4967d45b3324603fb510a87ca))
+
+A message to a non-technical reader carried a 270-character raw link that wrapped into five broken-looking lines. The draft builder now accepts markdown named links: the HTML part renders &lt;a href="URL">link text&lt;/a> and the text/plain part renders "link text (URL)".
+
+- Only http://, https:// and mailto: targets become links; any other scheme or a relative path leaves the whole [text](target) as literal, escaped text.
+- One level of balanced parentheses in a target is kept (Parser_(software)); an unbalanced ")" ends the target, documented with the %29 workaround. A target with whitespace is not a link.
+- The URL inside a named link is never autolinked a second time; bare-URL autolinking, the <https://...> unwrap and the raw-split escaping that stops "&gt" absorption are unchanged.
+- text/plain: URLs (named or bare) are shielded from the emphasis stripper, so underscores in a path survive.
+- 14 new unit tests in gmail-draft.test.ts (63 total).
+
 # [34.0.0](https://github.com/terrylica/cc-skills/compare/v33.22.1...v34.0.0) (2026-10-20)
 
 
