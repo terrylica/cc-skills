@@ -1,3 +1,20 @@
+# [33.22.0](https://github.com/[secure]/cc-skills/compare/v33.21.1...v33.22.0) (2026-10-20)
+
+
+### Features
+
+* **gws-admin-console:** harness for console-only Google Admin settings ([1f3af20](https://github.com/[secure]/cc-skills/commit/1f3af20464863aa22effb52acde1f08c57e3e4e3))
+
+Some Google Workspace settings exist only in the Admin console: Gmail Default routing is absent from the Cloud Identity Policy API's supported settings and GAM cannot set it. This plugin drives such pages through a signed-in Chrome profile (via chrome-profiles' Playwright Extension route), so a setting learned once can be applied again for any tenant from a recorded command, and proven by reading it back.
+
+- New plugin gws-admin-console with skill admin-console and the CLI scripts/gws-admin-console.ts (recipes, &lt;recipe> &lt;verb>, serve, stop; --help and recipes --json describe every flag and exit code).
+- Recipes are data: flags become a list of form operations (select, pick, tick, fill, choose) that are replayed one step at a time; the form is read back before Save, and after Save the page is reloaded and the rule's Edit dialog is compared field by field (exit 1 on mismatch).
+- First recipe gmail-default-routing ensure: match group, single, pattern or all; change the envelope recipient; add X-Gm-Original-To; recognized or non-recognized scope. Idempotent: identical rule is a no-op, a differing one is reported (exit 3) unless --update; --dry-run fills and cancels; --verify only reads back.
+- Re-authentication gate: a "verify it's you" page is detected, the operator is alerted (local notice, optionally a Pushover Emergency), the tab is polled and never reloaded, and no password is ever typed (exit 4 on timeout).
+- Lessons measured live and baked into the primitives: force clicks after bringToFront in background tabs; checkbox found from its label's nearest checkbox-bearing ancestor; the Select Groups picker selects on a row click, has no confirm button and must be closed with its X; the rules table is lossy, so identity is read from each candidate's Edit dialog.
+- --screenshots saves a PNG per step; any failed step is always captured, cancelled and reloaded so a half-filled rule is never saved.
+- 39 unit tests cover flag parsing, run-code result parsing, page classification, spec parsing, form planning, form read-back, diffing and table parsing, with fixtures anonymised to example.com.
+
 ## [33.21.1](https://github.com/terrylica/cc-skills/compare/v33.21.0...v33.21.1) (2026-10-19)
 
 
