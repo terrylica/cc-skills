@@ -23,7 +23,14 @@ export PREPUSH_GATE_OK="release push: release-preflight already ran the suites"
 # stamps its bot address, which the privacy gate's public-repo identity check refuses (only a
 # GitHub noreply address passes), so the release commit failed after the version was computed.
 # semantic-release honours these four variables over its defaults.
-release_name="$(git config user.name)"
+#
+# The NAME carries a suffix on purpose. semantic-release masks, as "[secure]", every value of an env
+# variable whose name matches /token|password|credential|secret|private|key|auth|webhook/i, and
+# "GIT_AUTHOR_NAME" matches "auth". With the bare account name as its value, every GitHub URL in the
+# release notes and CHANGELOG lost its owner (v33.22.0 published "github.com/[secure]/cc-skills").
+# A value that never occurs in the notes keeps the mask harmless. The email is masked only as a
+# whole string, which never appears in notes, so it stays the plain noreply address.
+release_name="$(git config user.name) (release)"
 release_email="$(git config user.email)"
 export GIT_AUTHOR_NAME="$release_name" GIT_COMMITTER_NAME="$release_name"
 export GIT_AUTHOR_EMAIL="$release_email" GIT_COMMITTER_EMAIL="$release_email"
