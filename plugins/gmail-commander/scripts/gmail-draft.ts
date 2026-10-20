@@ -23,7 +23,14 @@
  *     to spaces (this is what defeats formatter-wrapped sources).
  *   - HTML part: paragraphs → <p>; lists → <ul>; http(s) URLs auto-linked; **bold**, *italic* or _italic_, and `code`
  *     → real rich text (identifier-safe, see renderInlineEmphasis); everything entity-escaped first.
- *   - text/plain part: the same text with the emphasis markers dropped.
+ *   - Named links `[link text](https://…)` → `<a href="URL">link text</a>`, so a long address never
+ *     shows in the body. Only http://, https:// and mailto: targets are linked; any other scheme
+ *     (javascript:, data:, file:, a relative path) leaves the whole `[text](target)` as literal text.
+ *     A target may contain one level of BALANCED parentheses (`…/Parser_(software)`); an unbalanced
+ *     `)` ends the target, and a target with whitespace is not a link. The URL inside a named link
+ *     is never auto-linked a second time. See MARKDOWN_LINK_PATTERN.
+ *   - text/plain part: the same text with the emphasis markers dropped; a named link becomes
+ *     `link text (URL)` (just the text when it IS the address), so a plain-text reader still has it.
  *   - text/plain part: the same unwrapped paragraphs (long lines — Gmail may fold THAT part, but
  *     Gmail's editor uses the HTML part, so the visible draft reflows correctly).
  *
@@ -167,8 +174,7 @@ function paragraphs(md: string): string[] {
 export function blocksToPlainText(blocks: BodyBlock[]): string {
   return `${blocks
     .map((b) => (b.kind === "prose" ? b.text : [b.leadIn, ...b.items].filter(Boolean).join("\n")))
-    .map(stripInlineEmphasis)
-    .map((t) => t.replace(/<(https?:\/\/[^\s<>]+)>/g, "$1"))
+    .map(renderPlainInline)
     .join("\n\n")}\n`;
 }
 
@@ -249,11 +255,17 @@ export function stripInlineEmphasis(text: string): string {
  * each side separately avoids that class entirely.
  */
 export function escapeAndLinkify(text: string): string {
-  // A Markdown autolink `<https://…>` (what formatters turn a bare URL into) is just the URL: without
-  // this, the angle brackets reach the recipient as visible text around the link.
-  const unwrapped = text.replace(/<(https?:\/\/[^\s<>]+)>/g, "$1");
+  return mapNamedLinks(
+    unwrapAutolinks(text),
+    (label, url) => `<a href="${escapeHtml(url)}">${renderInlineEmphasis(escapeHtml(label))}</a>`,
+    linkifyBareUrlsAndEscape,
+  );
+}
+
+/** Escape prose and link its bare URLs — the pre-named-link body of escapeAndLinkify. */
+function linkifyBareUrlsAndEscape(raw: string): string {
   // Odd indices are the captured URLs; even indices are the prose between them.
-  return unwrapped
+  return raw
     .split(URL_SPLIT_PATTERN)
     .map((part, index) => {
       if (index % 2 === 0) return renderInlineEmphasis(escapeHtml(part));
@@ -263,6 +275,77 @@ export function escapeAndLinkify(text: string): string {
       return `<a href="${safe}">${safe}</a>${escapeHtml(tail)}`;
     })
     .join("");
+}
+
+/**
+ * A Markdown autolink `<https://…>` (what formatters turn a bare URL into) is just the URL: without
+ * this, the angle brackets reach the recipient as visible text around the link. Also unwraps the
+ * CommonMark form `[text](<https://…>)`, which then reads as an ordinary named link.
+ */
+const unwrapAutolinks = (text: string): string => text.replace(/<(https?:\/\/[^\s<>]+)>/g, "$1");
+
+/**
+ * A Markdown named link `[link text](target)`, matched on the RAW (unescaped) text.
+ *
+ * WHY: a 270-character tracking or sign-in URL pasted bare into a message to a non-technical reader
+ * wrapped into five broken-looking lines. A named link shows the words and hides the address.
+ *
+ * - The text may not contain `[`, `]` or a newline (no nesting, no spanning paragraphs).
+ * - The target is one run without whitespace. It may contain ONE level of balanced parentheses, so
+ *   `[x](https://en.wikipedia.org/wiki/Parser_(software))` keeps its `(software)`; the first `)`
+ *   that does not close a `(` opened inside the target ends it. A target with a nested or unbalanced
+ *   `)` is therefore NOT supported: it ends early and the rest stays as prose. Percent-encode such a
+ *   paren as `%29` instead.
+ * - `?`, `&`, `=`, `%`, `#`, `+`, `@` and any length are fine: nothing in the target is interpreted.
+ */
+const MARKDOWN_LINK_PATTERN = /\[([^[\]\n]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)/g;
+
+/** The only targets a named link may point at; anything else stays literal text. */
+const LINKABLE_TARGET = /^(?:https?:\/\/[^\s/?#]|mailto:[^\s])/i;
+
+/**
+ * Walk `text`, handing each ACCEPTED named link to `onLink` and every other stretch (including a
+ * rejected `[text](javascript:…)`, verbatim) to `onProse`. Keeping the link out of `onProse` is what
+ * stops the bare-URL autolinker from linking the address inside a named link a second time.
+ */
+function mapNamedLinks(text: string, onLink: (label: string, url: string) => string, onProse: (raw: string) => string): string {
+  let out = "";
+  let pending = "";
+  let last = 0;
+  for (const m of text.matchAll(MARKDOWN_LINK_PATTERN)) {
+    const [whole, label = "", url = ""] = m;
+    pending += text.slice(last, m.index);
+    last = m.index + whole.length;
+    if (!LINKABLE_TARGET.test(url)) {
+      pending += whole;
+      continue;
+    }
+    out += onProse(pending) + onLink(label, url);
+    pending = "";
+  }
+  return out + onProse(pending + text.slice(last));
+}
+
+/**
+ * The text/plain twin of escapeAndLinkify: emphasis markers dropped, a named link written as
+ * `link text (URL)`. The URL is kept because a plain-text reader has no other way to reach it, and
+ * the parenthesised form reads as an aside in a sentence where `text: URL` would not. URLs, named
+ * or bare, are shielded from the emphasis stripper so `…/_draft_/…` keeps its underscores.
+ */
+export function renderPlainInline(text: string): string {
+  return mapNamedLinks(
+    unwrapAutolinks(text),
+    (label, url) => {
+      const words = stripInlineEmphasis(label);
+      if (words === url || `mailto:${words}` === url) return words;
+      return `${words} (${url})`;
+    },
+    (raw) =>
+      raw
+        .split(URL_SPLIT_PATTERN)
+        .map((part, index) => (index % 2 === 0 ? stripInlineEmphasis(part) : part))
+        .join(""),
+  );
 }
 
 /**

@@ -463,3 +463,90 @@ describe("Markdown autolinks", () => {
     expect(escapeAndLinkify("<tag>")).toBe("&lt;tag&gt;");
   });
 });
+
+import { renderPlainInline } from "./gmail-draft.ts";
+
+describe("named links [text](url) — the reader sees words, not a 270-character address", () => {
+  // A realistic long link: query string with every character class the task names.
+  const longUrl = `https://accounts.example.com/signup/continue?flowName=GlifWebSignIn&continue=${"a%2Fb%3Dc+d".repeat(22)}&hl=en#section-2&user=a@b.example`;
+
+  test("HTML part: the text is the anchor, the URL lives only in href", () => {
+    expect(longUrl.length).toBeGreaterThan(270);
+    const html = escapeAndLinkify(`Please [create your account](${longUrl}) today.`);
+    const href = longUrl.replaceAll("&", "&amp;");
+    expect(html).toBe(`Please <a href="${href}">create your account</a> today.`);
+  });
+
+  test("the URL inside a named link is never linked a second time", () => {
+    const html = escapeAndLinkify("[docs](https://x.dev/a?p=1&q=2)");
+    expect(html.match(/<a /g)?.length).toBe(1);
+    expect(html).toBe('<a href="https://x.dev/a?p=1&amp;q=2">docs</a>');
+  });
+
+  test("bare URLs beside a named link still autolink", () => {
+    const html = escapeAndLinkify("[one](https://a.dev/1) and https://b.dev/2.");
+    expect(html).toBe('<a href="https://a.dev/1">one</a> and <a href="https://b.dev/2">https://b.dev/2</a>.');
+  });
+
+  test("text and attribute are escaped; emphasis inside the text renders", () => {
+    const html = escapeAndLinkify('[**Tom & "Jerry"** <b>](https://x.dev/?a="b"&c=<d>)');
+    expect(html).toBe('<a href="https://x.dev/?a=&quot;b&quot;&amp;c=&lt;d&gt;"><b>Tom &amp; &quot;Jerry&quot;</b> &lt;b&gt;</a>');
+  });
+
+  test("mailto: is accepted", () => {
+    expect(escapeAndLinkify("[write to us](mailto:help@example.com)")).toBe('<a href="mailto:help@example.com">write to us</a>');
+  });
+
+  test("any other scheme stays literal text, escaped, never an anchor", () => {
+    for (const target of ["javascript:alert(1)", "data:text/html,hi", "file:///etc/passwd", "/relative/path", "ftp://x.dev/a"]) {
+      const html = escapeAndLinkify(`[click](${target})`);
+      expect(html).not.toContain("<a ");
+      expect(html).toBe(`[click](${target})`);
+    }
+  });
+
+  test("one level of balanced parentheses in the target is kept", () => {
+    expect(escapeAndLinkify("[parser](https://en.wikipedia.org/wiki/Parser_(software)).")).toBe(
+      '<a href="https://en.wikipedia.org/wiki/Parser_(software)">parser</a>.',
+    );
+  });
+
+  test("an unbalanced ) ends the target (documented limitation; use %29)", () => {
+    const html = escapeAndLinkify("[x](https://x.dev/a)b)");
+    expect(html).toBe('<a href="https://x.dev/a">x</a>b)');
+  });
+
+  test("whitespace in the target means it is not a named link", () => {
+    expect(escapeAndLinkify("[x](https://x.dev/a b)")).toBe('[x](<a href="https://x.dev/a">https://x.dev/a</a> b)');
+  });
+
+  test("the CommonMark <…> target form works", () => {
+    expect(escapeAndLinkify("[x](<https://x.dev/a>)")).toBe('<a href="https://x.dev/a">x</a>');
+  });
+
+  test("a URL written in angle brackets after a named link does not absorb &gt (the old fix holds)", () => {
+    expect(escapeAndLinkify("[x](https://x.dev/a) <https://y.dev/b>")).toBe(
+      '<a href="https://x.dev/a">x</a> <a href="https://y.dev/b">https://y.dev/b</a>',
+    );
+  });
+
+  test("text/plain part: `link text (URL)`, markers dropped", () => {
+    expect(renderPlainInline(`Please [**create** your account](${longUrl}) today.`)).toBe(`Please create your account (${longUrl}) today.`);
+    expect(renderPlainInline("[https://x.dev/a](https://x.dev/a)")).toBe("https://x.dev/a");
+    expect(renderPlainInline("[help@example.com](mailto:help@example.com)")).toBe("help@example.com");
+    expect(renderPlainInline("[click](javascript:alert(1))")).toBe("[click](javascript:alert(1))");
+  });
+
+  test("text/plain part: underscores inside a URL survive the emphasis stripper", () => {
+    expect(renderPlainInline("see https://x.dev/_draft_/a and _this_")).toBe("see https://x.dev/_draft_/a and this");
+    expect(renderPlainInline("[doc](https://x.dev/_draft_/a)")).toBe("doc (https://x.dev/_draft_/a)");
+  });
+
+  test("end to end through the block renderers, with no forced line breaks", () => {
+    const blocks = splitBodyIntoBlocks(`Steps:\n- [Open the form](${longUrl})\n- Reply here`);
+    const html = blocksToHtml(blocks);
+    expect(html).toContain(">Open the form</a></li>");
+    expect(findForcedLineBreaksInRenderedHtml(html)).toEqual([]);
+    expect(blocksToPlainText(blocks)).toContain(`- Open the form (${longUrl})`);
+  });
+});
