@@ -1,3 +1,17 @@
+## [33.22.1](https://github.com/terrylica/cc-skills/compare/v33.22.0...v33.22.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **release:** owner name no longer masked in release notes ([1704abb](https://github.com/terrylica/cc-skills/commit/1704abbf8bc67966548f014217f9560f07725fbd))
+
+semantic-release masks, as "[secure]", every value of an environment variable whose name matches /token|password|credential|secret|private|key|auth|webhook/i. tasks/release/version exports GIT_AUTHOR_NAME so the release commit carries the repository's own identity, and "GIT_AUTHOR_NAME" matches "auth"; its value was the bare account name, which appears in every GitHub URL. v33.22.0 therefore published its CHANGELOG heading and commit links as "github.com/[secure]/cc-skills". The release body on GitHub was written by hand and is correct.
+
+- The release author name is now the account name with a " (release)" suffix, a value that never occurs in notes, so the mask has nothing to hit. The committer variables do not match the pattern and the email is masked only as a whole string, so neither needed a change.
+- CHANGELOG: the six masked links of 33.22.0 are restored.
+- docs/release-notes/33.22.0.md stores the narrative published for v33.22.0.
+- The same run also showed that semantic-release's push of refs/notes/semantic-release-v33.22.0 is refused by the privacy gate's AI pass (it flags git's automatic notes message and the {"channels":[null]} content). The ref is functionally redundant: semantic-release reads a tag with no note as channels [null], the same value. It is left unpushed for the operator.
+
 # [33.22.0](https://github.com/terrylica/cc-skills/compare/v33.21.1...v33.22.0) (2026-10-20)
 
 
