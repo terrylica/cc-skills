@@ -19,13 +19,13 @@
 proto = "0.62.3"
 
 # Task orchestrator. Every entry point is a task in the root `moon.yml`.
-moon = "2.6.1"
+moon = "2.6.2"
 
 # Bun runs every script, CLI, hook and test in this marketplace.
-bun = "1.4.2"
+bun = "1.4.3"
 
 # Node exists ONLY for semantic-release, which does not support Bun
 # (semantic-release/semantic-release#3527). Nothing else here should reach for
 # it — if you are adding a Node dependency for anything other than the release
 # pipeline, reach for Bun instead.
-node = "26.11.1"
+node = "26.12.1"
