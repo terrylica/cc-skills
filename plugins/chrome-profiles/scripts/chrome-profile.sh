@@ -19,10 +19,11 @@
 # link does. Attaching is done by the MCP servers: Microsoft's Playwright Extension inside the chosen profile, or
 # Chrome's own opt-in at chrome://inspect/#remote-debugging.
 #
-# THE EXTENSION TOKEN is per profile. It is kept in the macOS login Keychain (service "playwright-extension-token",
-# account = the email), or in a `vault` CLI scope "chrome-extension-tokens" if one exists (read through the vault's
-# own Keychain mirror, so a server start never costs a Touch ID: see token_get), and handed to the one MCP
-# process through its environment. It is never written to ~/.claude.json and never printed. One command line does
+# THE EXTENSION TOKEN is per profile. `setup` reads it out of the profile's Local Storage, where the extension keeps
+# it (token_from_profile), and falls back to a hidden paste dialog only when that fails. It is kept in the macOS
+# login Keychain (service "playwright-extension-token", account = the email), or in a `vault` CLI scope
+# "chrome-extension-tokens" if one exists (read through the vault's own Keychain mirror, so a server start never
+# costs a Touch ID: see token_get), and handed to the one MCP process through its environment. It is never written to ~/.claude.json and never printed. One command line does
 # carry it: the relay inside @playwright/mcp opens the extension's connect page by launching Chrome with a URL that
 # includes the token. `playwright-mcp` therefore gives the relay chrome-connect-launch.sh as its browser, which starts
 # Chrome without the token when it is not running and then hands the URL over through a short-lived process; see
@@ -95,6 +96,22 @@ token_put() {
   [ -n "$value" ] || die "empty token"
   hex=$(printf '%s' "$value" | xxd -p | tr -d '\n')
   printf 'add-generic-password -U -s %s -a %s -X %s\n' "$KC_SERVICE" "$email" "$hex" | security -i >/dev/null
+}
+
+# Read the token the extension created out of the profile's own Local Storage, so setup needs no paste
+# (extension-token-from-profile.ts; it reads a private copy, never Chrome's live files). The reader writes the token
+# ONLY to fd 3, which this function points at its own stdout, captured by the caller exactly as token_get's is; the
+# reader's stdout (a JSON status line without the token) and stderr go to /dev/null. Bun runs from this script's
+# directory with no .env, no bunfig and no auto-install, so nothing from the caller's working directory is loaded
+# (the Bun counterpart of `python -I`). Returns the reader's exit code: 0 found, 1 not created yet, 3 no readable
+# Local Storage, 4 not token-shaped; 127 when bun is missing.
+token_from_profile() {
+  local profile_dir="$1" here rc=0
+  command -v bun >/dev/null 2>&1 || return 127
+  here="$(dirname "$SELF")"
+  (cd "$here" && bun --no-env-file --no-install --config=/dev/null ./extension-token-from-profile.ts \
+    "$profile_dir" --ext-id "$EXT_ID" --emit-fd 3 3>&1 >/dev/null 2>/dev/null </dev/null) || rc=$?
+  return "$rc"
 }
 
 # A native hidden-input dialog, so the token is pasted into macOS, not into a chat or a terminal history.
@@ -219,10 +236,30 @@ case "$cmd" in
     fi
 
     if [ -z "$(token_get "$email")" ]; then
-      say "opening the extension's status page: copy the token it shows"
+      # Opening the status page makes the extension create its token; read it from the profile, and ask only when
+      # that fails. Only "not created yet" (exit 1) is worth waiting for.
+      say "opening the extension's status page (it creates the token)"
       "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
-      sleep 2
-      tok=$(prompt_hidden "Paste the Playwright Extension token for $email (the part after PLAYWRIGHT_MCP_EXTENSION_TOKEN= is enough):") || tok=""
+      tok=""; rc=0
+      for _ in 1 2 3 4 5 6; do
+        sleep 2
+        rc=0; tok=$(token_from_profile "$ROOT/$dir") || rc=$?
+        if [ "$rc" -eq 0 ] && [ -n "$tok" ]; then break; fi
+        [ "$rc" -eq 1 ] || break
+      done
+      if [ "$rc" -eq 0 ] && [ -n "$tok" ]; then
+        say "token read from the profile's Local Storage (${#tok} characters, not shown)"
+      else
+        case "$rc" in
+          0|1) why="the extension had not written one after 12 s" ;;
+          3)   why="the profile has no readable Local Storage" ;;
+          4)   why="the stored value does not look like a token" ;;
+          127) why="bun is not installed" ;;
+          *)   why="the reader failed with exit $rc" ;;
+        esac
+        say "could not read the token from the profile ($why): copy it from the status page into the dialog"
+        tok=$(prompt_hidden "Paste the Playwright Extension token for $email (the part after PLAYWRIGHT_MCP_EXTENSION_TOKEN= is enough):") || tok=""
+      fi
       token_put "$email" "$tok"
       unset tok
       say "token stored in the login Keychain (service $KC_SERVICE)"
