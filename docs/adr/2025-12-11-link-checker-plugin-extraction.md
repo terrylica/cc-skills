@@ -20,6 +20,8 @@ perspectives: [ProviderToOtherComponents, EcosystemArtifact]
 
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-11-link-checker-plugin-extraction/spec.md)
 
+> **Partly superseded 2026-10-21 ([#33](https://github.com/terrylica/cc-skills/issues/33))**: the Stop hook `stop-link-check.py` described here was never registered (link-tools has no `hooks.json`) and has been deleted, together with its bundled `hooks/config/lychee.toml` and the `.link-check-results.md` output. The link check that runs is `tasks/link-check.sh` (`moon run repo:link-check`), configured by the root `lychee.toml`.
+
 ## Context and Problem Statement
 
 The `claude-orchestrator` system (~9,000 lines) contains a powerful link validation hook (`check-links-hybrid.sh`, 1,041 lines) that runs lychee on markdown files at session end. This capability is tightly coupled to the orchestrator's Telegram bot, workflow menus, and state management infrastructure.

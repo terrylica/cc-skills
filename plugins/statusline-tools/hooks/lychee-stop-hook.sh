@@ -120,11 +120,14 @@ if command -v lychee &>/dev/null; then
     if [[ -s "$MD_FILES_TMP" ]]; then
         # Run lychee on files (use temp file for output too)
         # --root-dir: Required to resolve root-relative paths like /docs/foo.md
-        # --config: Use project .lychee.toml if it exists (excludes test fixtures, etc.)
+        # --config: the project's lychee.toml (lychee's own default name; cc-skills keeps its
+        # one config there), else a legacy .lychee.toml for repos that still use that name
         LYCHEE_TMP=$(mktemp)
         # Build lychee command args as array to avoid SC2086
         LYCHEE_ARGS=(--offline --no-progress --format json --root-dir "$GIT_ROOT")
-        if [[ -f "$GIT_ROOT/.lychee.toml" ]]; then
+        if [[ -f "$GIT_ROOT/lychee.toml" ]]; then
+            LYCHEE_ARGS+=(--config "$GIT_ROOT/lychee.toml")
+        elif [[ -f "$GIT_ROOT/.lychee.toml" ]]; then
             LYCHEE_ARGS+=(--config "$GIT_ROOT/.lychee.toml")
         fi
         if xargs lychee "${LYCHEE_ARGS[@]}" < "$MD_FILES_TMP" > "$LYCHEE_TMP" 2>/dev/null; then

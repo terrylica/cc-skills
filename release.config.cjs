@@ -386,7 +386,6 @@ module.exports = {
           ".claude-plugin/marketplace.json",
           "plugins/itp-hooks/plugin.json",
           "plugins/itp-hooks/hooks/hooks.json",
-          "plugins/link-tools/hooks/hooks.json",
           "plugins/dotfiles-tools/hooks/hooks.json",
           "plugins/statusline-tools/hooks/hooks.json",
           "plugins/gh-tools/hooks/hooks.json",

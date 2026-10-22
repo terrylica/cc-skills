@@ -34,6 +34,9 @@ claude plugin install link-tools@cc-skills
 # Validate link portability in a directory
 uv run plugins/link-tools/scripts/validate_links.py ./skills/
 
+# Offline link check over every markdown file (cc-skills repo)
+moon run repo:link-check        # or: bash tasks/link-check.sh
+
 # Run link validation on demand via skill
 /link-tools:link-validation
 ```
@@ -48,16 +51,13 @@ uv run plugins/link-tools/scripts/validate_links.py ./skills/
 
 ### Broken Link Detection (link-validation)
 
-- Uses lychee for fast link checking
-- Offline mode (local files only)
-- Path policy linting (NO_ABSOLUTE_PATHS, NO_PARENT_ESCAPES)
-- ULID correlation IDs for tracing
+- Uses lychee for fast link checking: relative links, root-relative links and `#anchors`
+- Offline mode (local files only), so the verdict is deterministic
+- In cc-skills the check is `tasks/link-check.sh`, part of `moon run repo:check`
 
 ## Configuration
 
-Override lychee config by placing `.lycheerc.toml` in your workspace root.
-
-See [config/lychee.toml](./hooks/config/lychee.toml) for defaults.
+lychee reads `lychee.toml` from the workspace root. cc-skills keeps exactly one, [`lychee.toml`](../../lychee.toml), shared by `tasks/link-check.sh` and the statusline-tools Stop hook.
 
 ## Scripts
 
@@ -70,17 +70,17 @@ See [config/lychee.toml](./hooks/config/lychee.toml) for defaults.
 | Issue            | Cause                      | Solution                                                        |
 | ---------------- | -------------------------- | --------------------------------------------------------------- |
 | lychee not found | Not installed              | `brew install lychee`                                           |
-| False positives  | Exclude patterns missing   | Add patterns to `.lycheerc.toml` exclude list                   |
+| False positives  | Exclude patterns missing   | Add patterns to the `exclude` list in `lychee.toml`             |
 | Timeout errors   | Network issues             | Use `--offline` flag for local-only validation                  |
 | Path violations  | Absolute paths in markdown | Convert to relative paths: `./file.md` not `/full/path/file.md` |
 
 ## Dependencies
 
-| Component | Required | Installation                                   |
-| --------- | -------- | ---------------------------------------------- |
-| lychee    | Yes      | `brew install lychee`                          |
-| Python    | Yes      | 3.11+ via `uv python install`                  |
-| uv        | Yes      | `brew install uv`                              |
+| Component | Required | Installation                  |
+| --------- | -------- | ----------------------------- |
+| lychee    | Yes      | `brew install lychee`         |
+| Python    | Yes      | 3.11+ via `uv python install` |
+| uv        | Yes      | `brew install uv`             |
 
 ## References
 
