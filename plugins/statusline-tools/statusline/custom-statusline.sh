@@ -77,6 +77,24 @@ RED='\033[91m'
 GREEN='\033[92m'
 CYAN='\033[96m'
 
+# STATUSLINE_HIDE — comma-separated segments to leave out of the render, e.g.
+#   STATUSLINE_HIDE=code,datetime,gateway
+# Names: git (line 1: group | git stats | release), code (scc line), model,
+# ctx (context bar), datetime, gateway (gateway health on the datetime line),
+# repo (path | GitHub URL), session (JSONL ID), cast (asciinema), cron.
+# Hiding `code` also skips running scc; hiding `gateway` turns the whole gateway
+# feature off (no probe, no cache file, no telemetry), exactly as if it were not
+# configured. Unknown names are ignored, so a typo can never break the render.
+# The datetime/gateway line is dropped only when both of its parts are hidden.
+STATUSLINE_HIDE_LIST=",${STATUSLINE_HIDE:-},"
+STATUSLINE_HIDE_LIST=${STATUSLINE_HIDE_LIST// /}
+statusline_shows() {
+    case "$STATUSLINE_HIDE_LIST" in
+    *",$1,"*) return 1 ;;
+    esac
+    return 0
+}
+
 # probe_direct — antifragile invariant for outbound network probes.
 #
 # The statusline must be a faithful mirror of system state, not a victim of
@@ -936,6 +954,7 @@ fi
 # gateway is configured it stays 0 and this whole block is inert.
 GATEWAY_CONFIGURED=0
 [ -n "$GATEWAY_BASE" ] && GATEWAY_CONFIGURED=1
+statusline_shows gateway || GATEWAY_CONFIGURED=0
 
 GATEWAY_CACHE=""
 [ "$GATEWAY_CONFIGURED" -eq 1 ] && \
@@ -1484,7 +1503,7 @@ fi
 # Bounded by 1s timeout: pathologically large repos drop the line silently rather
 # than hang the statusline.
 code_stats=""
-if command -v scc >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+if statusline_shows code && command -v scc >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     if command -v gtimeout >/dev/null 2>&1; then
         scc_json=$(gtimeout 1 scc --format=json2 . 2>/dev/null)
     elif command -v timeout >/dev/null 2>&1; then
@@ -1753,7 +1772,7 @@ if [ -n "$ITERM_SESSION_ID" ]; then
 fi
 
 # Output: git stats, code stats, timestamps, repo, session, cast, then cron jobs (bottom)
-echo -e "$line1"
+statusline_shows git && echo -e "$line1"
 
 # Code statistics (scc): LOC, files, complexity, top 3 languages, COCOMO
 # Empty when scc unavailable, repo not git, or computation timed out (>1s)
@@ -1761,11 +1780,11 @@ echo -e "$line1"
 
 # Model segment line (own line as of 2026-06-19) — after code stats, before
 # the datetime/gateway line. Suppressed entirely when no model token.
-[ -n "$model_inline" ] && echo -e "$model_inline"
+[ -n "$model_inline" ] && statusline_shows model && echo -e "$model_inline"
 
 # Context window bar (own line as of 2026-06-21) — after model line, before
 # datetime/gateway. Suppressed when context_window absent (session start).
-[ -n "$ctx_bar_segment" ] && echo -e "$ctx_bar_segment"
+[ -n "$ctx_bar_segment" ] && statusline_shows ctx && echo -e "$ctx_bar_segment"
 
 # =============================================================================
 # Gateway gateway summary — render LEGEND + SOURCE-OF-TRUTH map
@@ -2280,20 +2299,27 @@ if [ "$GATEWAY_CONFIGURED" -eq 1 ] \
     # $gateway_inline starts with its own leading space (the "gateway"
     # anchor), so concatenating directly after the BRIGHT_BLACK "|" separator
     # produces exactly one space of padding between them.
-    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${gateway_inline}${wrapper_part}"
-else
+    if statusline_shows datetime; then
+        echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${gateway_inline}${wrapper_part}"
+    else
+        # $gateway_inline carries its own leading space; drop it when it starts the line.
+        echo -e "${gateway_inline# }${wrapper_part}"
+    fi
+elif statusline_shows datetime; then
     echo -e "${datetime_display}"
 fi
 
-echo -e "$line_repo"
+statusline_shows repo && echo -e "$line_repo"
 
-if [ -n "$session_chain" ]; then
+if ! statusline_shows session; then
+    :
+elif [ -n "$session_chain" ]; then
     echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
 elif [ -n "$session_id" ]; then
     echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
 fi
 
-if [ -n "$iterm_session_uuid" ]; then
+if [ -n "$iterm_session_uuid" ] && statusline_shows cast; then
     echo -e "${BRIGHT_BLACK}~/asciinemalogs cast: ${iterm_session_uuid}${RESET}"
 fi
 
@@ -2354,7 +2380,7 @@ if [ "$cron_count" -gt 0 ]; then
     fi
 fi
 
-if [ "$cron_count" -gt 0 ]; then
+if [ "$cron_count" -gt 0 ] && statusline_shows cron; then
     while IFS= read -r entry; do
         job_id=$(echo "$entry"     | jq -r '.id')
         job_sched=$(echo "$entry"  | jq -r '.schedule')

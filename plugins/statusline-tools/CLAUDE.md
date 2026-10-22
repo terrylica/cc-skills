@@ -42,6 +42,10 @@ Each skill is also its slash command (`/statusline-tools:<skill>`).
 | MD/TS/Py …                                      | Top 3 languages by code share (% of total LOC)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ~$&lt;n&gt;                                     | COCOMO basic-organic cost estimate (informational)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
+## Hiding segments — `STATUSLINE_HIDE`
+
+`STATUSLINE_HIDE` is a comma-separated list of segment names to leave out: `git code model ctx datetime gateway repo session cast cron` (README § Status Line Display maps each to its line). The single gate is `statusline_shows <name>`; a new output line must get a name and go through it. Hiding `code` skips scc, and hiding `gateway` forces `GATEWAY_CONFIGURED=0`, so a hidden segment costs nothing. Unknown names are ignored. Pinned by the five `STATUSLINE_HIDE` tests in `tests/test_statusline.bats`.
+
 ## Linux portability
 
 File mtimes/sizes and ISO-8601 parsing go through `file_mtime`, `file_size` and `iso_utc_to_epoch` (GNU first, then BSD). Never call `stat -f` or `date -j` directly: on Linux GNU `stat -f` succeeds with filesystem info instead of an mtime, so every disk cache silently missed (fixed 2026-10-01; pinned by a source-level bats lint).

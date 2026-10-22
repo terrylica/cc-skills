@@ -74,39 +74,31 @@ Install or uninstall link validation stop hooks.
 
 ## Status Line Display
 
-The status line outputs 5 lines (plus optional cron lines):
+Lines, top to bottom. Each has a name for `STATUSLINE_HIDE` (below); a line whose data is absent is simply omitted.
 
-**Line 1**: Git indicators + version tag + release age
+| Name       | Line                                                                  | Example                                                                   |
+| ---------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `git`      | ccmax group (when the wrapper sets it) + git indicators + release     | `eon \| M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 \| v3.55.10 16h ago`              |
+| `code`     | Code statistics (scc): LOC, files, complexity, languages, COCOMO      | `Σ 210k LOC · 1.2k files · cx 30k · Go 33% Py 21% MD 14% · ~$7.4M COCOMO` |
+| `model`    | Model id, effort, thinking + Claude Code version                      | `claude-opus-5-5[1m] · medium · thinking:true \| 2.1.308`                 |
+| `ctx`      | Context window bar                                                    | `ctx ▕██████········\|≈≈≈≈≈≈▏ 30% · 300k/1M · ~414k until compact`        |
+| `datetime` | UTC + local time (with `gateway`: optional gateway health, same line) | `Thu 22 Oct 2026 20:46 UTC \| 13:46 PDT \| gateway 9/9 ✓ 3.55.10`         |
+| `repo`     | Repo path + GitHub URL (visibility)                                   | `~/eon/cc-skills \| https://github.com/user/repo (public)`                |
+| `session`  | Claude Code session JSONL ID                                          | `~/.claude/projects JSONL ID: abc12345-def4-5678-90ab-cdef12345678`       |
+| `cast`     | Asciinema cast UUID                                                   | `~/asciinemalogs cast: def45678-abcd-1234-5678-abcdef123456`              |
+| `cron`     | Active cron jobs, one line each                                       |                                                                           |
 
-```
-M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | v<version> | 2d ago
-```
+### Hiding segments — `STATUSLINE_HIDE`
 
-**Line 2**: Datetime (UTC + local TZ) + optional gateway health
+Set a comma-separated list of the names above to leave them out, for example in `~/.claude/settings.json`:
 
-```
-Tue 04 Mar 2026 23:36 UTC | 15:36 PST | gateway 3/3 ✓ 1.9.0
-```
-
-**Line 3**: Repo path + GitHub URL (public/private badge)
-
-```
-~/eon/cc-skills | https://github.com/user/repo [public]
-```
-
-**Line 4**: Session UUID + chain
-
-```
-Session: abc12345-def4-5678-90ab-cdef12345678 | chain: 3
+```json
+{ "env": { "STATUSLINE_HIDE": "code,datetime,gateway" } }
 ```
 
-**Line 5**: Asciinema cast UUID
-
-```
-Cast: def45678-abcd-1234-5678-abcdef123456
-```
-
-**Additional lines**: Active cron jobs (if any)
+- Hiding `code` also skips running scc; hiding `gateway` switches the gateway feature off entirely (no probe, no cache file, no telemetry), as if it were not configured.
+- The datetime line disappears only when both `datetime` and `gateway` are hidden; hiding just `datetime` leaves the gateway health on its own line.
+- Unknown names are ignored, so a typo never breaks the render. Unset means everything shows, as before.
 
 ### Indicators
 

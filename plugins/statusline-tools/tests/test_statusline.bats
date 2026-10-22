@@ -622,3 +622,52 @@ render_against_dead_gateway() {
     [ -z "$(sed -n 1p "$cache")" ]
     [ "$(sed -n 2p "$cache")" = "9.9.9" ]
 }
+
+# --- STATUSLINE_HIDE: named segments can be left out of the render -----------
+
+@test "STATUSLINE_HIDE=repo,session drops the repo and JSONL ID lines" {
+    cd "$FIXTURES/sample_repo"
+    run bash -c "echo '$TEST_INPUT' | $STATUSLINE"
+    [[ "$output" == *"https://github.com/"* ]]
+    [[ "$output" == *"JSONL ID"* ]] && [[ "$output" == *"test123"* ]]
+    run bash -c "echo '$TEST_INPUT' | STATUSLINE_HIDE=repo,session $STATUSLINE"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"https://github.com/"* ]]
+    [[ "$output" != *"JSONL ID"* ]]
+}
+
+@test "STATUSLINE_HIDE=datetime,gateway drops the datetime line entirely" {
+    cd "$FIXTURES/sample_repo"
+    run bash -c "echo '$TEST_INPUT' | STATUSLINE_HIDE=' datetime , gateway ' $STATUSLINE"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *" UTC "* ]]
+    [[ "$output" == *"JSONL ID"* ]] && [[ "$output" == *"test123"* ]]
+}
+
+@test "STATUSLINE_HIDE=gateway turns the gateway feature off (no probe, no cache file)" {
+    cd "$FIXTURES/sample_repo"
+    local floor="$BATS_TEST_TMPDIR/floor-cache"
+    run bash -c "echo '$TEST_INPUT' | STATUSLINE_HIDE=gateway STATUSLINE_GATEWAY_BASE_URL=http://127.0.0.1:9 STATUSLINE_GATEWAY_FLOOR_CACHE='$floor' STATUSLINE_GATEWAY_STATE_LOG='$BATS_TEST_TMPDIR/gw.jsonl' $STATUSLINE"
+    [ "$status" -eq 0 ]
+    [ ! -e "$floor" ]
+    [ ! -e "$BATS_TEST_TMPDIR/gw.jsonl" ]
+    [[ "$output" != *"gateway"* ]]
+}
+
+@test "STATUSLINE_HIDE=code does not run scc at all" {
+    cd "$FIXTURES/sample_repo"
+    local bin="$BATS_TEST_TMPDIR/bin"; mkdir -p "$bin"
+    printf '#!/bin/sh\ntouch "%s/scc-ran"\necho "{}"\n' "$BATS_TEST_TMPDIR" > "$bin/scc"; chmod +x "$bin/scc"
+    run bash -c "echo '$TEST_INPUT' | PATH='$bin':\$PATH STATUSLINE_HIDE=code $STATUSLINE"
+    [ "$status" -eq 0 ]
+    [ ! -e "$BATS_TEST_TMPDIR/scc-ran" ]
+    run bash -c "echo '$TEST_INPUT' | PATH='$bin':\$PATH $STATUSLINE"
+    [ -e "$BATS_TEST_TMPDIR/scc-ran" ]
+}
+
+@test "STATUSLINE_HIDE with an unknown name renders exactly as unset" {
+    cd "$FIXTURES/sample_repo"
+    plain=$(echo "$TEST_INPUT" | "$STATUSLINE" | grep -v ' UTC ')
+    typo=$(echo "$TEST_INPUT" | STATUSLINE_HIDE=nonsense,,x "$STATUSLINE" | grep -v ' UTC ')
+    [ "$plain" = "$typo" ]
+}
