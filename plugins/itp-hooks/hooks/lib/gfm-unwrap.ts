@@ -279,7 +279,8 @@ function canAbsorb(ctx: ScanContext, index: number, openDepth: number): boolean 
 function scanAndJoinGfmParagraphs(body: string): ScanResult {
   const source = body.replace(/\r\n/g, "\n");
   const lines = source.split("\n");
-  const inFence = computeFencedCodeLineMask(lines);
+  // Quote-aware: `> ```` opens a fence too, and its lines are never joined.
+  const inFence = computeFencedCodeLineMask(lines, { blockquotes: true });
   const isListContinuation = computeListContinuationLineMask(lines);
   const ctx: ScanContext = { lines, inFence, isListContinuation };
 

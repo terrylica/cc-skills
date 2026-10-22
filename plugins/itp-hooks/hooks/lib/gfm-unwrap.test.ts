@@ -140,6 +140,82 @@ describe("blockquotes — the case the DETECTOR misses entirely", () => {
   });
 });
 
+describe("fenced code inside a blockquote (cc-skills#1)", () => {
+  test("the issue repro: only the two quoted prose lines are joined", () => {
+    const input = [
+      "> Intro line one",
+      "> continues here.",
+      ">",
+      "> ```bash",
+      "> echo one",
+      "> echo two",
+      "> ```",
+      ">",
+      "> After the block.",
+      "",
+      "```bash",
+      "echo outside",
+      "echo two",
+      "```",
+    ].join("\n");
+    const expected = ["> Intro line one continues here.", ...input.split("\n").slice(2)].join("\n");
+    const result = unwrapGfmParagraphsDetailed(input);
+    expect(result.text).toBe(expected);
+    expect(result.joinsPerformed).toBe(1);
+    expect(computeJoinedWithNextLineMask(input).filter(Boolean)).toHaveLength(1);
+  });
+
+  test("a fence inside a nested `> >` quote keeps every line", () => {
+    const input = [
+      "> > Nested prose that wraps",
+      "> > onto a second line.",
+      "> >",
+      "> > ~~~sh",
+      "> > first command",
+      "> > > not a quote, just code",
+      "> > ~~~",
+      ">",
+      "> Outer prose that wraps",
+      "> onto its own second line.",
+    ].join("\n");
+    const lines = input.split("\n");
+    const expected = [
+      "> > Nested prose that wraps onto a second line.",
+      ...lines.slice(2, 8),
+      "> Outer prose that wraps onto its own second line.",
+    ].join("\n");
+    const result = unwrapGfmParagraphsDetailed(input);
+    expect(result.text).toBe(expected);
+    expect(result.joinsPerformed).toBe(2);
+  });
+
+  test("a fence the quote ends without closing does not leak into top-level text", () => {
+    const input = [
+      "> ```bash",
+      "> echo one",
+      "> echo two",
+      "",
+      "Top-level prose that was hard wrapped",
+      "onto a second line after the quote.",
+    ].join("\n");
+    const lines = input.split("\n");
+    const expected = [
+      ...lines.slice(0, 4),
+      "Top-level prose that was hard wrapped onto a second line after the quote.",
+    ].join("\n");
+    const result = unwrapGfmParagraphsDetailed(input);
+    expect(result.text).toBe(expected);
+    expect(result.joinsPerformed).toBe(1);
+  });
+
+  test("an unclosed quoted fence followed directly by an unquoted line closes too", () => {
+    const input = ["> ```", "> code line", "Prose straight after the quote that", "continues here."].join("\n");
+    const result = unwrapGfmParagraphsDetailed(input);
+    expect(result.text).toBe(["> ```", "> code line", "Prose straight after the quote that continues here."].join("\n"));
+    expect(result.joinsPerformed).toBe(1);
+  });
+});
+
 describe("CJK — a space between two Chinese characters is a content change", () => {
   test("joins two Chinese lines with NO inserted space", () => {
     const input = ["我愿意介绍所有客户，但前提是我们的方案、流程和对外材料", "已经足够完整成熟；在那之前，我不会贸然向客户推荐。"].join("\n");
