@@ -578,6 +578,8 @@ export function findAuthoredHtmlProblems(html: string, plain: string): string[] 
   }
   const handlers = [...new Set(tags.flatMap((t) => t.attrs.filter((a) => /^on[a-z]+$/.test(a.name)).map((a) => a.name)))];
   if (handlers.length > 0) problems.push(`contains an inline event handler (on…=: ${handlers.join(", ")})`);
+  // formaction only matters as a submit target, and a draft never submits anything.
+  if (tags.some((t) => t.attrs.some((a) => a.name === "formaction"))) problems.push("contains a formaction attribute");
 
   const urlAttrs = tags.flatMap((t) => t.attrs.filter((a) => URL_ATTRIBUTES.has(a.name)));
   const scriptSchemes = urlAttrs.filter((a) => /^(?:javascript|vbscript|data):/.test(schemeView(a.value)));

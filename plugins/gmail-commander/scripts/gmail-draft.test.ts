@@ -696,6 +696,11 @@ describe("--html blocklist (defence in depth; Gmail strips most of this anyway)"
     expect(findAuthoredHtmlProblems(wrap('<a href="https://x.dev/">x</a>'), plain)).toEqual([]);
   });
 
+  test("refuses a formaction attribute even outside a form", () => {
+    expect(problemsOf('<input type=image formaction="https://t.example/">')).toContain("formaction");
+  });
+
+
   test("event handlers are found in attribute position, including after a slash", () => {
     expect(problemsOf("<svg/onload=x()></svg>")).toContain("onload");
     expect(problemsOf('<div title="a>b" onmouseover="x()">y</div>')).toContain("onmouseover");
