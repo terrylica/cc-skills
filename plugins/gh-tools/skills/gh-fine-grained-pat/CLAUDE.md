@@ -19,7 +19,7 @@ GitHub has **no API to create fine-grained PATs** (only the web UI). We created 
 | `scripts/autosudo.mjs`          | Clear GitHub sudo via the gated `github-web-<account>` blob: passkey primary, password/TOTP fallback.                               |
 | `scripts/webauth-agent.mjs`     | Memory-only session agent (ssh-agent pattern) → one Touch-ID unlock lasts the session.                                              |
 | `schema/token-spec.schema.json` | JSON Schema 2020-12 — formal spec SSoT.                                                                                             |
-| `specs/*.json`                  | Five templates (release-bot, read-only-auditor, ci-status-reporter, account-scoped, kitchen-sink) + `specs/examples/`.              |
+| `specs/*.json`                  | Six templates (release-bot, relay-monitor-release-bot, read-only-auditor, ci-status-reporter, account-scoped, kitchen-sink) + `specs/examples/`.              |
 | `test/campaign.mjs`             | Empirical create→verify→delete harness + forced-failure + leak sweep.                                                               |
 | `test/autonomous.test.mjs`      | Unit tests (identity parsing, credential serde, agent put/get/TTL).                                                                 |
 | `test/webauthn-smoke.mjs`       | Live CDP proof: virtual-authenticator create→capture→restore on localhost (GitHub-independent).                                     |
@@ -29,7 +29,7 @@ GitHub has **no API to create fine-grained PATs** (only the web UI). We created 
 - **node, never bun.** Bun's `connectOverCDP` times out; node attaches in <1s. All scripts are `.mjs` run with `node`.
 - **`--remote-allow-origins=*`** on the Chrome launch — Chrome 111+ rejects the CDP websocket without it.
 - **CDP attach** = fetch `http://127.0.0.1:9222/json/version` → `webSocketDebuggerUrl` → `chromium.connectOverCDP()` (mirrors `gemini-deep-research/scripts/client.ts`). Retry both steps.
-- `playwright-core` resolves from the repo root `node_modules` (pinned `^1.58.2`); scripts just `import { chromium } from "playwright-core"`.
+- `playwright-core` resolves from the repo root `node_modules` (its version range lives in the root `package.json`, the SSoT); scripts just `import { chromium } from "playwright-core"`.
 - **Teardown kills a specific PID** found via `lsof -iTCP:<port>`; never `pkill -f` (process-storm policy in `~/.claude/CLAUDE.md`).
 - **`browser.close()` after each command** disconnects Playwright only — the externally-launched Chrome keeps running (persistent session). Use `pat quit` to actually kill it.
 
