@@ -116,7 +116,7 @@ See [references/configuration-framework.md](./references/configuration-framework
 
 ## Guardrails (Principled Guidelines)
 
-> **No trial-count corrections (operator rule, 2026-10-15)**: never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction (FWER/FDR procedures such as Holm or Benjamini-Yekutieli, e-LOND and other online multiple testing). Epoch-selection risk is handled by judging parsimony on the model itself (a small, pre-declared candidate set), by registration before runs and by unused data, and each rule reports its own statistics (Sharpe, PSR, MinTRL). The former DSR guardrail was removed on purpose; do not re-add it.
+> **No trial-count corrections (operator rule, 2026-10-15)**: never compute, report, rank by or cite the Deflated Sharpe Ratio, the minimum backtest length (MinBTL) or any other trial-count correction (FWER/FDR procedures such as Holm or Benjamini-Yekutieli, e-LOND and other online multiple testing). Epoch-selection risk is handled by judging parsimony on the model itself (a small, pre-declared candidate set), by registration before runs and by unused data, and each rule reports its own statistics (Sharpe, PSR, MinTRL). The former DSR guardrail was removed on purpose; do not re-add it.
 
 - **G1: WFE Thresholds** - 0.30 (reject), 0.50 (warning), 0.70 (target) based on practitioner consensus
 - **G2: IS_Sharpe Minimum** - Data-driven threshold: `2/sqrt(n)` adapts to sample size

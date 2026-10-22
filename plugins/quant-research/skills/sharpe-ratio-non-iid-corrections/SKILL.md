@@ -19,7 +19,7 @@ Sharpe ratio inference for a single strategy whose returns are non-Normal and se
 
 ## Out of scope — do not re-add (operator rule, 2026-10-15)
 
-Never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction: FWER and FDR procedures (Holm, Bonferroni/Šidák, Benjamini-Yekutieli, the paper's pFDR/oFDR/SFDR), e-LOND and other online multiple testing, expected-maximum-Sharpe deflation, effective-number-of-trials estimates. They were removed from this skill on purpose. Instead:
+Never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction: FWER and FDR procedures (Holm, Bonferroni/Šidák, Benjamini-Yekutieli, the paper's pFDR/oFDR/SFDR), e-LOND and other online multiple testing, expected-maximum-Sharpe deflation, effective-number-of-trials estimates, and the minimum backtest length (MinBTL), which is a function of the number of trials. MinTRL is a different quantity (one rule's own track record) and stays. They were removed from this skill on purpose. Instead:
 
 - **Judge parsimony on the model itself** (how many free parameters, how much was tuned), not by deflating a Sharpe for the number of trials.
 - **Guard selection with registration before runs and with unused data**: fix the hypothesis, rule and evaluation window before running, and confirm on data no run has touched.

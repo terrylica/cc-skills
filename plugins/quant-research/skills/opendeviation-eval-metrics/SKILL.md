@@ -22,7 +22,7 @@ Use this skill when:
 - Calculating PSR or MinTRL statistical tests
 - Generating evaluation reports from fold results
 
-> **No trial-count corrections (operator rule, 2026-10-15)**: never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction (FWER/FDR procedures such as Holm or Benjamini-Yekutieli, e-LOND and other online multiple testing). Judge parsimony on the model itself, guard selection with registration before runs and with unused data, and report each rule's own statistics (Sharpe, PSR, MinTRL). They were removed from this skill on purpose; do not re-add them. PBO/CSCV is not covered by the rule.
+> **No trial-count corrections (operator rule, 2026-10-15)**: never compute, report, rank by or cite the Deflated Sharpe Ratio, the minimum backtest length (MinBTL) or any other trial-count correction (FWER/FDR procedures such as Holm or Benjamini-Yekutieli, e-LOND and other online multiple testing). Judge parsimony on the model itself, guard selection with registration before runs and with unused data, and report each rule's own statistics (Sharpe, PSR, MinTRL). They were removed from this skill on purpose; do not re-add them. PBO/CSCV is not covered by the rule.
 
 ## Quick Start
 

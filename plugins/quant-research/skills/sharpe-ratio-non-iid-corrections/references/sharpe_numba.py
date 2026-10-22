@@ -11,10 +11,11 @@ Architecture: dependency tiers for clean Rust translation.
 
 Out of scope, by operator rule (2026-10-15): the paper's Deflated Sharpe Ratio,
 its Bayesian/sequential false-discovery rates and FWER, and every other
-trial-count correction (Holm, Benjamini-Yekutieli, e-LOND, ...). They were
-removed from this module and must not be re-added. Parsimony is judged on the
-model itself; selection is guarded by registration before runs and by data no
-run has seen; each rule reports its own PSR / MinTRL / power.
+trial-count correction (Holm, Benjamini-Yekutieli, e-LOND, the minimum
+backtest length MinBTL, ...). They were removed from this module and must not
+be re-added. Parsimony is judged on the model itself; selection is guarded by
+registration before runs and by data no run has seen; each rule reports its
+own PSR / MinTRL / power.
 
 Rust translation notes:
   float64 -> f64

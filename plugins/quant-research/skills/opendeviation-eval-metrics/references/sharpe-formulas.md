@@ -2,7 +2,7 @@
 
 > **Note**: This file contains quick-reference formulas for the ρ=0 (IID) special case used in range bar evaluation. For the full non-IID framework (ρ-corrected variance, PSR, MinTRL, critical Sharpe ratio and power, with a Numba JIT implementation), see the dedicated skill: [sharpe-ratio-non-iid-corrections](../../sharpe-ratio-non-iid-corrections/SKILL.md).
 >
-> **No trial-count corrections (operator rule, 2026-10-15)**: the Deflated Sharpe Ratio and every FWER/FDR or online multiple-testing correction were removed from this file on purpose. Report each rule's own PSR and MinTRL; guard selection with registration before runs and with unused data.
+> **No trial-count corrections (operator rule, 2026-10-15)**: the Deflated Sharpe Ratio, the minimum backtest length (MinBTL) and every FWER/FDR or online multiple-testing correction were removed from this file on purpose. Report each rule's own PSR and MinTRL; guard selection with registration before runs and with unused data.
 
 ## Why Standard Sharpe Fails for Range Bars
 

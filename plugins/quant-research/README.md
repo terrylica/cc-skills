@@ -44,7 +44,7 @@ Metrics for evaluating price-based sampling (open deviation bars):
 - **Sharpe ratio** calculations with proper daily aggregation and annualization
 - **Risk metrics**: Maximum drawdown, Calmar ratio, Sortino ratio
 - **ML prediction quality**: Information Coefficient (IC), autocorrelation analysis
-- **Statistical validation**: Probabilistic Sharpe Ratio (PSR), MinTRL (no trial-count corrections such as the Deflated Sharpe Ratio, by operator rule 2026-10-15)
+- **Statistical validation**: Probabilistic Sharpe Ratio (PSR), MinTRL (no trial-count corrections such as the Deflated Sharpe Ratio or MinBTL, by operator rule 2026-10-15)
 - **Crypto-specific**: sqrt(7) annualization for 24/7 markets
 
 ### adaptive-wfo-epoch

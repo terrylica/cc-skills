@@ -94,7 +94,7 @@ LLM agents systematically overstate z-scores. Treat agent-reported p-values as *
 
 **Two overstatement patterns**:
 
-1. **Selection reported as a single test**: agent tries 25 variants (or picks the top combo from 17,280) and reports the winner's in-sample z as if it were the only test. The winner is a hypothesis, not a finding. Do NOT repair this with a trial-count correction (Bonferroni, a `sqrt(2 ln K)` null-max, the Deflated Sharpe Ratio, FDR/FWER, e-LOND): this repository does not compute, report, rank by or cite them (issue #35). Instead register the winner (rule, threshold, window) and re-test it on data no variant was selected on; report that z.
+1. **Selection reported as a single test**: agent tries 25 variants (or picks the top combo from 17,280) and reports the winner's in-sample z as if it were the only test. The winner is a hypothesis, not a finding. Do NOT repair this with a trial-count correction (Bonferroni, a `sqrt(2 ln K)` null-max, the Deflated Sharpe Ratio, the minimum backtest length (MinBTL), FDR/FWER, e-LOND): this repository does not compute, report, rank by or cite them (issue #35). Instead register the winner (rule, threshold, window) and re-test it on data no variant was selected on; report that z.
 2. **Confused sample-mean z with binomial-proportion z**: 53.5% vs 50% on N=840 gives z≈2.0 not 4.2.
 
 **Always verify**:

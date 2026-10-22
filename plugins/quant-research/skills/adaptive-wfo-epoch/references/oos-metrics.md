@@ -250,7 +250,7 @@ def calmar_ratio(
 
 ## Tier 3: Statistical Validation
 
-> **No trial-count corrections (operator rule, 2026-10-15)**: the Deflated Sharpe Ratio and every FWER/FDR or online multiple-testing correction were removed on purpose; do not re-add them. Each rule reports its own statistics below, and selection is guarded by registration before runs and by unused data.
+> **No trial-count corrections (operator rule, 2026-10-15)**: the Deflated Sharpe Ratio, the minimum backtest length (MinBTL) and every FWER/FDR or online multiple-testing correction were removed on purpose; do not re-add them. Each rule reports its own statistics below, and selection is guarded by registration before runs and by unused data.
 
 ### 3.1 Probabilistic Sharpe Ratio (PSR)
 

@@ -18,6 +18,6 @@
 ## Conventions
 
 - **Crypto-specific**: sqrt(7) annualization for 24/7 markets
-- **Statistical validation**: PSR, MinTRL and the non-IID Sharpe variance for trading strategies. Never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction (FWER/FDR, Holm, Benjamini-Yekutieli, e-LOND): judge parsimony on the model, guard selection with registration before runs and unused data, report each rule's own statistics (operator rule 2026-10-15). PBO/CSCV is not covered
+- **Statistical validation**: PSR, MinTRL and the non-IID Sharpe variance for trading strategies. Never compute, report, rank by or cite the Deflated Sharpe Ratio, the minimum backtest length (MinBTL) or any other trial-count correction (FWER/FDR, Holm, Benjamini-Yekutieli, e-LOND): judge parsimony on the model, guard selection with registration before runs and unused data, report each rule's own statistics (operator rule 2026-10-15). PBO/CSCV is not covered
 - **Polars-first**: Use lazy frames (scan_csv) for large datasets
 - **Related plugins**: `devops-tools` (MLflow), `itp` (workflow automation)
