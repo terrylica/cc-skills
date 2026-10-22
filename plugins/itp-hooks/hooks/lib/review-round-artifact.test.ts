@@ -391,3 +391,59 @@ describe("heredoc bodies are text unless a shell runs them (2026-10-19)", () => 
     expect(classify(command).kind).toBe(expected as never);
   });
 });
+
+// cc-skills#21: classification is made on what the shell would RUN (the shared static walker), not
+// on what the text MENTIONS. Every MENTION row below is gated by the old raw-text classifier, so a
+// mutant that restores raw-text matching turns each of them red.
+describe("quoted mentions of a gated command are not invocations (#21)", () => {
+  test.each([
+    // The three shapes measured 2026-10-19, each denied by the raw-text classifier.
+    ['grep -nE "ready|gh pr create --fill" plugins/itp-hooks/hooks/lib/review-round-artifact.ts', null],
+    [`d=/tmp/wt; jq -n --arg c "cd $d && gh pr create --title t --body-file b.md" '{tool_input:{command:$c}}'`, null],
+    ['bun hooks/probe.ts "cd /tmp && git push origin HEAD"', null],
+    // Same class: a quoted argument, a commit message, a comment.
+    ['git commit -m "docs: say to run tests && git push afterwards"', null],
+    ["echo 'step 1; gh pr ready 12'", null],
+    ["ls # later; gh pr create --fill", null],
+    ["printf '%s\\n' \"(gh pr create --fill)\"", null],
+  ])("MENTION %j → %s", (command, expected) => {
+    expect(classify(command).kind).toBe(expected as never);
+  });
+
+  test.each([
+    // What the walker looks through is still gated, including spellings the regex never saw.
+    ["bash -c 'gh pr ready 12'", "pr-ready"],
+    ["x=$(gh pr create --fill)", "pr-create"],
+    ["if true; then gh pr ready 12; fi", "pr-ready"],
+    ["{ git push; }", "push"],
+    ["! git -C ../wt push", "push"],
+    ["/usr/local/bin/gh pr create --title t --body-file b.md", "pr-create"],
+    ["GH pr ready 12", "pr-ready"],
+    // A value-taking flag's value is not a flag: this titles a PR "--draft", it is not a draft.
+    ["gh pr create --title --draft --body-file b.md", "pr-create"],
+    ["gh pr create --draft=true --title x", null],
+    // The inline body is the quoted value, or the source when it is composed in place.
+    ["gh pr create --title t --body \"$(cat <<'EOF'\nline one\nline two\nEOF\n)\"", "inline-body"],
+    [`gh pr create --title t --body="${"y".repeat(301)}"`, "inline-body"],
+    ['gh pr create --title t --body "Short body."', "pr-create"],
+  ])("INVOCATION %j → %s", (command, expected) => {
+    expect(classify(command).kind).toBe(expected as never);
+  });
+
+  test.each([
+    // FAIL CLOSED: input the walker cannot lex completely is classified by the old text path,
+    // which gates these. A mutant that trusts an incomplete walk returns null for each.
+    ['echo "unterminated; gh pr create --fill', "pr-create"],
+    ["echo 'it is; gh pr ready 12", "pr-ready"],
+    ["echo $(printf '%s' '; git push origin HEAD'", "push"],
+    // A shell behind a reserved word: the walker does not attribute this heredoc to a shell.
+    ["if true; then bash <<'EOF'\ngh pr create --fill\nEOF\nfi", "pr-create"],
+  ])("UNLEXABLE %j → %s", (command, expected) => {
+    expect(classify(command).kind).toBe(expected as never);
+  });
+
+  test("matched names the invocation, and where the walker found it", () => {
+    expect(classify("bash -c 'gh pr ready 12'").matched).toBe("gh pr ready (in shell -c script)");
+    expect(classify("git -C ../wt push origin").matched).toBe("git -C ../wt push");
+  });
+});

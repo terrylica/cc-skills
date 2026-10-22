@@ -123,18 +123,31 @@ export interface ShellInvocation {
   readonly context: InvocationContext;
 }
 
+/**
+ * Called when a (sub)script that passes the prefilter could not be walked completely: the lexer
+ * reported an unclosed quote, substitution or heredoc, or nesting exceeded the recursion limit.
+ * Invocations already visited still stand; this says some text may hold more that were not seen.
+ */
+export type OnIncomplete = (src: string, context: InvocationContext) => void;
+
 function walk(
   src: string,
   context: InvocationContext,
   depth: number,
   prefilter: RegExp,
   visit: (invocation: ShellInvocation) => void,
+  onIncomplete: OnIncomplete | undefined,
 ): void {
-  if (depth > MAX_RECURSION_DEPTH || !src) return;
+  if (!src) return;
   // Cheap pre-filter: nothing to do unless a program the caller cares about appears at all.
   if (!prefilter.test(src)) return;
+  if (depth > MAX_RECURSION_DEPTH) {
+    onIncomplete?.(src, context);
+    return;
+  }
 
-  const { commands, heredocs } = lexShellCommands(src);
+  const { commands, heredocs, incomplete } = lexShellCommands(src);
+  if (incomplete) onIncomplete?.(src, context);
 
   for (const words of commands) {
     const k = skipAssignmentsAndWrappers(words);
@@ -148,7 +161,7 @@ function walk(
       for (let a = 0; a < args.length; a++) {
         const t = args[a].value;
         if (/^-[A-Za-z]*c[A-Za-z]*$/.test(t)) {
-          if (a + 1 < args.length) walk(args[a + 1].value, "shell -c script", depth + 1, prefilter, visit);
+          if (a + 1 < args.length) walk(args[a + 1].value, "shell -c script", depth + 1, prefilter, visit, onIncomplete);
           break;
         }
         if (!t.startsWith("-") && !t.startsWith("+")) break; // a script file, not -c
@@ -176,7 +189,7 @@ function walk(
         .slice(a)
         .map((w) => w.value)
         .join(" ");
-      walk(remote, "ssh remote command", depth + 1, prefilter, visit);
+      walk(remote, "ssh remote command", depth + 1, prefilter, visit, onIncomplete);
       continue;
     }
 
@@ -192,7 +205,7 @@ function walk(
         .slice(a)
         .map((w) => w.value)
         .join(" ");
-      walk(task, "pueue task", depth + 1, prefilter, visit);
+      walk(task, "pueue task", depth + 1, prefilter, visit, onIncomplete);
     }
   }
 
@@ -200,7 +213,7 @@ function walk(
     const k = skipAssignmentsAndWrappers(h.commandWords);
     if (k === -1) continue;
     if (SHELL_INTERPRETERS.has(basename(h.commandWords[k].value))) {
-      walk(h.body, "heredoc fed to a shell", depth + 1, prefilter, visit);
+      walk(h.body, "heredoc fed to a shell", depth + 1, prefilter, visit, onIncomplete);
     }
   }
 }
@@ -210,11 +223,15 @@ function walk(
  * backticks, `sh -c`, ssh remote commands, `pueue add` tasks and heredocs fed to a shell.
  * `prefilter` is tested against each (sub)script before lexing it; pass a regex matching the
  * program names you care about. Never throws on malformed input.
+ *
+ * `onIncomplete`, when given, is told about every prefilter-matching (sub)script the walk could
+ * not cover with certainty, so a caller that must FAIL CLOSED can fall back to a coarser check.
  */
 export function walkShellInvocations(
   command: string,
   prefilter: RegExp,
   visit: (invocation: ShellInvocation) => void,
+  onIncomplete?: OnIncomplete,
 ): void {
-  walk(command, "command", 0, prefilter, visit);
+  walk(command, "command", 0, prefilter, visit, onIncomplete);
 }

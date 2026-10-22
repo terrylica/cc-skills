@@ -21,6 +21,13 @@ export interface HeredocBody {
 export interface LexResult {
   readonly commands: Word[][];
   readonly heredocs: HeredocBody[];
+  /**
+   * True when the input ended inside a construct the lexer had to close by guessing: an unclosed
+   * `'…'`, `$'…'` or `"…"`, an unclosed `$(…)` / backtick / process substitution, or a heredoc with
+   * no terminator line. The words are still returned (the lexer stays total), but a caller that
+   * must fail closed should not trust them to be the whole story.
+   */
+  readonly incomplete: boolean;
 }
 
 type FrameKind = "top" | "substitution" | "backtick";
@@ -64,6 +71,7 @@ export function lexShellCommands(src: string): LexResult {
   const stack: Frame[] = [newFrame("top")];
   const n = src.length;
   let i = 0;
+  let incomplete = false;
 
   const top = (): Frame => stack[stack.length - 1];
 
@@ -120,6 +128,7 @@ export function lexShellCommands(src: string): LexResult {
       const c = src[i];
       if (c === "'" || c === '"') {
         const close = src.indexOf(c, i + 1);
+        if (close === -1) incomplete = true;
         const end = close === -1 ? n : close;
         delimiter += src.slice(i + 1, end);
         i = end + 1;
@@ -155,7 +164,10 @@ export function lexShellCommands(src: string): LexResult {
         lines.push(line);
       }
       heredocs.push({ commandWords: h.commandWords, body: lines.join("\n") });
-      if (!terminated) break;
+      if (!terminated) {
+        incomplete = true;
+        break;
+      }
     }
   }
 
@@ -217,6 +229,7 @@ export function lexShellCommands(src: string): LexResult {
 
     if (c === "'") {
       const close = src.indexOf("'", i + 1);
+      if (close === -1) incomplete = true;
       const end = close === -1 ? n : close;
       append(src.slice(i + 1, end));
       i = end + 1;
@@ -234,6 +247,7 @@ export function lexShellCommands(src: string): LexResult {
           j++;
         }
       }
+      if (j >= n) incomplete = true;
       append(text);
       i = j + 1;
       continue;
@@ -333,7 +347,9 @@ export function lexShellCommands(src: string): LexResult {
     i++;
   }
 
+  // Still inside quotes, a substitution, or with a heredoc whose body never started: all guessed.
+  if (stack.some((f) => f.inDoubleQuotes) || stack.length > 1 || pending.length > 0) incomplete = true;
   while (stack.length > 1) exitNested();
   endCommand();
-  return { commands, heredocs };
+  return { commands, heredocs, incomplete };
 }
