@@ -95,7 +95,7 @@ graph { flow: south; }
 
 - `plugins/itp-hooks/hooks/pretooluse-helpers.ts` - Extended input types, re-exports
 - `plugins/itp-hooks/hooks/pretooluse-version-guard.ts` - Uses plan mode detection (iter-85: renamed from .mjs, orchestrator-inlined)
-- `plugins/itp-hooks/hooks/pretooluse-mise-hygiene-guard.ts` - Uses plan mode detection
+- `plugins/itp-hooks/hooks/pretooluse-mise-hygiene-guard.ts` - Uses plan mode detection (guard retired 2026-10-21, #33)
 
 ### API
 
@@ -155,5 +155,5 @@ Claude Code provides these fields in hook input JSON:
 
 - **Prior art**: ADR 2025-12-09 (plan file exemption via path patterns)
 - **Claude Code docs**: <https://code.claude.com/docs/en/hooks>
-- **Hooks updated**: version-guard, mise-hygiene-guard
+- **Hooks updated**: version-guard, mise-hygiene-guard (the latter retired 2026-10-21, #33)
 - **Future hooks** should import `isPlanMode` from `pretooluse-helpers.ts`

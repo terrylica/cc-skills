@@ -194,11 +194,6 @@ export function splitBodyIntoBlocks(md: string): BodyBlock[] {
   return blocks;
 }
 
-/** Back-compat shim: the flat paragraph list, for callers that only need prose. */
-function paragraphs(md: string): string[] {
-  return splitBodyIntoBlocks(md).flatMap((b) => (b.kind === "prose" ? [b.text] : b.items));
-}
-
 /** Render blocks as the text/plain part: prose reflowed, list items one per line. */
 export function blocksToPlainText(blocks: BodyBlock[]): string {
   return `${blocks

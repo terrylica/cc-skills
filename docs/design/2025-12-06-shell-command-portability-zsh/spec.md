@@ -170,7 +170,6 @@ Files to modify:
 - `plugins/itp/commands/go.md`
 - `plugins/itp/commands/setup.md`
 - `plugins/itp/README.md`
-- `plugins/itp/CHANGELOG.md`
 - `plugins/itp/skills/implement-plan-preflight/references/workflow-steps.md`
 - `plugins/itp/skills/semantic-release/references/workflow-patterns.md`
 - `plugins/itp/skills/semantic-release/references/local-release-workflow.md`

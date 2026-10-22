@@ -96,12 +96,11 @@ else
 fi
 
 # ─── Case 5: PreToolUse additionalContext silent-drop NON-USE invariant across ALL 8 ──
-# Same emission-pattern audit iter-90 introduced, now scanning all 8 inlined subhooks
+# Same emission-pattern audit iter-90 introduced, now scanning the 7 inlined subhooks that remain after #33
 additional_context_emission_violations_count=0
 for subhook_file in \
   "$HOOKS_DIR/pretooluse-version-guard.ts" \
   "$HOOKS_DIR/pretooluse-hoisted-deps-guard.ts" \
-  "$HOOKS_DIR/pretooluse-mise-hygiene-guard.ts" \
   "$HOOKS_DIR/pretooluse-pyi-stub-guard.ts" \
   "$HOOKS_DIR/pretooluse-native-binary-guard.ts" \
   "$HOOKS_DIR/pretooluse-gpu-optimization-guard.ts" \
@@ -114,9 +113,9 @@ for subhook_file in \
 done
 
 if [[ "$additional_context_emission_violations_count" == "0" ]]; then
-    assert_passes "Case 5: PreToolUse additionalContext silent-drop NON-USE invariant holds across all 8 inlined subhooks (GitHub #15664 defense-in-depth)"
+    assert_passes "Case 5: PreToolUse additionalContext silent-drop NON-USE invariant holds across all 7 scanned subhooks (GitHub #15664 defense-in-depth)"
 else
-    assert_fails "Case 5: ${additional_context_emission_violations_count} of 8 PreToolUse subhook(s) emit additionalContext — silent-drop hazard"
+    assert_fails "Case 5: ${additional_context_emission_violations_count} of 7 PreToolUse subhook(s) emit additionalContext — silent-drop hazard"
 fi
 
 # ─── Case 6: hooks.json contains exactly ONE file-edit orchestrator entry ────

@@ -30,9 +30,8 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-vale-claude-md-guard.ts`                  | Write\|Edit orch.        | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                        |
 | `pretooluse-hoisted-deps-guard.ts`                    | Write\|Edit orch.        | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                                  |
 | `pretooluse-gpu-optimization-guard.ts`                | Write\|Edit orch.        | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                              |
-| `pretooluse-mise-hygiene-guard.ts`                    | Write\|Edit orch.        | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                                  |
 | `pretooluse-file-size-guard.ts`                       | Write\|Edit orch.        | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                                     |
-| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 11 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
+| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 10 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
 | `pretooluse-native-binary-guard.ts`                   | Write\|Edit orch.        | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                                 |
 | `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                                      |
 | `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                                |

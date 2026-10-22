@@ -13,4 +13,4 @@
 
 - Merged from `link-validator` + `link-checker` plugins
 - Uses `uv run` for Python dependency management
-- Override config via `.lycheerc.toml` in workspace root
+- No hooks: link-tools has no `hooks.json`. The link check that runs is `tasks/link-check.sh` (`moon run repo:link-check`), configured by the root `lychee.toml`

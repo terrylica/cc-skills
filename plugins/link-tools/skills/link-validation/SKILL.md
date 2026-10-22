@@ -1,6 +1,6 @@
 ---
 name: link-validation
-description: Universal link validation using lychee for Claude Code sessions. Detect broken links and path policy violations on demand.
+description: Offline markdown link validation with lychee (tasks/link-check.sh, moon run repo:link-check). Detect broken internal links and anchors on demand.
 allowed-tools: Bash, Read, Glob
 triggers:
   - link validation
@@ -22,73 +22,72 @@ Use this skill when:
 
 - Checking for broken links in markdown files
 - Validating link paths before committing documentation
-- Detecting path policy violations (absolute paths, excessive traversal)
+- Proving a doc change left no dangling internal link
 
-## What It Does
+## How to Run It
 
-When invoked, this skill:
+The working path is the offline lychee check in `tasks/link-check.sh`. Inside the cc-skills repository it is part of the quality gate:
 
-1. **Discovers** all markdown files in your workspace
-2. **Runs lychee** to check for broken links
-3. **Lints paths** for policy violations (absolute paths, excessive traversal)
-4. **Outputs JSON** results for programmatic consumption
+```bash
+moon run repo:link-check     # this check alone
+moon run repo:check          # the whole gate, link-check included
+bash tasks/link-check.sh     # the same script without moon
+```
+
+In any other workspace, run the same lychee command from the repository root:
+
+```bash
+lychee --offline --no-progress --root-dir "$(git rev-parse --show-toplevel)" './**/*.md'
+```
+
+Add `--config lychee.toml` when the repository has one; lychee also loads `./lychee.toml` by itself.
+
+## What the Check Does
+
+`tasks/link-check.sh`:
+
+1. `cd`s to the working-tree root (`git rev-parse --show-toplevel`, so it is correct inside a worktree too)
+2. Runs `bunx lychee --config lychee.toml --offline --no-progress --root-dir <repo root> './**/*.md'`
+3. Excludes `plugins/statusline-tools/tests/fixtures`, whose links are broken on purpose
+4. Prints lychee's summary line, then `✓ every internal link resolves` or `✗ broken internal links found (lychee exit N)`, and exits with lychee's exit code
+
+It checks relative links, root-relative links (`/docs/adr/x.md`, resolved through `--root-dir`) and `#anchor` fragments. It is offline by design: external URL liveness depends on the network and on other sites' uptime, so it is not checked. Nothing is written to disk except lychee's own `.lycheecache`; the result is the terminal output and the exit code.
+
+A path that exists on one machine only (`~/...`, another repository) cannot pass. Write it as inline code instead of a link.
 
 ## Requirements
 
-- [lychee](https://github.com/lycheeverse/lychee) installed (`brew install lychee`)
-- Python 3.11+ and uv
-
-## Output
-
-Results are written to `.link-check-results.md` in your workspace:
-
-```markdown
-# Link Check Results
-
-**Correlation ID**: `01JEGQXV8KHTNF3YD8G7ZC9XYK`
-
-## Lychee Link Validation
-
-No broken links found.
-
-## Path Policy Violations
-
-No path violations found.
-```
-
-## Path Policy Rules
-
-| Rule                 | Severity | Description                            |
-| -------------------- | -------- | -------------------------------------- |
-| NO_ABSOLUTE_PATHS    | Error    | Filesystem absolute paths not allowed  |
-| NO_PARENT_ESCAPES    | Warning  | Excessive `../` may escape repository  |
-| MARKETPLACE_RELATIVE | Warning  | Plugins should use `./` relative paths |
+- [lychee](https://github.com/lycheeverse/lychee): `tasks/link-check.sh` runs it through `bunx`, so Bun is enough there; elsewhere install it (`brew install lychee`)
 
 ## Configuration
 
-Override the default lychee config by placing `.lycheerc.toml` in your workspace root.
+cc-skills keeps one lychee config, `lychee.toml` at the repository root. It holds the path and URL exclusions and `include_fragments = "anchor-only"` (lychee 0.24 rejects the old boolean `true`). The statusline-tools Stop hook reads the same file when it exists.
 
-See [config/lychee.toml](../../hooks/config/lychee.toml) for the default configuration.
+## Related Checks
+
+- Link portability in skills (absolute repo paths that break once installed): the [link-validator](../link-validator/SKILL.md) skill
+- Path policy at session end: the statusline-tools Stop hook runs `lint-relative-paths` and lychee, and writes `.lychee-results.json` for the status line
+
+## History
+
+This skill used to describe a Stop hook, `hooks/stop-link-check.py`, that wrote `.link-check-results.md`. link-tools never had a `hooks.json`, so the hook never ran; it was deleted in issue #33.
 
 ## References
 
 - [ADR: Link Checker Plugin Extraction](../../../../docs/adr/2025-12-11-link-checker-plugin-extraction.md)
-- [Design Spec](../../../../docs/design/2025-12-11-link-checker-plugin-extraction/spec.md)
 - [lychee Documentation](https://github.com/lycheeverse/lychee)
 
 ---
 
 ## Troubleshooting
 
-| Issue                | Cause                | Solution                           |
-| -------------------- | -------------------- | ---------------------------------- |
-| lychee not found     | Not installed        | Run `brew install lychee`          |
-| Too many 403 errors  | Rate limiting        | Add rate limit to .lycheerc.toml   |
-| Relative path errors | Wrong base directory | Run from repository root           |
-| False positives      | Dynamic content      | Add URL pattern to exclude list    |
-| Timeout on links     | Slow external sites  | Increase timeout in config         |
-| Cache issues         | Stale cached results | Clear cache with `--no-cache` flag |
-
+| Issue                         | Cause                           | Solution                                                        |
+| ----------------------------- | ------------------------------- | --------------------------------------------------------------- |
+| lychee not found              | Not installed                   | `brew install lychee`, or run through `bunx lychee`             |
+| Config fails to load          | `include_fragments = true`      | Use `include_fragments = "anchor-only"` (lychee 0.24 and later) |
+| Every `/docs/...` link fails  | No `--root-dir`                 | Pass `--root-dir` with the absolute repository root             |
+| A link to `~/...` fails       | Path exists on one machine only | Write it as inline code, not a link                             |
+| A fixture's broken link fails | Fixture not excluded            | Add it to `--exclude-path` or the config's `exclude_path`       |
 
 ## Post-Execution Reflection
 

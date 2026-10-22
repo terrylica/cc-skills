@@ -6,7 +6,7 @@ Context for design specifications in cc-skills.
 
 ## Overview
 
-Design specs are implementation specifications that pair with ADRs, though not 1:1 — 29 of 52 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
+Design specs are implementation specifications that pair with ADRs, though not 1:1 — 27 of 45 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
 
 ## Directory Structure
 
@@ -24,12 +24,10 @@ docs/design/
 ├── 2025-12-07-setup-hooks-reminder/
 ├── 2025-12-08-clickhouse-cloud-management-skill/
 ├── 2025-12-08-mise-env-centralized-config/
-├── 2025-12-08-mise-tasks-skill/
 ├── 2025-12-09-clickhouse-architect-skill/
 ├── 2025-12-09-clickhouse-pydantic-config-skill/
 ├── 2025-12-09-clickhouse-schema-documentation/
 ├── 2025-12-09-itp-hooks-plan-file-exemption/
-├── 2025-12-09-itp-hooks-workflow-aware-graph-easy/
 ├── 2025-12-10-clickhouse-skill-delegation/
 ├── 2025-12-10-clickhouse-skill-documentation-gaps/
 ├── 2025-12-11-link-checker-plugin-extraction/
@@ -39,7 +37,8 @@ docs/design/
 ├── 2025-12-27-fake-data-guard-universal/
 ├── 2026-01-02-session-chronicle-s3-sharing/
 ├── 2026-01-10-uv-reminder-hook/
-└── 2026-01-18-sred-dynamic-discovery/
+├── 2026-01-18-sred-dynamic-discovery/
+└── 2026-07-21-release-notes-extensiveness-guard/
 ```
 
 ## ADR ↔ Design Relationship
@@ -51,12 +50,12 @@ Each design spec corresponds to an ADR in `../adr/`. Naming convention matches:
 
 ## Categories
 
-| Category       | Examples                         |
-| -------------- | -------------------------------- |
-| ITP Workflow   | itp-setup, itp-todo, itp-hooks   |
-| DevOps         | mise-tasks, mise-env, clickhouse |
-| Hooks          | pretooluse, posttooluse, ruff    |
-| Infrastructure | gitleaks, version-management     |
+| Category       | Examples                                     |
+| -------------- | -------------------------------------------- |
+| ITP Workflow   | itp-setup, itp-todo, itp-hooks               |
+| DevOps         | mise-env, clickhouse, mlflow                 |
+| Hooks          | pretooluse, posttooluse, ruff, release-notes |
+| Infrastructure | gitleaks, version-management                 |
 
 ## Link Conventions
 

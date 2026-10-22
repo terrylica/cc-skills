@@ -1,7 +1,16 @@
-# Lychee Link Checker Configuration
-# Repository: cc-skills
+# Lychee Link Checker Configuration — the ONE lychee config for this repository
+# https://lychee.cli.rs/configuration/
 #
-# Run: lychee .
+# Read by:
+#   - tasks/link-check.sh (moon run repo:link-check, part of repo:check), with --config lychee.toml
+#   - plugins/statusline-tools/hooks/lychee-stop-hook.sh, which uses $GIT_ROOT/lychee.toml when present
+#   - a bare `lychee .` from the repo root (lychee loads ./lychee.toml by default)
+#
+# Until 2026-10-21 (#33) a second file, .lychee.toml, held the stop hook's settings. This file is
+# the union of both; neither caller lost an exclusion.
+#
+# Root directory for root-relative links (/docs/adr/...) is NOT set here: each caller passes
+# --root-dir with the absolute repo root, which a committed config cannot know.
 
 ############################# Display ###############################
 verbose = "error"      # Only show errors
@@ -16,6 +25,10 @@ timeout = 10
 max_retries = 2
 max_concurrency = 8
 
+# Local files only, no network. Both callers already pass --offline; keeping it here too means a
+# bare `lychee .` gives the same deterministic verdict as the gate.
+offline = true
+
 ############################# Features ##############################
 # lychee 0.24 turned this from a bool into an enum (none|anchor-only|text-only|full).
 # `true` is a hard TOML parse error, which is why every lychee run in this repo
@@ -25,7 +38,7 @@ include_verbatim = false
 include_mail = false
 
 ############################# Path Exclusions #######################
-# Regex patterns for files to skip entirely
+# Regex patterns (not globs) for files to skip entirely
 exclude_path = [
     "node_modules/",
     "\\.git/",
@@ -37,12 +50,20 @@ exclude_path = [
     "__pycache__/",
     # Exclude auto-generated CHANGELOG files (semantic-release artifacts)
     "CHANGELOG\\.md$",
+    # Test fixtures with intentionally broken links
+    "tests/fixtures/",
+    # Generated/copy directory (mirrors plugins/)
+    "^\\.claude-plugin/",
+    # Temporary research/scratch files
+    "^tmp/",
 ]
 
 ############################# URL Exclusions ########################
 # Patterns (regex) applied to link URLs
 exclude = [
     "^mailto:",
+    # Local-only references (/local/ paths are machine-specific, not in repo)
+    "^file://.*/local/.*",
     # Template/placeholder URLs
     "mql5\\.com/en/articles/\\[ID\\]",
     # External URLs with access restrictions (paywall, rate limits)

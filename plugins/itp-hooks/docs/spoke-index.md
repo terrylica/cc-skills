@@ -8,7 +8,7 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 
 | Spoke                                                                              | Topic                                                                                               |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process                            |
+| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 10 blocking subhooks in one process                            |
 | [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 25 guards in one process; pueue-wrap-guard and why it stays last |
 | [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks; memory-efficiency reminder     |
 | [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                                            |
@@ -37,7 +37,6 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | [file-size-guard.md](./file-size-guard.md)                 | File-size thresholds, exclusions, configuration                                                                                                      |
 | [inline-ignore-policy.md](./inline-ignore-policy.md)       | Inline-ignore hierarchy + detection patterns                                                                                                         |
 | [hoisted-deps-guard.md](./hoisted-deps-guard.md)           | pyproject.toml root-only + path-escape + sub-package dependency-groups policies                                                                      |
-| [mise-hygiene-guard.md](./mise-hygiene-guard.md)           | mise.toml secrets detection + size hygiene                                                                                                           |
 | [uv-enforcement-guard.md](./uv-enforcement-guard.md)       | Non-UV Python package operations blocked (SSH-to-remote bypasses, by directive)                                                                      |
 | [pyi-stub-guard.md](./pyi-stub-guard.md)                   | Top-level definitions in Python `__init__` files blocked                                                                                             |
 | [python-preference-nudge.md](./python-preference-nudge.md) | Python-preference nudge + per-file `python-allowlist.toml` (reason-gated, no blanket suppression)                                                    |

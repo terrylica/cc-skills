@@ -41,7 +41,6 @@ __pycache__/
 
 # Temporary workspace files
 tmp/
-.link-check-results.md
 .loop-state/
 
 # Rust build artifacts. The arxiv-source-first tools are invoked with
