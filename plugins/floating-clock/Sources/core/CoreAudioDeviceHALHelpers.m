@@ -156,7 +156,8 @@ BOOL FCDeviceIsVirtual(AudioObjectID dev) {
 // All REAL devices with channels in the given scope (virtual/aggregate
 // excluded — see FCDeviceIsVirtual), name-sorted for a stable, predictable
 // cycling order. Returns AudioObjectID values boxed as NSNumber.
-NSArray<NSNumber *> *FCDevicesForScope(BOOL input) {
+// Every device the HAL reports (virtual and aggregate included), boxed as NSNumber.
+NSArray<NSNumber *> *FCAllDeviceIDs(void) {
     AudioObjectPropertyAddress a = { kAudioHardwarePropertyDevices,
                                      kAudioObjectPropertyScopeGlobal,
                                      kAudioObjectPropertyElementMain };
@@ -169,16 +170,29 @@ NSArray<NSNumber *> *FCDevicesForScope(BOOL input) {
     if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &a, 0, NULL, &sz, ids) != noErr) {
         return @[];
     }
-    NSMutableArray<NSDictionary *> *named = [NSMutableArray arrayWithCapacity:count];
-    for (UInt32 i = 0; i < count; i++) {
+    count = sz / (UInt32)sizeof(AudioObjectID);   // the list can shrink between the two calls
+    NSMutableArray<NSNumber *> *out = [NSMutableArray arrayWithCapacity:count];
+    for (UInt32 i = 0; i < count; i++) [out addObject:@(ids[i])];
+    return out;
+}
+
+NSArray<NSNumber *> *FCDevicesForScope(BOOL input) {
+    return FCDevicesForScopeAmong(FCAllDeviceIDs(), input);
+}
+
+// FCDevicesForScope over a device list the caller already read (one HAL list read per snapshot).
+NSArray<NSNumber *> *FCDevicesForScopeAmong(NSArray<NSNumber *> *all, BOOL input) {
+    NSMutableArray<NSDictionary *> *named = [NSMutableArray arrayWithCapacity:all.count];
+    for (NSNumber *boxed in all) {
+        AudioObjectID dev = (AudioObjectID)boxed.unsignedIntValue;
         // Transport type first: it excludes aggregates (including this process's own private
         // output-level aggregate) before the stream-configuration query, which takes the device's
         // IOContext lock and so must not be issued against an IO context we are driving.
-        if (FCDeviceIsVirtual(ids[i])) continue;
-        if (!FCDeviceHasChannels(ids[i], input)) continue;
-        NSString *name = FCAudioDeviceName(ids[i]);
+        if (FCDeviceIsVirtual(dev)) continue;
+        if (!FCDeviceHasChannels(dev, input)) continue;
+        NSString *name = FCAudioDeviceName(dev);
         if (!name.length) continue;
-        [named addObject:@{ @"id": @(ids[i]), @"name": name }];
+        [named addObject:@{ @"id": @(dev), @"name": name }];
     }
     [named sortUsingComparator:^NSComparisonResult(NSDictionary *l, NSDictionary *r) {
         return [l[@"name"] localizedCaseInsensitiveCompare:r[@"name"]];

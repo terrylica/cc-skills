@@ -32,6 +32,7 @@
 #import "test_brightness.h"              // 2026-09-19 brightness-rail arithmetic
 #import "test_tts_rate.h"                // 2026-10-08 TTS-rate rail arithmetic
 #import "test_level_meter.h"             // 2026-10-15 level meters + device rail model
+#import "test_audio_hal_reader.h"        // 2026-10-21 HAL reads off the main thread (#37)
 #import "test_hotkey_spec.h"             // 2026-10-10 whole-clock hide hotkey spec
 
 // Shared failure counter — extern-declared in test_levers.h so
@@ -897,6 +898,13 @@ int main(void) {
         RUN_TEST(test_device_rail_status_parse);
         RUN_TEST(test_device_rail_segments);
         RUN_TEST(test_device_rail_steps_and_badge);
+        // Audio HAL reader (2026-10-21, #37): coalesced background reads, write-then-read order,
+        // stale pre-write reads dropped, overdue clock, optimistic default.
+        RUN_TEST(test_audio_hal_reader_coalesces_reads);
+        RUN_TEST(test_audio_hal_reader_write_then_read_order);
+        RUN_TEST(test_audio_hal_reader_drops_read_started_before_write);
+        RUN_TEST(test_audio_hal_reader_seconds_in_flight);
+        RUN_TEST(test_audio_hal_snapshot_optimistic_default);
         RUN_TEST(test_tts_rate_clamp);
         RUN_TEST(test_tts_rate_track_mapping);
         RUN_TEST(test_tts_rate_nearest_detent);

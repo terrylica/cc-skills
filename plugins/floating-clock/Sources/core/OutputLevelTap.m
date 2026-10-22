@@ -100,7 +100,13 @@ static BOOL FCOtherProcessIsPlaying(void) {
     // invoked") because a NULL queue is reported not to register the block on macOS 26.
     dispatch_queue_t    _ioQueue;
     dispatch_queue_t    _ctlQueue;
-    BOOL                _running;
+    // Thread model (2026-10-21, cc-skills#37): every HAL call and every ivar above is touched only on
+    // _ctlQueue, so the main thread never waits on coreaudiod. The main thread sees three atomics:
+    // the enabled switch, the running flag, and whether a tick is already queued (ticks coalesce, so
+    // a stalled HAL cannot pile up one queued tick per second).
+    _Atomic bool        _enabledFlag;
+    _Atomic bool        _runningFlag;
+    _Atomic bool        _tickQueued;
 }
 
 - (instancetype)init {
@@ -109,31 +115,44 @@ static BOOL FCOtherProcessIsPlaying(void) {
         _ioQueue  = dispatch_queue_create("com.cc-skills.floating-clock.output-tap-io",
                         dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0));
         _ctlQueue = dispatch_queue_create("com.cc-skills.floating-clock.output-tap-control", DISPATCH_QUEUE_SERIAL);
-        _enabled = YES;
+        atomic_init(&_enabledFlag, true);
+        atomic_init(&_runningFlag, false);
+        atomic_init(&_tickQueued, false);
     }
     return self;
 }
 
-- (void)dealloc { [self stop]; }
+// No queued block can be pending here (each one retains self), so tear down inline.
+- (void)dealloc { [self teardownOnControlQueue]; }
 
-- (BOOL)running { return _running; }
+- (BOOL)running { return atomic_load(&_runningFlag); }
+- (BOOL)enabled { return atomic_load(&_enabledFlag); }
 
 - (void)setEnabled:(BOOL)enabled {
-    _enabled = enabled;
-    if (!enabled) [self stop];
+    bool was = atomic_exchange(&_enabledFlag, (bool)enabled);
+    if (was && !enabled) [self stop];   // only on the transition; the meter sets this every tick
 }
 
 - (void)tick {
-    if (!_enabled) return;
+    if (!atomic_load(&_enabledFlag)) return;
+    if (atomic_exchange(&_tickQueued, true)) return;   // previous tick still queued or running
+    dispatch_async(_ctlQueue, ^{
+        [self tickOnControlQueue];
+        atomic_store(&self->_tickQueued, false);
+    });
+}
+
+- (void)tickOnControlQueue {
+    if (!atomic_load(&_enabledFlag)) return;
     if (@available(macOS 14.2, *)) {
         BOOL playing = FCOtherProcessIsPlaying();
         if (playing) _lastPlaying = [NSDate date];
-        if (_running) {
+        if (atomic_load(&_runningFlag)) {
             AudioObjectID out = FCDefaultOutputDevice();
             BOOL moved = (out != _builtForDevice) || (fabs(FCNominalRate(out) - _builtForRate) > 0.5);
             BOOL idle  = !playing && (!_lastPlaying || -[_lastPlaying timeIntervalSinceNow] > kIdleStopSecs);
-            if (idle) { [self stop]; return; }
-            if (moved) { [self stop]; [self start]; }
+            if (idle) { [self teardownOnControlQueue]; return; }
+            if (moved) { [self teardownOnControlQueue]; [self start]; }
         } else if (playing) {
             [self start];
         }
@@ -199,22 +218,25 @@ static BOOL FCOtherProcessIsPlaying(void) {
     }
     _tapID = tap; _aggID = aggID; _procID = proc;
     _builtForDevice = out; _builtForRate = FCNominalRate(out);
-    _running = YES;
-    // AudioDeviceStart can block (permission prompt, or a tap leaked by a killed process); keep it off main.
-    AudioObjectID a = aggID; AudioDeviceIOProcID p = proc;
-    dispatch_async(_ctlQueue, ^{ AudioDeviceStart(a, p); });
+    atomic_store(&_runningFlag, true);
+    // AudioDeviceStart can block (permission prompt, or a tap leaked by a killed process); this
+    // runs on _ctlQueue, never on main and never on _ioQueue.
+    AudioDeviceStart(aggID, proc);
 }
 
 - (void)stop {
-    if (!_running) return;
-    _running = NO;
+    dispatch_async(_ctlQueue, ^{ [self teardownOnControlQueue]; });
+}
+
+// Stop the IOProc and destroy the aggregate and the tap. _ctlQueue only (or dealloc). Never on
+// _ioQueue: see the two-queue note on the ivars.
+- (void)teardownOnControlQueue {
+    if (!atomic_exchange(&_runningFlag, false)) return;
     AudioObjectID tap = _tapID, agg = _aggID; AudioDeviceIOProcID proc = _procID;
     _tapID = _aggID = kAudioObjectUnknown; _procID = NULL;
-    dispatch_async(_ctlQueue, ^{
-        if (proc) { AudioDeviceStop(agg, proc); AudioDeviceDestroyIOProcID(agg, proc); }
-        if (agg != kAudioObjectUnknown) AudioHardwareDestroyAggregateDevice(agg);
-        if (@available(macOS 14.2, *)) { if (tap != kAudioObjectUnknown) AudioHardwareDestroyProcessTap(tap); }
-    });
+    if (proc) { AudioDeviceStop(agg, proc); AudioDeviceDestroyIOProcID(agg, proc); }
+    if (agg != kAudioObjectUnknown) AudioHardwareDestroyAggregateDevice(agg);
+    if (@available(macOS 14.2, *)) { if (tap != kAudioObjectUnknown) AudioHardwareDestroyProcessTap(tap); }
     atomic_store(&_meter.peakBits, 0);
     atomic_store(&_meter.sumSqMicro, 0);
     atomic_store(&_meter.samples, 0);
