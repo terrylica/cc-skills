@@ -67,8 +67,8 @@ Effective sample size (N_eff) is too low for statistical significance.
 
 ```
 Folds: 10
-Epochs: 4
-N_eff = 10 × (1/√4) × 0.7 ≈ 3.5  # Too low!
+Fold autocorrelation: 0.3
+N_eff = 10 × (1 - 0.3)/(1 + 0.3) ≈ 5.4  # Too low!
 ```
 
 ### Root Cause
@@ -80,15 +80,17 @@ Not enough folds to distinguish signal from noise in epoch selection.
 ```python
 def check_effective_sample_size(
     n_folds: int,
-    n_epochs: int,
     autocorr: float = 0.3,
     min_n_eff: int = 10,
 ) -> bool:
-    """Returns True if N_eff is sufficient."""
-    import math
-    selection_factor = 1 / math.sqrt(n_epochs)
+    """Returns True if N_eff is sufficient.
+
+    Autocorrelation correction only (Kish). No discount for the number of
+    epoch candidates: that would be a trial-count correction, which the
+    operator rule (2026-10-15) forbids.
+    """
     corr_factor = (1 - autocorr) / (1 + autocorr)
-    n_eff = n_folds * selection_factor * corr_factor
+    n_eff = n_folds * corr_factor
     return n_eff >= min_n_eff
 ```
 
@@ -96,17 +98,17 @@ def check_effective_sample_size(
 
 1. **Increase folds**: Target N_eff ≥ 30 for reliable inference
 2. **Extend data span**: More historical data = more folds
-3. **Reduce epoch candidates**: Fewer choices = higher N_eff
+3. **Reduce epoch candidates**: Fewer choices = a more parsimonious model (judged on the model, not by a trial-count discount)
 
 ```python
-# WRONG: 10 folds with 4 epochs → N_eff ≈ 3.5
+# WRONG: 10 folds, autocorrelation 0.3 → N_eff ≈ 5.4
 N_FOLDS = 10
 config = AWFESConfig.from_search_space(min_epoch=400, max_epoch=2000, granularity=4)
 
-# BETTER: 50 folds with 3 epochs → N_eff ≈ 20
-N_FOLDS = 50
+# BETTER: 60 folds, autocorrelation 0.3 → N_eff ≈ 32, and a smaller declared candidate set
+N_FOLDS = 60
 config = AWFESConfig.from_search_space(min_epoch=400, max_epoch=1600, granularity=3)
-# Fewer epochs + more folds = higher effective sample size
+# More folds = higher effective sample size; fewer epochs = simpler model
 ```
 
 ## 3. Ignoring Temporal Autocorrelation (Severity: HIGH)
@@ -501,7 +503,7 @@ def detect_meta_overfitting(
 1. **Limit epoch candidates**: 3-4 options maximum
 2. **Use stability penalty**: Penalize frequent changes
 3. **Hold out final folds**: Reserve 20% for meta-validation
-4. **Apply DSR correction**: Account for 124 trials in significance test
+4. **Declare the candidate set before the sweep**: Judge the selected rule on test data no selection step touched (no trial-count correction)
 
 ```python
 # WRONG: Too many epoch options (10 options = meta-overfitting risk)
@@ -520,7 +522,7 @@ Before deploying adaptive epoch selection:
 
 - [ ] **Expanding window**: Using fixed sliding window (NOT expanding) for range bars?
 - [ ] **Peak picking**: Are selections clustered at boundaries? (Expand search bounds if yes)
-- [ ] **Sample size**: Is N_eff ≥ 30? (Use fewer epochs or more folds)
+- [ ] **Sample size**: Is N_eff ≥ 30? (Use more folds or a longer data span)
 - [ ] **Autocorrelation**: Is fold autocorrelation < 0.3?
 - [ ] **Overfitting**: Is WFE > 0.50 across folds? (Guidelines, not hard thresholds)
 - [ ] **Annualization**: Using `AWFESConfig.get_annualization_factor()` for correct market/time_unit?

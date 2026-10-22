@@ -144,38 +144,29 @@ X, y, timestamps, duration_us = create_sequences_with_duration(...)
 
 ---
 
-## Integration with DSR
+## Integration with PSR
 
-When computing Deflated Sharpe Ratio (DSR) for range bar experiments:
+When computing the Probabilistic Sharpe Ratio (PSR) for range bar experiments, use the time-weighted Sharpe. No trial-count correction (Deflated Sharpe Ratio, FWER/FDR) is applied, by operator rule (2026-10-15).
 
 ```python
 from scipy import stats
 import numpy as np
 
-def compute_dsr_range_bar(
+def compute_psr_range_bar(
     sharpe_tw: float,             # Use time-weighted, NOT simple bar_sharpe
     n_obs: int,                   # Number of bars
-    n_trials: int,                # Number of strategies tested
+    benchmark: float = 0.0,       # SR0, fixed before the run
     skew: float = 0.0,
     kurt: float = 3.0,
 ) -> float:
-    """DSR using time-weighted Sharpe (sharpe_tw)."""
+    """PSR using time-weighted Sharpe (sharpe_tw)."""
     # Mertens SE adjustment
     se = np.sqrt(
         (1 + 0.5 * sharpe_tw**2
          - skew * sharpe_tw
          + ((kurt - 3) / 4) * sharpe_tw**2) / n_obs
     )
-
-    # Gumbel expected max under null
-    gamma = 0.5772156649
-    exp_max = se * (
-        (1 - gamma) * stats.norm.ppf(1 - 1/n_trials) +
-        gamma * stats.norm.ppf(1 - 1/(n_trials * np.e))
-    )
-
-    # DSR
-    return float(stats.norm.cdf((sharpe_tw - exp_max) / se))
+    return float(stats.norm.cdf((sharpe_tw - benchmark) / se))
 ```
 
 ---
@@ -209,7 +200,7 @@ When logging range bar experiment results, include both metrics:
 
 **Important**: Always log BOTH for comparison, but use `sharpe_tw` for:
 
-- DSR computation
+- PSR computation
 - Cross-fold comparison
 - Final performance assessment
 
@@ -222,7 +213,7 @@ Before trusting range bar Sharpe values:
 - [ ] `duration_us` preserved through entire data pipeline
 - [ ] `compute_time_weighted_sharpe()` used (not simple division)
 - [ ] Both `bar_sharpe` and `sharpe_tw` logged for comparison
-- [ ] DSR computed on `sharpe_tw` values (NOT bar_sharpe)
+- [ ] PSR computed on `sharpe_tw` values (NOT bar_sharpe)
 - [ ] Summary metrics use `_tw` suffix: `mean_sharpe_tw`, `median_sharpe_tw`
 - [ ] Metrics include `sharpe_tw_details` for auditability
 
@@ -279,7 +270,6 @@ sharpe_100 = time_weighted_sharpe(bars_100, duration_100)
 ## References
 
 - [Risk Metrics for Non-Uniform Time Series](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2587178) - Academic foundation
-- [Bailey & Lopez de Prado DSR](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551) - Multiple testing correction
 
 ---
 

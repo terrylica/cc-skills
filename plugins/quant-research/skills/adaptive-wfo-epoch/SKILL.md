@@ -71,7 +71,7 @@ Per-fold adaptive epoch selection where:
 | Concept                     | Citation                       | Key Insight                                       |
 | --------------------------- | ------------------------------ | ------------------------------------------------- |
 | Walk-Forward Efficiency     | Pardo (1992, 2008)             | WFE = OOS_Return / IS_Return as robustness metric |
-| Deflated Sharpe Ratio       | Bailey & López de Prado (2014) | Adjusts for multiple testing                      |
+| Probabilistic Sharpe Ratio  | Bailey & López de Prado (2012) | Sharpe significance for one rule                  |
 | Pareto-Optimal HP Selection | Bischl et al. (2023)           | Multi-objective hyperparameter optimization       |
 | Warm-Starting               | Nomura & Ono (2021)            | Transfer knowledge between optimization runs      |
 
@@ -116,10 +116,12 @@ See [references/configuration-framework.md](./references/configuration-framework
 
 ## Guardrails (Principled Guidelines)
 
+> **No trial-count corrections (operator rule, 2026-10-15)**: never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction (FWER/FDR procedures such as Holm or Benjamini-Yekutieli, e-LOND and other online multiple testing). Epoch-selection risk is handled by judging parsimony on the model itself (a small, pre-declared candidate set), by registration before runs and by unused data, and each rule reports its own statistics (Sharpe, PSR, MinTRL). The former DSR guardrail was removed on purpose; do not re-add it.
+
 - **G1: WFE Thresholds** - 0.30 (reject), 0.50 (warning), 0.70 (target) based on practitioner consensus
 - **G2: IS_Sharpe Minimum** - Data-driven threshold: `2/sqrt(n)` adapts to sample size
 - **G3: Stability Penalty** - Adaptive threshold derived from WFE variance prevents epoch churn
-- **G4: DSR Adjustment** - Deflated Sharpe corrects for epoch selection multiplicity via Gumbel distribution
+- **G4: Registration and unused data** - The epoch candidate set, WFE thresholds and acceptance criteria are fixed before the sweep; acceptance is judged on test data no selection step has touched. No trial-count correction is applied
 
 See [references/guardrails.md](./references/guardrails.md) for full implementations of all guardrails.
 
@@ -182,11 +184,11 @@ Start
 
 This skill extends [rangebar-eval-metrics](../opendeviation-eval-metrics/SKILL.md):
 
-| Metric Source         | Used For                                 | Reference                                                                                |
-| --------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `sharpe_tw`           | WFE numerator (OOS) and denominator (IS) | [range-bar-metrics.md](./references/range-bar-metrics.md)                                |
+| Metric Source         | Used For                                 | Reference                                                                                     |
+| --------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `sharpe_tw`           | WFE numerator (OOS) and denominator (IS) | [range-bar-metrics.md](./references/range-bar-metrics.md)                                     |
 | `n_bars`              | Sample size for aggregation weights      | [metrics-schema.md](../opendeviation-eval-metrics/references/metrics-schema.md)               |
-| `psr`, `dsr`          | Final acceptance criteria                | [sharpe-formulas.md](../opendeviation-eval-metrics/references/sharpe-formulas.md)             |
+| `psr`, `min_trl`      | Final acceptance criteria                | [sharpe-formulas.md](../opendeviation-eval-metrics/references/sharpe-formulas.md)             |
 | `prediction_autocorr` | Validate model isn't collapsed           | [ml-prediction-quality.md](../opendeviation-eval-metrics/references/ml-prediction-quality.md) |
 | `is_collapsed`        | Model health check                       | [ml-prediction-quality.md](../opendeviation-eval-metrics/references/ml-prediction-quality.md) |
 | Extended risk metrics | Deep risk analysis (optional)            | [risk-metrics.md](../opendeviation-eval-metrics/references/risk-metrics.md)                   |
@@ -195,7 +197,7 @@ This skill extends [rangebar-eval-metrics](../opendeviation-eval-metrics/SKILL.m
 
 1. **Compute base metrics** using `rangebar-eval-metrics:compute_metrics.py`
 2. **Feed to AWFES** for epoch selection with `sharpe_tw` as primary signal
-3. **Validate** with `psr > 0.85` and `dsr > 0.50` before deployment
+3. **Validate** on the untouched test split with `psr > 0.85` and enough data for `min_trl` before deployment
 4. **Monitor** `is_collapsed` and `prediction_autocorr` for model health
 
 ---
@@ -218,7 +220,7 @@ Three-tier metric hierarchy for test evaluation:
 
 - **Tier 1 (Primary)**: `sharpe_tw`, `hit_rate`, `cumulative_pnl`, `positive_sharpe_folds`, `wfe_test`
 - **Tier 2 (Risk)**: `max_drawdown`, `calmar_ratio`, `profit_factor`, `cvar_10pct`
-- **Tier 3 (Statistical)**: `psr`, `dsr`, `binomial_pvalue`, `hac_ttest_pvalue`
+- **Tier 3 (Statistical)**: `psr`, `binomial_pvalue`, `hac_ttest_pvalue`
 
 See [references/oos-metrics-implementation.md](./references/oos-metrics-implementation.md) for full metric tables, `compute_oos_metrics()`, and fold aggregation code. See [references/oos-metrics.md](./references/oos-metrics.md) for threshold justifications.
 
@@ -257,19 +259,18 @@ See [references/look-ahead-bias-v3.md](./references/look-ahead-bias-v3.md) for t
 
 ### Related Skills
 
-| Skill                                                                            | Relationship                                        |
-| -------------------------------------------------------------------------------- | --------------------------------------------------- |
-| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | Generalized Sharpe variance, DSR for WFE validation |
-| [opendeviation-eval-metrics](../opendeviation-eval-metrics/SKILL.md)             | Metric definitions consumed by WFE                  |
+| Skill                                                                            | Relationship                             |
+| -------------------------------------------------------------------------------- | ---------------------------------------- |
+| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | Generalized Sharpe variance, PSR, MinTRL |
+| [opendeviation-eval-metrics](../opendeviation-eval-metrics/SKILL.md)             | Metric definitions consumed by WFE       |
 
 ## Full Citations
 
-- Bailey, D. H., & López de Prado, M. (2014). The deflated Sharpe ratio: Correcting for selection bias, backtest overfitting and non-normality. _The Journal of Portfolio Management_, 40(5), 94-107.
+- Bailey, D. H., & López de Prado, M. (2012). The Sharpe ratio efficient frontier. _Journal of Risk_, 15(2), 3-44.
 - Bischl, B., et al. (2023). Multi-Objective Hyperparameter Optimization in Machine Learning. _ACM Transactions on Evolutionary Learning and Optimization_.
 - López de Prado, M. (2018). _Advances in Financial Machine Learning_. Wiley. Chapter 7.
 - Nomura, M., & Ono, I. (2021). Warm Starting CMA-ES for Hyperparameter Optimization. _AAAI Conference on Artificial Intelligence_.
 - Pardo, R. E. (2008). _The Evaluation and Optimization of Trading Strategies, 2nd Edition_. John Wiley & Sons.
-
 
 ## Post-Execution Reflection
 

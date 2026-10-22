@@ -5,7 +5,7 @@
 This methodology synthesizes concepts from four distinct academic traditions:
 
 1. **Walk-Forward Analysis** (Trading Systems Research)
-2. **Deflated Sharpe Ratio** (Statistical Finance)
+2. **Probabilistic Sharpe Ratio** (Statistical Finance)
 3. **Multi-Objective Hyperparameter Optimization** (Machine Learning)
 4. **Warm-Starting Sequential Optimization** (AutoML)
 
@@ -41,51 +41,27 @@ Typically expressed as return ratio or Sharpe ratio.
 > "Walk-Forward Efficiency measures the degree to which a strategy's in-sample performance translates to out-of-sample results. A strategy that cannot maintain at least 50% of its in-sample performance is likely overfit to historical data."
 > — Pardo (2008), Chapter 8
 
-## 2. Deflated Sharpe Ratio (DSR)
+## 2. Probabilistic Sharpe Ratio (PSR)
 
 ### Origin
 
-**Bailey, D. H., & López de Prado, M. (2014).** "The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality." _The Journal of Portfolio Management_, 40(5), 94-107.
+**Bailey, D. H., & López de Prado, M. (2012).** "The Sharpe Ratio Efficient Frontier." _Journal of Risk_, 15(2), 3-44. The non-IID (autocorrelated, non-Normal) variance used here is López de Prado, Lipton & Zoonekynd (2026); see the [sharpe-ratio-non-iid-corrections](../../sharpe-ratio-non-iid-corrections/SKILL.md) skill.
 
 ### Problem Addressed
 
-When testing multiple strategies (or hyperparameter configurations), the "best" Sharpe ratio is expected to be inflated due to multiple testing. DSR corrects for this selection bias.
+A point estimate of the Sharpe ratio says nothing about its significance. PSR is the probability that the true Sharpe of this one rule exceeds a benchmark SR₀, given its sample length, skewness, kurtosis and autocorrelation.
 
 ### Formula
 
 ```
-DSR = Φ[(SR - SR₀) × √T / √(1 + 0.5×SR² - γ₃×SR + (γ₄-3)/4×SR²)]
+PSR = Φ[(SR - SR₀) × √T / √(1 + 0.5×SR² - γ₃×SR + (γ₄-3)/4×SR²)]
 ```
 
-Where:
+Where SR is the observed Sharpe ratio, SR₀ the benchmark fixed before the run (usually 0), T the number of observations, γ₃ skewness, γ₄ Pearson kurtosis and Φ the standard normal CDF.
 
-- SR = Observed Sharpe ratio
-- SR₀ = Expected maximum Sharpe under null (depends on number of trials)
-- T = Number of observations
-- γ₃ = Skewness
-- γ₄ = Kurtosis
-- Φ = Standard normal CDF
+### Epoch selection without trial-count corrections
 
-### Expected Maximum Under Null
-
-For N independent trials:
-
-```
-SR₀ ≈ √(2 × ln(N)) - (γ + ln(π/2)) / √(2 × ln(N))
-```
-
-Where γ ≈ 0.5772 (Euler-Mascheroni constant).
-
-### Application to Epoch Selection
-
-When selecting from K epochs across F folds, total trials = K × F.
-
-For 4 epochs × 31 folds = 124 trials:
-
-- SR₀ ≈ 2.5 × σ(SR)
-- With σ(SR) ≈ 0.3: SR₀ ≈ 0.75
-
-**A Sharpe of 1.0 deflates to ~0.25 after DSR adjustment.**
+Operator rule (2026-10-15): never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction. Selection across epochs and folds is guarded instead by keeping the epoch candidate set small and declared before the sweep (parsimony judged on the model itself), by registering thresholds before runs, and by judging the selected rule on test data no selection step has touched. Each rule reports its own Sharpe, PSR and MinTRL.
 
 ## 3. Multi-Objective Hyperparameter Optimization (MOHPO)
 
@@ -199,21 +175,20 @@ Key contributions:
 | Guideline            | Value          | Rationale                                  |
 | -------------------- | -------------- | ------------------------------------------ |
 | Minimum track record | MinTRL formula | Required days for statistical significance |
-| DSR threshold        | 0.95           | 95% confidence true Sharpe > 0             |
 | Embargo period       | 6% of data     | Prevent look-ahead bias                    |
 | CPCV paths           | 20-30          | Balance compute vs coverage                |
 
 ## Full Bibliography
 
 ```bibtex
-@article{bailey2014deflated,
-  title={The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting and Non-Normality},
+@article{bailey2012efficient,
+  title={The Sharpe Ratio Efficient Frontier},
   author={Bailey, David H and L{\'o}pez de Prado, Marcos},
-  journal={The Journal of Portfolio Management},
-  volume={40},
-  number={5},
-  pages={94--107},
-  year={2014}
+  journal={Journal of Risk},
+  volume={15},
+  number={2},
+  pages={3--44},
+  year={2012}
 }
 
 @book{pardo2008evaluation,

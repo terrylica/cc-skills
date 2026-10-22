@@ -129,56 +129,9 @@ WFE | H₀ ~ Cauchy(0, √(T_IS/T_OOS))
 - Heavy tails (extreme values common)
 - Makes arithmetic mean unreliable
 
-## 4. Deflated Sharpe Ratio (DSR)
+## 4. Epoch Selection Without Trial-Count Corrections
 
-### Formula
-
-```
-DSR = Φ[(SR - SR₀) × √(N-1) / √(1 + 0.5×SR² - γ₃×SR + (γ₄-3)/4×SR²)]
-```
-
-Where:
-
-- Φ = Standard normal CDF
-- SR₀ = Expected maximum Sharpe under null
-- N = Sample size
-- γ₃ = Skewness
-- γ₄ = Kurtosis
-
-### Expected Maximum Under Null
-
-For K independent trials (Bailey & López de Prado, 2014):
-
-```
-SR₀ = √(2 × ln(K)) × (1 - γ / √(2 × ln(K)) - ln(ln(K) + ln(4π)) / (2 × √(2 × ln(K))))
-```
-
-Where γ ≈ 0.5772 (Euler-Mascheroni constant).
-
-**Simplified approximation**:
-
-```
-SR₀ ≈ √(2 × ln(K)) - (γ + ln(π/2)) / √(2 × ln(K))
-```
-
-### Application to Epoch Selection
-
-Total trials = K_epochs × F_folds
-
-For 4 epochs × 31 folds = 124 trials:
-
-```python
-import math
-
-K = 124
-gamma = 0.5772  # Euler-Mascheroni
-
-sr0 = math.sqrt(2 * math.log(K))
-sr0 -= (gamma + math.log(math.pi / 2)) / math.sqrt(2 * math.log(K))
-sr0 *= 0.3  # Typical SE(SR)
-
-# sr0 ≈ 0.75
-```
+By operator rule (2026-10-15), selection across epochs and folds is **not** corrected with the Deflated Sharpe Ratio, an expected-maximum-Sharpe null or any other trial-count correction; do not compute, report, rank by or cite one. Parsimony is judged on the model itself (a small epoch candidate set declared before the sweep), the thresholds are registered before runs, and the selected rule is judged on test data no selection step has touched, reporting its own Sharpe, SE(SR), PSR and MinTRL.
 
 ## 5. Efficient Frontier Formulation
 
@@ -251,35 +204,32 @@ With α ∈ [0, 1] controlling adaptation speed.
 
 ## 7. Effective Sample Size (N_eff)
 
-### Reduction from Epoch Selection
+### Reduction from Autocorrelation
 
 ```
-N_eff = N_samples × selection_factor × correlation_factor
+N_eff = N_samples × correlation_factor
 ```
 
 Where:
 
-- selection_factor = 1 / √K_epochs
 - correlation_factor = (1 - ρ) / (1 + ρ) (Kish's formula)
 - ρ = Autocorrelation from carry-forward
 
 ### Example Calculation
 
-For 31 folds, 4 epochs, autocorrelation 0.3:
+For 31 folds, autocorrelation 0.3:
 
 ```python
 n_samples = 31
-n_epochs = 4
 autocorr = 0.3
 
-selection_factor = 1 / math.sqrt(n_epochs)  # 0.5
 correlation_factor = (1 - autocorr) / (1 + autocorr)  # 0.54
 
-n_eff = n_samples * selection_factor * correlation_factor
-# n_eff ≈ 8.4
+n_eff = n_samples * correlation_factor
+# n_eff ≈ 16.7
 ```
 
-**31 folds provide ~8 effective independent observations.**
+**31 folds provide ~17 effective independent observations.** The number of epoch candidates is not discounted here (that would be a trial-count correction); it is judged as model complexity.
 
 ## 8. Minimum Sample Size Requirements
 
@@ -361,11 +311,10 @@ def bootstrap_wfe_ci(
 
 ## 10. Summary: Key Formulas
 
-| Concept           | Formula                               |
-| ----------------- | ------------------------------------- |
-| WFE               | SR_OOS / SR_IS                        |
-| SE(SR)            | √((1 + 0.5×SR²) / T)                  |
-| Pooled WFE        | Σ(T_OOS × SR_OOS) / Σ(T_IS × SR_IS)   |
-| DSR SR₀           | √(2×ln(K)) - (γ + ln(π/2))/√(2×ln(K)) |
-| N_eff             | N × (1/√K) × ((1-ρ)/(1+ρ))            |
-| Stability penalty | WFE - λ × I(change)                   |
+| Concept           | Formula                             |
+| ----------------- | ----------------------------------- |
+| WFE               | SR_OOS / SR_IS                      |
+| SE(SR)            | √((1 + 0.5×SR²) / T)                |
+| Pooled WFE        | Σ(T_OOS × SR_OOS) / Σ(T_IS × SR_IS) |
+| N_eff             | N × ((1-ρ)/(1+ρ))                   |
+| Stability penalty | WFE - λ × I(change)                 |
