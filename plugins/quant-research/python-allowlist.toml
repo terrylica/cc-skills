@@ -1,0 +1,11 @@
+# python-allowlist.toml — why quant-research ships Python rather than Bun/TypeScript.
+#
+# The house default is Bun/TypeScript for greenfield work; Python is kept only where it is the
+# native lane, file by file. The metric scripts below are that carve-out: the quant/numerical
+# lane, where numpy, pandas and scipy are the reference implementations.
+
+schema = "https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/schemas/python-allowlist.schema.json"
+
+[[allow]]
+path   = "skills/opendeviation-eval-metrics/scripts/compute_metrics.py"
+reason = "Evaluation metrics (Sharpe, PSR, Spearman IC, skew/kurtosis, VaR/CVaR) built on numpy, pandas and scipy.stats, whose distributions and rank statistics have no faithful Bun/TypeScript equivalent. Existing script; its CLI is exercised end to end by compute_metrics.test.ts in the same directory."

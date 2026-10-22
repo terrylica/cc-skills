@@ -160,7 +160,8 @@ def detect_model_collapse(
     Source: Multi-agent audit finding (model-expert subagent)
     """
     pred_std = np.std(predictions)
-    is_collapsed = pred_std < threshold
+    # bool(): a numpy comparison yields np.bool_, which json.dumps rejects (#44).
+    is_collapsed = bool(pred_std < threshold)
 
     if is_collapsed:
         logger.warning(
@@ -529,11 +530,43 @@ def compute_aggregate_metrics(fold_metrics: list[dict]) -> dict:
 
 
 # =============================================================================
+# JSON serialisation boundary
+# =============================================================================
+
+
+def to_json_native(obj):
+    """Convert a metrics structure to values the JSON standard can represent.
+
+    numpy scalars (np.bool_, np.integer, np.floating) become bool/int/float,
+    arrays become lists, and non-finite floats (NaN, +/-inf) become None, which
+    is how references/metrics-schema.md types an undefined metric ("number" or
+    "null"). JSON has no NaN or Infinity, and json.dumps would otherwise emit
+    them as bare tokens that strict parsers reject (#44).
+    """
+    if isinstance(obj, dict):
+        return {str(k): to_json_native(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [to_json_native(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return to_json_native(obj.tolist())
+    if isinstance(obj, np.generic):
+        obj = obj.item()
+    if isinstance(obj, float) and not np.isfinite(obj):
+        return None
+    return obj
+
+
+def dumps_metrics(result: dict) -> str:
+    """Serialise metrics as strict JSON; fails loudly on any unconverted value."""
+    return json.dumps(to_json_native(result), indent=2, allow_nan=False)
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description="Compute range bar evaluation metrics",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -582,7 +615,7 @@ Reference: quant-research:rangebar-eval-metrics skill
         help="Skip extended risk metrics (VaR, Sortino, Omega, etc.)",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.results and args.aggregate:
         # Aggregate mode
@@ -608,7 +641,7 @@ Reference: quant-research:rangebar-eval-metrics skill
         parser.print_help()
         sys.exit(1)
 
-    output = json.dumps(result, indent=2)
+    output = dumps_metrics(result)
     if args.output:
         args.output.write_text(output)
     else:
