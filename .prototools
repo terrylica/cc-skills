@@ -16,13 +16,13 @@
 # maintainer closed it with "Fixed in v0.61.2". Verified here on 0.61.2 with no
 # workaround: 0/100 polluted at the 100-way concurrency that gave 27-45/100 on
 # 0.61.1. tasks/release/preflight enforces this floor rather than trusting it.
-proto = "0.63.1"
+proto = "0.63.2"
 
 # Task orchestrator. Every entry point is a task in the root `moon.yml`.
-moon = "2.6.2"
+moon = "2.6.3"
 
 # Bun runs every script, CLI, hook and test in this marketplace.
-bun = "1.4.3"
+bun = "1.4.4"
 
 # Node exists ONLY for semantic-release, which does not support Bun
 # (semantic-release/semantic-release#3527). Nothing else here should reach for
