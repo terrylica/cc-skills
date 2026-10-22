@@ -354,7 +354,8 @@ function splitBlockquote(rawLine: string): { depth: number; content: string } {
 export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIssue[] {
   const minWrapWidth = opts.minWrapWidth ?? DEFAULT_MIN_WRAP_WIDTH;
   const lines = body.replace(/\r\n/g, "\n").split("\n");
-  const inFence = computeFencedCodeLineMask(lines);
+  // Quote-aware, matching gfm-unwrap: a quoted fence is code, not a wrap.
+  const inFence = computeFencedCodeLineMask(lines, { blockquotes: true });
   const isListContinuation = computeListContinuationLineMask(lines);
   const inPipelessTable = computePipelessTableLineMask(lines);
 

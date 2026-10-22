@@ -396,6 +396,16 @@ describe("hard-wrapped blockquotes", () => {
     ].join("\n");
     expect(detectHardWraps(text)).toEqual([]);
   });
+
+  it("does not flag a long line inside a fenced code block in a quote (cc-skills#1)", () => {
+    const text = [
+      "> ```bash",
+      "> echo this is a very long command line that does not end with a period and goes on",
+      "> echo two",
+      "> ```",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
 });
 
 // ── Over-blocking: the false positives that get a guard deleted ───────────
