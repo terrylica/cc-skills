@@ -30,12 +30,11 @@ if (planContext.inPlanMode) {
 ### Hooks with Plan Mode Support
 
 - `pretooluse-version-guard.ts` - Skips version checks in plan mode
-- `pretooluse-mise-hygiene-guard.ts` - Skips hygiene checks in plan mode
 - `pretooluse-file-size-guard.ts` - Skips line-count checks in plan mode
 - `pretooluse-typescript-version-guard.ts` - Skips TypeScript version checks in plan mode
 - `pretooluse-shell-script-safety-guard.ts` - Skips shell-script checks in plan mode
 - `pretooluse-typescript-legacy-install-command-guard.ts` - Skips legacy-install command checks in plan mode
 
-All six run inside an orchestrator (the first five as Write\|Edit subhooks, the last as a Bash guard), so the skip applies per subhook.
+All five run inside an orchestrator (the first four as Write\|Edit subhooks, the last as a Bash guard), so the skip applies per subhook.
 
 **ADR**: [/docs/adr/2026-02-05-plan-mode-detection-hooks.md](/docs/adr/2026-02-05-plan-mode-detection-hooks.md)

@@ -228,7 +228,6 @@ additional_context_emission_violations_count=0
 for subhook_file in \
   "$HOOKS_DIR/pretooluse-version-guard.ts" \
   "$HOOKS_DIR/pretooluse-hoisted-deps-guard.ts" \
-  "$HOOKS_DIR/pretooluse-mise-hygiene-guard.ts" \
   "$HOOKS_DIR/pretooluse-pyi-stub-guard.ts" \
   "$HOOKS_DIR/pretooluse-native-binary-guard.ts" \
   "$HOOKS_DIR/pretooluse-gpu-optimization-guard.ts" \
@@ -242,7 +241,7 @@ for subhook_file in \
 done
 
 if [[ "$additional_context_emission_violations_count" == "0" ]]; then
-    assert_passes "Case 10: PreToolUse additionalContext silent-drop NON-USE invariant holds across all 7 inlined subhooks (GitHub #15664 defense-in-depth — emission-pattern audit ignores prose-comment mentions)"
+    assert_passes "Case 10: PreToolUse additionalContext silent-drop NON-USE invariant holds across all 6 scanned subhooks (GitHub #15664 defense-in-depth — emission-pattern audit ignores prose-comment mentions)"
 else
     assert_fails "Case 10: ${additional_context_emission_violations_count} PreToolUse subhook(s) emit additionalContext — silent-drop hazard!"
 fi

@@ -97,7 +97,7 @@ echo ""
 # logic actually inspects:
 #
 #   - file_path suffix matching (CLAUDE.md, pyproject.toml, __init__.py,
-#     mise.toml, plist, GLOSSARY.md, README.md) → NOT APPLICABLE
+#     plist, GLOSSARY.md, README.md) → NOT APPLICABLE
 #     (notebooks are .ipynb — entirely different file type)
 #
 #   - content pattern matching (regex, ast-grep, lint, AST scan,
@@ -111,7 +111,6 @@ declare -a NOTEBOOKEDIT_APPLICABILITY_MATRIX=(
     "pretooluse-vale-claude-md-guard.ts|file-path-suffix|NOT-APPLICABLE|CLAUDE.md is markdown text; Jupyter notebooks (.ipynb) are JSON-encoded and would never be CLAUDE.md"
     "pretooluse-version-guard.ts|content-pattern|APPLICABLE|hardcoded version regex matches notebook cell source identically to .py/.ts files; high-value coverage gap"
     "pretooluse-hoisted-deps-guard.ts|file-path-suffix|NOT-APPLICABLE|operates on pyproject.toml only; notebooks are not pyproject.toml"
-    "pretooluse-mise-hygiene-guard.ts|file-path-suffix|NOT-APPLICABLE|operates on mise.toml/.mise.toml only"
     "pretooluse-pyi-stub-guard.ts|file-path-suffix|NOT-APPLICABLE|operates on __init__.py/__init__.pyi only"
     "pretooluse-native-binary-guard.ts|file-path-suffix|NOT-APPLICABLE|operates on launchd .plist + .sh in automation dirs only"
     "pretooluse-gpu-optimization-guard.ts|content-pattern|APPLICABLE|PyTorch/GPU patterns commonly written in notebook cells; data science is primary notebook use case; high-value coverage gap"
