@@ -10,6 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
 #import <stdlib.h>
+#include <stdatomic.h>
 
 // Banner geometry. Height is fixed; width tracks the clock each sync.
 static const CGFloat kBannerHeight = 20.0;
@@ -187,10 +188,17 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     AudioObjectPropertyListenerBlock _defaultInputBlock; // default-input-change listener
     BOOL            _muteListenerInstalled;
     // Audio-level metering (catches the analog hardware-button mute).
-    BOOL              _micAuthorized;
-    BOOL              _meteringStarted;
+    _Atomic bool      _micAuthorized;    // written on main (permission), read on _halQueue
+    _Atomic bool      _meteringStarted;  // written on _halQueue, read on main (level rail, banner)
     AudioDeviceIOProcID _ioProc;
     FCMeter           _meter;
+    // Thread model (2026-10-21, cc-skills#37). Every CoreAudio HAL call this class makes, its device
+    // binding (_device, _ioProc, the mute listener) and its property listeners live on _halQueue, so a
+    // stalled coreaudiod or IO context can no longer freeze the main thread through the mic banner.
+    // The banner, _muted, _propMuted and _labelKey stay on the main thread. The 1 Hz -refresh only
+    // enqueues a HAL pass, and passes coalesce (_halPassQueued) so a stall cannot queue one per second.
+    dispatch_queue_t  _halQueue;
+    _Atomic bool      _halPassQueued;
 }
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel deviceName:(NSString *)deviceName {
@@ -205,9 +213,12 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                                                  selector:@selector(syncPosition)
                                                      name:FCOverlayWidthConsensusDidChangeNotification
                                                    object:nil];
+        _halQueue    = dispatch_queue_create("com.cc-skills.floating-clock.mic-hal", DISPATCH_QUEUE_SERIAL);
         [self requestMicAccess];     // gate audio metering on Microphone permission
-        [self installDevicesListener];
-        [self rebindDevice];         // find device → mute listener + metering → read state
+        dispatch_async(_halQueue, ^{
+            [self installDevicesListener];
+            [self rebindDevice];     // find device → mute listener + metering → read state
+        });
     }
     return self;
 }
@@ -220,14 +231,14 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                                          kAudioObjectPropertyScopeGlobal,
                                          kAudioObjectPropertyElementMain };
         AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &a,
-                                               dispatch_get_main_queue(), _devicesBlock);
+                                               _halQueue, _devicesBlock);
     }
     if (_defaultInputBlock) {
         AudioObjectPropertyAddress a = { kAudioHardwarePropertyDefaultInputDevice,
                                          kAudioObjectPropertyScopeGlobal,
                                          kAudioObjectPropertyElementMain };
         AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &a,
-                                               dispatch_get_main_queue(), _defaultInputBlock);
+                                               _halQueue, _defaultInputBlock);
     }
 }
 
@@ -267,6 +278,15 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 // (backstop for missed/coalesced default-change notifications; one HAL
 // property read per second).
 - (void)refresh {
+    if (atomic_exchange(&_halPassQueued, true)) return;   // previous pass still queued or running
+    dispatch_async(_halQueue, ^{
+        [self refreshOnHALQueue];
+        atomic_store(&self->_halPassQueued, false);
+    });
+}
+
+// _halQueue only. Rebind when the default input moved, otherwise re-read the mute flag.
+- (void)refreshOnHALQueue {
     AudioObjectID def = [self defaultInputDevice];
     if (_device == kAudioObjectUnknown ||
         (def != kAudioObjectUnknown && def != _device)) {
@@ -323,20 +343,27 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     return v != 0;
 }
 
+// _halQueue only: read the mute FLAG (and, when debugging, the HAL facts) and hand it to main.
 - (void)readMuteState {
     BOOL propMuted  = [self readPropertyMute];
-    // Only trust the audio-silence signal when metering is actually live and
-    // permitted — otherwise the IOProc would deliver zeros and false-positive.
-    BOOL audioMuted = (_micAuthorized && _meteringStarted && _meter.silent != 0);
     if (FCMicDebugOn()) {
         AudioObjectID def = [self defaultInputDevice];
-        FCMicLog(@"read dev=%u(%@) prop=%d silent=%d rms=%.6f frames=%lld cb=%lld meter=%d auth=%d runSomewhere=%d hogPID=%d default=%u(%@) => MUTED=%d",
+        FCMicLog(@"read dev=%u(%@) prop=%d silent=%d rms=%.6f frames=%lld cb=%lld meter=%d auth=%d runSomewhere=%d hogPID=%d default=%u(%@) => FLAG=%d",
                  _device, FCDeviceName(_device), propMuted, _meter.silent,
                  _meter.lastRMS, (long long)_meter.lastFrames, (long long)_meter.cbCount,
                  _meteringStarted, _micAuthorized, FCDeviceRunningSomewhere(_device),
                  FCDeviceHogPID(_device), def, FCDeviceName(def),
-                 (propMuted || audioMuted));
+                 propMuted);
     }
+    dispatch_async(dispatch_get_main_queue(), ^{ [self renderMuteFlag:propMuted]; });
+}
+
+// Main thread only: compose the banner from the mute flag read on _halQueue and the meter's
+// silence flags (plain scalars the IOProc writes; no HAL call here).
+- (void)renderMuteFlag:(BOOL)propMuted {
+    // Only trust the audio-silence signal when metering is actually live and
+    // permitted — otherwise the IOProc would deliver zeros and false-positive.
+    BOOL audioMuted = (_micAuthorized && _meteringStarted && _meter.silent != 0);
     _propMuted = propMuted;
     // Say WHY and HOW TO UNDO (2026-10-08). A mute FLAG is shown nowhere else
     // in macOS: System Settings has no input-mute indicator (its slider clears
@@ -359,7 +386,12 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 // set (mic-mute sets the main element; a channel element may also carry one).
 // Only acts on the flag: a silence-only banner has nothing here to clear.
 - (void)unmuteFromBanner {
-    if (_device == kAudioObjectUnknown || !_propMuted) return;
+    if (!_propMuted) return;   // main-thread view of the flag; the HAL work runs on _halQueue
+    dispatch_async(_halQueue, ^{ [self clearMuteFlagOnHALQueue]; });
+}
+
+- (void)clearMuteFlagOnHALQueue {
+    if (_device == kAudioObjectUnknown) return;
     for (UInt32 el = 0; el <= 8; el++) {
         AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
                                          kAudioObjectPropertyScopeInput, el };
@@ -452,7 +484,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                 FCMicLog(@"EVT mute-property changed");
                 [ws readMuteState];
             };
-            AudioObjectAddPropertyListenerBlock(_device, &a, dispatch_get_main_queue(), _muteBlock);
+            AudioObjectAddPropertyListenerBlock(_device, &a, _halQueue, _muteBlock);
             _muteListenerInstalled = YES;
         }
         [self startMetering];
@@ -469,7 +501,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
                                          kAudioObjectPropertyScopeInput,
                                          kAudioObjectPropertyElementMain };
-        AudioObjectRemovePropertyListenerBlock(_device, &a, dispatch_get_main_queue(), _muteBlock);
+        AudioObjectRemovePropertyListenerBlock(_device, &a, _halQueue, _muteBlock);
     }
     _muteListenerInstalled = NO;
     _muteBlock = nil;
@@ -485,7 +517,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         FCMicLog(@"EVT device-list changed");
         [ws rebindDevice];
     };
-    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &a, dispatch_get_main_queue(), _devicesBlock);
+    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &a, _halQueue, _devicesBlock);
 
     // Also rebind when the system default INPUT changes (e.g. a USB mic is
     // unplugged and macOS falls back to the built-in mic, or the user switches
@@ -499,7 +531,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         FCMicLog(@"EVT default-input changed");
         [ws rebindDevice];
     };
-    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &da, dispatch_get_main_queue(), _defaultInputBlock);
+    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &da, _halQueue, _defaultInputBlock);
 }
 
 #pragma mark - Audio metering (analog-button detection)
@@ -508,7 +540,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     AVAuthorizationStatus st = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
     if (st == AVAuthorizationStatusAuthorized) {
         _micAuthorized = YES;
-        [self startMetering];
+        dispatch_async(_halQueue, ^{ [self startMetering]; });
     } else if (st == AVAuthorizationStatusNotDetermined) {
         __weak typeof(self) ws = self;
         [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio
@@ -517,7 +549,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                 FCMicMuteIndicator *me = ws;
                 if (!me) return;
                 me->_micAuthorized = granted;
-                if (granted) { [me startMetering]; [me readMuteState]; }
+                if (granted) dispatch_async(me->_halQueue, ^{ [me startMetering]; [me readMuteState]; });
             });
         }];
     }
