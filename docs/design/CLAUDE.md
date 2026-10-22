@@ -64,7 +64,3 @@ Each design spec corresponds to an ADR in `../adr/`. Naming convention matches:
 | ADRs        | `../adr/YYYY-MM-DD-slug.md` |
 | Other specs | `./YYYY-MM-DD-slug/`        |
 | Root        | `../../CLAUDE.md`           |
-
-## Toolchain
-
-Spec creation uses Bun/Node.js. See [Root CLAUDE.md](../../CLAUDE.md#development-toolchain).

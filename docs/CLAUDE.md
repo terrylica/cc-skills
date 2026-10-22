@@ -61,8 +61,4 @@ CLAUDE.md files are linted for consistent terminology via Vale hooks:
 - **Hook chain**: PreToolUse rejects edits with violations; PostToolUse shows informational warnings
 - **Configuration**: `~/.claude/.vale.ini` (global) or per-project `.vale.ini`
 
-Full details: [itp-hooks CLAUDE.md](../plugins/itp-hooks/docs/vale-terminology-enforcement.md)
-
-## Toolchain
-
-**Bun-first** for JavaScript globals. See [Root CLAUDE.md](../CLAUDE.md#development-toolchain).
+Full details: [vale-terminology-enforcement.md](../plugins/itp-hooks/docs/vale-terminology-enforcement.md)

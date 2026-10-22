@@ -18,10 +18,6 @@
 3. **`to_if_held_down` with `keyboard_fn` breaks Fn system-wide.** Verified failure (see `references/failed-approaches.md`). If you need tap-vs-hold discrimination on a button targeting Fn, use `to_delayed_action` (see [configure-macro-keyboard](../configure-macro-keyboard/CLAUDE.md) → "Top-button caveat") or pick a different gesture.
 4. **The Globe key (`com.apple.HIToolbox AppleFnUsageType`) can hijack Fn presses.** If a remap fires Fn but Typeless doesn't see it, check that `defaults read com.apple.HIToolbox AppleFnUsageType` returns `0` (Do Nothing). System Settings → Keyboard → "Press 🌐 key to..." controls this.
 
-## Recent Changes
-
-- **2026-04-24** — A consumer of this skill (configure-macro-keyboard) shifted from immediate-Fn-on-press to delayed-Fn-via-`to_delayed_action` for the MacroKeyBot top button. **No changes to this skill.** The Fn emission primitive is unchanged; only the trigger pattern in the consumer changed. The PTT-incompatibility caveat lives in the consumer's docs, not here.
-
 ## Discoverability Notes
 
 - This skill is intentionally narrow. If a user asks "how do I make my macro pad emit Fn?", they probably want [`configure-macro-keyboard`](../configure-macro-keyboard/SKILL.md) (which uses this skill's primitive). This one is for the deeper "why doesn't BTT work?" question.

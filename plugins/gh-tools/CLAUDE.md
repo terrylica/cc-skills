@@ -62,8 +62,7 @@ GitHub allows **256 characters** for issue titles. Maximize this limit to create
 
 The hook only shows reminders for issues you own. Account resolution (ADR 2026-06-21):
 
-1. **Primary**: the repo's `origin` host-alias `git@github.com-<account>:…` names the account.
-2. **Fallback**: `curl /user` with the token from `~/.claude/tools/bin/gh-token-for-repo`.
+The account is the one named by the repo's `origin` host-alias `git@github.com-<account>:…`, parsed from git alone (no `gh`, no network). When the remote has no alias, the hook stays silent.
 
 > Legacy `GH_ACCOUNT` env and `~/.claude/.secrets/gh-token-*` filename detection are **retired** (mise is retired and no longer injects env; `.secrets` is deleted). The hooks derive the account from the origin host-alias only.
 
@@ -71,24 +70,7 @@ The hook only shows reminders for issues you own. Account resolution (ADR 2026-0
 
 Reminder appears if title < 200 characters (room for improvement).
 
-### Example Reminder
-
-```
-[gh-tools] Issue Title Optimization Reminder
-
-Issue: #21 in terrylica/cc-skills
-Current title (77/256 chars):
-  "Findings: Parameter-Free Feature Selection"
-
-Consider updating the title to:
-   - Reflect new findings from this comment
-   - Maximize the 256-character limit
-   - Capture the full journey/context of the issue
-
-Commands:
-  gh issue view 21 --json title --jq '.title | length'
-  gh issue edit 21 --title "..."
-```
+The reminder text lives in `hooks/gh-issue-title-reminder.mjs`.
 
 ## WebFetch Enforcement
 
@@ -122,23 +104,7 @@ An ambient `GH_TOKEN` belonging to the wrong account makes `gh` writes land unde
 - **Fail-open** — if API fails or token missing, allows through (gh CLI will fail itself)
 - **Cache-backed** — `/tmp/.gh-identity-cache-{uid}.json` with 5-min TTL prevents repeated API calls
 
-### Deny Message
-
-```
-[gh-identity-guard] BLOCKED: Wrong GitHub account for owner/repo
-
-Authenticated as: username (via source)
-Target repository: owner/repo
-Push permission: DENIED
-
-Fix (ADR 2026-06-21 host-alias model):
-  1. Check the origin alias names the right account:
-       git remote get-url origin   # expect git@github.com-<account>:owner/repo
-  2. If the alias is wrong, repoint it:
-       git remote set-url origin git@github.com-<owner>:owner/repo.git
-  3. Export the matching token for this repo, then retry:
-       export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)
-```
+The deny message (in the hook) says how to repoint the origin alias.
 
 ## Discovery Provenance (Mandatory for Issue Creation)
 
@@ -220,31 +186,6 @@ No individual IDs need to be listed separately — the full paths are strictly m
 | Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `moonrepo/proto`                 |
 | Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab` external-collaborator owners                |
 
-### Best Practices
-
-**Post validated findings to relevant GitHub Issues**:
-
-- Comment on open OR closed issues with new insights discovered during research
-- Use Issue comments to track evolving understanding (more visible than git commits)
-- Reference Issue numbers in commit messages for traceability (e.g., `fix: address issue #123`)
-- Create new Issues when discovering genuinely new research directions
-
-**Upstream repositories (read-only)**:
-
-- Search and read existing Issues for insights
-- Reference upstream Issue numbers in your own repo's Issues (e.g., "Related to anthropics/claude-code#22055")
-- DO NOT comment, create, or modify Issues in upstream repos
-
-**Example workflow**:
-
-1. Discover insight while investigating Claude Code permissions behavior
-2. Search `anthropics/claude-code` for related Issues (read-only)
-3. Create Issue in `terrylica/cc-skills` documenting findings
-4. Reference upstream Issue: "Investigation of anthropics/claude-code#22055 revealed..."
-5. Post follow-up findings as comments in YOUR repo's Issue
-
-**Which owner applies here**: resolve it from the path, don't assume — `~/.claude/path-owner-registry.toml` is the SSoT, and `gh repo list <owner>` verifies once you know the owner.
-
 ## Multi-Account Authentication (host-alias model, ADR 2026-06-21)
 
 This plugin respects the **host-alias single-source-of-truth**: a repo's `origin` remote (`git@github.com-<account>:owner/repo.git`) names its account and drives the SSH key, commit identity (`includeIf hasconfig:remote.*.url`), and gh account. The neutral `gh` wrapper in `~/.zshrc` derives the account from that alias, sets `GH_CONFIG_DIR=~/.config/gh-<account>`, and strips any ambient `GH_TOKEN`.
@@ -259,16 +200,11 @@ GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"   # account = origin alias →
 
 ## Environment Variables
 
-`gh` itself needs no env vars here — it resolves the account from the repo's remote alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in any env config or the shell; a stale ambient `GH_TOKEN` outranks the isolated profile and 401s after a rotation. For an explicit token in a script, use `gh-token-for-repo` (above).
-| `GH_ORGS` | No | Comma-separated list of orgs the current account may write to (identity guard allowlist) |
+`gh` itself needs no env vars here — it resolves the account from the repo's remote alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in any env config or the shell; a stale ambient `GH_TOKEN` outranks the isolated profile and 401s after a rotation. For an explicit token in a script, use `gh-token-for-repo` (above), scoped to that one command. The identity guard reads one optional variable, `GH_ORGS` (comma-separated owners the current account may write to, an allow-list fast path).
 
 ## Process Safety
 
-The hooks avoid credential helper recursion by:
-
-1. Using `GH_TOKEN` environment variable (not credential helpers)
-2. Using `gh issue view` (read-only operations) or `curl` with `Authorization: token` header
-3. Including 10-second timeout on all hook operations
+The hooks never call a credential helper and never set a token. The identity guard uses `curl` with a `GH_TOKEN` only if one is already exported for that command, and fails open without one; the title and linkage reminders make one read-only `gh` call each. Every subprocess has a PID-scoped timeout (3–10 s).
 
 ## References
 
