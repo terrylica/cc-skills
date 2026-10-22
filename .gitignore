@@ -11,6 +11,8 @@ node_modules/
 
 # Logs
 *.log
+# LevelDB write-ahead logs are test fixtures here, not logs
+!plugins/chrome-profiles/scripts/fixtures/**/*.log
 npm-debug.log*
 
 # Build artifacts
