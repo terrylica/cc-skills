@@ -3,6 +3,7 @@
 #import "AudioDeviceSelectionMenuController.h"  // pull-out menus (2026-06-11)
 #import "AudioBarZoneView.h"                    // zone halves (2026-06-12 split)
 #import "CoreAudioDeviceHALHelpers.h"           // HAL reads/writes (2026-06-12 split)
+#import "AudioHALSnapshotReader.h"              // HAL off the main thread (2026-10-21, #37)
 #import "ClockChildWindowAttachment.h"          // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"                 // shared overlay construction (DRY 2026-06-12)
 #import "OverlayStack.h"                // registered rails below this one (2026-10-15)
@@ -27,6 +28,9 @@ static const CGFloat kZoneChromeW = 72.0;
 // Floor per zone so a short name (or "(no device)") next to a long one never
 // looks cramped; the bar-width floor (clock width) handles the both-short case.
 static const CGFloat kMinZoneW = 92.0;
+// A HAL read still running after this long means coreaudiod (or one device's IO context) is stuck.
+// The bar says so instead of showing a stale device as if it were current.
+static const CFTimeInterval kHALReadOverdueSecs = 5.0;
 
 #pragma mark - Indicator
 
@@ -54,12 +58,27 @@ static const CGFloat kMinZoneW = 92.0;
     CGFloat _outZoneNeed;
     CGFloat _lastInW;
     CGFloat _lastBarW;
+
+    // HAL state (2026-10-21, cc-skills#37). The main thread never queries the HAL: it renders
+    // _snapshot, and _hal refreshes it on a private queue. nil until the first read lands.
+    FCAudioHALReader   *_hal;
+    FCAudioHALSnapshot *_snapshot;
 }
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel {
     if ((self = [super init])) {
         _clock = clockPanel;
         _lastInW = _lastBarW = -1.0;   // force the first zone layout to apply
+        __weak typeof(self) weakSelf = self;
+        _hal = [[FCAudioHALReader alloc]
+            initWithLabel:@"com.cc-skills.floating-clock.audio-hal"
+                readBlock:^FCAudioHALSnapshot *{ return [FCAudioHALSnapshot readFromHAL]; }
+             deliverBlock:^(FCAudioHALSnapshot *snapshot) {
+                 typeof(self) self_ = weakSelf;
+                 if (!self_) return;
+                 self_->_snapshot = snapshot;
+                 [self_ render];
+             }];
         [self buildBar];
         // Re-sync when any peer overlay changes the stack's agreed width.
         [[NSNotificationCenter defaultCenter] addObserver:self
@@ -174,30 +193,40 @@ static const CGFloat kMinZoneW = 92.0;
 
 #pragma mark Refresh (1Hz tick driver)
 
+// 1 Hz tick: ask for a fresh snapshot (answered asynchronously) and render the current one now.
 - (void)refresh {
     if (![self enabled] || FCClockUserHidden()) {
         FCHideOverlay(_bar);   // detach-then-hide ceremony (welding contract)
         return;
     }
-    AudioObjectID inDev  = FCDefaultDevice(YES);
-    AudioObjectID outDev = FCDefaultDevice(NO);
-    float inVol  = FCReadVolume(inDev, YES);
-    float outVol = FCReadVolume(outDev, NO);
+    [_hal requestRead];
+    [self render];
+}
+
+// Draw the bar from _snapshot. No HAL access: this runs on the main thread.
+- (void)render {
+    if (![self enabled] || FCClockUserHidden()) return;
+    FCAudioHALSnapshot *snap = _snapshot;
+    float inVol  = snap ? snap.inVolume  : -1.0f;
+    float outVol = snap ? snap.outVolume : -1.0f;
     // Mute = software mute flag on the current default input OR the mic
     // indicator's banner state (which adds a mic's inline analog mute button —
     // invisible to CoreAudio — via its silence meter).
-    BOOL inMuted = FCReadInputMute(inDev)
+    BOOL inMuted = snap.inMuted
                 || (self.micIndicator && [self.micIndicator isShowing]);
     // Output (playback) mute is a pure property read on the default output —
     // no analog-button/silence-meter path exists for outputs, so unlike the IN
-    // zone there is nothing to OR in (FCReadOutputMute IS the whole signal).
-    BOOL outMuted = FCReadOutputMute(outDev);
+    // zone there is nothing to OR in (the output mute flag IS the whole signal).
+    BOOL outMuted = snap.outMuted;
 
-    // Transient ⏳/✗ status (BT connect in flight) overrides the device name.
-    NSString *inName  = [self transientForInput:YES]
-                      ?: (FCAudioDeviceName(inDev)  ?: @"(no device)");
-    NSString *outName = [self transientForInput:NO]
-                      ?: (FCAudioDeviceName(outDev) ?: @"(no device)");
+    // Transient ⏳/✗ status (BT connect in flight) overrides the device name; an overdue HAL read
+    // overrides both, so a stuck coreaudiod reads as stuck rather than as the last known device.
+    BOOL overdue = [_hal secondsInFlight] > kHALReadOverdueSecs;
+    NSString *fallback = snap ? @"(no device)" : @"…";
+    NSString *inName  = overdue ? @"⌛ CoreAudio not responding"
+                      : ([self transientForInput:YES] ?: (snap.inName  ?: fallback));
+    NSString *outName = overdue ? @"⌛ CoreAudio not responding"
+                      : ([self transientForInput:NO]  ?: (snap.outName ?: fallback));
 
     [_inZone  renderDevice:inName
               levelPercent:(inVol  < 0.0f ? -1 : (NSInteger)lroundf(inVol  * 100.0f))
@@ -257,25 +286,29 @@ static const CGFloat kMinZoneW = 92.0;
     // Explicit user choice — cancel any hijack guard watching this scope
     // (nil controller ⇒ no menu ever opened ⇒ no guard running).
     [_menuController noteExplicitDeviceSelectionForInput:isInput];
-    NSArray<NSNumber *> *devs = FCDevicesForScope(isInput);
+    FCAudioHALSnapshot *snap = _snapshot;
+    NSMutableArray<NSNumber *> *devs = [NSMutableArray array];
+    for (NSDictionary *d in [snap devicesForInput:isInput]) [devs addObject:d[@"id"]];
     if (devs.count == 0) return;
-    AudioObjectID cur = FCDefaultDevice(isInput);
+    AudioObjectID cur = [snap defaultDeviceForInput:isInput];
     NSUInteger idx = [devs indexOfObject:@(cur)];
     // Current default not in the real-device ring (e.g. a virtual device
     // grabbed it) → jump to the FIRST real device instead of wedging.
     NSUInteger next = (idx == NSNotFound) ? 0 : ((idx + 1) % devs.count);
     AudioObjectID target = (AudioObjectID)devs[next].unsignedIntValue;
     if (target == cur) return;   // single device — nothing to toggle to
-    FCSetDefaultDevice(target, isInput);
-    [self refresh];              // instant feedback
+    [self selectDeviceID:target forInput:isInput];
 }
 
 - (void)adjustVolumeForInput:(BOOL)isInput byPercent:(NSInteger)deltaPercent {
-    AudioObjectID dev = FCDefaultDevice(isInput);
-    float vol = FCReadVolume(dev, isInput);
-    if (vol < 0.0f) return;      // device has no volume control
-    FCWriteVolume(dev, isInput, vol + (float)deltaPercent / 100.0f);
-    [self refresh];              // instant feedback
+    // Read-modify-write runs as ONE block on the HAL queue, so rapid clicks queue up in order and
+    // each step starts from the volume the previous one wrote (a snapshot could lag a click).
+    float delta = (float)deltaPercent / 100.0f;
+    [_hal performWrite:^{
+        AudioObjectID dev = FCDefaultDevice(isInput);
+        float vol = FCReadVolume(dev, isInput);
+        if (vol >= 0.0f) FCWriteVolume(dev, isInput, vol + delta);   // <0: no volume control
+    }];
 }
 
 #pragma mark Device-selection menu support (2026-06-11 pull-out menus)
@@ -288,31 +321,32 @@ static const CGFloat kMinZoneW = 92.0;
     return [_menuController menuForInput:isInput];
 }
 
+// The menu and the hijack guard read the latest snapshot (never the HAL) and ask for a fresh one,
+// so a guard polling every 0.5 s sees state at most one read old.
 - (NSArray<NSDictionary<NSString *, id> *> *)liveDevicesForInput:(BOOL)isInput {
-    NSArray<NSNumber *> *ids = FCDevicesForScope(isInput);
-    NSMutableArray *out = [NSMutableArray arrayWithCapacity:ids.count];
-    for (NSNumber *n in ids) {
-        NSString *name = FCAudioDeviceName((AudioObjectID)n.unsignedIntValue);
-        if (!name.length) continue;
-        [out addObject:@{ @"id": n, @"name": name }];
-    }
-    return out;
+    [_hal requestRead];
+    return [_snapshot devicesForInput:isInput] ?: @[];
 }
 
 - (AudioObjectID)currentDefaultDeviceForInput:(BOOL)isInput {
-    return FCDefaultDevice(isInput);
+    [_hal requestRead];
+    return [_snapshot defaultDeviceForInput:isInput];
 }
 
 - (void)selectDeviceID:(AudioObjectID)devID forInput:(BOOL)isInput {
     if (devID == kAudioObjectUnknown) return;
-    FCSetDefaultDevice(devID, isInput);
-    [self refresh];              // instant feedback
+    // Optimistic: the guard re-checks the default 0.5 s later and must see what was just chosen,
+    // not the pre-write state (it would "restore" a second time).
+    _snapshot = [_snapshot snapshotWithDefaultDevice:devID forInput:isInput];
+    [_hal performWrite:^{ FCSetDefaultDevice(devID, isInput); }];
+    [self render];               // instant feedback
 }
 
 - (AudioObjectID)liveDeviceIDMatchingName:(NSString *)name forInput:(BOOL)isInput {
     if (!name.length) return 0;
-    for (NSNumber *n in FCDevicesForScope(isInput)) {
-        NSString *liveName = FCAudioDeviceName((AudioObjectID)n.unsignedIntValue);
+    for (NSDictionary *d in [self liveDevicesForInput:isInput]) {
+        NSNumber *n = d[@"id"];
+        NSString *liveName = d[@"name"];
         if (!liveName.length) continue;
         if ([liveName caseInsensitiveCompare:name] == NSOrderedSame ||
             [liveName rangeOfString:name options:NSCaseInsensitiveSearch].location != NSNotFound ||
@@ -324,16 +358,16 @@ static const CGFloat kMinZoneW = 92.0;
 }
 
 - (BOOL)deviceIDStillExists:(AudioObjectID)devID {
-    // Name-property probe: readable on every live AudioObject regardless of
-    // transport (real, virtual, aggregate); fails for reassigned/dead IDs.
-    return devID != kAudioObjectUnknown && FCAudioDeviceName(devID) != nil;
+    // Membership in the HAL's full device list (real, virtual and aggregate), as of the latest
+    // snapshot; a reassigned or vanished ID is absent.
+    return devID != kAudioObjectUnknown && [_snapshot.allDeviceIDs containsObject:@(devID)];
 }
 
 - (void)setTransientStatus:(NSString *)status forInput:(BOOL)isInput seconds:(NSTimeInterval)seconds {
     int i = isInput ? 0 : 1;
     _transientText[i]  = [status copy];
     _transientUntil[i] = status ? (CFAbsoluteTimeGetCurrent() + seconds) : 0;
-    [self refresh];              // render ⏳/✗ (or restore the device name) now
+    [self render];               // render ⏳/✗ (or restore the device name) now
 }
 
 // Active transient text for the scope, or nil when none/expired. Expiry is

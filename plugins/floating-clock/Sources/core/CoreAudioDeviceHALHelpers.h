@@ -28,7 +28,9 @@ BOOL FCWriteVolume(AudioObjectID dev, BOOL input, float v);
 // Virtual/aggregate transports (BackgroundMusic, loopbacks, multi-output).
 BOOL FCDeviceIsVirtual(AudioObjectID dev);
 // All REAL devices with channels in scope, name-sorted (NSNumber-boxed ids).
+NSArray<NSNumber *> *_Nonnull FCAllDeviceIDs(void);
 NSArray<NSNumber *> *_Nonnull FCDevicesForScope(BOOL input);
+NSArray<NSNumber *> *_Nonnull FCDevicesForScopeAmong(NSArray<NSNumber *> *_Nonnull all, BOOL input);
 
 #ifdef __cplusplus
 }

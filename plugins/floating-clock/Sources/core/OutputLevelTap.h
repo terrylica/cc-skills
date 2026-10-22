@@ -14,7 +14,8 @@
 //    honest and avoids coreaudiod's idle-sleep assertion during silence (FineTune#465).
 //  - Rebuilt when the default output device or its sample rate changes (taps do not follow).
 //
-// Driven by -tick (1 Hz, from the clock tick). Thread model: the IOProc runs on a private queue and
+// Driven by -tick (1 Hz, from the clock tick), which only enqueues work: every HAL call runs on a
+// private control queue, never on the main thread (cc-skills#37). The IOProc runs on its own queue and
 // publishes through atomics; the UI reads with -readPeak:rms:.
 #import <Foundation/Foundation.h>
 
