@@ -22,6 +22,18 @@
 
 set -euo pipefail
 
+# Needs bash >= 4.4 (issue #4). Before 4.0 the parser cannot read the
+# discovery loop's <( ... ) below (it scans a command substitution for its
+# closing paren instead of parsing it, so an apostrophe in a comment there
+# reads as an open quote); before 4.4 an empty "${arr[@]}" is "unbound" under
+# set -u. Either way the suite would report "SUITE DID NOT RUN" for reasons
+# unrelated to any hook (macOS /bin/bash is 3.2). Fail fast and say why, as
+# tasks/hook-lint/run does.
+if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4) )); then
+    echo "test-marketplace-hook-regression-suite: needs bash >= 4.4, got $BASH_VERSION (put Homebrew/proto bash first on PATH)" >&2
+    exit 2
+fi
+
 # Fixture git must not touch this repository or run the developer's global hooks: see the helper.
 # shellcheck source=lib/hermetic-fixture-git.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/hermetic-fixture-git.sh"
