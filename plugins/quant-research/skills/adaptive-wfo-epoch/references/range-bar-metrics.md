@@ -146,7 +146,7 @@ X, y, timestamps, duration_us = create_sequences_with_duration(...)
 
 ## Integration with PSR
 
-When computing the Probabilistic Sharpe Ratio (PSR) for range bar experiments, use the time-weighted Sharpe. No trial-count correction (Deflated Sharpe Ratio, FWER/FDR) is applied, by operator rule (2026-10-15).
+When computing the Probabilistic Sharpe Ratio (PSR) for range bar experiments, use the time-weighted Sharpe. No trial-count correction (Deflated Sharpe Ratio, MinBTL, FWER/FDR) is applied, by operator rule (2026-10-15).
 
 ```python
 from scipy import stats
