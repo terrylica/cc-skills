@@ -352,7 +352,15 @@ print(p[0]["id"])' "$repo_id")
 else
   tgt=(--repo "id:$repo_id")
 fi
-args=(worktree create "${tgt[@]}" --name "$name" --agent "$agent" --prompt "$prompt" --json)
+# On a PAIRED runtime (--environment/--pairing-code) Orca refuses the built-in launcher with
+# agent_launch_replay_unsupported (measured on the 1.4.235 and 1.4.237 CLIs: the CLI does not advertise
+# agent.launch.v2 to a remote runtime), and `agent launch` is refused the same way. So there the worktree
+# is created bare and the agent is typed into a terminal in it (`terminal create --command`), step 2b.
+if [ "$runtime_remote" = 1 ]; then
+  args=(worktree create "${tgt[@]}" --name "$name" --json)
+else
+  args=(worktree create "${tgt[@]}" --name "$name" --agent "$agent" --prompt "$prompt" --json)
+fi
 [ -n "$start" ] && args+=(--base-branch "$start")
 if [ -n "$parent" ]; then args+=(--parent-worktree "$parent"); else args+=(--no-parent); fi
 [ -n "$issue" ] && args+=(--issue "$issue")
@@ -370,6 +378,31 @@ r = d["result"]; w = r["worktree"]
 h = r.get("agentTerminalHandle") or (r.get("startupTerminal") or {}).get("handle") or ""
 print("\t".join([w["id"], w["path"], w["branch"].removeprefix("refs/heads/"), h]))' <<<"$out")
 IFS=$'\t' read -r wt_id wt_path branch handle <<<"$fields"
+
+# 2b. paired runtime: start the agent in a terminal of the new worktree. The remote Orca's agentDefaultArgs
+# are NOT applied on this route, and Claude Code asks its folder-trust question unless the workspace
+# directory is already trusted on that machine.
+# A bare worktree on a paired runtime opens one plain shell tab by itself (measured on 1.4.237), so the agent
+# is typed into that tab, keeping the one-tab rule; a new tab is created only when none appeared.
+if [ "$runtime_remote" = 1 ] && [ -z "$handle" ]; then
+  quoted_prompt=$(printf '%s' "$prompt" | sed "s/'/'\\\\''/g")
+  agent_cmd="$agent '$quoted_prompt'"
+  for _ in 1 2 3 4 5; do
+    handle=$(o terminal list --worktree "id:$wt_id" --json | py '
+t = d["result"]["terminals"]; print(t[0]["handle"] if len(t) == 1 else "")') || handle=""
+    [ -n "$handle" ] && break
+    sleep 1
+  done
+  if [ -n "$handle" ]; then
+    o terminal send --terminal "$handle" --text "$agent_cmd" --enter --json >/dev/null \
+      || die "orca terminal send failed on the paired runtime" 1
+    o terminal rename --terminal "$handle" --title "$agent" --json >/dev/null || warn "could not title the agent's tab"
+  else
+    tout=$(o terminal create --worktree "id:$wt_id" --title "$agent" --command "$agent_cmd" --json) \
+      || die "orca terminal create failed on the paired runtime: $tout" 1
+    handle=$(py 'print((d.get("result") or {}).get("terminal", {}).get("handle", ""))' <<<"$tout")
+  fi
+fi
 
 # 3. the staging branch goes at once (the new branch contains it); the recorded base points back at --base
 if [ -n "$doc" ]; then
@@ -402,7 +435,7 @@ fi
 # The launcher already submitted the prompt, so this only reads (never sends): the title's first 30 characters
 # (sliced by Python, so multi-byte titles survive any locale) must show in the agent's terminal.
 seen=false
-if [ -n "$handle" ]; then
+if [ -n "$handle" ] && [ "$runtime_remote" != 1 ]; then
   i=0
   while [ $i -lt 30 ]; do
     if o terminal read --terminal "$handle" --cursor 0 --limit 2000 --json 2>/dev/null | py '
@@ -414,5 +447,11 @@ sys.exit(0 if want in "\n".join(tail if isinstance(tail, list) else [tail]) else
     i=$((i + 1)); sleep 3
   done
 fi
-[ "$seen" = true ] || warn "the prompt's title did not appear in terminal ${handle:-?} within 90 s; check: orca terminal read --terminal ${handle:-<handle>} --cursor 0 --json"
+if [ "$seen" != true ] && [ "$runtime_remote" = 1 ]; then
+  # Step 2b types the prompt as an argument, and the agent's full-screen UI replaces it, so the title is not
+  # expected in the tail; the agent's own session transcript on that machine is the proof it ran.
+  warn "paired runtime: the prompt was passed as an argument and cannot be read back from the tab; confirm on that machine (agent transcript, or orca terminal read --terminal ${handle:-<handle>} --cursor 0)"
+elif [ "$seen" != true ]; then
+  warn "the prompt's title did not appear in terminal ${handle:-?} within 90 s; check: orca terminal read --terminal ${handle:-<handle>} --cursor 0 --json"
+fi
 emit worktree "s:$wt_id" path "s:$wt_path" branch "s:$branch" terminal "s:$handle" terminals "j:$n" setup_tabs "j:$nsetup" prompt_seen "j:$seen"
