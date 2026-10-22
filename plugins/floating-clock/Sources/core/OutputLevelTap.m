@@ -91,14 +91,24 @@ static BOOL FCOtherProcessIsPlaying(void) {
     AudioObjectID       _builtForDevice;
     Float64             _builtForRate;
     NSDate             *_lastPlaying;
+    // Two queues, never one. AudioDeviceCreateIOProcIDWithBlock dispatches the IOProc onto
+    // _ioQueue *synchronously* from the HAL IO thread, which holds the IOContext mutex while it
+    // waits; AudioDeviceStop needs that same mutex. Stopping from _ioQueue therefore deadlocks the
+    // device for the life of the process (sampled 2026-10-21: every later HAL query on the
+    // aggregate, including the device menu on the main thread, hung forever). Start, stop and
+    // teardown run on _ctlQueue instead. _ioQueue stays non-NULL rather than NULL ("directly
+    // invoked") because a NULL queue is reported not to register the block on macOS 26.
     dispatch_queue_t    _ioQueue;
+    dispatch_queue_t    _ctlQueue;
     BOOL                _running;
 }
 
 - (instancetype)init {
     if ((self = [super init])) {
         _tapID = _aggID = kAudioObjectUnknown;
-        _ioQueue = dispatch_queue_create("com.cc-skills.floating-clock.output-tap", DISPATCH_QUEUE_SERIAL);
+        _ioQueue  = dispatch_queue_create("com.cc-skills.floating-clock.output-tap-io",
+                        dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0));
+        _ctlQueue = dispatch_queue_create("com.cc-skills.floating-clock.output-tap-control", DISPATCH_QUEUE_SERIAL);
         _enabled = YES;
     }
     return self;
@@ -192,7 +202,7 @@ static BOOL FCOtherProcessIsPlaying(void) {
     _running = YES;
     // AudioDeviceStart can block (permission prompt, or a tap leaked by a killed process); keep it off main.
     AudioObjectID a = aggID; AudioDeviceIOProcID p = proc;
-    dispatch_async(_ioQueue, ^{ AudioDeviceStart(a, p); });
+    dispatch_async(_ctlQueue, ^{ AudioDeviceStart(a, p); });
 }
 
 - (void)stop {
@@ -200,7 +210,7 @@ static BOOL FCOtherProcessIsPlaying(void) {
     _running = NO;
     AudioObjectID tap = _tapID, agg = _aggID; AudioDeviceIOProcID proc = _procID;
     _tapID = _aggID = kAudioObjectUnknown; _procID = NULL;
-    dispatch_async(_ioQueue, ^{
+    dispatch_async(_ctlQueue, ^{
         if (proc) { AudioDeviceStop(agg, proc); AudioDeviceDestroyIOProcID(agg, proc); }
         if (agg != kAudioObjectUnknown) AudioHardwareDestroyAggregateDevice(agg);
         if (@available(macOS 14.2, *)) { if (tap != kAudioObjectUnknown) AudioHardwareDestroyProcessTap(tap); }

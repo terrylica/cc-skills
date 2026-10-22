@@ -171,8 +171,11 @@ NSArray<NSNumber *> *FCDevicesForScope(BOOL input) {
     }
     NSMutableArray<NSDictionary *> *named = [NSMutableArray arrayWithCapacity:count];
     for (UInt32 i = 0; i < count; i++) {
-        if (!FCDeviceHasChannels(ids[i], input)) continue;
+        // Transport type first: it excludes aggregates (including this process's own private
+        // output-level aggregate) before the stream-configuration query, which takes the device's
+        // IOContext lock and so must not be issued against an IO context we are driving.
         if (FCDeviceIsVirtual(ids[i])) continue;
+        if (!FCDeviceHasChannels(ids[i], input)) continue;
         NSString *name = FCAudioDeviceName(ids[i]);
         if (!name.length) continue;
         [named addObject:@{ @"id": @(ids[i]), @"name": name }];
