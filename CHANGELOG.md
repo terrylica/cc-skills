@@ -1,3 +1,12 @@
+## [34.2.2](https://github.com/terrylica/cc-skills/compare/v34.2.1...v34.2.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **orca-tools:** start the agent in the worktree's shell tab on a paired runtime, where Orca refuses its launcher ([0b81bdc](https://github.com/terrylica/cc-skills/commit/0b81bdc217ab87f84356def3482d9b56f7dde70d))
+
+On a runtime reached with --environment, worktree create --agent and agent launch both fail with agent_launch_replay_unsupported (Orca 1.4.235 and 1.4.237 CLIs against a 1.4.237 runtime). orca-spinoff now creates the worktree bare, types the agent and prompt into the single shell tab Orca opens there, titles it, and skips the 90-second title read-back that cannot succeed on that route. SKILL.md documents the route, the --repo-id case for an SSH-alias remote, and that Claude Code's folder trust is keyed to the repository root, not a parent folder. Measured end to end on a paired macOS runtime: one tab, the agent's reply in its transcript, 6 s instead of 90+.
+
 ## [34.2.1](https://github.com/terrylica/cc-skills/compare/v34.2.0...v34.2.1) (2026-10-22)
 
 
