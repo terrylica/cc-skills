@@ -40,6 +40,9 @@ import { lexShellCommands } from "./shell-command-quote-aware-static-lexer.ts";
 import {
   basename as invocationBasename,
   skipAssignmentsAndWrappers,
+  walkShellInvocations,
+  type ShellInvocation,
+  type Word,
 } from "./shell-command-invocation-walker.ts";
 
 // ---------------------------------------------------------------------------------------------
@@ -163,7 +166,183 @@ const PUBLISHES_A_BODY = ghCommand(
   String.raw`(?:pr\s+(?:create|comment|review)|issue\s+(?:create|comment))\b`,
 );
 
+/**
+ * Classify by WHAT THE SHELL WOULD RUN, not by what the text mentions (cc-skills#21).
+ *
+ * The command-position regexes below ({@link classifyByCommandText}) run on raw text, so a quoted
+ * string that merely MENTIONS a gated command counted as running it. Measured 2026-10-19, each
+ * denied with "No valid self-review record for HEAD": a `grep -n "…|gh pr create…"` pattern, a
+ * `jq --arg c "cd $d && gh pr create …"` test input, and a quoted string passed to a probe.
+ *
+ * So the decision is made on the invocations the shared static walker reports
+ * (shell-command-invocation-walker.ts, the lexer the kill guards use). It never visits quoted
+ * arguments, comments, or heredocs fed to `cat`; it does look through assignments, `sudo`/`env`/
+ * `nice`/`timeout`, `$(…)`, `bash -c '…'`, `ssh host '…'` and heredocs fed to a shell. Flags are
+ * read as WORDS of the gated invocation, so `--draft` or `--undo` inside a title or body is a
+ * value, never a flag; the `--body` length check reads that word's value.
+ *
+ * FAIL CLOSED. Whenever the walk is not known to be complete -- an unclosed quote, `$(` or
+ * heredoc, the recursion limit, or a shell started behind a reserved word (`then bash <<EOF`,
+ * whose heredoc the walker does not attribute to a shell) -- the old text classifier decides,
+ * exactly as before this change. The walker can only make the gate quieter on input it fully lexed.
+ */
 export function classify(rawCommand: string): Classification {
+  let incomplete = false;
+  const invocations: ResolvedInvocation[] = [];
+  walkShellInvocations(
+    rawCommand,
+    WALK_PREFILTER,
+    (invocation) => {
+      const resolved = resolveInvocation(invocation);
+      if (resolved === "opaque") incomplete = true;
+      else if (resolved !== null) invocations.push(resolved);
+    },
+    () => {
+      incomplete = true;
+    },
+  );
+  if (incomplete) return classifyByCommandText(rawCommand);
+
+  const gh = (noun: string, verbs: readonly string[]) =>
+    invocations.filter(
+      (inv) => inv.program === "gh" && inv.args[0]?.value === noun && verbs.includes(inv.args[1]?.value ?? ""),
+    );
+
+  // Same precedence as the text classifier: undraft, then inline body, ready, create, push.
+  const ready = gh("pr", ["ready"]);
+  const undo = ready.find((inv) => ghFlagWords(inv, READY_VALUE_FLAGS).some((w) => w.value === "--undo"));
+  if (undo) return { kind: "pr-undraft", matched: `${display(undo, 2)} --undo` };
+
+  for (const inv of [...gh("pr", ["create", "comment", "review"]), ...gh("issue", ["create", "comment"])]) {
+    const body = inlineBodyText(inv);
+    if (body !== null && (body.includes("\n") || body.length > INLINE_BODY_MAX)) {
+      return { kind: "inline-body", matched: `--body with ${body.length} chars` };
+    }
+  }
+
+  if (ready.length > 0) return { kind: "pr-ready", matched: display(ready[0]!, 2) };
+
+  const create = gh("pr", ["create"]).find(
+    (inv) => !ghFlagWords(inv, PR_CREATE_FLAGS_TAKING_A_VALUE).some((w) => /^--draft(?:=true)?$/.test(w.value)),
+  );
+  if (create) return { kind: "pr-create", matched: display(create, 2) };
+
+  for (const inv of invocations) {
+    if (inv.program !== "git") continue;
+    const verb = gitSubcommandIndex(inv.args);
+    if (verb !== -1 && inv.args[verb]!.value === "push") return { kind: "push", matched: display(inv, verb + 1) };
+  }
+
+  return { kind: null, matched: "" };
+}
+
+/** Tested on each (sub)script before lexing; `gh` matches case-insensitively, as the regex did. */
+const WALK_PREFILTER = /\b(?:gh|git)\b/i;
+
+/**
+ * Shell reserved words that may precede a command (`if git push; then gh pr ready; fi`,
+ * `{ gh pr create; }`, `! git push`). The walker treats them as program names; the gate looks past
+ * them, because the command after one runs. Compared on the RAW word: a quoted `"if"` is no keyword.
+ */
+const RESERVED_WORDS: ReadonlySet<string> = new Set(["!", "{", "if", "then", "else", "elif", "do", "while", "until"]);
+
+/** Programs whose arguments or heredocs the walker recurses into only when they are the program. */
+const NESTING_PROGRAMS: ReadonlySet<string> = new Set(["bash", "sh", "zsh", "dash", "ksh", "ssh", "pueue"]);
+
+interface ResolvedInvocation {
+  /** Lower-cased basename, so `/opt/homebrew/bin/gh` and `GH` are `gh`, as the regex had it. */
+  readonly program: string;
+  readonly words: Word[];
+  readonly args: Word[];
+  readonly context: ShellInvocation["context"];
+}
+
+function resolveInvocation(invocation: ShellInvocation): ResolvedInvocation | "opaque" | null {
+  let words: Word[] = [invocation.programWord, ...invocation.args];
+  let behindReservedWord = false;
+  while (words.length > 0 && RESERVED_WORDS.has(words[0]!.raw)) {
+    behindReservedWord = true;
+    const rest = words.slice(1);
+    const k = skipAssignmentsAndWrappers(rest);
+    if (k === -1) return null;
+    words = rest.slice(k);
+  }
+  if (words.length === 0) return null;
+  const program = invocationBasename(words[0]!.value).toLowerCase();
+  // The walker only nests into a shell or ssh that IS the program word; behind a reserved word its
+  // `-c` script and heredoc would go unseen, so let the text classifier decide.
+  if (behindReservedWord && NESTING_PROGRAMS.has(program)) return "opaque";
+  return { program, words, args: words.slice(1), context: invocation.context };
+}
+
+/** `gh pr ready` flags that consume the next word. */
+const READY_VALUE_FLAGS: ReadonlySet<string> = new Set(["-R", "--repo"]);
+
+/**
+ * The FLAG words of a `gh <noun> <verb>` invocation: the value of a value-taking flag is skipped
+ * (`--title --draft` titles a PR "--draft"; it does not make it a draft), and `--` ends the flags.
+ */
+function ghFlagWords(inv: ResolvedInvocation, valueFlags: ReadonlySet<string>): Word[] {
+  const flags: Word[] = [];
+  for (let i = 2; i < inv.args.length; i += 1) {
+    const w = inv.args[i]!;
+    if (w.value === "--") break;
+    if (!w.value.startsWith("-")) continue;
+    flags.push(w);
+    if (valueFlags.has(w.value)) i += 1;
+  }
+  return flags;
+}
+
+/**
+ * The text of an inline `--body` / `--body=` value, or null. The decoded value is measured; the
+ * word's SOURCE is used instead when it is longer or holds a newline the value lost, because
+ * `--body "$(cat <<'EOF' …)"` decodes to a `$(…)` placeholder while the body is composed right there.
+ */
+function inlineBodyText(inv: ResolvedInvocation): string | null {
+  for (let i = 2; i < inv.args.length; i += 1) {
+    const w = inv.args[i]!;
+    let value: string;
+    let raw: string;
+    if (w.value === "--body") {
+      const next = inv.args[i + 1];
+      if (next === undefined) return null;
+      ({ value, raw } = next);
+    } else if (w.value.startsWith("--body=")) {
+      value = w.value.slice("--body=".length);
+      raw = w.raw.slice(w.raw.indexOf("=") + 1);
+    } else continue;
+    const source = /^(['"]).*\1$/s.test(raw) ? raw.slice(1, -1) : raw;
+    return source.length > value.length || (source.includes("\n") && !value.includes("\n")) ? source : value;
+  }
+  return null;
+}
+
+/** git global options that consume the next word (`git -C dir push`, `git -c k=v push`). */
+const GIT_OPTIONS_TAKING_A_VALUE: ReadonlySet<string> = new Set([
+  "-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env",
+]);
+
+/** Index of git's subcommand after its global options (`--no-pager` takes none), or -1. */
+function gitSubcommandIndex(args: readonly Word[]): number {
+  let a = 0;
+  while (a < args.length && args[a]!.value.startsWith("-")) {
+    a += GIT_OPTIONS_TAKING_A_VALUE.has(args[a]!.value) ? 2 : 1;
+  }
+  return a < args.length ? a : -1;
+}
+
+/** The program word plus the next `argCount` words as written, and where the walker found them. */
+function display(inv: ResolvedInvocation, argCount: number): string {
+  const text = inv.words.slice(0, argCount + 1).map((w) => w.raw).join(" ");
+  return inv.context === "command" ? text : `${text} (in ${inv.context})`;
+}
+
+/**
+ * The pre-#21 classifier: command-position regexes over the command text. Kept as the FAIL-CLOSED
+ * path for input the walker could not lex completely; on such input it decides exactly as before.
+ */
+function classifyByCommandText(rawCommand: string): Classification {
   // Heredoc bodies written to a file (`cat > body.md <<'EOF'`) are text, not commands: a PR body
   // that mentions `gh pr create` must not be classified as one (2026-10-19). Bodies fed to a shell stay.
   const command = withoutNonShellHeredocBodies(rawCommand);
