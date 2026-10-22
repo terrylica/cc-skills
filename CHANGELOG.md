@@ -1,3 +1,22 @@
+# [34.3.0](https://github.com/terrylica/cc-skills/compare/v34.2.2...v34.3.0) (2026-10-22)
+
+
+### Bug Fixes
+
+* **privacy:** generic fixture host, redacted CHANGELOG link ([dc6bfe3](https://github.com/terrylica/cc-skills/commit/dc6bfe37aa14d0b32277c14b023eb8a92cb8fb54))
+
+Two lines in the tree carried identifiers the privacy gate blocks. The long-runtime monitor reminder test used a real host name in its `ssh <host> 'pueue add …'` fixture; it is now `remote-host`, and the test still asserts the same behavior (58 pass). One v33 CHANGELOG entry linked an issue in a private repository; it now reads "closes an issue in a private repository", the wording `scripts/redact-foreign-references.ts` already uses for new release notes.
+
+This fixes the tip forward so a history rewrite can scrub the same identifiers from older commits while keeping the tip tree unchanged.
+
+
+
+### Features
+
+* **statusline-tools:** STATUSLINE_HIDE leaves named segments out of the status line ([08f8199](https://github.com/terrylica/cc-skills/commit/08f819944580082028c810aee4a4eb7c49e4514a))
+
+A comma-separated list of segment names (git, code, model, ctx, datetime, gateway, repo, session, cast, cron) is left out of the render. Hiding code also skips running scc, and hiding gateway switches the gateway feature off entirely (no probe, no cache file, no telemetry), so a hidden segment costs nothing. Unknown names are ignored and an unset value renders exactly as before. Pinned by five new bats tests. The README's line-layout section, which still described five lines, now lists every line with its name.
+
 ## [34.2.2](https://github.com/terrylica/cc-skills/compare/v34.2.1...v34.2.2) (2026-10-22)
 
 
