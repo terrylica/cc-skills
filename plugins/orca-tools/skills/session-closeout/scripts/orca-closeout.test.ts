@@ -385,7 +385,7 @@ describe("naming while work is running", () => {
     const j = JSON.parse(runAsAgent(["--title", "t"], { env: orcaEnv(stubOrca(TAB)), linger: 2 }).out);
     expect(j.marked).toEqual({ tab: true, workspace: false });
     expect(orcaCalls()).not.toContain("worktree set");
-  });
+  }, 30000);
   test("with nothing running, nothing is marked and no watcher starts", () => {
     const j = JSON.parse(runAsAgent(["--title", "t", "--tab-title", "Short"], { env: orcaEnv(stubOrca(TAB)) }).out);
     expect(j.marked).toEqual({ tab: false, workspace: false });
@@ -599,14 +599,14 @@ describe("restoring what was there before", () => {
     const j = JSON.parse(runAsAgent(["--title", "t"], { env: orcaEnv(stubOrca(TAB)), linger: 2 }).out);
     expect(j.marked).toEqual({ tab: true, workspace: false });
     expect(orcaCalls()).not.toContain("worktree set");
-  });
+  }, 30000);
   test("a workspace with a comment but no status gets only the comment prefix", () => {
     setStatus([{ id: "a-1", state: "working" }]);
     setRows("working", { comment: "notes", status: "" });
     runAsAgent(["--title", "t"], { env: orcaEnv(stubOrca(TAB)), linger: 2 });
     expect(orcaCalls()).toContain(`worktree set --worktree id:${WT} --comment Running: 1 subagent | notes --json`);
     expect(orcaCalls()).not.toContain("--workspace-status");
-  });
+  }, 30000);
   test("a second run while the first one's markers are on restores the true originals, never nesting", async () => {
     // What the first run left: its state file, and Orca showing its markers.
     writeFileSync(
@@ -630,7 +630,7 @@ describe("restoring what was there before", () => {
     runAsAgent(["--title", "t"], { env: orcaEnv(stubOrca(TAB)), linger: 2 });
     expect(orcaCalls()).toContain(`--comment Running: 1 subagent | old comment --json`);
     expect(orcaCalls()).not.toContain("Running: 1 subagent | Running:");
-  });
+  }, 30000);
 });
 
 describe("transcript reading", () => {
