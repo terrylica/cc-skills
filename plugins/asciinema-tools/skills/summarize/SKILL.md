@@ -243,7 +243,7 @@ permission|approve|reject|block
 ## Next Steps Identified
 
 1. TFT 15mo + Fishr training
-2. DSR/PBO statistical validation
+2. PSR/PBO statistical validation
 3. Agent research synthesis
 ```
 
