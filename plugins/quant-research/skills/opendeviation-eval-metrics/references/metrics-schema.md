@@ -91,12 +91,12 @@ compatible_with: "rangebar-eval-metrics@9.37+"
       "description": "Probabilistic Sharpe Ratio (Bailey & López de Prado 2012)"
     },
     "skewness": {
-      "type": "number",
-      "description": "Skewness of daily returns"
+      "type": ["number", "null"],
+      "description": "Skewness of daily returns; null when undefined (constant daily PnL)"
     },
     "kurtosis": {
-      "type": "number",
-      "description": "Kurtosis of daily returns (Pearson form, normal = 3)"
+      "type": ["number", "null"],
+      "description": "Kurtosis of daily returns (Pearson form, normal = 3); null when undefined (constant daily PnL)"
     },
     "binomial_pvalue": {
       "type": "number",
@@ -190,8 +190,8 @@ compatible_with: "rangebar-eval-metrics@9.37+"
 | `autocorr_lag1`       | number        | Agg only | -                     |
 | `effective_n`         | number        | Agg only | >= 30                 |
 | `sharpe_se`           | number / null | No       | -                     |
-| `skewness`            | number        | No       | -                     |
-| `kurtosis`            | number        | No       | -                     |
+| `skewness`            | number / null | No       | -                     |
+| `kurtosis`            | number / null | No       | -                     |
 | `prediction_autocorr` | number / null | No       | 0.3 - 0.7 (healthy)   |
 
 ### Risk Metrics (Extended)
