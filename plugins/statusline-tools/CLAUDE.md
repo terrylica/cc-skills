@@ -11,13 +11,7 @@
 - [session-info](./skills/session-info/SKILL.md)
 - [setup](./skills/setup/SKILL.md)
 
-## Commands
-
-| Command                    | Purpose                      |
-| -------------------------- | ---------------------------- |
-| `/statusline-tools:setup`  | Configure statusline         |
-| `/statusline-tools:ignore` | Manage ignore patterns       |
-| `/statusline-tools:tether` | Manage link validation hooks |
+Each skill is also its slash command (`/statusline-tools:<skill>`).
 
 ## Hooks
 
@@ -41,7 +35,7 @@
 | `\| vX.Y.Z <age>`                               | Latest GitHub release (`gh release view`). Remote = `origin`, else the first remote whose URL names a GitHub host (including ssh aliases like `git@github-<name>:`). When gh cannot answer, the newest local strict-semver tag renders as `vX.Y.Z tag <age>`; with no such tag, gh's own diagnostic                                                                                                                                                                                                                                    |
 | Σ &lt;n&gt; LOC                                 | Total lines of code (via `scc`, all tracked files)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `claude-…[1m]`                                  | Model id from statusline stdin `.model.id` (falls back to `.model.display_name`). The model segment renders on its **own line** (below the code-stats line, above the datetime/gateway line) — previously concatenated onto line 1 after the git stats                                                                                                                                                                                                                                                                                 |
-| `… \| <version>` (model line)                   | Trailing Claude Code version, straight from the native statusline payload `.version` ("our current version of Claude Code locally") — no subprocess, official value verbatim per the NATIVE-FIELDS-ONLY invariant. Omitted (no `\|` separator) when `.version` is absent. NOTE: this is the **Claude Code CLI** version; the `1.x.y` on the gateway line is the local **the client wrapper wrapper** version (different thing)                                                                                                         |
+| `… \| <version>` (model line)                   | Trailing Claude Code version, straight from the native statusline payload `.version` ("our current version of Claude Code locally") — no subprocess, official value verbatim per the NATIVE-FIELDS-ONLY invariant. Omitted (no `\|` separator) when `.version` is absent. NOTE: this is the **Claude Code CLI** version; the `1.x.y` on the gateway line is the local **client wrapper** version (different thing)                                                                                                                     |
 | &lt;lvl&gt; / thinking:&lt;bool&gt; / fast_mode | Official names + VERBATIM values from `.effort.level`, `.thinking.enabled`, `.fast_mode` (2026-06-11 directive): effort bare (`· xhigh`, no label), thinking echoes the official boolean (`thinking:true`/`thinking:false`, never on/off), `fast_mode` shows its official field name when true. Absent fields omit their tokens — no invented fallbacks (the "Unknown" model fallback and the `sed 's/Claude //'` compactor are gone)                                                                                                  |
 | _(no inferred badges)_                          | **NATIVE-FIELDS-ONLY invariant** (operator directive 2026-06-11): the model segment renders only direct payload echoes. The ✦ ultracode heuristic badge (`effort==xhigh AND thinking AND NOT fast_mode`, added 2026-06-10) was RETIRED after one day — live counterexample sessions rendered xhigh with ultracode OFF (effort persists across sessions; ultracode is session-only with no payload field). Pinned by two bats tests (render invariant + source-level lint). Reinstate only if upstream ships a native `ultracode` field |
 | cx &lt;n&gt;                                    | Cyclomatic complexity (yellow when ≥ 1k)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -56,20 +50,15 @@ File mtimes/sizes and ISO-8601 parsing go through `file_mtime`, `file_size` and 
 
 Layout: `Σ <LOC> · <files> files · cx <complexity> · <top3 langs %> · ~$<cost> COCOMO`
 
-Implementation: `scc --format=json2` piped through `jq` for compact formatting.
-Runs on every render — no cache (selected for freshness 2026-04-26). Bounded by
-1s timeout so pathologically large repos drop the line silently rather than
-hang the statusline. Skipped when `scc` is not installed or cwd is not a git
-work tree.
+Implementation: `scc --format=json2` piped through `jq` for compact formatting. Runs on every render — no cache (selected for freshness 2026-04-26). Bounded by 1s timeout so pathologically large repos drop the line silently rather than hang the statusline. Skipped when `scc` is not installed or cwd is not a git work tree.
 
-Cost on cc-skills repo: ~70ms cold (scc with complexity) + ~20ms jq = ~100ms
-incremental over the pre-existing 1.1s baseline.
+Cost on cc-skills repo: ~70ms cold (scc with complexity) + ~20ms jq = ~100ms incremental over the pre-existing 1.1s baseline.
 
 Dependency: `brew install scc` (Go binary, single-shot — no daemon).
 
-## Optional: gateway gateway health integration
+## Optional: gateway health integration
 
-The statusline reads an optional admission gateway on every render and surfaces gate health, rotation pool size, canary state, and local the client wrapper wrapper version. This integration is **optional** — users who have not configured a gateway make no network call at all and see nothing (the whole segment is skipped).
+The statusline reads an optional admission gateway on every render and surfaces gate health, rotation pool size, canary state, and the local client wrapper version. This integration is **optional** — users who have not configured a gateway make no network call at all and see nothing (the whole segment is skipped).
 
 > **Do not surface the local keychain's OAuth account or its 5h/7d quota windows here**, and do not read a local quota API. A client wrapper may set `ANTHROPIC_BASE_URL` to the gateway, and the gateway picks from a rotation pool per-request — so the local credential is not the one being consumed, and its quota numbers describe spend the user isn't making. Surface the four signals below instead; they reflect the live pipeline.
 
@@ -99,19 +88,13 @@ Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway unreachable 1.93.0       
 
 #### Forward-path health: tolerant reader across two gateway generations
 
-gateway is migrating off its synthetic canary because **monitoring must never spend
-inference** (the guiding rule). The replacement derives forward-path health from real
-forwarded requests that already happened, so it costs nothing. This statusline reads
-**either** generation, and the precedence must not be reordered:
+gateway is migrating off its synthetic canary because **monitoring must never spend inference** (the guiding rule). The replacement derives forward-path health from real forwarded requests that already happened, so it costs nothing. This statusline reads **either** generation, and the precedence must not be reordered:
 
 1. `upstream_health_observed_from_forwarded_request_log` — new, zero-token
 2. `canary_self_test` — legacy, synthetic
 3. neither present → `no-health-signal` (yellow, explicit)
 
-The reader shipped **before** gateway changed, so a statusline on any host works
-against either binary throughout the rollout. **Do not collapse it to the new field
-alone** until every gateway in the fleet emits it — an older binary would then paint
-`no-health-signal` fleet-wide.
+The reader shipped **before** gateway changed, so a statusline on any host works against either binary throughout the rollout. **Do not collapse it to the new field alone** until every gateway in the fleet emits it — an older binary would then paint `no-health-signal` fleet-wide.
 
 New states, and why each renders the way it does:
 
@@ -122,11 +105,7 @@ New states, and why each renders the way it does:
 | `unproven`         | gray `·`      | **No recent request carried evidence** (idle fleet / fresh restart). Deliberately calm — it is neither health nor failure |
 | `no-health-signal` | yellow `?`    | gateway answered but exposed no health block at all: a contract break in the binary, not a fleet outage                   |
 
-`unproven` has its own explicit branch in both the composer and the bash render `case`.
-That is load-bearing: the render's `*)` fallback alarms in RED, so omitting the branch
-would page the operator **for being idle** — the classic trap a naive deep-probe
-conversion hit first. A monitor must not report health it cannot observe, and must not
-report failure it has not seen.
+`unproven` has its own explicit branch in both the composer and the bash render `case`. That is load-bearing: the render's `*)` fallback alarms in RED, so omitting the branch would page the operator **for being idle** — the classic trap a naive deep-probe conversion hit first. A monitor must not report health it cannot observe, and must not report failure it has not seen.
 
 #### Pool denominator semantics (why we don't show `pool 3/4`)
 
@@ -167,9 +146,9 @@ No pin badge is rendered: under bearer-mode routing the gateway picks the upstre
 
 ### Wrapper version + skew check
 
-The local `the client wrapper` binary's version is read once (cached by binary mtime) and rendered as a bare semver. When the version is below the gateway floor, the segment turns yellow with explicit floor: `wrapper 1.1.0<1.2.0`. This surfaces version-skew **before** a real request fails with 403, instead of after.
+The local client wrapper binary's version is read once (cached by binary mtime) and rendered as a bare semver. When the version is below the gateway floor, the segment turns yellow with explicit floor: `wrapper 1.1.0<1.2.0`. This surfaces version-skew **before** a real request fails with 403, instead of after.
 
-The floor is **AUTO-DISCOVERED** (L1a, 2026-05-13): the statusline anonymously probes a wrapper-gated gateway route (`/v1/users/me`) without the version header and parses `minimum_wrapper_version_required` out of the 403 body, caching it at `/tmp/statusline-gateway-floor` (3600s TTL). When gateway raises its floor, the next render within the hour picks it up — **no manual constant bump required**. The compiled-in `GATEWAY_MIN_WRAPPER_VERSION_FALLBACK` is used only when the probe fails (gateway unreachable, gate disabled, parse error). A failed probe is cached too, for ten minutes, and keeps the last floor it discovered instead of the fallback (2026-10-05): before that, a gateway whose version gate was off answered `/v1/users/me` with a 404 and every render re-probed it, ~720 anonymous requests an hour against one gateway. The cache path is `STATUSLINE_GATEWAY_FLOOR_CACHE` (default `/tmp/statusline-gateway-floor`). Until the local binary is updated to meet a raised floor, the wrapper segment stays yellow and the operator knows to `gh release download` a fresh the client wrapper.
+The floor is **AUTO-DISCOVERED** (L1a, 2026-05-13): the statusline anonymously probes a wrapper-gated gateway route (`/v1/users/me`) without the version header and parses `minimum_wrapper_version_required` out of the 403 body, caching it at `/tmp/statusline-gateway-floor` (3600s TTL). When gateway raises its floor, the next render within the hour picks it up — **no manual constant bump required**. The compiled-in `GATEWAY_MIN_WRAPPER_VERSION_FALLBACK` is used only when the probe fails (gateway unreachable, gate disabled, parse error). A failed probe is cached too, for ten minutes, and keeps the last floor it discovered instead of the fallback (2026-10-05): before that, a gateway whose version gate was off answered `/v1/users/me` with a 404 and every render re-probed it, ~720 anonymous requests an hour against one gateway. The cache path is `STATUSLINE_GATEWAY_FLOOR_CACHE` (default `/tmp/statusline-gateway-floor`). Until the local binary is updated to meet a raised floor, the wrapper segment stays yellow and the operator knows to `gh release download` a fresh client wrapper.
 
 ### Statistics surface — JSONL log + analytics CLI (L2, 2026-05-13)
 

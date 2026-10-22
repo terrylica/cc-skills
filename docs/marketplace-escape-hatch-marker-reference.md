@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 41 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 54 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (34; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (47; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -22,14 +22,18 @@ Jump directly to any of the 41 registered markers below. Markers are listed alph
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
 - [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
 - [`CHROME-DEBUG-PORT-OK`](#chrome-debug-port-ok)
+- [`CLAUDE-MD-SIZE-OK`](#claude-md-size-ok)
 - [`CROWN-JEWEL-PLAIN-OK`](#crown-jewel-plain-ok)
 - [`CWD-DELETE-OK`](#cwd-delete-ok)
+- [`DUCKDB-SKIP`](#duckdb-skip)
+- [`FAIL-FAST-OK`](#fail-fast-ok)
 - [`FGPAT-REMINDER-OK`](#fgpat-reminder-ok)
 - [`FILE-SIZE-OK`](#file-size-ok)
 - [`GH-HARD-WRAP-OK`](#gh-hard-wrap-ok)
 - [`GMAIL-BODY-OK`](#gmail-body-ok)
 - [`GMAIL-SEND-OK`](#gmail-send-ok)
 - [`HAIKU-MONITOR-SKIP`](#haiku-monitor-skip)
+- [`HEADLESS-P-OK`](#headless-p-ok)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
@@ -38,17 +42,26 @@ Jump directly to any of the 41 registered markers below. Markers are listed alph
 - [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
 - [`MD-TABLE-OK`](#md-table-ok)
 - [`OLD-GIT-OK`](#old-git-ok)
+- [`PII-GATE-OK`](#pii-gate-ok)
 - [`PII-SCAN-OK`](#pii-scan-ok)
 - [`PKILL-OPTION-ORDER-OK`](#pkill-option-order-ok)
+- [`PR-CITATION-OK`](#pr-citation-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
+- [`PTH-OK`](#pth-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
+- [`PUEUE-SKIP`](#pueue-skip)
+- [`PUEUE-WRAP`](#pueue-wrap)
+- [`PUSHOVER-BUDGET-OK`](#pushover-budget-ok)
 - [`RELEASE-NOTES-OK`](#release-notes-ok)
 - [`SECRET-SCAN-OK`](#secret-scan-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
 - [`SHELL-SAFETY-OK`](#shell-safety-ok)
+- [`SIGPIPE-OK`](#sigpipe-ok)
 - [`SKILL-PLUGIN-ROOT-OK`](#skill-plugin-root-ok)
 - [`SSoT-OK`](#ssot-ok)
 - [`STALE-CHECKOUT-OK`](#stale-checkout-ok)
+- [`TCC-ORDERING-OK`](#tcc-ordering-ok)
+- [`UV-OK`](#uv-ok)
 
 **Audit-task markers** (7; consumed by `tasks/` audit scripts once per release-preflight):
 
@@ -77,7 +90,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (34 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (47 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -200,6 +213,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # CHROME-DEBUG-PORT-OK: explain the deliberate exception here in at least 10 characters
 ```
 
+## `CLAUDE-MD-SIZE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-claude-md-size-budget-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Silence the CLAUDE.md size-budget reminder (posttooluse-claude-md-size-budget-reminder.ts), which suggests a hub-and-spoke split when a CLAUDE.md reaches 36,000 characters (90% of the 40,000 budget). Put CLAUDE-MD-SIZE-OK anywhere in the file (e.g. `<!-- CLAUDE-MD-SIZE-OK -->`) when the file is intentionally flat, such as a generated or append-only log. Detection is a plain substring check, not the iter-107 helper.
+
+**Example usage**:
+
+```
+# CLAUDE-MD-SIZE-OK
+```
+
 ## `CROWN-JEWEL-PLAIN-OK`
 
 | Field | Value |
@@ -232,6 +262,40 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # CWD-DELETE-OK
+```
+
+## `DUCKDB-SKIP`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-parquet-duckdb-nudge.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Silence the Parquet-to-DuckDB nudge (pretooluse-parquet-duckdb-nudge.ts) for one Bash command. Append `# DUCKDB-SKIP` to the command; the `#` is required (regex `#\s*DUCKDB-SKIP`, case-insensitive, not the iter-107 helper).
+
+**Example usage**:
+
+```
+# DUCKDB-SKIP
+```
+
+## `FAIL-FAST-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Silence the fail-fast loop reminder in posttooluse-reminder.ts, which flags a TypeScript/JavaScript batch loop that swallows per-item failures. Put FAIL-FAST-OK anywhere in the written file when the loop intentionally tolerates per-item failures. Plain substring check, not the iter-107 helper.
+
+**Example usage**:
+
+```
+# FAIL-FAST-OK
 ```
 
 ## `FGPAT-REMINDER-OK`
@@ -334,6 +398,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # HAIKU-MONITOR-SKIP
+```
+
+## `HEADLESS-P-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-headless-claude-p-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a headless `claude -p` invocation that the headless-claude-p guard (pretooluse-headless-claude-p-guard.ts) would deny because it provably cannot do what it asks for: `--output-format stream-json` without `--verbose`, the non-existent `CLAUDE_EFFORT` variable, or an `--effort` value that is not a real level. Add HEADLESS-P-OK anywhere in the command.
+
+**Example usage**:
+
+```
+# HEADLESS-P-OK
 ```
 
 ## `INIT-MONOLITH-OK`
@@ -472,6 +553,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # OLD-GIT-OK: explain the deliberate exception here in at least 10 characters
 ```
 
+## `PII-GATE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pii-push-gate.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Allow a `git push` that the PII push gate (pretooluse-pii-push-gate.ts) would block because its ADDED lines carry secrets or, when the repository is not known to be private, personal data. Add `PII-GATE-OK: <why publishing this is correct>` (10+ characters) to the command.
+
+**Example usage**:
+
+```
+# PII-GATE-OK: explain the deliberate exception here in at least 10 characters
+```
+
 ## `PII-SCAN-OK`
 
 | Field | Value |
@@ -506,6 +604,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # PKILL-OPTION-ORDER-OK: explain the deliberate exception here in at least 10 characters
 ```
 
+## `PR-CITATION-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pr-citation-evidence-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a `gh pr comment` / `gh pr review` (or the matching `gh api` write to a PR's comments or reviews) that the PR citation-evidence guard (pretooluse-pr-citation-evidence-guard.ts) would deny because its body calls a solution best practice, state of the art, recommended or per the spec without URLs and verbatim quotes from authoritative sources. Add PR-CITATION-OK anywhere in the command.
+
+**Example usage**:
+
+```
+# PR-CITATION-OK
+```
+
 ## `PROCESS-STORM-OK`
 
 | Field | Value |
@@ -523,6 +638,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # PROCESS-STORM-OK
 ```
 
+## `PTH-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pth-contamination-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a Bash command that the `.pth` contamination guard (pretooluse-pth-contamination-guard.ts) would block or question: `maturin develop` on a remote host, `rsync` into site-packages, or a non-wheel `pip install` on a remote host, all of which can leave a `.pth` file that silently loads stale source. Append `# PTH-OK` (dev-only); the `#` is required (regex `# PTH-OK`, case-insensitive, not the iter-107 helper).
+
+**Example usage**:
+
+```
+# PTH-OK
+```
+
 ## `PUEUE-LOCAL-OK`
 
 | Field | Value |
@@ -538,6 +670,57 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # PUEUE-LOCAL-OK
+```
+
+## `PUEUE-SKIP`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pueue-wrap-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Prevent the pueue auto-wrap (pretooluse-pueue-wrap-guard.ts) from routing a long-running Bash command through pueue. Append `# PUEUE-SKIP` to the command (regex `# *PUEUE-SKIP`, case-insensitive, not the iter-107 helper). PUEUE-WRAP wins when both are present.
+
+**Example usage**:
+
+```
+# PUEUE-SKIP
+```
+
+## `PUEUE-WRAP`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pueue-wrap-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Force the pueue auto-wrap (pretooluse-pueue-wrap-guard.ts) to route a Bash command through pueue even when its heuristics would not. Append `# PUEUE-WRAP` to the command (regex `# *PUEUE-WRAP`, case-insensitive, not the iter-107 helper); it is checked before PUEUE-SKIP.
+
+**Example usage**:
+
+```
+# PUEUE-WRAP
+```
+
+## `PUSHOVER-BUDGET-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-pushover-budget-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Silence the Pushover budget reminder (posttooluse-pushover-budget-reminder.ts), a soft nudge that fires when written code or an inline Bash send constructs a Pushover message, reminding Claude of the size limits and of the title, url and attachment channels. Nothing is blocked; add PUSHOVER-BUDGET-OK anywhere in the file to silence it.
+
+**Example usage**:
+
+```
+# PUSHOVER-BUDGET-OK
 ```
 
 ## `RELEASE-NOTES-OK`
@@ -608,6 +791,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # SHELL-SAFETY-OK: explain the deliberate exception here in at least 8 characters
 ```
 
+## `SIGPIPE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-sigpipe-pipefail-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `SAME_LINE_ONLY` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Silence the SIGPIPE-under-pipefail reminder (posttooluse-sigpipe-pipefail-reminder.ts, detector in lib/sigpipe-under-pipefail-detector-iter125.ts) for one pipeline whose producer may die of SIGPIPE when an early-exiting reader (`head`, `grep -q`, ...) closes the pipe under `set -o pipefail`. Put `SIGPIPE-OK: <reason>` on the pipeline's own logical line (any continuation line of it counts). A file-wide SHELL-SAFETY-OK also silences it. Plain substring check, not the iter-107 helper.
+
+**Example usage**:
+
+```
+# SIGPIPE-OK
+```
+
 ## `SKILL-PLUGIN-ROOT-OK`
 
 | Field | Value |
@@ -657,6 +857,40 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # STALE-CHECKOUT-OK
+```
+
+## `TCC-ORDERING-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-tcc-grant-ordering-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Allow a Bash command that the TCC grant-ordering guard (pretooluse-tcc-grant-ordering-guard.ts) would block: deleting a macOS application bundle before resetting its TCC privacy grants (which strands the grants), or a launchd target given as a filename. Add `TCC-ORDERING-OK: <why this ordering is safe here>` (10+ characters) to the command.
+
+**Example usage**:
+
+```
+# TCC-ORDERING-OK: explain the deliberate exception here in at least 10 characters
+```
+
+## `UV-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-uv-enforcement-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a Bash command that the UV enforcement guard (pretooluse-uv-enforcement-guard.ts) would block for using pip, conda, pipx, virtualenv or easy_install instead of the uv equivalent. Append `# UV-OK`; the `#` is required (regex `# UV-OK`, case-insensitive, not the iter-107 helper).
+
+**Example usage**:
+
+```
+# UV-OK
 ```
 
 ## Audit-task marker catalog (7 registered markers consumed by tasks/ release-preflight audit scripts)

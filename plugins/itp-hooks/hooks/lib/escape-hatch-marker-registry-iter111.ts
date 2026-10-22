@@ -26,7 +26,11 @@
  * # What this registry encodes
  *
  * Every PRODUCTION marker (i.e., a marker that a hook source file actually
- * reads via the iter-107 canonical helper) is declared here with:
+ * reads via the iter-107 canonical helper) is declared here with the fields
+ * below. Since 2026-10-21 (cc-skills#34) the live markers whose hooks still
+ * detect them by hand (`includes` or a regex) are registered too, so the
+ * generated reference is complete; their descriptions say so, and their
+ * declared modes describe the hand-rolled check:
  *
  *   - `markerNameTokenIncludingSuffix`: exact spelling (UPPER-KEBAB-CASE
  *     by convention, except `SSoT-OK` which is grandfathered mixed-case)
@@ -502,6 +506,136 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a direct call to the Gmail send endpoints (REST `messages/send` / `drafts/send`, or client-library `messages.send` / `drafts.send`) in a Bash command, in a script that command executes, or in a code file written with Write/Edit, and allow a Bash command that reads the cached OAuth tokens in `~/.claude/tools/gmail-tokens/`. The guard exists because a raw send without a From line goes out under the account's DEFAULT send-as identity (incident 2026-10-08). Place `GMAIL-SEND-OK: <reason of 10+ characters>` in the command, the written content, or the executed script. There is no escape for the Read and Grep tools on the token directory.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "CLAUDE-MD-SIZE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-claude-md-size-budget-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Silence the CLAUDE.md size-budget reminder (posttooluse-claude-md-size-budget-reminder.ts), which suggests a hub-and-spoke split when a CLAUDE.md reaches 36,000 characters (90% of the 40,000 budget). Put CLAUDE-MD-SIZE-OK anywhere in the file (e.g. `<!-- CLAUDE-MD-SIZE-OK -->`) when the file is intentionally flat, such as a generated or append-only log. Detection is a plain substring check, not the iter-107 helper.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "DUCKDB-SKIP",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-parquet-duckdb-nudge.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Silence the Parquet-to-DuckDB nudge (pretooluse-parquet-duckdb-nudge.ts) for one Bash command. Append `# DUCKDB-SKIP` to the command; the `#` is required (regex `#\\s*DUCKDB-SKIP`, case-insensitive, not the iter-107 helper).",
+    },
+    {
+      markerNameTokenIncludingSuffix: "FAIL-FAST-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Silence the fail-fast loop reminder in posttooluse-reminder.ts, which flags a TypeScript/JavaScript batch loop that swallows per-item failures. Put FAIL-FAST-OK anywhere in the written file when the loop intentionally tolerates per-item failures. Plain substring check, not the iter-107 helper.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "HEADLESS-P-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-headless-claude-p-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a headless `claude -p` invocation that the headless-claude-p guard (pretooluse-headless-claude-p-guard.ts) would deny because it provably cannot do what it asks for: `--output-format stream-json` without `--verbose`, the non-existent `CLAUDE_EFFORT` variable, or an `--effort` value that is not a real level. Add HEADLESS-P-OK anywhere in the command.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "PII-GATE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-pii-push-gate.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a `git push` that the PII push gate (pretooluse-pii-push-gate.ts) would block because its ADDED lines carry secrets or, when the repository is not known to be private, personal data. Add `PII-GATE-OK: <why publishing this is correct>` (10+ characters) to the command.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "PR-CITATION-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-pr-citation-evidence-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a `gh pr comment` / `gh pr review` (or the matching `gh api` write to a PR's comments or reviews) that the PR citation-evidence guard (pretooluse-pr-citation-evidence-guard.ts) would deny because its body calls a solution best practice, state of the art, recommended or per the spec without URLs and verbatim quotes from authoritative sources. Add PR-CITATION-OK anywhere in the command.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "PTH-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-pth-contamination-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a Bash command that the `.pth` contamination guard (pretooluse-pth-contamination-guard.ts) would block or question: `maturin develop` on a remote host, `rsync` into site-packages, or a non-wheel `pip install` on a remote host, all of which can leave a `.pth` file that silently loads stale source. Append `# PTH-OK` (dev-only); the `#` is required (regex `# PTH-OK`, case-insensitive, not the iter-107 helper).",
+    },
+    {
+      markerNameTokenIncludingSuffix: "PUEUE-SKIP",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-pueue-wrap-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Prevent the pueue auto-wrap (pretooluse-pueue-wrap-guard.ts) from routing a long-running Bash command through pueue. Append `# PUEUE-SKIP` to the command (regex `# *PUEUE-SKIP`, case-insensitive, not the iter-107 helper). PUEUE-WRAP wins when both are present.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "PUEUE-WRAP",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-pueue-wrap-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Force the pueue auto-wrap (pretooluse-pueue-wrap-guard.ts) to route a Bash command through pueue even when its heuristics would not. Append `# PUEUE-WRAP` to the command (regex `# *PUEUE-WRAP`, case-insensitive, not the iter-107 helper); it is checked before PUEUE-SKIP.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "PUSHOVER-BUDGET-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-pushover-budget-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Silence the Pushover budget reminder (posttooluse-pushover-budget-reminder.ts), a soft nudge that fires when written code or an inline Bash send constructs a Pushover message, reminding Claude of the size limits and of the title, url and attachment channels. Nothing is blocked; add PUSHOVER-BUDGET-OK anywhere in the file to silence it.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "SIGPIPE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-sigpipe-pipefail-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "SAME_LINE_ONLY",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Silence the SIGPIPE-under-pipefail reminder (posttooluse-sigpipe-pipefail-reminder.ts, detector in lib/sigpipe-under-pipefail-detector-iter125.ts) for one pipeline whose producer may die of SIGPIPE when an early-exiting reader (`head`, `grep -q`, ...) closes the pipe under `set -o pipefail`. Put `SIGPIPE-OK: <reason>` on the pipeline's own logical line (any continuation line of it counts). A file-wide SHELL-SAFETY-OK also silences it. Plain substring check, not the iter-107 helper.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "TCC-ORDERING-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-tcc-grant-ordering-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a Bash command that the TCC grant-ordering guard (pretooluse-tcc-grant-ordering-guard.ts) would block: deleting a macOS application bundle before resetting its TCC privacy grants (which strands the grants), or a launchd target given as a filename. Add `TCC-ORDERING-OK: <why this ordering is safe here>` (10+ characters) to the command.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "UV-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-uv-enforcement-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a Bash command that the UV enforcement guard (pretooluse-uv-enforcement-guard.ts) would block for using pip, conda, pipx, virtualenv or easy_install instead of the uv equivalent. Append `# UV-OK`; the `#` is required (regex `# UV-OK`, case-insensitive, not the iter-107 helper).",
     },
   ] as const;
 

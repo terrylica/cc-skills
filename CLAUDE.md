@@ -14,14 +14,10 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
     │                                                (project/stack/conventions/architecture live here,
     │                                                 NOT duplicated in root)
     │           └── skills/{skill}/CLAUDE.md   ◄── Deepest: Per-skill SSoT (emerging — opt-in per skill)
-    │                                                (file table, invariants, recent-change log,
-    │                                                 edit conventions; sibling to SKILL.md)
+    │                                                (file table, invariants, edit conventions;
+    │                                                 sibling to SKILL.md; history stays in git)
     │
-    └── docs/CLAUDE.md                         ◄── Spoke: Documentation standards
-            ├── HOOKS.md                       ◄── Hook development patterns
-            ├── RELEASE.md                     ◄── Release workflow
-            ├── PLUGIN-LIFECYCLE.md            ◄── Plugin internals
-            └── LESSONS.md                     ◄── Lessons learned (dated entries)
+    └── docs/CLAUDE.md                         ◄── Spoke: Documentation standards (docs: Navigation below)
 ```
 
 **Progressive disclosure rule**: each layer must add information the next-shallower layer didn't already cover. Don't restate plugin invariants in the root; don't restate skill invariants in the plugin. When the user asks Claude something specific, Claude follows links downward — so the deepest layer's freshness matters most.
@@ -30,20 +26,19 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 
 ### Spokes & Docs
 
-| Topic                     | Document                                                                                                                     |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Installation              | [README.md](./README.md)                                                                                                     |
-| Plugin Dev                | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                                                                     |
-| Documentation             | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                                                           |
-| Hooks Dev                 | [docs/HOOKS.md](./docs/HOOKS.md)                                                                                             |
-| Lessons Learned           | [docs/LESSONS.md](./docs/LESSONS.md)                                                                                         |
-| Cargo TTY Fix             | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
-| Claude Code Proxy         | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
-| Release                   | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
-| Plugin Lifecycle          | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
-| Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
-| ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
-| Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
+| Topic             | Document                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Installation      | [README.md](./README.md)                                                                                                     |
+| Plugin Dev        | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                                                                     |
+| Documentation     | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                                                           |
+| Hooks Dev         | [docs/HOOKS.md](./docs/HOOKS.md)                                                                                             |
+| Lessons Learned   | [docs/LESSONS.md](./docs/LESSONS.md)                                                                                         |
+| Cargo TTY Fix     | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
+| Claude Code Proxy | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
+| Release           | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
+| Plugin Lifecycle  | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
+| Troubleshooting   | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
+| ADRs              | [docs/adr/](./docs/adr/)                                                                                                     |
 
 ### Plugin CLAUDE.md files
 
@@ -82,13 +77,7 @@ cc-skills/
 │   ├── gmail-commander/             ← Gmail CLI + shared bot code (1Password OAuth)
 │   ├── macro-keyboard/              ← Karabiner remap for cheap 3-key pads (skill-level CLAUDE.mds)
 │   └── ...                          ← the rest (full table: plugins/CLAUDE.md)
-├── docs/
-│   ├── adr/                         ← Architecture Decision Records
-│   ├── design/                      ← Implementation specs
-│   ├── HOOKS.md                     ← Hook development patterns
-│   ├── RELEASE.md                   ← Release workflow
-│   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
-│   └── LESSONS.md                   ← Lessons learned
+├── docs/                            ← ADRs, design specs, guides (Navigation above)
 └── tasks/                           ← moon task scripts (release/, commits/, hooks/, audits, tests/)
 ```
 
