@@ -25,7 +25,7 @@
 # when the workaround is present but useless, and keeps failing when the
 # workaround is correctly removed.
 #
-# The floor is enforced in .prototools (proto = "0.61.2") and by preflight
+# The floor (proto >= 0.61.2) is enforced by preflight
 # Check 1b. This test is the backstop for a REGRESSION — an upstream revert, or
 # a machine that somehow runs an older proto.
 #
