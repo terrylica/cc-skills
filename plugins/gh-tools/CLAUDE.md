@@ -70,24 +70,7 @@ The account is the one named by the repo's `origin` host-alias `git@github.com-<
 
 Reminder appears if title < 200 characters (room for improvement).
 
-### Example Reminder
-
-```
-[gh-tools] Issue Title Optimization Reminder
-
-Issue: #21 in terrylica/cc-skills
-Current title (77/256 chars):
-  "Findings: Parameter-Free Feature Selection"
-
-Consider updating the title to:
-   - Reflect new findings from this comment
-   - Maximize the 256-character limit
-   - Capture the full journey/context of the issue
-
-Commands:
-  gh issue view 21 --json title --jq '.title | length'
-  gh issue edit 21 --title "..."
-```
+The reminder text lives in `hooks/gh-issue-title-reminder.mjs`.
 
 ## WebFetch Enforcement
 
@@ -202,31 +185,6 @@ No individual IDs need to be listed separately — the full paths are strictly m
 | Your fork                | Always                                        | `terrylica/claude-code` (fork of `anthropics/claude-code`) |
 | Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `moonrepo/proto`                 |
 | Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab` external-collaborator owners                |
-
-### Best Practices
-
-**Post validated findings to relevant GitHub Issues**:
-
-- Comment on open OR closed issues with new insights discovered during research
-- Use Issue comments to track evolving understanding (more visible than git commits)
-- Reference Issue numbers in commit messages for traceability (e.g., `fix: address issue #123`)
-- Create new Issues when discovering genuinely new research directions
-
-**Upstream repositories (read-only)**:
-
-- Search and read existing Issues for insights
-- Reference upstream Issue numbers in your own repo's Issues (e.g., "Related to anthropics/claude-code#22055")
-- DO NOT comment, create, or modify Issues in upstream repos
-
-**Example workflow**:
-
-1. Discover insight while investigating Claude Code permissions behavior
-2. Search `anthropics/claude-code` for related Issues (read-only)
-3. Create Issue in `terrylica/cc-skills` documenting findings
-4. Reference upstream Issue: "Investigation of anthropics/claude-code#22055 revealed..."
-5. Post follow-up findings as comments in YOUR repo's Issue
-
-**Which owner applies here**: resolve it from the path, don't assume — `~/.claude/path-owner-registry.toml` is the SSoT, and `gh repo list <owner>` verifies once you know the owner.
 
 ## Multi-Account Authentication (host-alias model, ADR 2026-06-21)
 

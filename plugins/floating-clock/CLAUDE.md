@@ -166,10 +166,7 @@ Sources/
 
 Design notes:
 
-- `@autoreleasepool` for memory hygiene
 - No external dependencies beyond system frameworks (plus the vendored RMBlurredView)
-- No SwiftUI, no Swift runtime tax
-- Automatic Reference Counting (ARC)
 - `resolveClockFont()`: 4-tier font resolution
 - `defaultFrame()`: bottom-center of primary display (uses `[NSScreen screens].firstObject`, not `mainScreen`)
 - `screensChanged:`: runtime observer for monitor hot-unplug
