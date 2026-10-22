@@ -347,12 +347,12 @@ The shape of this curve reveals whether the metric space has natural clusters or
 Tighten uniformly and at each step identify which metric was the "tightest killer" - the metric that eliminated the most configs:
 
 ```
-@90%: 410 survivors | tightest killer: rachev (-57)
-@80%: 132 survivors | tightest killer: headroom (-27)
-@70%:  29 survivors | tightest killer: n_trades (-12)
+@90%: <N> survivors | tightest killer: <metric> (-<k>)
+@80%: <N> survivors | tightest killer: <metric> (-<k>)
+@70%: <N> survivors | tightest killer: <metric> (-<k>)
 ```
 
-This reveals the binding constraint hierarchy.
+This reveals the binding constraint hierarchy. Each survivor count is an intersection over every registered metric, so the sequence changes whenever a metric is added to or removed from the registry.
 
 ---
 

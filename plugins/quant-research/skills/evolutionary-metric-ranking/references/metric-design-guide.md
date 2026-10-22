@@ -12,7 +12,7 @@ A metric must spread configs across a meaningful range. If 95% of configs cluste
 
 **Test**: Compute the interquartile range (IQR) as a fraction of the full range. If IQR/range < 0.1, the metric has weak discrimination.
 
-**Example**: one metric in the rangebar case study (a trial-count-deflated Sharpe, since removed) had max=0.500 across 961 configs. Zero configs exceeded 0.50. The metric was inert (zero discrimination power). This wasted one dimension of the optimization search space.
+**Example**: a metric whose maximum never clears its own threshold anywhere in the population puts every config in the same bucket. It is inert (zero discrimination power) and wastes one dimension of the optimization search space; the inertness check in P7 catches it before the search starts.
 
 ### Criterion 2 - Independence from Other Metrics
 
