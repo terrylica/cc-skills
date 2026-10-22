@@ -108,7 +108,7 @@ describe("which Bash calls count as long-running", () => {
     ["env A=1 pueue add -- x"],
     ["pueue --color never add -- x"],
     ["bash -c 'pueue add -- make check'"],
-    ["ssh bigblack 'pueue add -- make check'"],
+    ["ssh remote-host 'pueue add -- make check'"],
     ["id=$(pueue add --print-task-id -- make check)"],
   ])("a pueue add invocation fires: %s", (command) => {
     expect(longRuntimeSignal({ command })).toBe("it queues a pueue job");

@@ -321,7 +321,7 @@ No Claude Code restart: ext mode runs a profile's Playwright Extension server on
 
 ### Bug Fixes
 
-* **chronicle:** use the fleet toolbox brotli; report skipped .br ([c98dc6e](https://github.com/terrylica/cc-skills/commit/c98dc6e2cef56ea451d104517731f55daa1205c7)), closes [terrylica/fleet-nix#1](https://github.com/terrylica/fleet-nix/issues/1)
+* **chronicle:** use the fleet toolbox brotli; report skipped .br ([c98dc6e](https://github.com/terrylica/cc-skills/commit/c98dc6e2cef56ea451d104517731f55daa1205c7)), closes an issue in a private repository
 * **itp-hooks:** python options before -c still mark an inline snippet ([e4f56a2](https://github.com/terrylica/cc-skills/commit/e4f56a20ae74aebe736afaf6707e0021fc730181))
 
 A read-only for loop running python3 -I -c '…' (isolated mode, used on untrusted files) was queued in pueue as a batch job (2026-10-18, task 4986): the snippet pattern required -c right after python. Short options may now precede -c; an option before a script file still counts as a script run. Two new cases fail on the old guard and pass now; the guard's 47 tests pass.
