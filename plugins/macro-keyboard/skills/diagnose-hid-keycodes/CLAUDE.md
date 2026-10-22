@@ -19,10 +19,6 @@
 4. **Cheap pads emit modifier+key in one HID report.** EventViewer will show this as "Ctrl+C" appearing simultaneously, not "Ctrl press → C press → Ctrl release → C release". When you write the remap, this is what forces `simultaneous` with `detect_key_down_uninterruptedly: true` (default `mandatory` matcher misses single-report combos).
 5. **BT firmware modes can each emit different keycodes.** When diagnosing a BT pad, repeat the diagnosis after switching modes (if the pad supports them). The Jieli/Free3-P has 4 modes — see [`configure-macro-keyboard/references/08-bluetooth-configuration.md`](../configure-macro-keyboard/references/08-bluetooth-configuration.md#bt-firmware-has-4-modes--we-use-mode-4).
 
-## Recent Changes
-
-- **No changes since 2026-04-21.** The diagnostic workflow is stable. Updates to `configure-macro-keyboard` (top-button tap/double-tap added 2026-04-24) did not require new diagnosis — the underlying button-to-keycode mappings did not change; only the rule that consumes them did.
-
 ## Discoverability Notes
 
 - This skill is the prerequisite for `configure-macro-keyboard` when working with an unknown pad. If the user already knows what their buttons emit (e.g., they bought the same Jieli/Free3-P documented in this plugin), they can skip straight to `configure-macro-keyboard`.

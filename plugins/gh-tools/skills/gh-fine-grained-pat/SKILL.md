@@ -115,4 +115,4 @@ After running this skill, reflect before closing the task:
 1. **What broke?** — A selector miss, a changed modal/picker/tab flow, or a sudo-mode stall: fix `scripts/form.mjs` (or `browser.mjs`) and update the selector map in `CLAUDE.md`.
 2. **A new permission?** — Confirm its detail-page noun (create one token, read the settings page) and add it to `test/campaign.mjs` (`NOUN`) + the CLAUDE.md noun table.
 3. **A new token shape?** — Add a `specs/` (or `specs/examples/`) template so it's reusable next time.
-4. **Log it.** — Append a dated line to the "Recent changes" section in `CLAUDE.md`. Do NOT defer — the next invocation inherits whatever you leave behind.
+4. **Log it.** — A new failure mode becomes the next numbered gotcha in `CLAUDE.md` (never renumber); the narrative goes in the commit body. Do NOT defer — the next invocation inherits whatever you leave behind.

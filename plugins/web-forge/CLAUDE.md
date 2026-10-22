@@ -24,7 +24,7 @@ Browser automation for operations with **no API**: console settings, token and O
 | `skills/cf-access-wall/`                 | Declarative JSON spec (Schema 2020-12) → idempotent Access provisioning + GitHub OAuth-app forge. Spec instances live in project repos, never here                                                                                                                                                                                                                                                                    |
 | `skills/azure-provision/`                | Azure service-principal bootstrap when `az login` is Conditional-Access blocked (error 530035) but the portal is not. **Zero selectors**: the portal's own Graph token does the work over REST                                                                                                                                                                                                                        |
 
-**Two runtimes, one set of foundations.** Recipes (`scripts/`, Bun) run page-side steps through a Playwright MCP server and work in either connection mode. Forge scripts (`skills/*/scripts/*.mjs`, node) hold Playwright directly over CDP. Both take their browser from `forge-chrome.mjs` and their secret sink from `vault.mjs`. Write NEW console automation as a recipe; the node forge scripts stay until each is ported in a deliberate, live-tested pass.
+**Two runtimes, one set of foundations.** Recipes (`scripts/`, Bun) run page-side steps through a Playwright MCP server and work in either connection mode. Forge scripts (`skills/*/scripts/*.mjs`, node) hold Playwright directly over CDP. Both take their browser from `forge-chrome.mjs` and their secret sink from `vault.mjs`. Write NEW console automation as a recipe; the node forge scripts stay until each is ported in a deliberate, live-tested pass. The recipe runner's `cdp` mode is unit-tested only; it has not driven a live browser yet (2026-10-19).
 
 ## Invariants (do not regress)
 
@@ -48,8 +48,3 @@ That skill keeps its own battle-tested harness copy + GitHub-specific machinery 
 ## Privacy split (operator doctrine, 2026-07-23)
 
 Agnostic/universal → this plugin (cc-skills, public repo): harness, method, schemas, example specs with placeholder values ONLY. Personal/secret → NEVER here: real spec instances live in each project's repo; credentials live in the SCS vault; login sessions live in the local profile dirs.
-
-## Recent changes
-
-- 2026-10-19 — merged `gws-admin-console` in: its CLI became `scripts/web-forge.ts`, its skill `web-forge:admin-console`, its Google classifier the `google-admin` family. Shared now: `forge-chrome.mjs` (both connection modes, with a `cdp` mode added to the recipe runner), `vault.mjs` (with `Driver.extractToVault`), the generic `loginGate`, and the `--spec` file format. `browser-forge.mjs` kept its path and exports. The recipe runner's `cdp` mode is unit-tested only; it has not driven a live browser yet.
-- 2026-10-19 — `--alert emergency` no longer reports a delivered page as "emergency alert failed (exit null)". The pushover core polled the receipt for up to 600 s under a 60 s spawn timeout, so SIGTERM killed every unacknowledged poll. The gate now calls the core with its new `--no-wait` flag, runs it under `process.execPath`, and names the exit code, signal or spawn error of a real failure (`sendEmergency`, `describeChildOutcome`, tested with a stub core in `scripts/lib/gate.test.ts`).

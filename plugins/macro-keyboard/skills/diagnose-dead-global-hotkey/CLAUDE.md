@@ -19,7 +19,3 @@
 2. **The logger must include Control and Option chords.** A Command→Control remap makes a Command-only filter log nothing, which looks like "the key never arrived".
 3. **The scripts stay device- and person-agnostic.** App names and keycodes are arguments, never constants. No hostnames, accounts or personal setup in this skill.
 4. **Run the scripts in the main session, not a subagent.** On macOS, subagents must not compile and execute binaries (it can saturate code-signing daemons); `swift <file>` compiles in place.
-
-## Recent Changes
-
-- **2026-10-15: created.** Case: a screenshot app's Cmd+Shift+X failed over a TigerVNC viewer. Two independent causes measured: a Karabiner `frontmost_application_if` rule (Command→Control for the viewer) rewrote the chord in every window state, and TigerVNC 1.16's `FullscreenSystemKeys` installed an active Session tap in full screen. Fix A and Fix B each verified with the logger and the tap census.

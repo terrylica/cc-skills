@@ -35,7 +35,7 @@ mkdir -p plugins/my-plugin/{skills,hooks,commands,scripts}
 plugins/my-plugin/
 ├── .claude-plugin/plugin.json  # Plugin manifest (optional; 2 plugins ship one)
 ├── README.md             # Plugin documentation (user-facing)
-├── CLAUDE.md             # Per-plugin SSoT for maintainers — invariants, conventions, recent changes
+├── CLAUDE.md             # Per-plugin SSoT for maintainers — invariants, conventions (history lives in git log / CHANGELOG)
 ├── skills/               # Skill definitions
 │   └── my-skill/
 │       ├── SKILL.md      # User-invocable skill content (loaded when skill fires)
