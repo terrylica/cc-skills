@@ -88,7 +88,7 @@ Session example: 4 agents reported "lower rejection at bottom → 67.8% UP" as a
 1. Don't average or vote — map WHAT they disagree about
 2. Check: does one agent's evidence involve an implicit assumption the other rejects?
 3. Disagreement about mechanism → investigate mechanism (may be label leakage, confound, or real but lens-bound effect)
-4. Disagreement about significance → check each agent's multiple-testing burden
+4. Disagreement about significance → check which claim was registered before the run and confirmed on unused data (no trial-count corrections)
 
 **Anti-pattern**: picking the agent that gives the answer you want. If the critic-agent disagrees with the proposer-agents, the critic is usually right.
 
