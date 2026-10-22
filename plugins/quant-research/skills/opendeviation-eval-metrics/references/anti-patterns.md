@@ -237,7 +237,6 @@ Computing ratios (Omega, Profit Factor, Sharpe SE) with too few observations pro
 | Omega         | 5 days  | 20 days     | Need both gains/losses |
 | Profit Factor | 5 days  | 20 days     | Need both gains/losses |
 | PSR           | 30 days | 100 days    | Statistical power      |
-| DSR           | 30 days | 100 days    | Multiple testing       |
 
 ### Remediation
 
@@ -265,10 +264,9 @@ Before reporting range bar metrics:
 
 ## References
 
-| Anti-Pattern           | Academic Reference             |
-| ---------------------- | ------------------------------ |
-| Transaction costs      | De Prado (2018), Chapter 15    |
-| Survivorship bias      | Brown et al. (1992)            |
-| Look-ahead bias        | Bailey et al. (2014)           |
-| Multiple testing (DSR) | Bailey & López de Prado (2014) |
-| Small sample inference | Lo (2002)                      |
+| Anti-Pattern           | Academic Reference          |
+| ---------------------- | --------------------------- |
+| Transaction costs      | De Prado (2018), Chapter 15 |
+| Survivorship bias      | Brown et al. (1992)         |
+| Look-ahead bias        | Bailey et al. (2014)        |
+| Small sample inference | Lo (2002)                   |

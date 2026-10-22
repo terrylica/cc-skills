@@ -1,6 +1,6 @@
 ---
 name: opendeviation-eval-metrics
-description: evaluating open deviation bar signal quality, computing Sharpe ratios with non-IID bars, running PSR/DSR/MinTRL statistical tests, or assessing.
+description: evaluating open deviation bar signal quality, computing Sharpe ratios with non-IID bars, running PSR/MinTRL statistical tests, or assessing ODB strategy performance.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -19,8 +19,10 @@ Use this skill when:
 - Evaluating ML model performance on open deviation bar data
 - Computing Sharpe ratios with non-IID bar sequences
 - Running Walk-Forward Optimization metric analysis
-- Calculating PSR, DSR, or MinTRL statistical tests
+- Calculating PSR or MinTRL statistical tests
 - Generating evaluation reports from fold results
+
+> **No trial-count corrections (operator rule, 2026-10-15)**: never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction (FWER/FDR procedures such as Holm or Benjamini-Yekutieli, e-LOND and other online multiple testing). Judge parsimony on the model itself, guard selection with registration before runs and with unused data, and report each rule's own statistics (Sharpe, PSR, MinTRL). They were removed from this skill on purpose; do not re-add them. PBO/CSCV is not covered by the rule.
 
 ## Quick Start
 
@@ -39,7 +41,7 @@ python scripts/generate_report.py --results folds.jsonl --output report.md
 | **Primary** (5)        | Research decisions | weekly_sharpe, hit_rate, cumulative_pnl, n_bars, positive_sharpe_rate    | Per-fold + aggregate |
 | **Secondary/Risk** (5) | Additional context | max_drawdown, bar_sharpe, return_per_bar, profit_factor, cv_fold_returns | Per-fold             |
 | **ML Quality** (3)     | Prediction health  | ic, prediction_autocorr, is_collapsed                                    | Per-fold             |
-| **Diagnostic** (5)     | Final validation   | psr, dsr, autocorr_lag1, effective_n, binomial_pvalue                    | Aggregate only       |
+| **Diagnostic** (4)     | Final validation   | psr, autocorr_lag1, effective_n, binomial_pvalue                         | Aggregate only       |
 | **Extended Risk** (5)  | Deep risk analysis | var_95, cvar_95, omega_ratio, sortino_ratio, ulcer_index                 | Per-fold (optional)  |
 
 ## Why Open Deviation Bars Need Special Treatment
@@ -72,10 +74,10 @@ Open deviation bars violate standard IID assumptions:
 
 ### Related Skills
 
-| Skill                                                                            | Relationship                                                      |
-| -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | ρ-corrected PSR, DSR, MinTRL, pFDR, oFDR — full non-IID framework |
-| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)                             | Uses `weekly_sharpe`, `psr`, `dsr` for WFE calculation            |
+| Skill                                                                            | Relationship                                                        |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | ρ-corrected PSR, MinTRL, power — full non-IID single-test framework |
+| [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)                             | Uses `weekly_sharpe`, `psr` for WFE calculation                     |
 
 ### Dependencies
 
@@ -151,7 +153,7 @@ For comprehensive analysis, compute metrics with BOTH views:
 
 | Concept                      | Citation                       |
 | ---------------------------- | ------------------------------ |
-| Deflated Sharpe Ratio        | Bailey & López de Prado (2014) |
+| Probabilistic Sharpe Ratio   | Bailey & López de Prado (2012) |
 | Sharpe SE with Non-Normality | Mertens (2002)                 |
 | Statistics of Sharpe Ratios  | Lo (2002)                      |
 | Omega Ratio                  | Keating & Shadwick (2002)      |
@@ -198,7 +200,8 @@ go_criteria:
 publication_criteria:
   - binomial_pvalue < 0.05
   - psr > 0.85
-  - dsr > 0.50 # If n_trials > 1
+  - registered_before_run: true # Hypothesis, rule and window fixed before results were seen
+  - confirmed_on_unused_data: true # Holdout no run or selection step has touched
   - bhr_lzc_shuffle_z < -2.0 # W/L sequence has genuine structure
   - bhr_alpha_halflife > 200 # Edge persists for 200+ trades
 ```
@@ -263,7 +266,7 @@ See reference docs for complete implementation details.
 | Ulcer Index divide error   | Peak equity is zero          | Add guard: np.where(peak > 1e-10, ...)             |
 | profit_factor = 1.0        | No bars processed            | Return NaN when n_bars is 0                        |
 | Sharpe inflated 18%        | Wrong annualization for data | Use sqrt(5) for session-filtered, sqrt(7) for 24/7 |
-| PSR/DSR not computed       | Missing scipy                | Install: `pip install scipy`                       |
+| PSR not computed           | Missing scipy                | Install: `pip install scipy`                       |
 | Timestamps not parsed      | Wrong format                 | Ensure Unix timestamps, not datetime strings       |
 
 ## Post-Execution Reflection

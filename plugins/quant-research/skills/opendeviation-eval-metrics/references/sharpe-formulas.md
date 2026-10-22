@@ -1,9 +1,8 @@
 # Sharpe Ratio Formulas for Range Bars
 
-> **Note**: This file contains quick-reference formulas for the ρ=0 (IID) special case used in range bar evaluation.
-> For the full non-IID framework (ρ-corrected variance, PSR, DSR, MinTRL, pFDR, oFDR, SFDR with 82 verified equations
-> and Numba JIT implementation), see the dedicated skill:
-> [sharpe-ratio-non-iid-corrections](../../sharpe-ratio-non-iid-corrections/SKILL.md).
+> **Note**: This file contains quick-reference formulas for the ρ=0 (IID) special case used in range bar evaluation. For the full non-IID framework (ρ-corrected variance, PSR, MinTRL, critical Sharpe ratio and power, with a Numba JIT implementation), see the dedicated skill: [sharpe-ratio-non-iid-corrections](../../sharpe-ratio-non-iid-corrections/SKILL.md).
+>
+> **No trial-count corrections (operator rule, 2026-10-15)**: the Deflated Sharpe Ratio and every FWER/FDR or online multiple-testing correction were removed from this file on purpose. Report each rule's own PSR and MinTRL; guard selection with registration before runs and with unused data.
 
 ## Why Standard Sharpe Fails for Range Bars
 
@@ -253,45 +252,6 @@ def probabilistic_sharpe_ratio(
     return float(norm.cdf(z_score))
 ```
 
-## DSR (Deflated Sharpe Ratio)
-
-Corrects for multiple testing:
-
-```python
-def deflated_sharpe_ratio(
-    sharpe: float,
-    standard_error: float,
-    n_trials: int
-) -> float:
-    """Sharpe corrected for multiple testing.
-
-    Bailey & López de Prado (2014):
-    Uses Gumbel approximation for expected maximum Sharpe.
-
-    Args:
-        sharpe: Observed Sharpe (or max across trials)
-        standard_error: SE of Sharpe
-        n_trials: Number of independent strategies tested
-
-    Returns:
-        Probability in [0, 1]. >0.50 indicates robust performance.
-    """
-    if n_trials < 1 or standard_error <= 1e-10:
-        return float("nan")
-
-    gamma = 0.5772156649  # Euler-Mascheroni constant
-
-    if n_trials == 1:
-        sr_expected = 0.0
-    else:
-        q1 = norm.ppf(1.0 - 1.0 / n_trials)
-        q2 = norm.ppf(1.0 - 1.0 / (n_trials * np.e))
-        sr_expected = standard_error * ((1 - gamma) * q1 + gamma * q2)
-
-    z_score = (sharpe - sr_expected) / standard_error
-    return float(norm.cdf(z_score))
-```
-
 ## MinTRL (Minimum Track Record Length)
 
 ```python
@@ -331,14 +291,6 @@ def minimum_track_record_length(
 ## Academic References
 
 ```bibtex
-@article{bailey2014deflated,
-  title={The Deflated Sharpe Ratio: Correcting for Selection Bias,
-         Backtest Overfitting and Non-Normality},
-  author={Bailey, David H and L{\'o}pez de Prado, Marcos},
-  journal={The Journal of Portfolio Management},
-  year={2014}
-}
-
 @article{mertens2002sharpe,
   title={The Sharpe Ratio and the Information Ratio},
   author={Mertens, Elmar},

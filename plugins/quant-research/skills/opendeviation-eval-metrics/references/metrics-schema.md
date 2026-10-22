@@ -90,12 +90,6 @@ compatible_with: "rangebar-eval-metrics@9.37+"
       "maximum": 1,
       "description": "Probabilistic Sharpe Ratio (Bailey & López de Prado 2012)"
     },
-    "dsr": {
-      "type": ["number", "null"],
-      "minimum": 0,
-      "maximum": 1,
-      "description": "Deflated Sharpe Ratio (Bailey & López de Prado 2014)"
-    },
     "skewness": {
       "type": "number",
       "description": "Skewness of daily returns"
@@ -192,7 +186,6 @@ compatible_with: "rangebar-eval-metrics@9.37+"
 | Field                 | Type          | Required | Publication Threshold |
 | --------------------- | ------------- | -------- | --------------------- |
 | `psr`                 | number / null | No       | > 0.85                |
-| `dsr`                 | number / null | No       | > 0.50                |
 | `binomial_pvalue`     | number        | Agg only | < 0.05                |
 | `autocorr_lag1`       | number        | Agg only | -                     |
 | `effective_n`         | number        | Agg only | >= 30                 |
@@ -287,7 +280,6 @@ if __name__ == "__main__":
   "prediction_autocorr": 0.45,
   "sharpe_se": 0.31,
   "psr": 0.91,
-  "dsr": 0.62,
   "skewness": -0.23,
   "kurtosis": 4.12
 }

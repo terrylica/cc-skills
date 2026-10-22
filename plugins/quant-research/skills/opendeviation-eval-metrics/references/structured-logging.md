@@ -94,11 +94,11 @@ The `context` field contains structured data specific to the log event:
     "test_sharpe": 0.0576,
     "test_hit_rate": 0.512,
     "test_n_bars": 300,
-    "dsr": {
-      "dsr": 0.0685,
+    "psr": {
+      "psr": 0.164,
       "sharpe_se": 0.059,
-      "expected_max_null": 0.107,
-      "z_score": -1.14,
+      "benchmark_sharpe": 0.0,
+      "z_score": -0.98,
       "significant": false
     }
   }
@@ -229,14 +229,13 @@ fold_log.info(
     temporal_order_valid=True,
 )
 
-# MANDATORY: DSR computation
+# MANDATORY: PSR computation (this rule's own statistic; no trial-count correction)
 fold_log.info(
-    "dsr_computed",
+    "psr_computed",
     fold_idx=fold_idx,
     sharpe=test_sharpe,
-    dsr=dsr_result["dsr"],
-    significant=dsr_result["significant"],
-    n_trials=n_trials,
+    psr=psr_result["psr"],
+    significant=psr_result["significant"],
 )
 ```
 
@@ -260,14 +259,14 @@ cat logs/awfes_v3_*.ndjson | \
   jq 'select(.context.test_epoch_used != .context.prior_bayesian_epoch)'
 ```
 
-### Aggregate DSR Statistics
+### Aggregate PSR Statistics
 
 ```bash
-# Extract all DSR values
+# Extract all PSR values
 cat logs/awfes_v3_*.ndjson | \
-  jq -c 'select(.message == "dsr_computed")' | \
+  jq -c 'select(.message == "psr_computed")' | \
   jq -s '{
-    mean_dsr: ([.[].context.dsr] | add / length),
+    mean_psr: ([.[].context.psr] | add / length),
     n_significant: ([.[].context.significant] | map(select(. == true)) | length),
     n_total: length
   }'

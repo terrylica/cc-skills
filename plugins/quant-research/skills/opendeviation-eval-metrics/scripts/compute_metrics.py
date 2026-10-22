@@ -201,20 +201,6 @@ def compute_psr(sharpe: float, se: float, benchmark: float = 0.0) -> float:
     return float(norm.cdf((sharpe - benchmark) / se))
 
 
-def compute_dsr(sharpe: float, se: float, n_trials: int) -> float:
-    """Deflated Sharpe Ratio."""
-    if n_trials < 1 or se <= 1e-10:
-        return float("nan")
-    gamma = 0.5772156649
-    if n_trials == 1:
-        sr_expected = 0.0
-    else:
-        q1 = norm.ppf(1.0 - 1.0 / n_trials)
-        q2 = norm.ppf(1.0 - 1.0 / (n_trials * np.e))
-        sr_expected = se * ((1 - gamma) * q1 + gamma * q2)
-    return float(norm.cdf((sharpe - sr_expected) / se))
-
-
 # =============================================================================
 # Extended Risk Metrics (Tier 5 - Optional)
 # =============================================================================
@@ -389,7 +375,6 @@ def evaluate_fold(
     predictions: np.ndarray,
     actuals: np.ndarray,
     timestamps: np.ndarray,
-    n_trials: int = 1,
     days_per_week: int = 7,
     include_extended: bool = True,
     annualization: int = 365,
@@ -400,7 +385,6 @@ def evaluate_fold(
         predictions: Model predictions (signed magnitude)
         actuals: Actual returns
         timestamps: Bar close timestamps (UTC)
-        n_trials: Number of strategy trials (for DSR calculation)
         days_per_week: 7 for crypto (24/7), 5 for equities
         include_extended: Whether to include extended risk metrics
         annualization: 365 for crypto, 252 for equities
@@ -438,7 +422,6 @@ def evaluate_fold(
 
     sharpe_se = compute_sharpe_se(weekly_sharpe, n_days, skewness, kurtosis)
     psr = compute_psr(weekly_sharpe, sharpe_se) if not np.isnan(sharpe_se) else None
-    dsr = compute_dsr(weekly_sharpe, sharpe_se, n_trials) if not np.isnan(sharpe_se) else None
 
     result = {
         # Primary (Tier 1)
@@ -458,7 +441,6 @@ def evaluate_fold(
         # Statistical validation (Tier 4)
         "sharpe_se": sharpe_se if not np.isnan(sharpe_se) else None,
         "psr": psr,
-        "dsr": dsr,
         "skewness": skewness,
         "kurtosis": kurtosis,
         "n_days": n_days,
@@ -599,12 +581,6 @@ Reference: quant-research:rangebar-eval-metrics skill
         action="store_true",
         help="Skip extended risk metrics (VaR, Sortino, Omega, etc.)",
     )
-    parser.add_argument(
-        "--n-trials",
-        type=int,
-        default=1,
-        help="Number of strategy trials for DSR calculation",
-    )
 
     args = parser.parse_args()
 
@@ -624,7 +600,6 @@ Reference: quant-research:rangebar-eval-metrics skill
             predictions,
             actuals,
             timestamps,
-            n_trials=args.n_trials,
             days_per_week=args.days_per_week,
             include_extended=not args.no_extended,
             annualization=args.annualization,
