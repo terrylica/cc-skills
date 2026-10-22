@@ -123,11 +123,10 @@ for fold in folds:
 
 ### Impact of the Fix
 
-| Metric           | v2 (Buggy) | v3 (Fixed) | Change      |
-| ---------------- | ---------- | ---------- | ----------- |
-| Mean Test Sharpe | ~0.12      | ~0.06      | -50%        |
-| DSR              | ~0.15      | ~0.07      | More honest |
-| Bias Direction   | Optimistic | Unbiased   | Correct     |
+| Metric           | v2 (Buggy) | v3 (Fixed) | Change  |
+| ---------------- | ---------- | ---------- | ------- |
+| Mean Test Sharpe | ~0.12      | ~0.06      | -50%    |
+| Bias Direction   | Optimistic | Unbiased   | Correct |
 
 The v2 results were inflated because `selected_epoch` was contaminated by information
 from the current fold's validation optimal. This gave the model a subtle "peek" at
@@ -372,5 +371,4 @@ def test_embargo_effectiveness(
 ## References
 
 - López de Prado, M. (2018). _Advances in Financial Machine Learning_. Chapter 7: Cross-Validation.
-- Bailey, D. H., & López de Prado, M. (2014). The deflated Sharpe ratio.
 - arXiv:2512.06932 - Per-fold scaling for financial ML.

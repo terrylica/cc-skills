@@ -30,7 +30,7 @@ Skills are model-invoked based on context.
 
 **Trigger phrases:**
 
-- "open deviation metrics", "Sharpe ratio", "WFO metrics", "DSR", "PSR" → opendeviation-eval-metrics
+- "open deviation metrics", "Sharpe ratio", "WFO metrics", "PSR", "MinTRL" → opendeviation-eval-metrics
 - "WFO epoch", "epoch selection", "adaptive epochs", "WFE" → adaptive-wfo-epoch
 - "backtesting.py", "hedging", "exclusive_orders", "oracle validation", "SQL vs Python" → backtesting-py-oracle
 - "ranking optimization", "cutoff search", "metric intersection", "Optuna cutoffs", "Pareto frontier cutoffs" → evolutionary-metric-ranking
@@ -44,7 +44,7 @@ Metrics for evaluating price-based sampling (open deviation bars):
 - **Sharpe ratio** calculations with proper daily aggregation and annualization
 - **Risk metrics**: Maximum drawdown, Calmar ratio, Sortino ratio
 - **ML prediction quality**: Information Coefficient (IC), autocorrelation analysis
-- **Statistical validation**: Probabilistic Sharpe Ratio (PSR), Deflated Sharpe Ratio (DSR), MinTRL
+- **Statistical validation**: Probabilistic Sharpe Ratio (PSR), MinTRL (no trial-count corrections such as the Deflated Sharpe Ratio, by operator rule 2026-10-15)
 - **Crypto-specific**: sqrt(7) annualization for 24/7 markets
 
 ### adaptive-wfo-epoch
@@ -80,7 +80,7 @@ Multi-objective evolutionary optimization for per-metric percentile ranking:
 
 - Evaluating BiLSTM/transformer models on range bar data
 - Walk-Forward Optimization (WFO) metrics calculation
-- Statistical validation (PSR, DSR, MinTRL) for trading strategies
+- Statistical validation (PSR, MinTRL) for trading strategies
 - Crypto market-specific metric adaptations (sqrt(7) annualization, 24/7 markets)
 - Ranking and filtering configs across heterogeneous quality metrics
 - Multi-objective cutoff optimization for strategy portfolio selection
@@ -106,7 +106,6 @@ Multi-objective evolutionary optimization for per-metric percentile ranking:
 | ---------------------------- | ------------------------------ | ------------------------------------------------- |
 | Sharpe ratio NaN             | Zero variance in returns       | Check for flat price data or insufficient samples |
 | PSR calculation fails        | scipy not installed            | Run `uv pip install scipy` for statistical tests  |
-| DSR too low                  | Many trials in backtest        | Expected with large search spaces; check MinTRL   |
 | WFE negative                 | OOS underperforming IS         | Model may be overfitting; reduce complexity       |
 | Epoch search bounds too wide | Long runtime                   | Narrow search bounds based on prior experiments   |
 | Range bar aggregation wrong  | Incorrect timestamp handling   | Verify bars are price-based not time-based        |

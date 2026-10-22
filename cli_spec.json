@@ -1145,14 +1145,6 @@
             "--days-per-week"
           ]
         },
-        "--n-trials": {
-          "default": 1,
-          "description": "Number of strategy trials for DSR calculation",
-          "type": "integer",
-          "x-option-strings": [
-            "--n-trials"
-          ]
-        },
         "--no-extended": {
           "default": false,
           "description": "Skip extended risk metrics (VaR, Sortino, Omega, etc.)",

@@ -458,7 +458,6 @@ go_criteria:
 publication_criteria:
   binomial_pvalue: "< 0.05"
   psr: "> 0.85"
-  dsr: "> 0.50" # If n_trials > 1
   effective_n: ">= 30"
 ```
 

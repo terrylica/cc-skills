@@ -69,7 +69,7 @@ When brute force is infeasible, launch 4-5 specialist agents in parallel with di
 **Rules**:
 
 - Same raw data, different lens prompts
-- Each agent briefed: "test against shuffled-null, estimate multiple-testing burden, require null-test z > 2 AND per-year stability"
+- Each agent briefed: "test against shuffled-null, say how many variants you tried, confirm the winner on data it was not selected on, require null-test z > 2 AND per-year stability"
 - 5th agent explicitly asks: "prior 4 agreed; do you concur or dissent?"
 - ≥3/5 convergence = likely real; only 1 agent = likely lens-specific artifact
 

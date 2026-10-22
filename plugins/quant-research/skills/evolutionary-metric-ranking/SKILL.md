@@ -350,7 +350,6 @@ Tighten uniformly and at each step identify which metric was the "tightest kille
 @90%: 410 survivors | tightest killer: rachev (-57)
 @80%: 132 survivors | tightest killer: headroom (-27)
 @70%:  29 survivors | tightest killer: n_trades (-12)
-@60%:   6 survivors | tightest killer: dsr (-6)
 ```
 
 This reveals the binding constraint hierarchy.
@@ -408,10 +407,10 @@ When implementing this methodology in a new domain:
 
 | Skill                                                                            | Relationship                                                  |
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| [rangebar-eval-metrics](../opendeviation-eval-metrics/SKILL.md)                       | Metric definitions (TAMRS, Omega, DSR, etc.) fed into ranking |
+| [rangebar-eval-metrics](../opendeviation-eval-metrics/SKILL.md)                  | Metric definitions (TAMRS, Omega, PSR, etc.) fed into ranking |
 | [adaptive-wfo-epoch](../adaptive-wfo-epoch/SKILL.md)                             | Walk-Forward metrics that could be ranked                     |
 | [backtesting-py-oracle](../backtesting-py-oracle/SKILL.md)                       | Validates trade outcomes used in metric computation           |
-| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | DSR computation with non-IID corrections                      |
+| [sharpe-ratio-non-iid-corrections](../sharpe-ratio-non-iid-corrections/SKILL.md) | PSR and MinTRL with non-IID corrections                       |
 
 ### Dependencies
 

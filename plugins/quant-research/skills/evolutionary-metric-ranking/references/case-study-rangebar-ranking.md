@@ -5,6 +5,8 @@ Production application of evolutionary metric ranking to 1,008 two-feature tradi
 **Repository**: [terrylica/rangebar-patterns](https://github.com/terrylica/rangebar-patterns)
 **Issue**: [#17 - Per-Metric Percentile Cutoffs](https://github.com/terrylica/rangebar-patterns/issues/17)
 
+> **Historical record.** This run (2026-02-14) predates the operator rule of 2026-10-15: never compute, report, rank by or cite the Deflated Sharpe Ratio or any other trial-count correction. The `dsr` metric below is kept only so the recorded cutoffs and findings stay reproducible; it must not be used in a new metric registry, and its figures are history, not evidence. Rank by each rule's own statistics instead.
+
 ---
 
 ## Problem
@@ -18,7 +20,7 @@ Production application of evolutionary metric ranking to 1,008 two-feature tradi
 | Omega ratio    | [0.85, 1.25]   | Ratio (>1 = profit)  |
 | TAMRS          | [0.009, 0.379] | Composite score      |
 | Rachev ratio   | [0.0, 2.0]     | Tail asymmetry       |
-| DSR            | [0.0, 0.5]     | Deflated Sharpe      |
+| DSR (removed)  | [0.0, 0.5]     | Deflated Sharpe      |
 | E-value        | [1.0, 1.02]    | Sequential test      |
 | Regularity CV  | [0.0, 2.5]     | Lower = better       |
 
@@ -116,13 +118,13 @@ This produces 11 survivors with average percentile rank 72.35% across all metric
 
 ## Key Forensic Findings
 
-### Finding 1 - DSR is an Inert Dimension
+### Finding 1 - An Inert Dimension (DSR, since removed)
 
 DSR max across ALL 961 configs: **0.500**. Zero configs above 0.50. Zero configs above 0.95.
 
-DSR is a flat-zero field that cannot discriminate between configs. The effective ranking space is **11-dimensional**, not 12. DSR should be removed or permanently set to cutoff=100.
+DSR is a flat-zero field that cannot discriminate between configs. The effective ranking space is **11-dimensional**, not 12. Under the 2026-10-15 rule it is removed from any future registry outright.
 
-**Root cause**: None of the 1,008 configs produce statistically significant results under Deflated Sharpe Ratio with the null inflation from 1,008 trials. This is a feature (correct multiple testing), not a bug.
+**Root cause** (recorded 2026-02-14): no config cleared the metric's threshold, so it could not discriminate. Separately, the metric is removed from any future registry by the 2026-10-15 operator rule, a policy decision rather than a result of this run.
 
 ### Finding 2 - Binding Constraint Hierarchy
 

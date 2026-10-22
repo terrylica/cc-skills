@@ -250,6 +250,8 @@ def calmar_ratio(
 
 ## Tier 3: Statistical Validation
 
+> **No trial-count corrections (operator rule, 2026-10-15)**: the Deflated Sharpe Ratio and every FWER/FDR or online multiple-testing correction were removed on purpose; do not re-add them. Each rule reports its own statistics below, and selection is guarded by registration before runs and by unused data.
+
 ### 3.1 Probabilistic Sharpe Ratio (PSR)
 
 ```python
@@ -279,38 +281,7 @@ def psr(
 
 **Threshold**: `psr > 0.85`
 
-### 3.2 Deflated Sharpe Ratio (DSR)
-
-```python
-def dsr(
-    sharpe: float,
-    n_trials: int,
-    sharpe_se: float = 0.3,
-) -> float:
-    """Sharpe adjusted for multiple testing.
-
-    Formula:
-    DSR = SR - E[max(SR_null)]
-    E[max] ≈ sqrt(2 * ln(N)) - (ln(ln(N)) + ln(4π)) / (2 * sqrt(2 * ln(N)))
-
-    Reference: Bailey & López de Prado (2014)
-    """
-    from math import sqrt, log, pi
-
-    if n_trials < 2:
-        return sharpe
-
-    # Expected maximum Sharpe under null
-    e_max = sqrt(2 * log(n_trials))
-    e_max -= (log(log(n_trials)) + log(4 * pi)) / (2 * sqrt(2 * log(n_trials)))
-    e_max *= sharpe_se
-
-    return max(0, sharpe - e_max)
-```
-
-**Threshold**: `dsr > 0.50`
-
-### 3.3 Binomial Sign Test
+### 3.2 Binomial Sign Test
 
 ```python
 from scipy.stats import binom_test
@@ -333,7 +304,7 @@ def binomial_pvalue(
 
 **Threshold**: `binomial_pvalue < 0.05`
 
-### 3.4 HAC-Adjusted T-Test
+### 3.3 HAC-Adjusted T-Test
 
 ```python
 from statsmodels.stats.sandwich_covariance import cov_hac
@@ -417,7 +388,6 @@ def aggregate_fold_metrics(fold_results: list[dict]) -> dict[str, float]:
 | cvar_10pct            | > -0.05   | Risk        | Tail risk            |
 | calmar_ratio          | > 0.5     | Risk        | Risk-adjusted        |
 | psr                   | > 0.85    | Statistical | Significance         |
-| dsr                   | > 0.50    | Statistical | Multiple testing     |
 | binomial_pvalue       | < 0.05    | Statistical | Sign test            |
 | hac_ttest_pvalue      | < 0.05    | Statistical | Autocorrelation      |
 

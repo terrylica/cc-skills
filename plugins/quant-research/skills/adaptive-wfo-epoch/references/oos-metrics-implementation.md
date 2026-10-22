@@ -29,12 +29,11 @@ Following [rangebar-eval-metrics](../../opendeviation-eval-metrics/SKILL.md), co
 
 ### Tier 3: Statistical Validation
 
-| Metric             | Formula                           | Threshold | Purpose                   |
-| ------------------ | --------------------------------- | --------- | ------------------------- |
-| `psr`              | `P(true_sharpe > 0)`              | > 0.85    | Statistical significance  |
-| `dsr`              | `sharpe - E[max_sharpe_null]`     | > 0.50    | Multiple testing adjusted |
-| `binomial_pvalue`  | `binom.test(n_positive, n_total)` | < 0.05    | Sign test                 |
-| `hac_ttest_pvalue` | HAC-adjusted t-test               | < 0.05    | Autocorrelation robust    |
+| Metric             | Formula                           | Threshold | Purpose                  |
+| ------------------ | --------------------------------- | --------- | ------------------------ |
+| `psr`              | `P(true_sharpe > 0)`              | > 0.85    | Statistical significance |
+| `binomial_pvalue`  | `binom.test(n_positive, n_total)` | < 0.05    | Sign test                |
+| `hac_ttest_pvalue` | HAC-adjusted t-test               | < 0.05    | Autocorrelation robust   |
 
 ## Metric Computation Code
 
@@ -145,10 +144,6 @@ def aggregate_test_metrics(fold_results: list[dict]) -> dict[str, float]:
     median_sharpe_tw = np.median(sharpes)
     median_hit_rate = np.median([m["hit_rate"] for m in metrics])
 
-    # DSR for multiple testing (use time-weighted Sharpe)
-    n_trials = len(metrics)
-    dsr = compute_dsr(median_sharpe_tw, n_trials)
-
     return {
         "n_folds": len(metrics),
         "positive_sharpe_folds": positive_sharpe_folds,
@@ -156,7 +151,6 @@ def aggregate_test_metrics(fold_results: list[dict]) -> dict[str, float]:
         "mean_sharpe_tw": np.mean(sharpes),
         "std_sharpe_tw": np.std(sharpes),
         "median_hit_rate": median_hit_rate,
-        "dsr": dsr,
         "total_pnl": sum(m["cumulative_pnl"] for m in metrics),
     }
 ```

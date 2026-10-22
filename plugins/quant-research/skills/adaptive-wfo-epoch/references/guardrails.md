@@ -117,59 +117,26 @@ class AdaptiveStabilityPenalty:
         return False  # Improvement not significant
 ```
 
-## G4: DSR Adjustment for Epoch Search (Principled)
+## G4: Registration and Unused Data for Epoch Search (Principled)
+
+Selecting the best of K epochs across F folds inflates the selected Sharpe. By operator rule (2026-10-15) this is **not** handled with a Deflated Sharpe Ratio or any other trial-count correction; do not compute, report, rank by or cite one. Guard the selection instead:
+
+1. **Parsimony on the model itself**: keep the epoch candidate set small (3-5 options) and count it as part of the model's complexity.
+2. **Registration before runs**: write the candidate set, WFE thresholds (G1), IS_Sharpe minimum (G2), stability penalty (G3) and acceptance criteria down before the sweep starts, and do not change them after seeing results.
+3. **Unused data**: judge the selected configuration on the test split (and a final holdout) that no selection step has touched.
+4. **Report the rule's own statistics**: its Sharpe, PSR and MinTRL on the untouched data.
 
 ```python
-def adjusted_dsr_for_epoch_search(
-    sharpe: float,
-    n_folds: int,
-    n_epochs: int,
-    sharpe_se: float | None = None,
-    n_samples_per_fold: int | None = None,
-) -> float:
-    """Deflated Sharpe Ratio accounting for epoch selection multiplicity.
+def accept_selected_epoch(
+    test_sharpe: float,
+    test_psr: float,
+    n_test_obs: int,
+    min_trl_obs: float,
+    registered_psr_threshold: float,
+) -> bool:
+    """Accept the selected epoch on untouched test data only.
 
-    When selecting from K epochs, the expected maximum Sharpe under null
-    is inflated. This adjustment corrects for that selection bias.
-
-    Principled SE estimation:
-    - If n_samples provided: SE(Sharpe) ~ 1/sqrt(n)
-    - Otherwise: estimate from typical fold size
-
-    Reference: Bailey & Lopez de Prado (2014), Gumbel distribution
+    registered_psr_threshold is fixed in the registration before the sweep.
     """
-    from math import sqrt, log, pi
-
-    n_trials = n_folds * n_epochs  # Total selection events
-
-    if n_trials < 2:
-        return sharpe  # No multiple testing correction needed
-
-    # Expected maximum under null (Gumbel distribution)
-    # E[max(Z_1, ..., Z_n)] ~ sqrt(2*ln(n)) - (gamma + ln(pi/2)) / sqrt(2*ln(n))
-    # where gamma ~ 0.5772 is Euler-Mascheroni constant
-    euler_gamma = 0.5772156649
-    sqrt_2_log_n = sqrt(2 * log(n_trials))
-    e_max_z = sqrt_2_log_n - (euler_gamma + log(pi / 2)) / sqrt_2_log_n
-
-    # Estimate Sharpe SE if not provided
-    if sharpe_se is None:
-        if n_samples_per_fold is not None:
-            sharpe_se = 1.0 / sqrt(n_samples_per_fold)
-        else:
-            # Conservative default: assume ~300 samples per fold
-            sharpe_se = 1.0 / sqrt(300)
-
-    # Expected maximum Sharpe under null
-    e_max_sharpe = e_max_z * sharpe_se
-
-    # Deflated Sharpe
-    return max(0, sharpe - e_max_sharpe)
+    return test_sharpe > 0 and test_psr > registered_psr_threshold and n_test_obs >= min_trl_obs
 ```
-
-**Example**: For 5 epochs x 50 folds = 250 trials with 300 samples/fold:
-
-- `sharpe_se ~ 0.058`
-- `e_max_z ~ 2.88`
-- `e_max_sharpe ~ 0.17`
-- A Sharpe of 1.0 deflates to **0.83** after adjustment.

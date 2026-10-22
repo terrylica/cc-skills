@@ -92,17 +92,16 @@ Full reference: `findings/methodology/03-shuffled-null-design.md`.
 
 LLM agents systematically overstate z-scores. Treat agent-reported p-values as **upper bounds**.
 
-**Three overstatement patterns**:
+**Two overstatement patterns**:
 
-1. **Ignored multiple-testing burden**: agent tests 25 variants, reports z=2.43 vs nominal 1.96 threshold. True Bonferroni threshold is `sqrt(2 * ln(N))` — for N=25 that's z>2.8.
+1. **Selection reported as a single test**: agent tries 25 variants (or picks the top combo from 17,280) and reports the winner's in-sample z as if it were the only test. The winner is a hypothesis, not a finding. Do NOT repair this with a trial-count correction (Bonferroni, a `sqrt(2 ln K)` null-max, the Deflated Sharpe Ratio, FDR/FWER, e-LOND): this repository does not compute, report, rank by or cite them (issue #35). Instead register the winner (rule, threshold, window) and re-test it on data no variant was selected on; report that z.
 2. **Confused sample-mean z with binomial-proportion z**: 53.5% vs 50% on N=840 gives z≈2.0 not 4.2.
-3. **Extremum-of-K treated as single test**: "top combo from 17,280" has expected null-max `null_mean + null_std × sqrt(2 ln K)` ≈ null_mean + 4.5σ. An observed tw that's below that expectation is not a finding.
 
 **Always verify**:
 
-- How many implicit tests did the agent run?
+- How many variants did the agent try before reporting one? If more than one, was the reported rule confirmed on unused data?
 - Re-derive z yourself: `(real - null.mean) / null.std`
-- Bonferroni threshold for K tests: `z > sqrt(2 * ln K)`
+- Was the hypothesis (rule, threshold, window) fixed before the run? Judge parsimony on the model itself, not by the number of trials.
 
 **Trust thresholds**:
 
