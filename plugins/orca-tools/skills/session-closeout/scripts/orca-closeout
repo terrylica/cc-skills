@@ -1,19 +1,31 @@
 #!/usr/bin/env bash
 # orca-closeout: name the running Claude Code session for later recall, and optionally close its own Orca terminal tab
-# to free memory. Run it from inside the session (Claude Code's Bash tool). See ../SKILL.md for the why of each step.
+# to free memory, but never while work it started is still running. Run it from inside the session (Claude Code's Bash
+# tool). See ../SKILL.md for the why of each step.
 #
-#   orca-closeout                                   show: session id, transcript, current name, tab, resume command
+#   orca-closeout                                   show: session, transcript, name, tab, running work, resume command
 #   orca-closeout --title "Area: what was done"     name the session (Claude Code + Orca Agent Session History)
 #                 [--tab-title "Short tab label"]   label for this Orca tab (default: the title; tabs show ~25 chars)
 #                 [--allow-long]                    allow 97-200 characters (Orca's history cuts at 96)
-#   orca-closeout --close [--min-wait SECONDS]      close THIS session's own Orca tab once the agent is idle (its final
-#                                                   message delivered); never before SECONDS (default 5, max 600)
-#                 [--force]                         close even with a background command running, or with no agent found
+#   orca-closeout --close [--min-wait SECONDS]      close THIS session's own Orca tab once everything it started has
+#                                                   finished: its turn, subagents, teammates, background commands,
+#                                                   monitors, scheduled wake-ups. Never before SECONDS (default 5, max 600)
+#                 [--settle-timeout SECONDS]        give up waiting after SECONDS (default 1800, max 7200); the tab then
+#                                                   stays open, its markers removed, with the workspace's unread dot set
+#                 [--force]                         close as soon as the turn ends, even with work running or unreadable
+#                                                   status; that work is killed with the tab
 #   Every form takes --dry-run (check everything, change nothing). --title and --close can be combined.
+#
+#   While work is running, the tab title gets a "[running] " prefix and, when this is the workspace's only agent
+#   session, the workspace gets status in-progress (only if it had a status) and a "Running: … | " comment prefix (only
+#   if it had a comment): Orca can clear neither, so a field that was empty stays empty. A detached watcher restores
+#   all of it however it ends (settled, timed out, agent gone, tab changed), and with --close then closes the tab.
+#   Every external call (ps, lsof, the Orca CLI) has a timeout (ORCA_CLOSEOUT_CALL_TIMEOUT, default 20 s); a call that
+#   times out counts as "not confirmed", never as "nothing running".
 #
 # Exit status: 0 done, 1 a step failed, 2 refused before any change (bad arguments, unsafe close, not inside Orca).
 # stdout is one JSON object (except --help); progress and warnings go to stderr.
-# Requires: bash >= 3.2, python3 >= 3.9; the Orca IDE CLI only for --tab-title/--close. No GNU-only flags.
+# Requires: bash >= 3.2, python3 >= 3.9; the Orca IDE CLI only for --tab-title/--close and the markers. No GNU-only flags.
 set -euo pipefail
 
 die() { printf 'orca-closeout: %s\n' "$1" >&2; exit "${2:-2}"; }
@@ -21,7 +33,27 @@ warn() { printf 'orca-closeout: warning: %s\n' "$1" >&2; }
 note() { printf 'orca-closeout: %s\n' "$1" >&2; }
 # Python gets shell values only as argv (never as source text). PYLIB is shared by every snippet.
 PYLIB='
-import json, os, re, sys, subprocess, time
+import json, os, re, sys, subprocess, time, glob, tempfile, datetime, signal
+# Every subprocess gets a timeout (ORCA_CLOSEOUT_CALL_TIMEOUT seconds, default 20). A call that times out or cannot
+# start returns None, and every caller reads None as "not confirmed": never as "nothing running" or "safe to close".
+CALL_TIMEOUT = float(os.environ.get("ORCA_CLOSEOUT_CALL_TIMEOUT") or 20)
+def call(args, timeout=None, env=None):
+    """Run args with a timeout, in its own process group so a timeout kills the whole group. CompletedProcess or None."""
+    try:
+        p = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                             env=env, start_new_session=True)
+    except OSError:
+        return None
+    try:
+        out, err = p.communicate(timeout=timeout or CALL_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        try: os.killpg(p.pid, signal.SIGKILL)
+        except OSError: pass
+        try: p.communicate(timeout=5)
+        except Exception: pass
+        return None
+    return subprocess.CompletedProcess(args, p.returncode, out, err)
+C_ENV = dict(os.environ, LC_ALL="C", LANG="C")
 SHELLS = ("sh", "bash", "zsh", "dash", "ksh", "fish", "pwsh", "powershell", "cmd.exe")
 def prog(args): return os.path.basename(args.split(" ", 1)[0]).lstrip("-") if args else ""
 def is_agent(args):
@@ -34,9 +66,11 @@ def bash_tool(args):
     # Claude Code starts every Bash-tool command in a shell that first sources a shell snapshot.
     return prog(args) in SHELLS and "shell-snapshots" in args
 def table():
-    out = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "args="], capture_output=True, text=True).stdout
+    """pid -> (ppid, args) for every process, or None if ps failed or timed out."""
+    r = call(["ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "args="], env=C_ENV)
+    if r is None or r.returncode != 0: return None
     rows = {}
-    for line in out.splitlines():
+    for line in r.stdout.splitlines():
         p = line.split(None, 2)
         if len(p) >= 2 and p[0].isdigit() and p[1].isdigit():
             rows[int(p[0])] = (int(p[1]), p[2].strip() if len(p) > 2 else "")
@@ -58,67 +92,345 @@ def busy_shells(rows, agent, skip):
         out.append({"pid": p, "args": rows[p][1][:160]})
         todo.extend(kids.get(p, []))
     return out
+def parse_etime(s):
+    """Seconds from ps etime, "[[dd-]hh:]mm:ss" (digits and separators only, so no locale can change it), or None."""
+    m = re.fullmatch(r"(?:(?:(\d+)-)?(\d+):)?(\d+):(\d+)", s.strip())
+    if not m: return None
+    d, h, mi, se = (int(x or 0) for x in m.groups())
+    return ((d * 24 + h) * 60 + mi) * 60 + se
+def proc_start(pid):
+    """Start time (epoch seconds) of a process, or None. Elapsed time, not lstart: lstart prints localized day and
+    month names (LC_TIME), and macOS ps has no etimes. Two seconds early, since etime is truncated to whole seconds."""
+    r = call(["ps", "-o", "etime=", "-p", str(pid)], env=C_ENV)
+    e = parse_etime(r.stdout) if r is not None and r.returncode == 0 else None
+    return None if e is None else time.time() - e - 2
+def epoch(ts):
+    try: return datetime.datetime.fromisoformat(str(ts).replace("Z", "+00:00")).timestamp()
+    except Exception: return None
+NOTIFY_TAGS = ("<task-notification", "<teammate-message")
+PROMPT_BLOCKS = ("text", "image", "document")
+def is_typed_prompt(d):
+    """A prompt the user typed (or a slash command), not a harness message such as a task notification or a tool
+    result. The content is a string, or a list of blocks when the prompt carries an image or a pasted document."""
+    if d.get("type") != "user" or d.get("isMeta") or d.get("toolUseResult") is not None: return False
+    c = (d.get("message") or {}).get("content")
+    if isinstance(c, str):
+        texts = [c]
+    elif isinstance(c, list):
+        blocks = [b for b in c if isinstance(b, dict)]
+        types = {b.get("type") for b in blocks}
+        if "tool_result" in types or not types & set(PROMPT_BLOCKS): return False
+        texts = [b.get("text") or "" for b in blocks if b.get("type") == "text"]
+    else:
+        return False
+    return not any(t.lstrip().startswith(NOTIFY_TAGS) for t in texts)
+RUNNING_RE = re.compile(r"^(?:Running: [^|]*\| )+")
+def strip_running(comment):
+    """A workspace comment without the "Running: … | " prefixes an earlier run may have left on it."""
+    return RUNNING_RE.sub("", comment or "")
+def task_output(sid, tid):
+    for base in sorted({"/private/tmp", "/tmp", tempfile.gettempdir()}):
+        hits = glob.glob(os.path.join(base, "claude-*", "*", sid, "tasks", tid + ".output"))
+        if hits: return hits[0]
+    return None
+def held_open(path):
+    """Whether a process still has the file open. A timed-out or failed lsof reads as open: not confirmed finished."""
+    r = call(["lsof", "-t", "--", path])
+    return r is None or bool(r.stdout.strip())
+def ledger(path, sid, since=None, now=None):
+    """Work this session started and has not seen finish, read from its transcript: background commands and background
+    agents (launch, then a task notification or a TaskStop result), session-only crons (CronCreate minus CronDelete) and
+    the latest ScheduleWakeup while it is not yet due. Teammates are not here: their liveness is Orca status data.
+    `since`: launches older than this (the agent process start) died with an earlier process and are ignored."""
+    now = now or time.time()
+    bash, agents, done, uses, cron_ids, cron_del, wake = {}, {}, set(), {}, {}, set(), None
+    keys = (b"backgroundTaskId", b"task-notification", b"task_id", b"agentId", b"CronCreate", b"CronDelete",
+            b"ScheduleWakeup", b"tool_use_id")
+    with open(path, "rb") as fh:
+        for line in fh:
+            if not any(k in line for k in keys): continue
+            try: d = json.loads(line)
+            except Exception: continue
+            ts = epoch(d.get("timestamp"))
+            text = json.dumps(d) if b"task-notification" in line else ""
+            for tid in re.findall(r"<task-id>([^<]+)</task-id>", text): done.add(tid)
+            tur = d.get("toolUseResult")
+            if isinstance(tur, dict):
+                if tur.get("backgroundTaskId"): bash[tur["backgroundTaskId"]] = ts
+                if tur.get("task_id") and tur.get("task_type"): done.add(tur["task_id"])
+                aid = tur.get("agentId") or tur.get("agent_id")
+                if aid and tur.get("status") != "teammate_spawned" and (tur.get("isAsync") or tur.get("status") in ("async_launched", "launched", "running")):
+                    agents[aid] = (ts, tur.get("name") or tur.get("agent_type"))
+            m = d.get("message") or {}
+            c = m.get("content")
+            if not isinstance(c, list): continue
+            for b in c:
+                if not isinstance(b, dict): continue
+                if b.get("type") == "tool_use":
+                    n, inp = b.get("name"), b.get("input") or {}
+                    if n == "CronCreate" and not inp.get("durable"): uses[b.get("id")] = (ts, inp)
+                    elif n == "CronDelete": cron_del.add(str(inp.get("id") or inp.get("job_id") or ""))
+                    elif n == "ScheduleWakeup":
+                        wake = None if inp.get("stop") else (ts, inp.get("delaySeconds"))
+                elif b.get("type") == "tool_result" and b.get("tool_use_id") in uses:
+                    r = tur if isinstance(tur, dict) else {}
+                    jid = r.get("id") or r.get("job_id")
+                    if not jid:
+                        s = json.dumps(b.get("content"))
+                        mm = re.search(r"(?:job|cron|task)[ _-]?id[^A-Za-z0-9]{0,6}([A-Za-z0-9_-]{4,})", s, re.I)
+                        jid = mm.group(1) if mm else b.get("tool_use_id")
+                    cron_ids[str(jid)] = uses.pop(b.get("tool_use_id"))
+    old = lambda t: since is not None and t is not None and t < since
+    out = []
+    for tid, t in bash.items():
+        if tid in done or old(t): continue
+        f = task_output(sid, tid)
+        out.append({"kind": "background-command", "id": tid, "name": None, "source": "transcript",
+                    "state": "running" if f and held_open(f) else "finished, result not yet delivered"})
+    for aid, (t, name) in agents.items():
+        if aid in done or old(t): continue
+        out.append({"kind": "background-agent", "id": aid, "name": name, "state": "running", "source": "transcript"})
+    for jid, (t, inp) in cron_ids.items():
+        if jid in cron_del or old(t): continue
+        out.append({"kind": "cron", "id": jid, "name": (inp.get("prompt") or "")[:60], "state": "scheduled",
+                    "source": "transcript"})
+    if wake and wake[0] is not None and not old(wake[0]) and wake[0] + float(wake[1] or 0) > now - 30:
+        out.append({"kind": "wakeup", "id": None, "name": "ScheduleWakeup", "state": "scheduled", "source": "transcript"})
+    return out
+def status_file():
+    c = []
+    if os.environ.get("ORCA_USER_DATA_PATH"): c.append(os.path.join(os.environ["ORCA_USER_DATA_PATH"], "agent-hooks", "last-status.json"))
+    c += [os.path.expanduser("~/Library/Application Support/Orca/agent-hooks/last-status.json"),
+          os.path.expanduser("~/.config/orca/agent-hooks/last-status.json")]
+    return next((p for p in c if os.path.exists(p)), None)
+def orca_status(tab, sid, agent):
+    """Live agent state of this tab, as the Orca hook listener last recorded it: subagents and teammates, background
+    shells and monitors, a pending task wake-up. Returns (items, check); check other than "ok" means not usable."""
+    path = status_file()
+    if not path: return [], "missing"
+    try:
+        with open(path) as fh: d = json.load(fh)
+    except Exception: return [], "unreadable"
+    ents = d.get("entries") or {}
+    ents = list(ents.values()) if isinstance(ents, dict) else list(ents)
+    mine = [e for e in ents if isinstance(e, dict) and (e.get("tabId") == tab or str(e.get("paneKey") or "").startswith(tab + ":"))]
+    if not mine: return [], "no-entry"
+    out = []
+    for e in mine:
+        if (e.get("providerSession") or {}).get("id") != sid: return [], "other-session"
+        pid = ((e.get("agentPresence") or {}).get("process") or {}).get("pid")
+        if agent and pid and int(pid) != int(agent): return [], "other-process"
+        pl = e.get("payload") or {}
+        for s in pl.get("subagents") or []:
+            if s.get("state") not in ("done", "idle"):
+                out.append({"kind": "subagent", "id": s.get("id"), "name": s.get("agentType"), "state": s.get("state"), "source": "orca-status"})
+        if e.get("claudeRunningNonAgentTask"):
+            out.append({"kind": "background-task", "id": None, "name": "shell or monitor", "state": "running", "source": "orca-status"})
+        w = pl.get("claudeTaskWakeupPending") or e.get("claudeTaskWakeupPending")
+        if w: out.append({"kind": "wakeup", "id": None, "name": "task wake-up", "state": str(w), "source": "orca-status"})
+    return out, "ok"
+def orca_json(orca, *args):
+    """Orca CLI JSON, or None if the call failed, timed out or was not ok."""
+    r = call([orca, *args, "--json"])
+    if r is None: return None
+    try: d = json.loads(r.stdout or "{}")
+    except Exception: d = {}
+    return d if r.returncode == 0 and d.get("ok") else None
+def orca_rows(orca, tab, worktree):
+    """Orca sidebar rows: (the rows of this tab still held open, whether this tab is the only agent session of the
+    workspace, the comment and status of the workspace, check). A row is settled only at state done with no working mode: Orca keeps it
+    working while subagents, shells, monitors or session crons live, even after the main turn ended."""
+    d = orca_json(orca, "worktree", "ps")
+    if d is None: return [], False, None, "unreadable"
+    res = d.get("result") or {}
+    if res.get("truncated"): return [], False, None, "truncated"
+    held, sole, meta = [], True, None
+    for w in res.get("worktrees") or []:
+        for a in w.get("agents") or []:
+            pk = str(a.get("paneKey") or "")
+            if pk.startswith(tab + ":"):
+                meta = {"worktree": w.get("worktreeId"), "comment": w.get("comment"), "status": w.get("workspaceStatus")}
+                if a.get("state") != "done" or a.get("workingMode"):
+                    held.append({"kind": "orca-row", "id": pk, "name": a.get("toolName"), "state": a.get("state"),
+                                 "mode": a.get("workingMode"), "main": (a.get("mainAgent") or {}).get("state"), "source": "orca-row"})
+            elif worktree and w.get("worktreeId") == worktree:
+                sole = False
+    return held, sole, meta, "ok"
 '
 pa() { local code=$1; shift; python3 -I -c "$PYLIB
 $code" "$@"; }
+# capped CMD...: run an external command with the same timeout as every Python call (exit 124 when it times out), so
+# no step of this script can hang on a stuck Orca CLI.
+capped() { pa '
+r = call(sys.argv[1:])
+if r is None:
+    print("orca-closeout: timed out after %gs or could not run: %s" % (CALL_TIMEOUT, " ".join(sys.argv[1:4])), file=sys.stderr)
+    sys.exit(124)
+sys.stdout.write(r.stdout); sys.stderr.write(r.stderr); sys.exit(r.returncode)' "$@"; }
 
 # Limits measured in the shipping code (see SKILL.md "Name length"): Claude Code keeps at most 200 code points of a
 # title, control characters removed; Orca's Agent Session History keeps 96 UTF-16 units (longer: 93 + an ellipsis).
 ORCA_HISTORY_MAX=96
 CLAUDE_TITLE_MAX=200
 MAX_WAIT=600
+MAX_SETTLE=7200
+RUNNING_PREFIX='[running] '
 
-# ── The detached closer (internal): wait for idle, re-check everything, then close this one tab. ────────────────────
+# ── The detached watcher (internal): wait for the turn to end and the work to settle, then remove the markers and, in
+#    close mode, close this one tab. The markers are removed on EVERY way out (settled, given up, agent gone, tab no
+#    longer this session's, a failed call, a signal): a watcher that leaves "[running]" behind is the bug it exists to
+#    prevent. ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 if [ "${1:-}" = "--_fire" ]; then
-  shift; agent=$1 min_wait=$2 offset=$3 transcript=$4 handle=$5 tab=$6 ORCA=$7 force=$8
-  exec >>"${TMPDIR:-/tmp}/orca-closeout-$handle.log" 2>&1
-  echo "$(date -u +%FT%TZ) closer started: agent $agent, min wait ${min_wait}s"
-  sleep "$min_wait"
-  # Orca's own readiness signal: the agent's turn (and so its final message) is over.
-  if ! "$ORCA" terminal wait --terminal "$handle" --for tui-idle --timeout-ms $((MAX_WAIT * 1000)) --json; then
-    echo "not closing: the agent did not become idle within ${MAX_WAIT}s"; exit 1
-  fi
+  shift   # now: mode agent min_wait settle offset transcript handle tab sid orca force state_file
+  exec >>"${TMPDIR:-/tmp}/orca-closeout-$7.log" 2>&1
+  echo "$(date -u +%FT%TZ) watcher started: mode $1, agent $2, min wait ${3}s, settle timeout ${4}s"
   pa '
-agent, offset, transcript, handle, tab, orca, force = int(sys.argv[1]), int(sys.argv[2]), *sys.argv[3:7], sys.argv[7] == "1"
-# The user kept working: a typed prompt after the close was scheduled cancels it.
-with open(transcript, "rb") as fh:
-    fh.seek(offset)
-    for line in fh:
-        try: d = json.loads(line)
-        except Exception: continue
-        m = d.get("message") or {}
-        if d.get("type") == "user" and not d.get("isMeta") and isinstance(m.get("content"), str):
-            sys.exit("not closing: a new prompt arrived after the close was scheduled")
-r = subprocess.run([orca, "terminal", "show", "--terminal", handle, "--json"], capture_output=True, text=True)
-t = ((json.loads(r.stdout or "{}").get("result") or {}).get("terminal") or {}) if r.returncode == 0 else {}
-if t.get("handle") != handle or t.get("tabId") != tab:
-    sys.exit("not closing: the terminal is no longer this session tab")
-rows = table()
-if agent in rows:
-    busy = busy_shells(rows, agent, set())
-    if busy and not force:
-        sys.exit("not closing: background command(s) still running: " + "; ".join(b["args"] for b in busy))
-' "$agent" "$offset" "$transcript" "$handle" "$tab" "$ORCA" "$force" || exit 1
-  "$ORCA" terminal close --terminal "$handle" --tab --json
-  exit $?
+mode, agent, min_wait, settle, offset, transcript, handle, tab, sid, orca, force, state_file = sys.argv[1], \
+    int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), sys.argv[6], sys.argv[7], sys.argv[8], \
+    sys.argv[9], sys.argv[10], sys.argv[11] == "1", sys.argv[12]
+max_wait = int(sys.argv[13])
+poll = max(1, int(os.environ.get("ORCA_CLOSEOUT_POLL", "15")))
+def log(s): print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), s, flush=True)
+marks, marks_raw = {}, None
+if state_file and os.path.exists(state_file):
+    try:
+        with open(state_file) as fh: marks_raw = fh.read()
+        marks = json.loads(marks_raw)
+    except Exception as e:
+        log("the marker state %s is unreadable (%s); markers cannot be restored" % (state_file, e))
+restored = False
+def restore():
+    """Undo exactly what was marked: the tab label, the workspace status and comment. Idempotent."""
+    global restored
+    if restored: return
+    restored = True
+    if not marks: return
+    if marks.get("tab_marked"):
+        # An empty label means the tab had no label of ours: omit --title, which Orca documents as the reset to the
+        # automatic title ("Omit --title or pass an empty string to reset to the auto-generated title").
+        args = [orca, "terminal", "rename", "--terminal", handle]
+        if marks.get("tab_label"): args += ["--title", marks["tab_label"]]
+        r = call(args + ["--json"])
+        if r is None or r.returncode != 0: log("could not restore the tab title (%s)" % ("timed out" if r is None else "failed"))
+    wt = marks.get("worktree")
+    if wt and wt.get("id"):
+        args = ["worktree", "set", "--worktree", "id:" + wt["id"]]
+        if wt.get("comment"): args += ["--comment", wt["comment"]]   # only ever changed when there was one
+        if wt.get("status"): args += ["--workspace-status", wt["status"]]   # only ever changed when there was one
+        if len(args) > 4:
+            r = call([orca, *args, "--json"])
+            if r is None or r.returncode != 0: log("could not restore the workspace (%s)" % ("timed out" if r is None else "failed"))
+    # Drop the state file unless a later run has replaced it with its own markers.
+    try:
+        with open(state_file) as fh:
+            if fh.read() == marks_raw: os.unlink(state_file)
+    except OSError:
+        pass
+    log("markers removed")
+def on_signal(n, _f): log("stopping: signal %d" % n); sys.exit(128 + n)
+for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT): signal.signal(s, on_signal)
+def typed_prompt_since(off):
+    with open(transcript, "rb") as fh:
+        fh.seek(off)
+        for line in fh:
+            try: d = json.loads(line)
+            except Exception: continue
+            if is_typed_prompt(d): return True
+    return False
+def describe(items): return "; ".join("%s %s %s" % (i["kind"], i["id"] or i["name"], i["state"]) for i in items) or "-"
+def watch():
+    global mode
+    time.sleep(min_wait)
+    # The Orca readiness signal: the agent turn (and so its final message) is over. It does not wait for subagents
+    # or shells (a turn that ended reads idle while a subagent runs), so settling is checked separately below.
+    r = call([orca, "terminal", "wait", "--terminal", handle, "--for", "tui-idle", "--timeout-ms", str(max_wait * 1000),
+              "--json"], timeout=max_wait + 30)
+    if r is None or r.returncode != 0:
+        if mode == "close":
+            log("not closing: the agent did not become idle within %ds (%s); still watching to remove the markers"
+                % (max_wait, "timed out" if r is None else "orca exit %d" % r.returncode))
+            mode = "watch"
+    since = proc_start(agent) if agent else None
+    deadline = time.time() + settle
+    shown = None
+    while True:
+        if mode == "close" and typed_prompt_since(offset):
+            log("not closing: a new prompt arrived after the close was scheduled; still watching to remove the markers")
+            mode = "watch"
+        checks = {}
+        if mode == "close":
+            d = orca_json(orca, "terminal", "show", "--terminal", handle)
+            if d is None:
+                checks["terminal"] = "unreadable"   # not confirmed: try again next poll, never close on it
+            else:
+                t = (d.get("result") or {}).get("terminal") or {}
+                if t.get("handle") != handle or t.get("tabId") != tab:
+                    log("not closing: the terminal is no longer this session tab"); return 1
+        rows = table()
+        if rows is None:
+            checks["process"] = "unreadable"
+        elif agent and agent not in rows:
+            log("stopping: the agent process %d is gone, so nothing can be confirmed" % agent); return 1
+        running = [{"kind": "process", "id": b["pid"], "name": b["args"], "state": "running", "source": "process"}
+                   for b in (busy_shells(rows, agent, set()) if agent and rows else [])]
+        try:
+            running += [i for i in ledger(transcript, sid, since) if i["kind"] not in ("cron", "wakeup")]
+        except Exception:
+            checks["transcript"] = "unreadable"
+        st, st_check = orca_status(tab, sid, agent)
+        held, _, _, row_check = orca_rows(orca, tab, None)
+        running += st + held
+        if st_check not in ("ok", "no-entry", "missing"): checks["orca_status"] = st_check
+        if row_check != "ok": checks["orca_rows"] = row_check
+        if force and mode == "close":
+            log("--force: closing without waiting for: " + describe(running))
+            return close()
+        if not running and not checks:
+            log("settled: nothing of this session is still running")
+            return close() if mode == "close" else 0
+        now = "%s | %s" % (describe(running), ", ".join("%s %s" % kv for kv in sorted(checks.items())) or "checks ok")
+        if now != shown: log("waiting: " + now); shown = now
+        if time.time() >= deadline:
+            log("gave up after %ds; still running or unconfirmed: %s" % (settle, now))
+            if marks.get("worktree"):
+                call([orca, "worktree", "set", "--worktree", "id:" + marks["worktree"]["id"], "--unread", "--json"])
+            return 1
+        time.sleep(poll)
+def close():
+    restore()
+    r = call([orca, "terminal", "close", "--terminal", handle, "--tab", "--json"])
+    if r is None:
+        log("orca terminal close timed out"); return 1
+    log("closed this tab" if r.returncode == 0 else "orca terminal close failed: " + (r.stdout + r.stderr)[:300])
+    return r.returncode
+try:
+    rc = watch()
+finally:
+    restore()
+sys.exit(rc)
+' "$@" "$MAX_WAIT" || exit 1
+  exit 0
 fi
 
-title='' tab_title='' close=0 min_wait=5 force=0 dry=0 allow_long=0
+title='' tab_title='' close=0 min_wait=5 settle=1800 force=0 dry=0 allow_long=0
 while [ $# -gt 0 ]; do
   case $1 in
     --title) [ $# -ge 2 ] || die "--title needs a value"; title=$2; shift 2 ;;
     --tab-title) [ $# -ge 2 ] || die "--tab-title needs a value"; tab_title=$2; shift 2 ;;
     --close) close=1; shift ;;
     --min-wait) [ $# -ge 2 ] || die "--min-wait needs a value"; min_wait=$2; shift 2 ;;
+    --settle-timeout) [ $# -ge 2 ] || die "--settle-timeout needs a value"; settle=$2; shift 2 ;;
     --force) force=1; shift ;;
     --allow-long) allow_long=1; shift ;;
     --dry-run) dry=1; shift ;;
-    -h|--help|help) sed -n '2,16p' "$0"; exit 0 ;;
+    -h|--help|help) sed -n '2,25p' "$0"; exit 0 ;;
     *) die "unknown argument: $1 (see --help)" ;;
   esac
 done
 case $min_wait in ''|*[!0-9]*) die "--min-wait must be a whole number of seconds" ;; esac
 [ "$min_wait" -le "$MAX_WAIT" ] || die "--min-wait is at most $MAX_WAIT seconds"
+case $settle in ''|*[!0-9]*) die "--settle-timeout must be a whole number of seconds" ;; esac
+[ "$settle" -le "$MAX_SETTLE" ] || die "--settle-timeout is at most $MAX_SETTLE seconds"
 
 # ── The session: Claude Code exports its id to every Bash-tool command. ────────────────────────────────────────────
 sid=${CLAUDE_CODE_SESSION_ID:-}
@@ -126,7 +438,6 @@ sid=${CLAUDE_CODE_SESSION_ID:-}
 case $sid in *[!0-9a-fA-F-]*) die "unexpected session id: $sid" ;; esac
 config_dir=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 transcript=$(pa '
-import glob
 hits = glob.glob(os.path.join(sys.argv[1], "projects", "*", sys.argv[2] + ".jsonl"))
 if len(hits) != 1:
     print(len(hits)); sys.exit(3)
@@ -153,7 +464,7 @@ fi
 
 # ── Orca: the IDE's CLI, found the way Orca itself exposes it inside its terminals. ──────────────────────────────────
 is_orca() {  # help text captured, not piped to grep -q: an early-exiting reader under pipefail can SIGPIPE it
-  local h; [ -n "$1" ] && [ -x "$1" ] || return 1; h=$("$1" terminal --help 2>/dev/null) || true
+  local h; [ -n "$1" ] && [ -x "$1" ] || return 1; h=$(capped "$1" terminal --help 2>/dev/null) || true
   case $h in *"orca terminal"*"close"*"Close one terminal"*) return 0 ;; *) return 1 ;; esac
 }
 find_orca() {
@@ -168,6 +479,7 @@ find_orca() {
 }
 handle=${ORCA_TERMINAL_HANDLE:-}
 tab=${ORCA_TAB_ID:-}
+worktree=${ORCA_WORKTREE_ID:-}
 case $handle in *[!A-Za-z0-9_.-]*) die "unexpected ORCA_TERMINAL_HANDLE: $handle" ;; esac
 ORCA=''
 if [ -n "$handle" ]; then ORCA=$(find_orca) || warn "inside an Orca terminal, but the Orca IDE CLI was not found"; fi
@@ -195,20 +507,48 @@ with open(sys.argv[1], "rb") as fh:
         if start: break
 print(start or os.getcwd())' "$transcript")
 
+# ── What this session started that is still running. Every form reports it; only --close acts on it. ────────────────
+#    Sources: the agent's process tree (Bash-tool shells), the transcript ledger, and inside Orca the tab's status
+#    record (subagents, teammates, shells, monitors, wake-ups). Each source reports a check; "ok" or a benign absence.
+rj=$(pa '
+rows = table(); me = int(sys.argv[1]); chain = chain_of(rows or {}, me)
+agent = next((p for p in chain if is_agent(rows[p][1])), None)
+own_shell = any(bash_tool(rows[p][1]) for p in chain)
+since = proc_start(agent) if agent else None
+running = [{"kind": "process", "id": b["pid"], "name": b["args"], "state": "running", "source": "process"}
+           for b in (busy_shells(rows, agent, set(chain)) if agent else [])]
+checks = {"process": "unreadable" if rows is None else "ok" if agent and own_shell else "unavailable"}
+try:
+    running += ledger(sys.argv[2], sys.argv[3], since); checks["transcript"] = "ok"
+except Exception as e:
+    checks["transcript"] = "unreadable"
+if sys.argv[4]:
+    st, checks["orca_status"] = orca_status(sys.argv[4], sys.argv[3], agent)
+    running += st
+print(json.dumps({"agent": agent, "own_shell": own_shell, "running": running, "checks": checks}))' \
+  "$$" "$transcript" "$sid" "$tab")
+agent=$(pa 'print(json.loads(sys.argv[1])["agent"] or "")' "$rj")
+running_count=$(pa 'print(len(json.loads(sys.argv[1])["running"]))' "$rj")
+show_running() {
+  pa 'for c in json.loads(sys.argv[1])["running"]: print("  still running: %s %s (%s, from %s)" % (c["kind"], c["id"] if c["id"] is not None else c["name"], c["state"], c["source"]), file=sys.stderr)' "$rj"
+}
+
 if [ -z "$title" ] && [ "$close" -eq 0 ] && [ -z "$tab_title" ]; then
   pa '
+r = json.loads(sys.argv[6])
 print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
-                  "terminal": sys.argv[4] or None, "resume": "cd %s && claude --resume %s" % (sys.argv[5], sys.argv[1])}))' \
-    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd"
+                  "terminal": sys.argv[4] or None, "running": r["running"], "running_count": len(r["running"]),
+                  "checks": r["checks"], "resume": "cd %s && claude --resume %s" % (sys.argv[5], sys.argv[1])}))' \
+    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd" "$rj"
   exit 0
 fi
 
 # ── Close guard first, so a refused close changes nothing at all. It fails CLOSED: anything it cannot confirm refuses.
-agent=''
+#    Running work does not refuse the close: it defers it until that work has finished.
 if [ "$close" -eq 1 ]; then
   need_orca "--close"
   [ -n "$tab" ] || die "--close needs ORCA_TAB_ID, to confirm the tab is this session's own"
-  tj=$("$ORCA" terminal show --terminal "$handle" --json) || die "orca terminal show --terminal $handle failed; not closing"
+  tj=$(capped "$ORCA" terminal show --terminal "$handle" --json) || die "orca terminal show --terminal $handle failed; not closing"
   pa '
 d = json.loads(sys.argv[1]); t = (d.get("result") or {}).get("terminal") or {}
 if not d.get("ok") or t.get("handle") != sys.argv[2]:
@@ -216,24 +556,21 @@ if not d.get("ok") or t.get("handle") != sys.argv[2]:
 if t.get("tabId") != sys.argv[3]:
     sys.exit("terminal %s is in tab %s, not this session tab %s" % (sys.argv[2], t.get("tabId"), sys.argv[3]))' \
     "$tj" "$handle" "$tab" || die "not closing: the terminal could not be confirmed as this session's own"
-  gj=$(pa '
-rows = table(); me = int(sys.argv[1]); chain = chain_of(rows, me)
-agent = next((p for p in chain if is_agent(rows[p][1])), None)
-own_shell = any(bash_tool(rows[p][1]) for p in chain)
-print(json.dumps({"agent": agent, "own_shell": own_shell,
-                  "busy": busy_shells(rows, agent, set(chain)) if agent else []}))' "$$")
-  agent=$(pa 'print(json.loads(sys.argv[1])["agent"] or "")' "$gj")
-  ok=$(pa 'd = json.loads(sys.argv[1]); print(1 if d["agent"] and d["own_shell"] else 0)' "$gj")
-  busy=$(pa 'print(len(json.loads(sys.argv[1])["busy"]))' "$gj")
-  if [ "$ok" -ne 1 ]; then
-    [ "$force" -eq 1 ] || die "not closing: could not identify this session's agent process and its Bash-tool shell, so running background work cannot be ruled out. Pass --force to close anyway"
-    warn "--force: the agent process could not be identified; background work is not checked"
+  bad=$(pa '
+c = json.loads(sys.argv[1])["checks"]
+bad = [k + "=" + v for k, v in c.items() if v not in ("ok", "missing", "no-entry")]
+print(", ".join(bad))' "$rj")
+  if [ -n "$bad" ]; then
+    [ "$force" -eq 1 ] || die "not closing: running work cannot be ruled out ($bad). Pass --force to close anyway"
+    warn "--force: running work is not fully checked ($bad)"
   fi
-  if [ "$busy" -gt 0 ]; then
-    pa 'for c in json.loads(sys.argv[1])["busy"]: print("  still running: %d %s" % (c["pid"], c["args"]), file=sys.stderr)' "$gj"
-    [ "$force" -eq 1 ] || die "not closing: $busy background command process(es) would be killed with the tab. Finish or stop them, or pass --force"
-    warn "--force: closing anyway; the processes above will be killed with the tab"
+  if [ "$running_count" -gt 0 ]; then
+    show_running
+    if [ "$force" -eq 1 ]; then warn "--force: closing when the turn ends; the work above will be killed with the tab"
+    else note "the close waits until the work above has finished (at most ${settle}s)"; fi
   fi
+elif [ "$running_count" -gt 0 ]; then
+  show_running
 fi
 
 # ── Name the session: the same two records Claude Code's /rename appends. ────────────────────────────────────────────
@@ -273,30 +610,118 @@ sys.exit(0 if found == {0, 1} else "the name records could not be read back")' "
   fi
 fi
 
-# ── Label this Orca tab (explicit handle, never the active terminal). ────────────────────────────────────────────────
+# ── Mark running work in Orca (tab title, and the workspace when this is its only agent session), then label the tab.
+#    The state file records exactly what was there before, for the watcher to restore. A state file left by an earlier
+#    run whose markers are still on (its watcher has not finished) holds the true originals, so a second run neither
+#    nests "Running: … | Running: …" nor records its own "in-progress" or "[running]" as the value to restore.
 tab_label=${tab_title:-$title}
+marked_tab=false marked_worktree=false state_file=''
+mark=0
+if [ "$running_count" -gt 0 ] && [ -n "$handle" ] && [ -n "$ORCA" ] && [ "$force" -eq 0 ]; then mark=1; fi
+shown_label=$tab_label tab_restore=$tab_label plan='{}'
+if [ "$mark" -eq 1 ]; then
+  state_file=${TMPDIR:-/tmp}/orca-closeout-$handle.state.json
+  cur_title=''
+  if [ -z "$tab_label" ]; then
+    cur_title=$(pa 'print(((json.loads(sys.argv[1] or "{}").get("result") or {}).get("terminal") or {}).get("title") or "")' \
+      "$(capped "$ORCA" terminal show --terminal "$handle" --json 2>/dev/null || true)")
+  fi
+  wj=$(pa '
+held, sole, meta, check = orca_rows(sys.argv[1], sys.argv[2], sys.argv[3])
+print(json.dumps({"sole": sole, "meta": meta, "check": check}))' "$ORCA" "$tab" "$worktree")
+  plan=$(pa '
+state_file, wj, rj, ours, cur_title, prefix = sys.argv[1:7]
+w, running = json.loads(wj), json.loads(rj)["running"]
+prior = {}
+try:
+    with open(state_file) as fh: prior = json.load(fh) or {}
+except Exception:
+    pass
+# The tab: our label if we have one; else the label an earlier run is still due to restore; else none, and the watcher
+# resets the tab to its automatic title. Shown meanwhile with the prefix, never twice.
+base = cur_title
+while base.startswith(prefix): base = base[len(prefix):]
+restore_label = ours or ((prior.get("tab_label") or "") if prior.get("tab_marked") else "")
+shown = (prefix + (ours or base)).rstrip()
+plan = {"shown": shown, "tab_restore": restore_label, "worktree": None}
+meta = w.get("meta") or {}
+if w.get("check") == "ok" and w.get("sole") and meta.get("worktree"):
+    pw = prior.get("worktree") or {}
+    same = pw.get("id") == meta["worktree"]
+    comment, status = meta.get("comment") or "", meta.get("status") or ""
+    o_comment = (pw.get("comment") or "") if same and comment.startswith("Running: ") else strip_running(comment)
+    o_status = (pw.get("status") or "") if same and status == "in-progress" else status
+    import collections
+    n = collections.Counter(i["kind"].replace("-", " ") for i in running)
+    what = ", ".join("%d %s%s" % (c, k, "" if c == 1 else ("es" if k.endswith("s") else "s")) for k, c in sorted(n.items()))
+    # Each field only when it already had a value, because neither can be cleared again: Orca has no way to unset a
+    # workspace status, and its CLI ignores an empty --comment (getOptionalStringFlag in its src/cli/flags.ts).
+    plan["worktree"] = {"id": meta["worktree"], "comment": o_comment or None, "status": o_status or None,
+                        "set_comment": ("Running: %s | %s" % (what, o_comment)) if o_comment else "",
+                        "set_status": "in-progress" if o_status else ""}
+print(json.dumps(plan))' "$state_file" "$wj" "$rj" "$tab_label" "$cur_title" "$RUNNING_PREFIX")
+  shown_label=$(pa 'print(json.loads(sys.argv[1])["shown"])' "$plan")
+  tab_restore=$(pa 'print(json.loads(sys.argv[1])["tab_restore"])' "$plan")
+fi
 tabbed=false
-if [ -n "$tab_label" ] && [ -n "$handle" ]; then
+if [ -n "$shown_label" ] && [ -n "$handle" ]; then
   if [ -z "$ORCA" ]; then warn "tab not labelled: the Orca IDE CLI was not found"
-  elif [ "$dry" -eq 1 ]; then note "dry run: would label tab $handle \"$tab_label\""
-  elif "$ORCA" terminal rename --terminal "$handle" --title "$tab_label" --json >/dev/null; then tabbed=true
+  elif [ "$dry" -eq 1 ]; then note "dry run: would label tab $handle \"$shown_label\""
+  elif capped "$ORCA" terminal rename --terminal "$handle" --title "$shown_label" --json >/dev/null; then
+    tabbed=true; [ "$mark" -eq 0 ] || marked_tab=true
   elif [ -n "$tab_title" ]; then die "orca terminal rename failed" 1
   else warn "orca terminal rename failed; the session name is unaffected"
   fi
 fi
+if [ "$mark" -eq 1 ]; then
+  wt_id=$(pa 'w = json.loads(sys.argv[1])["worktree"]; print(w["id"] if w else "")' "$plan")
+  set_comment=$(pa 'w = json.loads(sys.argv[1])["worktree"]; print(w["set_comment"] if w else "")' "$plan")
+  set_status=$(pa 'w = json.loads(sys.argv[1])["worktree"]; print(w["set_status"] if w else "")' "$plan")
+  if [ -z "$wt_id" ]; then
+    note "the workspace is not marked: another agent session shares it, or its rows could not be read"
+  elif [ -z "$set_status" ] && [ -z "$set_comment" ]; then
+    note "the workspace is not marked: it has no status or comment that could be restored afterwards"
+  else
+    set --
+    [ -z "$set_status" ] || set -- --workspace-status "$set_status"
+    [ -z "$set_comment" ] || set -- "$@" --comment "$set_comment"
+    if [ "$dry" -eq 1 ]; then note "dry run: would set workspace $*"
+    elif capped "$ORCA" worktree set --worktree "id:$wt_id" "$@" --json >/dev/null; then
+      marked_worktree=true
+    else warn "orca worktree set failed or timed out; only the tab is marked"
+    fi
+  fi
+  if [ "$dry" -eq 0 ]; then
+    pa '
+plan = json.loads(sys.argv[2]); w = plan.get("worktree")
+s = {"tab_marked": sys.argv[3] == "true", "tab_label": plan.get("tab_restore") or "",
+     "worktree": {"id": w["id"], "comment": w["comment"], "status": w["status"]} if w and sys.argv[4] == "true" else None}
+tmp = sys.argv[1] + ".tmp"
+with open(tmp, "w") as fh: json.dump(s, fh)
+os.replace(tmp, sys.argv[1])' "$state_file" "$plan" "$marked_tab" "$marked_worktree"
+  fi
+fi
 
-# ── Close: a closer in its own session waits for Orca's idle signal, re-checks, then closes only this tab. ──────────
+# ── Watch, and close if asked: a watcher in its own session waits for the turn to end and the work to settle, removes
+#    the markers, then (close mode) closes only this tab. Naming alone starts one only to remove the markers later. ───
 log='' closer=''
-if [ "$close" -eq 1 ]; then
+wmode=''
+if [ "$close" -eq 1 ]; then wmode=close
+elif [ "$marked_tab" = true ] || [ "$marked_worktree" = true ]; then wmode=watch
+fi
+if [ -n "$wmode" ]; then
   log=${TMPDIR:-/tmp}/orca-closeout-$handle.log
   if [ "$dry" -eq 1 ]; then
-    note "dry run: would close tab of $handle once the agent is idle (not before ${min_wait}s)"
+    note "dry run: would start a $wmode watcher for tab $handle (not before ${min_wait}s, settle timeout ${settle}s)"
   else
     offset=$(pa 'print(os.path.getsize(sys.argv[1]))' "$transcript")
-    # Double fork + setsid (python, since macOS has no setsid command): the closer survives this shell, the tool
+    # Double fork + setsid (python, since macOS has no setsid command): the watcher survives this shell, the tool
     # call's process group, and an interrupt, and is reparented away from the agent.
     closer=$(pa '
 args = sys.argv[1:]
+# The watcher changes directory to / before it execs, so a relative script path ("./orca-closeout") would not be found
+# there and the watcher would vanish without a log. Resolve it here, in the caller directory.
+args[0] = os.path.abspath(args[0])
 r, w = os.pipe()
 if os.fork() == 0:
     os.close(r); os.setsid()
@@ -308,16 +733,26 @@ if os.fork() == 0:
     for n in (0, 1, 2): os.dup2(fd, n)
     os.execvp(args[0], args)
 os.close(w); print(os.read(r, 32).decode()); os.wait()' \
-      "$0" --_fire "${agent:-0}" "$min_wait" "$offset" "$transcript" "$handle" "$tab" "$ORCA" "$force")
-    note "this tab closes once the agent is idle (closer pid $closer, log $log). The session stays resumable."
+      "$0" --_fire "$wmode" "${agent:-0}" "$min_wait" "$settle" "$offset" "$transcript" "$handle" "$tab" "$sid" "$ORCA" "$force" "$state_file")
+    if [ "$wmode" = close ]; then
+      note "this tab closes once the turn has ended and nothing it started is still running (watcher pid $closer, log $log). The session stays resumable."
+    else
+      note "the running markers are removed once that work has finished (watcher pid $closer, log $log)."
+    fi
   fi
 fi
 
 pa '
+r = json.loads(sys.argv[11])
 print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
   "title_length": len(sys.argv[3]) if sys.argv[3] else None, "named": sys.argv[4] == "true",
   "terminal": sys.argv[5] or None, "tab_labelled": sys.argv[6] == "true",
-  "close_scheduled": bool(sys.argv[7]), "closer_pid": int(sys.argv[7]) if sys.argv[7] else None,
+  "running": r["running"], "running_count": len(r["running"]), "checks": r["checks"],
+  "marked": {"tab": sys.argv[12] == "true", "workspace": sys.argv[13] == "true"},
+  "close_scheduled": sys.argv[14] == "close" and bool(sys.argv[7]),
+  "close_deferred": sys.argv[14] == "close" and bool(sys.argv[7]) and len(r["running"]) > 0 and sys.argv[15] != "1",
+  "watcher_pid": int(sys.argv[7]) if sys.argv[7] else None, "closer_pid": int(sys.argv[7]) if sys.argv[7] else None,
   "close_log": sys.argv[8] or None, "dry_run": sys.argv[9] == "1",
   "resume": "cd %s && claude --resume %s" % (sys.argv[10], sys.argv[1])}))' \
-  "$sid" "$transcript" "$title" "$named" "$handle" "$tabbed" "$closer" "$log" "$dry" "$cwd"
+  "$sid" "$transcript" "$title" "$named" "$handle" "$tabbed" "$closer" "$log" "$dry" "$cwd" "$rj" \
+  "$marked_tab" "$marked_worktree" "$wmode" "$force"
