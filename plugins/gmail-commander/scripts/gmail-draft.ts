@@ -38,9 +38,12 @@
  * AUTHORED HTML (--html, 2026-10-12): for a designed email (styled quotation cards, section rules,
  * per-speaker accents) that the minimal converter above cannot express. The file becomes the
  * text/html part VERBATIM; --body still supplies the text/plain part. Before anything is uploaded the
- * html is refused (`findAuthoredHtmlProblems`) if it carries script or event handlers, loads anything
- * external, exceeds Gmail's ~102 KB clipping size, or is missing any word of the --body text in
- * order, so the two parts cannot say different things. After upload, the html part Gmail stored must
+ * html is refused (`findAuthoredHtmlProblems`) if it carries script, iframe/frame, object/embed/
+ * applet, form, link, base or <meta http-equiv>, an event-handler attribute, a javascript:/vbscript:/
+ * data: URL, loads anything external (src, srcset, background, url()), exceeds Gmail's ~102 KB
+ * clipping size, or is missing any word of the --body text in order (each link's href counts where
+ * the plain part writes `text (URL)`), so the two parts cannot say different things. The refusal
+ * runs before any token or network call. After upload, the html part Gmail stored must
  * equal the file (CRLF-normalised); the forced-line-break check is not applied, because a break in
  * authored html is the author's choice, not a converter's accident.
  *
@@ -63,20 +66,35 @@ interface Args {
   html?: string | undefined;
 }
 
-const get = (name: string): string | undefined => {
-  const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-};
+export const USAGE =
+  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--html <file.html>]";
 
-function parseArgs(): Args {
+/** Parse the command line. Throws with USAGE when a required flag is missing (main prints it and exits 1). */
+export function parseArgs(argv: string[] = process.argv): Args {
+  const get = (name: string): string | undefined => {
+    const i = argv.indexOf(`--${name}`);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
   const account = get("account") ?? process.env.GMAIL_DRAFT_ACCOUNT;
   const body = get("body");
   const from = get("from");
-  if (!account || !body || !from) {
-    console.error("usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--html <file.html>]");
-    process.exit(1);
-  }
+  if (!account || !body || !from) throw new Error(USAGE);
   return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), html: get("html") };
+}
+
+/**
+ * Read --body (and --html) and produce the two parts. Pure apart from reading the two files, and
+ * run BEFORE any token or network call, so a refused --html costs nothing and is testable offline.
+ * Throws `REFUSED --html …` naming every problem when the authored part may not be uploaded.
+ */
+export async function loadDraftParts(args: Pick<Args, "body" | "html">): Promise<{ plain: string; html: string; authoredHtml?: string }> {
+  const blocks = splitBodyIntoBlocks(await Bun.file(args.body).text());
+  const plain = blocksToPlainText(blocks);
+  if (args.html === undefined) return { plain, html: blocksToHtml(blocks) };
+  const authoredHtml = await Bun.file(args.html).text();
+  const problems = findAuthoredHtmlProblems(authoredHtml, plain);
+  if (problems.length > 0) throw new Error(`REFUSED --html ${args.html}:\n  ${problems.join("\n  ")}`);
+  return { plain, html: authoredHtml, authoredHtml };
 }
 
 const TOKENS_DIR = `${process.env.HOME}/.claude/tools/gmail-tokens`;
@@ -429,24 +447,100 @@ export const GMAIL_CLIP_SAFE_BYTES = 100 * 1024;
 const NAMED_ENTITIES: Record<string, string> = {
   amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", middot: "·",
   rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", mdash: "—", ndash: "–", hellip: "…",
+  // Not prose entities: listed so an attribute written `javascript&colon;` or `java&Tab;script:`
+  // decodes to the scheme a browser would see.
+  colon: ":", tab: "\t", newline: "\n",
 };
 
 /** A numeric reference outside Unicode would make String.fromCodePoint throw; keep it as written. */
 const codePointOrSelf = (cp: number, original: string): string =>
   Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : original;
 
-/** The text a reader sees: head/style/script dropped, tags become spaces, common entities decoded. */
-export function visibleTextOfHtml(html: string): string {
-  return html
-    .replace(/<(head|style|script|title)\b[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<[^>]+>/g, " ")
+/** Decode numeric references and the NAMED_ENTITIES; anything else is kept as written. */
+const decodeEntities = (s: string): string =>
+  s
     .replace(/&#x([0-9a-f]+);/gi, (m, h: string) => codePointOrSelf(Number.parseInt(h, 16), m))
     .replace(/&#(\d+);/g, (m, d: string) => codePointOrSelf(Number(d), m))
-    .replace(/&([a-z]+);/gi, (m, n: string) => NAMED_ENTITIES[n.toLowerCase()] ?? m)
+    .replace(/&([a-z]+);/gi, (m, n: string) => NAMED_ENTITIES[n.toLowerCase()] ?? m);
+
+/** The text a reader sees: head/style/script dropped, tags become spaces, common entities decoded. */
+export function visibleTextOfHtml(html: string): string {
+  return decodeEntities(
+    html
+      .replace(/<(head|style|script|title)\b[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<[^>]+>/g, " "),
+  )
     .replace(/\s+/g, " ")
     .trim();
 }
+
+const ANCHOR_WITH_HREF = /<a\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/a\s*>/gi;
+const HREF_ATTRIBUTE = /(?:^|[\s/])href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
+
+/**
+ * The html's visible text with every link written the way the text/plain part writes it:
+ * `<a href="URL">words</a>` reads as `words (URL)`. This is the text the --body words are aligned
+ * against. Since #24 the plain part renders `[words](URL)` as `words (URL)`, so the address is
+ * something the plain text SAYS; the html says it through href. Reading href in that position keeps
+ * the check honest in both directions: a named link passes, and an html part that drops the link or
+ * points it somewhere else is refused, which comparing against visible text with the URLs removed
+ * from the plain side could not catch. As in renderPlainInline, an anchor whose words already are
+ * its address (or `mailto:` + words) gets no `(URL)`, so `<a href="X">X</a>.` still reads `X.`.
+ */
+export function linkAwareTextOfHtml(html: string): string {
+  return visibleTextOfHtml(
+    html.replace(ANCHOR_WITH_HREF, (whole, attrs: string, inner: string) => {
+      const m = HREF_ATTRIBUTE.exec(attrs);
+      const href = m?.[1] ?? m?.[2] ?? m?.[3];
+      // The href stays entity-encoded; visibleTextOfHtml decodes it with the rest. A quoted href may
+      // hold a raw `<` or `>`, blanked here so the tag stripper cannot read it as a tag.
+      if (href === undefined) return whole;
+      // Same rule as renderPlainInline: when the words already are the address, no `(URL)` follows.
+      const words = visibleTextOfHtml(inner);
+      const url = decodeEntities(href).trim();
+      if (words === url || `mailto:${words}` === url) return inner;
+      return `${inner} (${href.replace(/[<>]/g, " ")})`;
+    }),
+  );
+}
+
+interface HtmlTag {
+  name: string;
+  attrs: Array<{ name: string; value: string }>;
+}
+
+/**
+ * Every start tag with its attributes, read the way a browser tokenises them: a quoted value may
+ * hold `>`, and `/` separates attributes (`<svg/onload=…>`). Text between tags is never read, so
+ * prose such as "set online=true" is not an attribute. Comments are skipped.
+ */
+function startTagsOf(html: string): HtmlTag[] {
+  const tags: HtmlTag[] = [];
+  const noComments = html.replace(/<!--[\s\S]*?-->/g, " ");
+  for (const t of noComments.matchAll(/<([a-z][^\s/>]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/gi)) {
+    const attrs: HtmlTag["attrs"] = [];
+    for (const a of (t[2] ?? "").matchAll(/([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g)) {
+      attrs.push({ name: (a[1] ?? "").toLowerCase(), value: a[2] ?? a[3] ?? a[4] ?? "" });
+    }
+    tags.push({ name: (t[1] ?? "").toLowerCase(), attrs });
+  }
+  return tags;
+}
+
+/** Attributes whose value a client may fetch or navigate to. */
+const URL_ATTRIBUTES = new Set([
+  "href", "src", "srcset", "action", "formaction", "background", "poster", "lowsrc", "dynsrc",
+  "xlink:href", "data", "codebase", "cite", "longdesc", "ping",
+]);
+/** Of those, the ones that LOAD something when the message is opened (href only navigates on a click). */
+const LOADING_ATTRIBUTES = new Set(["src", "background", "poster", "lowsrc", "dynsrc", "data", "codebase"]);
+/** Elements that run, embed or submit something; none belongs in an email body. */
+const FORBIDDEN_ELEMENTS = ["script", "iframe", "frame", "frameset", "object", "embed", "applet", "form", "link", "base"];
+
+/** The value as a browser resolves its scheme: entities decoded, ASCII whitespace and controls removed. */
+const schemeView = (value: string): string => decodeEntities(value).replace(/[\u0000-\u0020]/g, "").toLowerCase();
+const isExternal = (v: string): boolean => /^(?:https?:)?\/\//.test(v);
 
 // A word must hold a letter or digit, so list markers ("-", "•") and separators ("·") never count.
 const wordsOf = (s: string): string[] =>
@@ -468,25 +562,42 @@ const normaliseLineEndings = (h: string): string => h.replace(/\r\n/g, "\n").tri
  *
  * The word check is the one that matters: the text/plain part is what a plain-text client, a
  * forward and a search index see, so the two parts must carry the same words. Every word of the
- * plain text must appear in the html's visible text, in order. The html may ADD presentation-only
+ * plain text must appear in the html's visible text, in order, with each link's href read where
+ * the plain part writes its `(URL)` (see linkAwareTextOfHtml). The html may ADD presentation-only
  * text (a separator, a label); it may never drop or reorder a word the plain text has.
  */
 export function findAuthoredHtmlProblems(html: string, plain: string): string[] {
+  // A blocklist, so defence in depth only: Gmail strips most of this itself. Its job is to stop an
+  // author's mistake (a pasted tracking pixel, a leftover script) before it reaches a draft.
   const problems: string[] = [];
-  if (/<script\b/i.test(html)) problems.push("contains <script>");
-  if (/<[^>]*\son[a-z]+\s*=/i.test(html)) problems.push("contains an inline event handler (on…=)");
-  if (
-    /\b(?:src|background)\s*=\s*["']?\s*(?:https?:)?\/\//i.test(html) ||
-    /url\(\s*["']?\s*(?:https?:)?\/\//i.test(html) ||
-    /<link\b/i.test(html)
-  ) {
-    problems.push("loads an external resource (src/background/url()/<link>); mail clients block or track these");
+  const tags = startTagsOf(html);
+  const tagNames = new Set(tags.map((t) => t.name));
+  for (const el of FORBIDDEN_ELEMENTS) if (tagNames.has(el)) problems.push(`contains <${el}>`);
+  if (tags.some((t) => t.name === "meta" && t.attrs.some((a) => a.name === "http-equiv"))) {
+    problems.push("contains <meta http-equiv> (refresh/redirect)");
+  }
+  const handlers = [...new Set(tags.flatMap((t) => t.attrs.filter((a) => /^on[a-z]+$/.test(a.name)).map((a) => a.name)))];
+  if (handlers.length > 0) problems.push(`contains an inline event handler (on…=: ${handlers.join(", ")})`);
+
+  const urlAttrs = tags.flatMap((t) => t.attrs.filter((a) => URL_ATTRIBUTES.has(a.name)));
+  const scriptSchemes = urlAttrs.filter((a) => /^(?:javascript|vbscript|data):/.test(schemeView(a.value)));
+  if (scriptSchemes.length > 0 || /url\(\s*["']?\s*(?:javascript|vbscript|data):/i.test(html)) {
+    problems.push(
+      `uses a javascript:, vbscript: or data: URL (${[...new Set(scriptSchemes.map((a) => a.name))].join(", ") || "url()"})`,
+    );
+  }
+  const loadsExternal =
+    urlAttrs.some((a) => LOADING_ATTRIBUTES.has(a.name) && isExternal(schemeView(a.value))) ||
+    urlAttrs.some((a) => a.name === "srcset" && decodeEntities(a.value).split(",").some((c) => isExternal(c.trim().toLowerCase()))) ||
+    /url\(\s*["']?\s*(?:https?:)?\/\//i.test(html);
+  if (loadsExternal) {
+    problems.push("loads an external resource (src/srcset/background/url()); mail clients block or track these");
   }
   const bytes = Buffer.byteLength(html, "utf8");
   if (bytes > GMAIL_CLIP_SAFE_BYTES) problems.push(`is ${bytes} bytes; Gmail clips past ~102 KB (limit used: ${GMAIL_CLIP_SAFE_BYTES})`);
 
   const want = wordsOf(plain);
-  const have = wordsOf(visibleTextOfHtml(html));
+  const have = wordsOf(linkAwareTextOfHtml(html));
   let j = 0;
   const missing: string[] = [];
   for (const [i, w] of want.entries()) {
@@ -812,7 +923,16 @@ export function validateMimeBeforeUpload(mimeString: string, originalSubject: st
 if (import.meta.main) {
 
 
-  const args = parseArgs();
+  let args: Args;
+  let parts: Awaited<ReturnType<typeof loadDraftParts>>;
+  try {
+    args = parseArgs();
+    parts = await loadDraftParts(args);
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
+  const { plain, html, authoredHtml } = parts;
   const at = await accessToken(args.account);
 
   let threadId: string | undefined;
@@ -842,17 +962,6 @@ if (import.meta.main) {
     throw new Error("draft would have no recipient: pass --to (or --cc), or --reply-to a message whose sender can be inherited");
   }
 
-  const md = await Bun.file(args.body).text();
-  const blocks = splitBodyIntoBlocks(md);
-  const plain = blocksToPlainText(blocks);
-  const authoredHtml = args.html ? await Bun.file(args.html).text() : undefined;
-  if (authoredHtml !== undefined) {
-    const problems = findAuthoredHtmlProblems(authoredHtml, plain);
-    if (problems.length > 0) {
-      console.error(`REFUSED --html ${args.html}:\n  ${problems.join("\n  ")}`);
-      process.exit(1);
-    }
-  }
   const mime = buildMime(
     {
       From: args.from,
@@ -863,7 +972,7 @@ if (import.meta.main) {
       References: references ?? "",
     },
     plain,
-    authoredHtml ?? blocksToHtml(blocks),
+    html,
   );
 
   // ── LAYER 2: Validate the MIME before sending ──

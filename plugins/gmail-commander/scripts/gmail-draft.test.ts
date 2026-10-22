@@ -552,7 +552,6 @@ describe("named links [text](url) — the reader sees words, not a 270-character
 });
 
 describe("--html: an authored html part is refused unless it is safe and says what the plain part says", () => {
-  // Imported lazily so the suite above keeps its own import block untouched.
   const load = () => import("./gmail-draft.ts");
   const plain = "Hello Alex,\n\nThe report is ready. See the quote below.\n\n- Call, 1 Jan 10:00:00, me: \"It is done.\"\n";
   const good =
@@ -607,5 +606,155 @@ describe("--html: an authored html part is refused unless it is safe and says wh
   test("an out-of-range numeric reference is kept as written instead of crashing", async () => {
     const { visibleTextOfHtml } = await load();
     expect(visibleTextOfHtml("<p>a &#99999999; b &#x110000; c</p>")).toBe("a &#99999999; b &#x110000; c");
+  });
+});
+
+import { findAuthoredHtmlProblems, linkAwareTextOfHtml, loadDraftParts, parseArgs, USAGE } from "./gmail-draft.ts";
+
+describe("--html with named links: the href counts where the plain part writes (URL)", () => {
+  const url = "https://x.dev/a?p=1&q=2";
+  const body = `Please [create your account](${url}) today.`;
+  const plainOf = (md: string): string => blocksToPlainText(splitBodyIntoBlocks(md));
+  const anchor = '<a href="https://x.dev/a?p=1&amp;q=2">create your account</a>';
+
+  test("the plain part really does carry the URL (the premise of this suite)", () => {
+    expect(plainOf(body)).toContain(`create your account (${url})`);
+  });
+
+  test("an html part with the named link as an anchor passes", () => {
+    expect(findAuthoredHtmlProblems(`<p>Please ${anchor} today.</p>`, plainOf(body))).toEqual([]);
+  });
+
+  test("the anchor reads as `words (URL)`, entities in href decoded", () => {
+    expect(linkAwareTextOfHtml(`<p>Please ${anchor} today.</p>`)).toBe(`Please create your account (${url}) today.`);
+  });
+
+  test("an html part that genuinely drops a word is still refused, and names the word", () => {
+    const p = findAuthoredHtmlProblems(`<p>Please ${anchor.replace("your ", "")} today.</p>`, plainOf(body));
+    expect(p.length).toBe(1);
+    expect(p[0]).toContain('"your"');
+  });
+
+  test("an html part that drops the link, or points it elsewhere, is refused", () => {
+    expect(findAuthoredHtmlProblems("<p>Please create your account today.</p>", plainOf(body)).join()).toContain("missing");
+    expect(findAuthoredHtmlProblems(`<p>Please ${anchor.replace("x.dev", "evil.example")} today.</p>`, plainOf(body)).join()).toContain("missing");
+  });
+
+  test("a bare URL in the body may be an anchor whose words are the URL, sentence punctuation intact", () => {
+    expect(linkAwareTextOfHtml('<p>See <a href="https://b.dev/2">https://b.dev/2</a>.</p>')).toBe("See https://b.dev/2.");
+    expect(findAuthoredHtmlProblems('<p>See <a href="https://b.dev/2">https://b.dev/2</a>.</p>', plainOf("See https://b.dev/2."))).toEqual([]);
+  });
+
+  test("mailto: and single-quoted hrefs pass", () => {
+    const md = "Write to [help@example.com](mailto:help@example.com) or [the desk](https://d.dev/x).";
+    const html = "<p>Write to <a href=\"mailto:help@example.com\">help@example.com</a> or <a href='https://d.dev/x'><b>the desk</b></a>.</p>";
+    expect(findAuthoredHtmlProblems(html, plainOf(md))).toEqual([]);
+  });
+});
+
+describe("--html blocklist (defence in depth; Gmail strips most of this anyway)", () => {
+  const plain = "Hello there.";
+  const wrap = (inner: string): string => `<p>Hello there.</p>${inner}`;
+  const problemsOf = (inner: string): string => findAuthoredHtmlProblems(wrap(inner), plain).join(" | ");
+
+  test("the bare wrapper is clean (control)", () => {
+    expect(findAuthoredHtmlProblems(wrap(""), plain)).toEqual([]);
+  });
+
+  test("javascript: in href is refused, however it is spelled", () => {
+    for (const href of ["javascript:alert(1)", " JavaScript:alert(1)", "java&#x09;script:alert(1)", "javascript&colon;alert(1)", "&#106;avascript:x"]) {
+      expect(problemsOf(`<a href="${href}">x</a>`)).toContain("javascript:");
+    }
+  });
+
+  test("vbscript: and data: in href or src are refused", () => {
+    expect(problemsOf('<a href="vbscript:msgbox(1)">x</a>')).toContain("vbscript:");
+    expect(problemsOf('<a href="data:text/html,hi">x</a>')).toContain("data:");
+    expect(problemsOf('<img src="data:image/png;base64,AAAA">')).toContain("data:");
+    expect(problemsOf("<p style=\"background:url('javascript:x')\"></p>")).toContain("javascript:");
+  });
+
+  test("iframe, object, embed and form are each refused", () => {
+    expect(problemsOf('<iframe src="cid:x"></iframe>')).toContain("<iframe>");
+    expect(problemsOf('<object data="cid:x"></object>')).toContain("<object>");
+    expect(problemsOf('<embed src="cid:x">')).toContain("<embed>");
+    expect(problemsOf('<form action="cid:x"><input></form>')).toContain("<form>");
+  });
+
+  test("<meta http-equiv> is refused; <meta charset> is not", () => {
+    expect(problemsOf('<meta http-equiv="refresh" content="0;url=https://evil.example">')).toContain("http-equiv");
+    expect(findAuthoredHtmlProblems(`<meta charset="utf-8">${wrap("")}`, plain)).toEqual([]);
+  });
+
+  test("srcset pointing outside is refused; a cid: srcset is not", () => {
+    expect(problemsOf('<img src="cid:a" srcset="cid:a 1x, https://t.example/p.gif 2x">')).toContain("external resource");
+    expect(problemsOf('<img src="cid:a" srcset="//t.example/p.gif 1x">')).toContain("external resource");
+    expect(findAuthoredHtmlProblems(wrap('<img src="cid:a" srcset="cid:a 1x, cid:b 2x">'), plain)).toEqual([]);
+  });
+
+  test("an ordinary https link is allowed: href navigates on a click, it loads nothing", () => {
+    expect(findAuthoredHtmlProblems(wrap('<a href="https://x.dev/">x</a>'), plain)).toEqual([]);
+  });
+
+  test("event handlers are found in attribute position, including after a slash", () => {
+    expect(problemsOf("<svg/onload=x()></svg>")).toContain("onload");
+    expect(problemsOf('<div title="a>b" onmouseover="x()">y</div>')).toContain("onmouseover");
+  });
+
+  test("'online=' in prose or inside an attribute value is not an event handler", () => {
+    const md = "Set online=true, then go online= now.";
+    expect(findAuthoredHtmlProblems("<p>Set online=true, then go online= now.</p>", md)).toEqual([]);
+    expect(findAuthoredHtmlProblems(wrap('<img src="cid:x" alt="go online=now">'), plain)).toEqual([]);
+  });
+});
+
+describe("CLI path: --html <file> through argument parsing to the assembled MIME (no network)", () => {
+  const { mkdtempSync, writeFileSync } = require("node:fs") as typeof import("node:fs");
+  const { tmpdir } = require("node:os") as typeof import("node:os");
+  const { join } = require("node:path") as typeof import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "gmail-draft-cli-"));
+  const bodyPath = join(dir, "body.md");
+  const htmlPath = join(dir, "body.html");
+  const badPath = join(dir, "bad.html");
+  writeFileSync(bodyPath, "Hello Alex,\n\nPlease [open the form](https://x.dev/f?a=1&b=2) by Friday.\n");
+  const authored =
+    '<table role="presentation"><tr><td><p>Hello Alex,</p><p>Please <a href="https://x.dev/f?a=1&amp;b=2">open the form</a> by Friday.</p></td></tr></table>';
+  writeFileSync(htmlPath, authored);
+  writeFileSync(badPath, authored.replace("by Friday", "Friday").replace("<td>", '<td onclick="x()">'));
+  const argv = (html: string): string[] => [
+    "bun", "gmail-draft.ts", "--account", "test", "--body", bodyPath, "--from", "A <a@b.co>", "--to", "c@d.co", "--subject", "S", "--html", html,
+  ];
+
+  test("parseArgs reads --html; a missing required flag throws the usage line", () => {
+    expect(parseArgs(argv(htmlPath)).html).toBe(htmlPath);
+    expect(parseArgs(["bun", "gmail-draft.ts", "--account", "t", "--body", bodyPath, "--from", "x"]).html).toBeUndefined();
+    expect(() => parseArgs(["bun", "gmail-draft.ts", "--body", bodyPath])).toThrow(USAGE);
+  });
+
+  test("the html file becomes the text/html part verbatim; --body still supplies text/plain", async () => {
+    const args = parseArgs(argv(htmlPath));
+    const parts = await loadDraftParts(args);
+    expect(parts.authoredHtml).toBe(authored);
+    const mime = buildMime({ From: args.from, To: args.to ?? "", Subject: "S" }, parts.plain, parts.html);
+    validateMimeBeforeUpload(mime, "S");
+    expect(decodePart(mime, "text/html")).toBe(authored);
+    expect(decodePart(mime, "text/plain")).toContain("open the form (https://x.dev/f?a=1&b=2) by Friday.");
+  });
+
+  test("a refused --html names every problem", async () => {
+    await expect(loadDraftParts(parseArgs(argv(badPath)))).rejects.toThrow(/REFUSED --html[\s\S]*event handler[\s\S]*"by"/);
+  });
+
+  test("the script refuses a bad --html before any token read (HOME is an empty dir, so no network is possible)", () => {
+    const run = Bun.spawnSync(["bun", join(import.meta.dir, "gmail-draft.ts"), ...argv(badPath).slice(2)], {
+      env: { ...process.env, HOME: dir, GMAIL_DRAFT_ACCOUNT: "" },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const err = run.stderr.toString();
+    expect(run.exitCode).toBe(1);
+    expect(err).toContain(`REFUSED --html ${badPath}`);
+    expect(err).not.toMatch(/ENOENT|refresh_token|oauth2/);
+    expect(run.stdout.toString()).toBe("");
   });
 });
