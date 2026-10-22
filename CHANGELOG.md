@@ -1,3 +1,31 @@
+## [34.1.1](https://github.com/terrylica/cc-skills/compare/v34.1.0...v34.1.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **floating-clock:** stop the output-level tap off the IOProc's queue ([3b15a70](https://github.com/terrylica/cc-skills/commit/3b15a7050f07ea02fd3969f20244e2b42472a555))
+
+The output-level tap registered its IOProc block on a serial queue and then ran AudioDeviceStop/AudioDeviceDestroyIOProcID on that same queue. The HAL IO thread dispatches an IOProc block synchronously and holds the IOContext mutex while it waits; AudioDeviceStop needs that mutex. When a stop landed during an IO cycle the device deadlocked for the life of the process, and the first later HAL query on the private aggregate (the IN/OUT device menu, on the main thread) froze the whole app.
+
+The IOProc now runs on a dedicated output-tap-io queue; start, stop and teardown run on a separate output-tap-control queue. FCDevicesForScope also drops virtual/aggregate devices before querying stream configuration, so the menu never touches the tap's own aggregate.
+
+* **itp-hooks:** gfm-unwrap tracks code fences inside block quotes ([3bfc0fb](https://github.com/terrylica/cc-skills/commit/3bfc0fb5393936edc19767228248cce627684e15)), closes [#1](https://github.com/terrylica/cc-skills/issues/1) [#1](https://github.com/terrylica/cc-skills/issues/1)
+* **itp-hooks:** review-round gate classifies via the shell walker ([0e70669](https://github.com/terrylica/cc-skills/commit/0e70669370b02fab65833e8c19482a73a5a1a733)), closes [#21](https://github.com/terrylica/cc-skills/issues/21)
+
+The review-round gate found the commands it meters (gh pr ready/create, git push, inline --body) with command-position regexes over the raw command text, so a quoted string that merely mentioned a gated command counted as running it: a grep pattern containing "|gh pr create", a jq --arg holding "cd $d && gh pr create ...", a quoted string passed to a probe, a commit message saying "&& git push". Each was denied for lack of a self-review record and needed the ask-level override.
+
+classify() now decides on the invocations reported by shell-command-invocation-walker.ts, the static lexer the kill guards already share. Quoted arguments, comments and heredocs fed to cat are never visited; assignments, sudo/env/nice/timeout, $(...), bash -c, ssh and heredocs fed to a shell are looked through. Shell reserved words (if/then/do/!/{) are looked past, so `if ...; then gh pr ready; fi` stays gated.
+
+- --draft and --undo are read as flag words of the gated invocation only; the value of a value-taking flag is skipped, so `--title --draft` is no longer an exemption.
+- The inline --body check measures the body word's value, or its source when that is longer or holds the newline (`--body "$(cat <<'EOF' ...)"`).
+- git -C dir / -c k=v / --no-pager push and gh by full path or as GH are still recognised.
+- Fail closed: the lexer now reports `incomplete` (unclosed quote, $(, backtick or heredoc) and the walker passes it, plus recursion-limit exhaustion, to an optional onIncomplete callback. On any of those, or a shell started behind a reserved word, classify() falls back to the previous regex classifier unchanged (classifyByCommandText).
+- Tests: 24 new cases in review-round-artifact.test.ts. Restoring raw-text matching fails 12 of them, including all 7 mention rows; trusting an incomplete walk fails 5 (the 4 new unlexable rows plus the existing unterminated-heredoc row). All existing classify cases keep their kinds.
+
+* **tasks:** hook regression suite fails fast below bash 4.4 ([7a8f1d7](https://github.com/terrylica/cc-skills/commit/7a8f1d740abf2be4512cb60464732c70fff1ea20))
+
+On macOS /bin/bash 3.2 the suite aborted while parsing the discovery loop's process substitution (an apostrophe in a comment inside &lt;( ... ) reads as an open quote before bash 4.0), and past that an empty "${arr[@]}" is unbound under set -u before bash 4.4. Both surfaced as "SUITE DID NOT RUN", which reads like a broken test corpus. The suite now checks BASH_VERSINFO first and exits 2 naming the version it needs, the same convention as tasks/hook-lint/run. The GNU xargs half of the issue was fixed in 3f453da81.
+
 # [34.1.0](https://github.com/terrylica/cc-skills/compare/v34.0.0...v34.1.0) (2026-10-20)
 
 
