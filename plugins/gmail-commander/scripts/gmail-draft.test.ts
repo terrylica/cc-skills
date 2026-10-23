@@ -10,6 +10,7 @@
 import { test, expect, describe } from "bun:test";
 import { escapeAndLinkify, renderInlineEmphasis, stripInlineEmphasis } from "./gmail-draft.ts";
 import { encodeHeaderValueAsRfc2047EncodedWordIfNonAscii } from "./gmail-draft.ts";
+import { QUOTE_BLOCK_STYLE } from "./gmail-draft.ts";
 
 /** Decode an RFC 2047 base64 encoded-word sequence back to the original string. */
 function decodeRfc2047EncodedWordSequence(encoded: string): string {
@@ -761,5 +762,40 @@ describe("CLI path: --html <file> through argument parsing to the assembled MIME
     expect(err).toContain(`REFUSED --html ${badPath}`);
     expect(err).not.toMatch(/ENOENT|refresh_token|oauth2/);
     expect(run.stdout.toString()).toBe("");
+  });
+});
+
+describe("verbatim quotations (> lines) render in their own colour", () => {
+  const body = "Thanks for this.\n\n> the first quoted sentence\n> continues on a second line\n\nMy answer.\n\nA rule: 2 > 1 stays prose.";
+  test("a block whose every line starts with > is one quote block, marker dropped and lines joined", () => {
+    expect(splitBodyIntoBlocks(body)).toEqual([
+      { kind: "prose", text: "Thanks for this." },
+      { kind: "quote", text: "the first quoted sentence continues on a second line" },
+      { kind: "prose", text: "My answer." },
+      { kind: "prose", text: "A rule: 2 > 1 stays prose." },
+    ]);
+  });
+  test("a block with only some > lines stays prose; indent up to three spaces and no space after > both count", () => {
+    expect(splitBodyIntoBlocks("> quoted\nnot quoted")[0]?.kind).toBe("prose");
+    expect(splitBodyIntoBlocks("   >tight")).toEqual([{ kind: "quote", text: "tight" }]);
+    expect(splitBodyIntoBlocks("    > four spaces")[0]?.kind).toBe("prose");
+    expect(splitBodyIntoBlocks(">  \n>")).toEqual([]);
+  });
+  test("text/plain keeps '> '; text/html is a styled blockquote with links and emphasis rendered", () => {
+    const blocks = splitBodyIntoBlocks("> see **this** at <https://example.com/a>");
+    expect(blocksToPlainText(blocks)).toBe("> see this at https://example.com/a\n");
+    const html = blocksToHtml(blocks);
+    expect(html).toContain(`<blockquote style="${QUOTE_BLOCK_STYLE}">see <b>this</b> at <a href="https://example.com/a">https://example.com/a</a></blockquote>`);
+    expect(QUOTE_BLOCK_STYLE).toContain("border-left:3px solid #8e44ad");
+    expect(QUOTE_BLOCK_STYLE).toContain("color:#6c3483");
+    expect(findForcedLineBreaksInRenderedHtml(html)).toEqual([]);
+  });
+  test("a newline smuggled into a blockquote is caught like one in a paragraph", () => {
+    expect(findForcedLineBreaksInRenderedHtml(`<blockquote style="x">a\nb</blockquote>`)).toHaveLength(1);
+  });
+  test("the assembled MIME passes validation with a quotation in it", () => {
+    const blocks = splitBodyIntoBlocks(body);
+    const mime = buildMime({ From: "a@example.com", To: "b@example.com", Subject: "Re: x" }, blocksToPlainText(blocks), blocksToHtml(blocks));
+    expect(() => validateMimeBeforeUpload(mime, "Re: x")).not.toThrow();
   });
 });

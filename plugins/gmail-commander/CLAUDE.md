@@ -114,6 +114,8 @@ In the deployment these are injected from its own secret store at deploy time. N
 
 **Write emphasis in Markdown; it arrives as rich text.** In the body file, `**bold**`, `*italic*` or `_italic_`, and `` `code` `` become real bold, italic and code in the HTML part, and the plain-text part drops the markers. Identifiers stay literal (`snake_case_name`, `2*3*4`). Never hand-write HTML or leave asterisks for the recipient to read.
 
+**Quote people verbatim in `> ` blocks; they arrive in their own colour.** Every quotation in a draft is the other person's exact words, one `> ` block per passage, with the reply outside it. The HTML part renders each block as a coloured, left-barred `<blockquote>` (`QUOTE_BLOCK_STYLE`); the plain-text part keeps `> `. The convention and its edge cases are in [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "Quoting someone in a draft".
+
 ```bash
 bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \
   --account <tokenbase>            # token base name in ~/.claude/tools/gmail-tokens/

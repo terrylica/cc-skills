@@ -284,6 +284,18 @@ Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`, `t
 
 **`draft-update` returns a NEW `draftId`** (it deletes and recreates). Any ID you noted earlier is dead the moment you update — re-list before a second update, and never cache a draft ID across edits.
 
+## Quoting someone in a draft: verbatim, and in its own colour
+
+**Convention for every draft:** whenever a draft quotes someone (the person being answered, an earlier message, a document), quote their words **verbatim**, each passage in its own `> ` block, and put your reply outside the block. Never paraphrase inside a quotation, never correct their spelling, and never merge two of their passages into one. Use this whenever a reply answers several points: one quoted passage, then the answer to it.
+
+```markdown
+> the exact words being answered, copied as written
+
+The answer to that passage.
+```
+
+The canonical builder (`scripts/gmail-draft.ts`, which every draft goes through) renders each `> ` block as a `<blockquote>` in its own colour with a left bar in the HTML part, and keeps the `> ` prefix in the plain-text part, so the reader sees at a glance whose words are whose. A block is a quotation only when **every** line in it starts with `>` (up to three spaces of indent); a stray `>` in prose stays prose. Do not hand-style quotes with HTML: the builder does it.
+
 ## 🔴 ATTRIBUTION DOCTRINE — run this before you ever write "they said X"
 
 **Reading an email and knowing who wrote which line are two different problems.** The second one is harder, its answer is not in the text you get back by default, and when it goes wrong it does not throw — it produces a fluent, confident summary in which your own sentences are attributed to your correspondent, or half of what they wrote is silently missing. Every failure recorded in this section was of that shape: a wrong query returning an empty result, read as an empty world.

@@ -132,10 +132,27 @@ async function api(at: string, path: string, method = "GET", body?: unknown): Pr
  */
 const LIST_ITEM_MARKER_PATTERN = /^\s{0,3}(?:[-*+\u2022]|\d{1,2}[.)]|[a-z]{1,3}[.)])\s+/i;
 
-/** One rendered block: reflowed prose, or a list whose items must each keep their own line. */
+/** One rendered block: reflowed prose, a verbatim quotation, or a list whose items must each keep their own line. */
 export type BodyBlock =
   | { kind: "prose"; text: string }
+  | { kind: "quote"; text: string }
   | { kind: "list"; leadIn: string | null; items: string[] };
+
+/**
+ * A quotation line: Markdown's `> ` marker (up to three spaces of indent; the space after `>` is optional).
+ *
+ * THE CONVENTION. When a draft quotes someone (their own words, from a message being answered or any
+ * other source), it quotes them VERBATIM, one `> ` block per passage, never paraphrased inside the
+ * marker. The text/plain part keeps the `> ` prefix (the plain-text mail convention); the text/html
+ * part renders the passage as a <blockquote> in its own colour with a left bar, so the reader can tell
+ * at a glance whose words are whose. A block counts as a quotation only when EVERY line of it carries
+ * the marker; a block that merely contains a `>` (an arrow, a comparison) stays prose.
+ */
+const QUOTE_LINE_PATTERN = /^\s{0,3}>\s?/;
+
+/** Inline because Gmail drops <style> blocks; muted purple, italic, with a left bar. */
+export const QUOTE_BLOCK_STYLE =
+  "margin:0 0 12px 0;padding:2px 0 2px 12px;border-left:3px solid #8e44ad;color:#6c3483;font-style:italic";
 
 /**
  * Split the body into blocks, unwrapping prose but PRESERVING list structure.
@@ -170,6 +187,12 @@ export function splitBodyIntoBlocks(md: string): BodyBlock[] {
     const lines = rawBlock.split("\n").filter((l) => l.trim().length > 0);
     if (lines.length === 0) continue;
 
+    if (lines.every((l) => QUOTE_LINE_PATTERN.test(l))) {
+      const text = lines.map((l) => l.replace(QUOTE_LINE_PATTERN, "")).join(" ").replaceAll(/\s+/g, " ").trim();
+      if (text) blocks.push({ kind: "quote", text });
+      continue;
+    }
+
     const firstMarkerIndex = lines.findIndex((l) => LIST_ITEM_MARKER_PATTERN.test(l));
     if (firstMarkerIndex === -1) {
       const text = lines.join(" ").replaceAll(/\s+/g, " ").trim();
@@ -197,8 +220,11 @@ export function splitBodyIntoBlocks(md: string): BodyBlock[] {
 /** Render blocks as the text/plain part: prose reflowed, list items one per line. */
 export function blocksToPlainText(blocks: BodyBlock[]): string {
   return `${blocks
-    .map((b) => (b.kind === "prose" ? b.text : [b.leadIn, ...b.items].filter(Boolean).join("\n")))
-    .map(renderPlainInline)
+    .map((b) =>
+      b.kind === "quote"
+        ? `> ${renderPlainInline(b.text)}`
+        : renderPlainInline(b.kind === "prose" ? b.text : [b.leadIn, ...b.items].filter(Boolean).join("\n")),
+    )
     .join("\n\n")}\n`;
 }
 
@@ -385,6 +411,7 @@ export function blocksToHtml(blocks: BodyBlock[]): string {
   const body = blocks
     .map((b) => {
       if (b.kind === "prose") return `<p>${render(b.text)}</p>`;
+      if (b.kind === "quote") return `<blockquote style="${QUOTE_BLOCK_STYLE}">${render(b.text)}</blockquote>`;
       const lead = b.leadIn ? `<p>${render(b.leadIn)}</p>\n` : "";
       const items = b.items
         .map((item) => `<li>${render(item.replace(/^\s{0,3}[-*+\u2022]\s+/, ""))}</li>`)
@@ -423,8 +450,8 @@ export function findForcedLineBreaksInRenderedHtml(html: string): string[] {
   if (/<br\b/i.test(html)) {
     violations.push(`explicit <br> in rendered HTML — this builder never emits one: ${snippetForViolation(/.{0,40}<br\b.{0,40}/is.exec(html)?.[0] ?? "")}`);
   }
-  for (const tag of ["p", "li"] as const) {
-    const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "gi");
+  for (const tag of ["p", "li", "blockquote"] as const) {
+    const re = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, "gi");
     for (const m of html.matchAll(re)) {
       if (m[1]?.includes("\n")) {
         violations.push(`newline inside <${tag}> — source hard-wrapping survived into the render: ${snippetForViolation(m[1])}`);
