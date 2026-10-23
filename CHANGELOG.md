@@ -1,3 +1,22 @@
+# [34.4.0](https://github.com/terrylica/cc-skills/compare/v34.3.1...v34.4.0) (2026-10-23)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** mcp-drive closes the tab each ext-mode run opens ([048f0aa](https://github.com/terrylica/cc-skills/commit/048f0aafc2cfc17059a98a05202f3f23046c03f5))
+
+Every ext-mode run attaches to a fresh tab and left it open, so a long agent session piled tabs into the operator's Chrome (measured 2026-10-22: 8.7 GB across 70 renderers). The run now closes its own page at the end (browser_close only detaches in extension mode), bounded by a 5 s race. MCP_DRIVE_KEEP_TAB=1 keeps it, for example while a download it started is still writing.
+
+
+
+### Features
+
+* **gmail-commander:** verbatim quotations render in their own colour ([6bddca5](https://github.com/terrylica/cc-skills/commit/6bddca509cccb077dad534c32a6ba612e90780d9))
+
+A block whose every line starts with '> ' is a quotation: the HTML part renders it as a &lt;blockquote> with its own colour and a left bar (QUOTE_BLOCK_STYLE, inline because Gmail drops &lt;style>), and the plain-text part keeps the '> ' prefix. A stray '>' in prose stays prose. The forced-line-break check now covers blockquotes and tags with attributes.
+
+The convention is written into the gmail-access skill: whenever a draft quotes someone, quote their exact words, one '> ' block per passage, with the reply outside it.
+
 ## [34.3.1](https://github.com/terrylica/cc-skills/compare/v34.3.0...v34.3.1) (2026-10-23)
 
 # [34.3.0](https://github.com/terrylica/cc-skills/compare/v34.2.2...v34.3.0) (2026-10-22)
