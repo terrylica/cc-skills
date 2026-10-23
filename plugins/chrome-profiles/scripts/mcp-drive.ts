@@ -22,6 +22,8 @@
 // be driven inside one step (browser_run_code_unsafe with Playwright locators). That sandbox has no
 // `process` and no dynamic import, so it cannot spawn a process: a secret leaves the page only by a
 // Blob download (then `vault set --stdin` and delete the file).
+// At the end of an ext-mode run its tab is closed (every run's tab used to stay open and pile up in the
+// operator's Chrome). Set MCP_DRIVE_KEEP_TAB=1 to keep it, e.g. while a download it started is still writing.
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -119,6 +121,21 @@ try {
 } catch (e) {
   console.error(String(e));
   code = 1;
+}
+// Ext mode opens a FRESH tab per run. Left open, every run adds a renderer to the operator's Chrome,
+// and a long session of agent runs accumulated dozens of tabs and gigabytes (measured 2026-10-22:
+// 8.7 GB across 70 renderers). Close this run's tab unless the caller asks to keep it.
+if (mode === "ext" && process.env.MCP_DRIVE_KEEP_TAB !== "1") {
+  try {
+    await Promise.race([
+      // browser_close only detaches in extension mode (measured: the tab stayed open), so close the
+      // page itself. The connection drops with it, which is expected at this point.
+      rpc("tools/call", { name: "browser_run_code_unsafe", arguments: { code: "async (page) => { await page.close(); }" } }),
+      new Promise((r) => setTimeout(r, 5000)),
+    ]);
+  } catch {
+    console.error("mcp-drive: could not close this run's tab; close it by hand");
+  }
 }
 child.kill();
 rmSync(workDir, { recursive: true, force: true });
