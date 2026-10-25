@@ -1,11 +1,12 @@
 # orca-tools Plugin
 
-> Claude Code under the Orca IDE: worktree spin-offs with one agent terminal, locally and on paired runtimes; session closeout with a recall name, a handoff, and an optional close of the session's own tab.
+> Claude Code under the Orca IDE: the floating terminal as the default terminal for anything needing a person or a TTY; worktree spin-offs with one agent terminal, locally and on paired runtimes; session closeout with a recall name, a handoff, and an optional close of the session's own tab.
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [git-town-workflow CLAUDE.md](../git-town-workflow/CLAUDE.md)
 
 ## Skills
 
+- [floating-terminal](./skills/floating-terminal/SKILL.md) — **the default terminal for agents under Orca** (macOS, Linux): `orca-float run -- CMD` runs a command needing Touch ID, a TTY or a person in Orca's floating terminal and returns its real exit code. Never open iTerm/Terminal/gnome-terminal for this
 - [worktree-spinoff](./skills/worktree-spinoff/SKILL.md)
 - [session-closeout](./skills/session-closeout/SKILL.md)
 
@@ -13,7 +14,8 @@
 
 - **One agent tab.** A spin-off is created with `orca worktree create --agent <id> --prompt …`. Never add the agent afterwards with `terminal create`: that leaves Orca's fallback shell as a second tab.
 - **Every `orca` call goes through `o()`.** It carries `--environment` / `--pairing-code`, so the same script targets this machine or a paired runtime. Keep new calls inside it.
-- **Find the IDE's CLI with `find_orca`.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so never call a bare `orca`.
+- **Find the IDE's CLI with `find_orca`.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so never call a bare `orca`. The shared copy is `scripts/lib/orca-cli.sh` (used by `orca-float`); `orca-spinoff` and `orca-closeout` still carry their own copies, to be moved onto it.
+- **Never trust `orca terminal wait` for an exit code.** It reported 0 for a command that exited 7. `orca-float` has the command write its own status file.
 - **No project or personal identity.** Nothing in the script or the skill names a repository, host, account or person. Machine-specific values (keys, aliases, paths) stay in the user's own configuration.
 - **Portable shell.** bash 3.2 (stock macOS) through current bash, BSD and GNU userland alike. No `realpath`, `readlink -f`, `sed -i` or `${var,,}`; Python handles paths and JSON. Shell values reach Python only as argv.
 - **Clean failure.** A failed run leaves no staging branch, local or remote, and no temporary worktree; the EXIT trap owns that.
@@ -62,3 +64,12 @@ Measured, with the source read: Claude Code's title normaliser cuts at 200 code 
 `orca terminal rename --help` (1.4.235): "Omit --title or pass an empty string to reset to the auto-generated title." The restore omits `--title`, the documented form that does not depend on how an empty value is parsed. `orca worktree set --help` lists no way to clear `--workspace-status` (only the link flags take `null`), so a workspace without a status is never given one.
 
 Found live, fixed: the watcher was started by a relative `$0` after changing directory to `/`, so a close requested as `./orca-closeout` silently never happened (also in the earlier closer). Orca's CLI ignores an empty `--comment` (`getOptionalStringFlag`, `src/cli/flags.ts`), so a workspace comment cannot be cleared: the guard only ever prefixes an existing one.
+
+### floating-terminal (2026-10-24)
+
+| Platform | What ran |
+| --- | --- |
+| macOS (Orca 1.4.2xx), `/bin/bash` 3.2 | Live: `doctor` (probe landed in `global-floating-terminal`, closed); a command exiting 7 returned `exit_code 7` with the tab kept; a quoted argument (`a b`, a newline, `$d`) arrived intact and the tab closed on success; a password-manager CLI sign-in that fails from the agent's own process succeeded in the floating terminal. |
+| Bun tests under `/bin/bash` 3.2 (stub Orca CLI) | 12 tests: real exit code, close by handle only on success, `--keep`, the floating worktree, timeout, dry run, `doctor` positive and negative, no Orca (exit 3), usage errors. |
+
+Linux has not been run live yet: the launcher's util-linux `script` branch is covered only by reading.

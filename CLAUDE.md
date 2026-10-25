@@ -97,6 +97,10 @@ cc-skills/
 
 `CLAUDE_PLUGIN_ROOT` is substituted only inside plugin manifests and hook/MCP subprocess environments; in a SKILL.md it is an empty string. A skill resolves its own files with `"$(cc-plugin-root <plugin>)/…"`. Enforced by **skill-plugin-root-guard** (escape `SKILL-PLUGIN-ROOT-OK`) → [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md)
 
+## Agents under the Orca IDE use its floating terminal for anything needing a person or a TTY
+
+On macOS and Linux, a command that needs biometric unlock, a password manager's app integration, `sudo`, a passkey or any prompt runs through `orca-float run -- CMD` (orca-tools [floating-terminal](./plugins/orca-tools/skills/floating-terminal/SKILL.md)), which returns its real exit code as JSON. Skills never open iTerm, Terminal.app, gnome-terminal or an `osascript`/`open`-launched window for this; without Orca (`orca-float doctor` exits 3), ask the person to run the command.
+
 ## Common Plugin Patterns (reuse registry)
 
 Recurring architectural patterns across the plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
@@ -107,6 +111,7 @@ Recurring architectural patterns across the plugins. This is a **pointer registr
 | **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                           |
 | **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                             |
 | **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md) |
+| **Human-in-the-loop command** | A command needing a person or a TTY runs in Orca's floating terminal via `orca-float run`, never a new terminal window — rule above | [orca-tools floating-terminal](./plugins/orca-tools/skills/floating-terminal/SKILL.md) |
 
 > These are **conventions to adopt, not code to extract** — per-plugin isolation (own `package.json`/`tsconfig.json`, own installer) is intentional. Only `diff`-proven byte-identical logic is real duplication.
 

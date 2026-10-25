@@ -985,7 +985,7 @@
     },
     {
       "name": "orca-tools",
-      "description": "Claude Code under the Orca IDE: spin a task off into its own Orca worktree with one agent terminal and a committed handoff, on this machine or a paired runtime; close out a session with a recall name, a handoff and an optional close of its own tab",
+      "description": "Claude Code under the Orca IDE: Orca's floating terminal as the default terminal for commands that need a person or a TTY, with the real exit code back; spin a task off into its own Orca worktree with one agent terminal and a committed handoff, on this machine or a paired runtime; close out a session with a recall name, a handoff and an optional close of its own tab",
       "version": "34.4.0",
       "source": "./plugins/orca-tools",
       "category": "devops",
@@ -1003,7 +1003,11 @@
         "multi-device",
         "session-closeout",
         "rename-session",
-        "agent-session-history"
+        "agent-session-history",
+        "floating-terminal",
+        "tty",
+        "touch-id",
+        "human-in-the-loop"
       ],
       "strict": false
     }
