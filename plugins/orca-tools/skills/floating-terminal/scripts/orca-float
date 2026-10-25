@@ -40,7 +40,17 @@ for i in range(0, len(args), 2):
     elif v == "null": v = None
     out[k] = v
 print(json.dumps(out))' "$@"; }
-handle_of() { python3 -c 'import json, sys; print(json.load(sys.stdin)["result"]["terminal"]["handle"])'; }
+# The handle from `terminal create --json`; on failure, Orca's own error (e.g. runtime_unavailable: no Orca running for
+# this user) goes to stderr and the status is nonzero, never a traceback.
+handle_of() { python3 -c 'import json, sys
+try:
+    d = json.load(sys.stdin)
+    print(d["result"]["terminal"]["handle"])
+except Exception:
+    e = d.get("error") if isinstance(locals().get("d"), dict) else None
+    if isinstance(e, dict): e = "%s: %s" % (e.get("code"), e.get("message"))
+    sys.stderr.write("orca-float: orca terminal create failed: %s\n" % (e or "unreadable reply"))
+    sys.exit(1)'; }
 shq() { python3 -c 'import shlex, sys; print(" ".join(shlex.quote(a) for a in sys.argv[1:]))' "$@"; }
 
 cmd=${1:-}; [ $# -gt 0 ] && shift
@@ -140,7 +150,7 @@ n = int(sys.argv[2]); sys.stdout.write("\n".join(lines[-n:] if n else []))' "$ru
     json ok bool:true handle "$h" worktree "$FLOAT_WORKTREE" cwd "$cwd"
     ;;
   doctor)
-    h=$(create "orca-float doctor" 'echo orca-float-doctor-ok') || { json ok bool:false orca "$ORCA" error "cannot create a floating terminal (is the floating terminal enabled in Orca's settings?)"; exit 1; }
+    h=$(create "orca-float doctor" 'echo orca-float-doctor-ok') || { json ok bool:false orca "$ORCA" error "cannot create a floating terminal: is Orca running for this user, with the floating terminal enabled? (Orca's reason is on stderr)"; exit 1; }
     where=$("$ORCA" terminal show --terminal "$h" --json | python3 -c 'import json, sys; print(json.load(sys.stdin)["result"]["terminal"].get("worktreeId") or "")')
     close_tab "$h"
     if [ "$where" = "global-floating-terminal" ]; then json ok bool:true orca "$ORCA" floating bool:true

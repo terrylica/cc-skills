@@ -74,9 +74,9 @@ Measured on Orca 1.4.2xx on macOS:
 - `script` differs between BSD (macOS) and util-linux; the launcher picks the right form at run time.
 - Every `orca terminal` call names its handle. Omitted, Orca uses the active terminal, which may be another session's. Only the tab this run created is ever closed, never with `--all`.
 
-Linux: the same Orca CLI and the same launcher (util-linux `script`). The CLI is found by the plugin's shared finder (`scripts/lib/orca-cli.sh`): `$ORCA_CLI`, `$ORCA_CLI_BIN_DIR/orca`, an `orca` on `PATH` that is really Orca's, then Orca's own install locations. On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so a bare `orca` is never trusted.
+Linux: the same Orca CLI and the same launcher (util-linux `script`). The CLI is found by the plugin's shared finder (`scripts/lib/orca-cli.sh`): `$ORCA_CLI`, `$ORCA_CLI_BIN_DIR/orca`, an `orca` on `PATH` that is really Orca's, `orca-ide` (the CLI's name on Linux: `/opt/Orca/resources/bin/orca-ide`, linked as `~/.local/bin/orca-ide`), then Orca's own install locations. On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so a bare `orca` is never trusted.
 
-The floating terminal is a local panel: this skill drives the Orca on the machine it runs on, not a paired runtime.
+The Orca CLI talks to the Orca app of the **same user**: over SSH as another account, `doctor` reports Orca's own `runtime_unavailable` reason. The floating terminal is a local panel: this skill drives the Orca on the machine it runs on, not a paired runtime.
 
 ## Requirements
 

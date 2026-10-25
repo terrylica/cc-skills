@@ -70,6 +70,7 @@ Found live, fixed: the watcher was started by a relative `$0` after changing dir
 | Platform | What ran |
 | --- | --- |
 | macOS (Orca 1.4.2xx), `/bin/bash` 3.2 | Live: `doctor` (probe landed in `global-floating-terminal`, closed); a command exiting 7 returned `exit_code 7` with the tab kept; a quoted argument (`a b`, a newline, `$d`) arrived intact and the tab closed on success; a password-manager CLI sign-in that fails from the agent's own process succeeded in the floating terminal. |
-| Bun tests under `/bin/bash` 3.2 (stub Orca CLI) | 12 tests: real exit code, close by handle only on success, `--keep`, the floating worktree, timeout, dry run, `doctor` positive and negative, no Orca (exit 3), usage errors. |
+| Linux (Ubuntu 26.04, Orca 1.4.224), over SSH as a user with no Orca running | The first version missed Orca entirely: on Linux the CLI is `orca-ide` (`/opt/Orca/resources/bin/orca-ide`, linked into `PATH`), not `orca`. Fixed, `doctor` found `/usr/bin/orca-ide` and reported Orca's own `runtime_unavailable` reason (no Orca app for that user), exit 1, with no traceback. |
+| Bun tests under `/bin/bash` 3.2 (stub Orca CLI) | 14 tests: real exit code, close by handle only on success, `--keep`, the floating worktree, timeout, dry run, `doctor` positive and negative, the Linux `orca-ide` name found on `PATH`, Orca's own refusal surfaced, no Orca (exit 3), usage errors. |
 
-Linux has not been run live yet: the launcher's util-linux `script` branch is covered only by reading.
+Not yet run on Linux with Orca running for the same user: a full `run` there, including the util-linux `script` branch, is covered only by reading.

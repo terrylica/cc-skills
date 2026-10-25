@@ -2,7 +2,7 @@
 // the way Orca's floating terminal would. Nothing here touches a real Orca. The logged path (`script`, a real TTY) is
 // exercised live, not here: a test runner has no TTY, so these tests use --no-log.
 import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -117,6 +117,25 @@ describe("doctor", () => {
     const r = run(["doctor"]);
     expect(r.code).toBe(1);
     expect(r.json).toMatchObject({ ok: false, floating: false, landed_in: "some-worktree" });
+  });
+});
+
+describe("finding the CLI", () => {
+  test("Linux names the CLI orca-ide; it is found on PATH without ORCA_CLI", () => {
+    renameSync(stub, join(dir, "orca-ide"));
+    const r = run(["doctor"], { ORCA_CLI: "", PATH: `${dir}:/usr/bin:/bin` });
+    expect(r.json).toMatchObject({ ok: true, orca: join(dir, "orca-ide") });
+  });
+});
+
+describe("Orca refuses", () => {
+  test("no Orca running for this user: Orca's own error, no traceback, exit 1", () => {
+    writeFileSync(stub, readFileSync(stub, "utf8").replace(`echo '{"ok":true,"result":{"terminal":{"handle":"term_stub-1"}}}' ;;`, `echo '{"ok":false,"error":{"code":"runtime_unavailable","message":"no runtime"}}'; exit 1 ;;`));
+    const r = run(["doctor"]);
+    expect(r.code).toBe(1);
+    expect(r.json.ok).toBe(false);
+    expect(r.err).toContain("runtime_unavailable");
+    expect(r.err).not.toContain("Traceback");
   });
 });
 
