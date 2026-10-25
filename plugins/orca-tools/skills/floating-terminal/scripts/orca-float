@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# orca-float — run a command in the Orca IDE's floating terminal and get its real exit code and output back.
+#
+# Why: an AI coding agent's own shell has no terminal a person can see or answer. Anything that needs a human (Touch ID,
+# a password manager's app integration, a passkey, an interactive prompt) or should stay visible runs here instead of
+# in an ad-hoc iTerm/Terminal window: one panel, on every Orca desktop, driven only through Orca's own CLI.
+#
+#   orca-float run [--title T] [--cwd DIR] [--timeout SEC] [--tail N] [--no-log] [--keep] [--no-focus] [--dry-run] -- CMD...
+#   orca-float open [--title T] [--cwd DIR] [--no-focus]       an interactive floating shell for the person; prints its handle
+#   orca-float doctor                                          is the floating terminal usable here? (creates and closes a probe)
+#
+# stdout is ONE JSON object; progress goes to stderr. Exit: 0 ok, 1 the command failed or timed out, 2 usage, 3 no Orca.
+#
+# Measured on Orca 1.4.2xx (macOS), and why the design does not trust the terminal stream:
+#   - `orca terminal create --worktree id:global-floating-terminal` creates a tab in the floating terminal and runs
+#     --command in the login shell there; the tab reports worktreeId "global-floating-terminal".
+#   - `orca terminal wait --for exit` reported exitCode 0 for a command that exited 7 (exitCause host_status_unavailable),
+#     and `orca terminal read` returned nothing once the shell had exited. So the command runs under `script` (a real
+#     TTY for prompts and Touch ID, every byte shown also logged) and writes its own exit status to a file; this script
+#     polls that file and reads the log.
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source-path=SCRIPTDIR source=../../../scripts/lib/orca-cli.sh
+. "$here/../../../scripts/lib/orca-cli.sh"
+
+FLOAT_WORKTREE="id:global-floating-terminal"
+die() { echo "orca-float: $*" >&2; exit 2; }
+note() { echo "orca-float: $*" >&2; }
+json() { python3 -c 'import json, sys
+args = sys.argv[1:]
+out = {}
+for i in range(0, len(args), 2):
+    k, v = args[i], args[i + 1]
+    if v.startswith("int:"): v = int(v[4:])
+    elif v.startswith("bool:"): v = v[5:] == "true"
+    elif v.startswith("file:"):
+        try: v = open(v[5:], encoding="utf-8", errors="replace").read()
+        except OSError: v = None
+    elif v == "null": v = None
+    out[k] = v
+print(json.dumps(out))' "$@"; }
+handle_of() { python3 -c 'import json, sys; print(json.load(sys.stdin)["result"]["terminal"]["handle"])'; }
+shq() { python3 -c 'import shlex, sys; print(" ".join(shlex.quote(a) for a in sys.argv[1:]))' "$@"; }
+
+cmd=${1:-}; [ $# -gt 0 ] && shift
+title="agent"; cwd=$PWD; timeout=1800; tail_n=40; log=yes; keep=no; focus=yes; dry=no
+while [ $# -gt 0 ]; do
+  case $1 in
+    --title) title=${2:?--title needs a value}; shift 2 ;;
+    --cwd) cwd=${2:?--cwd needs a value}; shift 2 ;;
+    --timeout) timeout=${2:?--timeout needs seconds}; shift 2 ;;
+    --tail) tail_n=${2:?--tail needs a number}; shift 2 ;;
+    --no-log) log=no; shift ;;
+    --keep) keep=yes; shift ;;
+    --no-focus) focus=no; shift ;;
+    --dry-run) dry=yes; shift ;;
+    --) shift; break ;;
+    -h|--help) sed -n '2,13p' "$0" >&2; exit 0 ;;
+    *) break ;;
+  esac
+done
+case $timeout in ''|*[!0-9]*) die "--timeout must be whole seconds" ;; esac
+case $tail_n in ''|*[!0-9]*) die "--tail must be a number" ;; esac
+[ -d "$cwd" ] || die "--cwd is not a directory: $cwd"
+cwd=$(cd "$cwd" && pwd)
+
+ORCA=''
+if [ "$dry" = no ] && [ -n "$cmd" ]; then
+  ORCA=$(find_orca) || { json ok bool:false error "Orca IDE CLI not found (set ORCA_CLI, or install Orca)"; exit 3; }
+fi
+focus_flag=(); [ "$focus" = yes ] && focus_flag=(--focus)
+
+create() {  # create <title> <command-text> → prints the handle
+  "$ORCA" terminal create --worktree "$FLOAT_WORKTREE" --title "$1" --command "$2" ${focus_flag[@]+"${focus_flag[@]}"} --json | handle_of
+}
+alive() { "$ORCA" terminal show --terminal "$1" --json >/dev/null 2>&1; }
+close_tab() { "$ORCA" terminal close --terminal "$1" --tab --json >/dev/null 2>&1 || note "could not close $1"; }
+
+case $cmd in
+  run)
+    [ $# -gt 0 ] || die "run needs a command after --"
+    if [ $# -eq 1 ]; then user_cmd=$1; else user_cmd=$(shq "$@"); fi
+    rundir=$(mktemp -d "${TMPDIR:-/tmp}/orca-float.XXXXXX"); chmod 700 "$rundir"
+    printf '%s\n' "$user_cmd" > "$rundir/cmd.sh"
+    # The launcher: cd, run the command under `script` (a real TTY, every byte logged unless --no-log), record its
+    # exit status, then leave the shell open for the person to read. BSD and util-linux `script` differ in syntax.
+    {
+      echo 'set +e'
+      printf 'cd %s || { echo 1 > %s/status; exit; }\n' "$(shq "$cwd")" "$(shq "$rundir")"
+      if [ "$log" = yes ]; then
+        printf 'if script --version >/dev/null 2>&1; then script -q -e -c %s %s; else script -q %s /bin/bash %s; fi\n' \
+          "$(shq "/bin/bash $rundir/cmd.sh")" "$(shq "$rundir/log")" "$(shq "$rundir/log")" "$(shq "$rundir/cmd.sh")"
+        printf 'rc=$?\n'
+      else
+        printf '/bin/bash %s; rc=$?\n' "$(shq "$rundir/cmd.sh")"
+      fi
+      # shellcheck disable=SC2016  # $rc is expanded by the launcher, not here
+      printf 'echo "$rc" > %s/status\n' "$(shq "$rundir")"
+      # shellcheck disable=SC2016
+      printf 'echo; echo "[orca-float] exit $rc"\n'
+    } > "$rundir/launch.sh"
+    launch="/bin/bash $(shq "$rundir/launch.sh")"
+    if [ "$dry" = yes ]; then
+      json ok bool:true dry_run bool:true worktree "$FLOAT_WORKTREE" title "$title" cwd "$cwd" command "$user_cmd" launch "file:$rundir/launch.sh"
+      rm -rf "$rundir"; exit 0
+    fi
+    h=$(create "$title" "$launch") || { rm -rf "$rundir"; json ok bool:false error "orca terminal create failed"; exit 1; }
+    note "running in Orca's floating terminal ($h); a person may need to answer it there"
+    # Bounded poll: at most $timeout one-second ticks; every 15 s, confirm the tab still exists.
+    waited=0; state=timeout
+    while [ "$waited" -lt "$timeout" ]; do
+      if [ -s "$rundir/status" ]; then state=finished; break; fi
+      if [ $((waited % 15)) -eq 14 ] && ! alive "$h"; then state=gone; break; fi
+      sleep 1; waited=$((waited + 1))
+    done
+    [ "$state" = timeout ] && [ -s "$rundir/status" ] && state=finished
+    rc=null; [ "$state" = finished ] && rc="int:$(tr -dc '0-9' < "$rundir/status")"
+    out=null
+    if [ "$log" = yes ] && [ -f "$rundir/log" ]; then
+      python3 -c 'import re, sys
+t = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+t = re.sub(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|\r", "", t)
+lines = [l for l in t.split("\n") if not l.startswith("Script started") and not l.startswith("Script done")]
+n = int(sys.argv[2]); sys.stdout.write("\n".join(lines[-n:] if n else []))' "$rundir/log" "$tail_n" > "$rundir/tail"
+      out="file:$rundir/tail"
+    fi
+    ok=false; [ "$state" = finished ] && [ "$rc" = "int:0" ] && ok=true
+    closed=false
+    if [ "$keep" = no ] && [ "$ok" = true ]; then close_tab "$h"; closed=true; fi
+    json ok "bool:$ok" state "$state" exit_code "$rc" handle "$h" tab_closed "bool:$closed" seconds "int:$waited" output "$out"
+    rm -rf "$rundir"
+    if [ "$ok" = true ]; then exit 0; fi
+    exit 1
+    ;;
+  open)
+    launch="cd $(shq "$cwd")"
+    if [ "$dry" = yes ]; then json ok bool:true dry_run bool:true worktree "$FLOAT_WORKTREE" title "$title" cwd "$cwd"; exit 0; fi
+    h=$(create "$title" "$launch") || { json ok bool:false error "orca terminal create failed"; exit 1; }
+    json ok bool:true handle "$h" worktree "$FLOAT_WORKTREE" cwd "$cwd"
+    ;;
+  doctor)
+    h=$(create "orca-float doctor" 'echo orca-float-doctor-ok') || { json ok bool:false orca "$ORCA" error "cannot create a floating terminal (is the floating terminal enabled in Orca's settings?)"; exit 1; }
+    where=$("$ORCA" terminal show --terminal "$h" --json | python3 -c 'import json, sys; print(json.load(sys.stdin)["result"]["terminal"].get("worktreeId") or "")')
+    close_tab "$h"
+    if [ "$where" = "global-floating-terminal" ]; then json ok bool:true orca "$ORCA" floating bool:true
+    else json ok bool:false orca "$ORCA" floating bool:false landed_in "$where"; exit 1; fi
+    ;;
+  ''|-h|--help) sed -n '2,13p' "$0" >&2; exit 0 ;;
+  *) die "unknown command '$cmd' (run, open, doctor)" ;;
+esac
