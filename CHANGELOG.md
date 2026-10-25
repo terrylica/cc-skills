@@ -1,3 +1,17 @@
+## [34.5.1](https://github.com/terrylica/cc-skills/compare/v34.5.0...v34.5.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **orca-tools:** find the Orca CLI on Linux, where it is named orca-ide ([5b7c094](https://github.com/terrylica/cc-skills/commit/5b7c0949f9d4a1df2d9e615b613e307b51ed884f))
+
+On Linux, Orca 1.4.224 installs its CLI as /opt/Orca/resources/bin/orca-ide, linked into PATH as orca-ide, because /usr/bin/orca is the GNOME screen reader. The shared finder looked only for a binary named orca, so orca-float never found Orca on Linux.
+
+- The finder also tries orca-ide in ORCA_CLI_BIN_DIR, on PATH, in ~/.local/bin and in /opt/Orca/resources/bin, still checking each candidate's help text.
+- A failed terminal create reports Orca's own error (e.g. runtime_unavailable: no Orca app for this user) instead of a Python traceback.
+- The skill notes that the CLI reaches only the same user's Orca app.
+- Two new tests (14 in total); verified live on a Linux host and on macOS.
+
 # [34.5.0](https://github.com/terrylica/cc-skills/compare/v34.4.0...v34.5.0) (2026-10-25)
 
 
