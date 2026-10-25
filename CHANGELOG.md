@@ -1,3 +1,12 @@
+# [34.5.0](https://github.com/terrylica/cc-skills/compare/v34.4.0...v34.5.0) (2026-10-25)
+
+
+### Features
+
+* **orca-tools:** add floating-terminal skill (orca-float) ([9e1a249](https://github.com/terrylica/cc-skills/commit/9e1a249d53096d3aca5c00503003376aad89ad3b))
+
+orca-float run/open/doctor runs a command that needs a person or a TTY in Orca's floating terminal, driving only Orca's own CLI (terminal create --worktree id:global-floating-terminal), and returns the command's real exit code and output tail as one JSON object. The command writes its own status file because orca terminal wait reported exit 0 for a command that exited 7. A shared Orca CLI finder lives in scripts/lib/orca-cli.sh. 12 Bun tests against a stub Orca CLI.
+
 # [34.4.0](https://github.com/terrylica/cc-skills/compare/v34.3.1...v34.4.0) (2026-10-23)
 
 
