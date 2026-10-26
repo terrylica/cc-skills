@@ -59,6 +59,22 @@ Each continuation chunk gets a `<i>(Part N/M)</i>` header prepended so recipient
 
 **Size-aware authoring guidance**: prefer messages that fit in one post (≤ 3900 plain chars) — splits add visual overhead with part headers. If a message is naturally larger (e.g., a pinned reference), let the splitter do its job. Structure with `━━━━━━━━━━━━━━` separators so split boundaries land cleanly between logical sections.
 
+## Session-reference footer (automatic — project policy)
+
+Every `send` (and every `send-file` caption and `draft`) automatically gets a session-reference footer appended, so the Telegram history doubles as a provenance trail. You do not add it by hand. It applies to all recipients, and rides the last chunk of a split message. Format:
+
+```
+------
+via Claude Code | session <uuid> | <context> | <timestamp>
+```
+
+- `<uuid>` is `CLAUDE_CODE_SESSION_ID` (dropped if unset); `<context>` is included only when you pass `--context` (never auto-filled from the working directory, which would disclose a folder name to recipients).
+- **`--context "<label>"`** adds an optional context label (e.g. `--context "project / contact"`).
+- **`--no-footer`** opts out — use it for an external or sensitive chat, or a message whose provenance must not travel (e.g. relaying a one-time code).
+- Content already carrying a Claude Code footer (e.g. piped straight from `draft-park get`, whose marker reads `Parked by Claude Code …`) is **not** re-stamped, so its own marker survives.
+
+SSoT for the logic: `scripts/session-footer.ts` (unit tests in `scripts/session-footer.test.ts`).
+
 ## Usage: tg-cli.ts (when session is valid)
 
 > **When in doubt, USE `--html`.** If your message contains ANY of: `<b>`, `<i>`, `<code>`, `<pre>`, `<a href>`, bold headers, inline code, or markdown-style `**bold**` / `` `code` ``, you MUST either pass `--html` (and translate markdown → HTML tags first) or strip the decoration. Sending Telegram-style markdown without `--html` renders the asterisks and backticks literally to the recipient. For multi-section messages with headers, separators, and code spans — **always** use `--html`.
@@ -156,10 +172,10 @@ Emojis are supported but user may prefer decorations without emojis — use `<pr
 
 ## Profiles
 
-| Profile         | Account            | User ID    |
-| --------------- | ------------------ | ---------- |
-| `work` (default) | @ExampleOpsAccount | <user-id>   |
-| `personal`   | @personal_account | <user-id> |
+| Profile          | Account            | User ID   |
+| ---------------- | ------------------ | --------- |
+| `work` (default) | @ExampleOpsAccount | <user-id> |
+| `personal`       | @personal_account  | <user-id> |
 
 ## Known Group Chat IDs
 
@@ -197,7 +213,7 @@ To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_me
 
 | Error                     | Cause                   | Fix                                                         |
 | ------------------------- | ----------------------- | ----------------------------------------------------------- |
-| `Unknown profile`         | Invalid `-p` value      | Use `work` or `personal`                                  |
+| `Unknown profile`         | Invalid `-p` value      | Use `work` or `personal`                                    |
 | `Cannot find any entity`  | Bad username/ID         | Verify with `dialogs` command or use `find-user` to resolve |
 | `message cannot be empty` | Empty string passed     | Provide message text                                        |
 | `Session expired`         | Session no longer valid | Run `/tlg:setup` to re-authenticate non-interactively       |

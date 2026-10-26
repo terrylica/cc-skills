@@ -8,19 +8,24 @@
 
 Single function/enum-driven **Bun TypeScript** CLI using **GramJS** (MTProto client), run directly with `bun` (no build). Multi-profile support for multiple accounts.
 
-| Component   | Path                                      | Purpose                                            |
-| ----------- | ----------------------------------------- | -------------------------------------------------- |
-| CLI Script  | `scripts/tg-cli.ts`                       | Bun TS, invoked via `bun` (deps: `bun install`)    |
-| Cleanup     | `scripts/cleanup_deleted.ts`              | Purge deleted/ghost accounts (reuses CLI helpers)  |
-| Sessions    | `~/.local/share/gramjs/<profile>.session` | Per-profile GramJS StringSession (one per account) |
-| Credentials | 1Password `Claude Automation` vault       | Per-profile Telegram API id/hash                   |
+| Component      | Path                                      | Purpose                                                                                 |
+| -------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| CLI Script     | `scripts/tg-cli.ts`                       | Bun TS, invoked via `bun` (deps: `bun install`)                                         |
+| Session footer | `scripts/session-footer.ts`               | SSoT for the provenance footer appended to every send (tests: `session-footer.test.ts`) |
+| Cleanup        | `scripts/cleanup_deleted.ts`              | Purge deleted/ghost accounts (reuses CLI helpers)                                       |
+| Sessions       | `~/.local/share/gramjs/<profile>.session` | Per-profile GramJS StringSession (one per account)                                      |
+| Credentials    | 1Password `Claude Automation` vault       | Per-profile Telegram API id/hash                                                        |
 
 ## Profiles
 
-| Profile         | Account            | User ID    | 1Password Item UUID          |
-| --------------- | ------------------ | ---------- | ---------------------------- |
-| `work` (default) | @ExampleOpsAccount | <user-id>   | `<1password-item-id>` |
-| `personal`     | @personal_account  | <user-id>  | `<1password-item-id>` |
+| Profile          | Account            | User ID   | 1Password Item UUID   |
+| ---------------- | ------------------ | --------- | --------------------- |
+| `work` (default) | @ExampleOpsAccount | <user-id> | `<1password-item-id>` |
+| `personal`       | @personal_account  | <user-id> | `<1password-item-id>` |
+
+## Standing policies
+
+- **Session-reference footer on every send.** Every composed send — `send`, a `send-file` caption, and a `draft` — carries a provenance footer (`via Claude Code | session <uuid> | <context> | <timestamp>`), for all recipients, so the Telegram history doubles as a provenance trail. Use `--no-footer` for an external or sensitive chat where the session reference should not be disclosed. The context label is opt-in via `--context` and is never auto-filled from the working directory. Logic + tests live in `scripts/session-footer.ts`; `forward` is exempt (it relays, composing no new text). Content already bearing a Claude Code footer is not re-stamped.
 
 ## Skills by area
 
