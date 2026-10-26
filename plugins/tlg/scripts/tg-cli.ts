@@ -33,6 +33,7 @@ import { Api, TelegramClient } from "telegram";
 import { Logger, LogLevel } from "telegram/extensions/Logger";
 import { StringSession } from "telegram/sessions";
 import { OP_SA_TOKEN_UNCONFIGURED_HINT, resolveOpSaToken } from "./op-sa-token.ts";
+import { applyFooter } from "./session-footer.ts";
 
 // ── Enums ─────────────────────────────────────────────────
 
@@ -319,6 +320,14 @@ function annotatePart(chunk: string, index: number, total: number, parseMode: st
   return parseMode === "html" ? `<i>(Part ${index}/${total})</i>\n\n${chunk}` : `(Part ${index}/${total})\n\n${chunk}`;
 }
 
+/** Append the session-reference footer (policy in session-footer.ts) unless opted out. */
+function withFooter(message: string, flags: Flags): string {
+  return applyFooter(message, {
+    noFooter: flags.has("--no-footer"),
+    context: flags.get("--context"),
+  });
+}
+
 function entityLabel(entity: any, fallback: string): string {
   return (
     entity?.title ||
@@ -352,6 +361,7 @@ const BOOLEAN_FLAGS = new Set([
   "--self-only",
   "--admins",
   "--no-media",
+  "--no-footer",
 ]);
 const FLAG_ALIASES: Record<string, string> = {
   "-c": "--caption",
@@ -444,7 +454,7 @@ interface Ctx {
 
 async function handleSend({ profile, pos, flags }: Ctx): Promise<RunResult> {
   const recipient = parseEntity(requirePos(pos, 0, "recipient"));
-  const message = requirePos(pos, 1, "message");
+  const message = withFooter(requirePos(pos, 1, "message"), flags);
   const mode = htmlParseMode(flags);
   const replyTo = flags.get("--reply-to") ? Number(flags.get("--reply-to")) : undefined;
   const client = await connectAuthed(profile);
@@ -486,7 +496,7 @@ async function handleDraft({ profile, pos, flags }: Ctx): Promise<RunResult> {
     }
     const me: any = await client.getMe();
     await client.sendMessage(me.id, { message: `<b>Draft → ${label}</b>`, parseMode: "html" as any });
-    const chunks = splitLongMessage(message, mode);
+    const chunks = splitLongMessage(withFooter(message, flags), mode);
     for (let i = 0; i < chunks.length; i += 1) {
       await client.sendMessage(me.id, {
         message: annotatePart(chunks[i] ?? "", i + 1, chunks.length, mode),
@@ -510,7 +520,11 @@ async function handleSendFile({ profile, pos, flags }: Ctx): Promise<RunResult> 
   }
   const client = await connectAuthed(profile);
   try {
-    const caption = flags.get("--caption");
+    // Policy: a file send is a message too, so its caption carries the session footer.
+    // No caption → the footer becomes the caption (unless --no-footer).
+    const caption = flags.has("--no-footer")
+      ? flags.get("--caption")
+      : withFooter(flags.get("--caption") ?? "", flags).replace(/^\n+/, "");
     await client.sendFile(recipient as any, {
       file,
       ...(caption ? { caption } : {}),

@@ -12,6 +12,8 @@ Send a message to the user's **Saved Messages** so the user can review it, optio
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
+> **The draft carries a session footer (project policy).** The body posted to Saved Messages gets the provenance footer appended, so when the user copy-pastes it into the target chat the session reference travels with it — the intended behavior. Suppress with `--no-footer`, override the label with `--context`. See [send-message](../send-message/SKILL.md#session-reference-footer-automatic--project-policy).
+
 ## When To Use Draft vs. Send
 
 | Situation                                                            | Use                                                  |
