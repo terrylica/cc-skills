@@ -1,3 +1,17 @@
+# [34.6.0](https://github.com/terrylica/cc-skills/compare/v34.5.1...v34.6.0) (2026-10-26)
+
+
+### Features
+
+* **tlg:** session-reference footer on every Telegram send ([#57](https://github.com/terrylica/cc-skills/issues/57)) ([ad80a36](https://github.com/terrylica/cc-skills/commit/ad80a36aa658b6787ccfe5ad17d21d3853adaec6))
+
+Every composed Telegram send now carries a provenance footer so the Telegram history doubles as a session-reference trail. Applies to send, send-file captions and drafts, for all recipients; forward is exempt. The context label is opt-in via --context and is never auto-filled from the working directory, so a folder name is not disclosed to recipients; --no-footer opts out for external or sensitive chats.
+
+- New scripts/session-footer.ts: SSoT for the footer (`via Claude Code | session <uuid> | <context> | <timestamp>`), idempotent so a message already bearing a Claude Code footer is never double-stamped
+- tg-cli.ts: handleSend, handleSendFile (caption) and handleDraft append the footer; --context adds an optional label, --no-footer opts out
+- scripts/session-footer.test.ts: 8 unit tests (presence, no-session fallback, opt-in context, idempotency, pre-stamped preservation, timestamp shape)
+- Docs: tlg CLAUDE.md policy entry + component row; send-message/send-media/draft-message SKILL.md notes
+
 ## [34.5.1](https://github.com/terrylica/cc-skills/compare/v34.5.0...v34.5.1) (2026-10-25)
 
 
