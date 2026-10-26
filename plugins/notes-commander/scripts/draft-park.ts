@@ -252,6 +252,27 @@ export function findLossyMarkdownLinks(
 
 export class ProvenanceLeakError extends Error {}
 
+/** The note's own provenance line (`Parked by Claude Code | session … | … | <time>`), or undefined when it has none. */
+export function footerLineOf(full: string): string | undefined {
+	const lines = full.split("\n");
+	const at = findFooterStart(lines);
+	if (at === -1) return undefined;
+	return lines.slice(at + 1).find((l) => l.trim() !== "")?.trim();
+}
+
+/**
+ * The sendable text WITH its provenance footer: the default since 2026-10-26, when the operator ruled
+ * the session reference mandatory on every outbound message on every channel, extending the
+ * 2026-10-25 Telegram footer ruling. A message can then always be traced back to the session that
+ * drafted it. `--no-footer` is the explicit opt-out. Refuses a note with no footer rather than sending
+ * a message that silently lacks one.
+ */
+export function withFooter(sendable: string, full: string): string {
+	const line = footerLineOf(full);
+	if (!line) throw new ProvenanceLeakError(`the note has no "${FOOTER_LEAD}" line to attach — re-park it, or pass --no-footer`);
+	return `${sendable}\n\n------\n${line}`;
+}
+
 export function assertNoProvenanceLeak(sendable: string): void {
 	if (sendable.includes(FOOTER_LEAD)) {
 		// THROWS rather than calling die(). A guard that exits the process is a guard no test can assert
@@ -400,6 +421,7 @@ function main(): void {
 	let copyToClipboard = false;
 	let allowLossyLinks = false;
 	let allowEmpty = false;
+	let noFooter = false;
 	for (let i = idx; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === "--session") session = argv[++i] ?? "";
@@ -410,6 +432,7 @@ function main(): void {
 		else if (a === "--copy") copyToClipboard = true;
 		else if (a === "--allow-lossy-links") allowLossyLinks = true;
 		else if (a === "--allow-empty") allowEmpty = true;
+		else if (a === "--no-footer") noFooter = true;
 		else if (a === "--no-verify") verify = false;
 	}
 
@@ -483,7 +506,7 @@ function main(): void {
 		case "get": {
 			if (!title)
 				die(
-					"usage: draft-park.ts get <title> [--body-only] [--for whatsapp|plain] [--copy]",
+					"usage: draft-park.ts get <title> [--body-only] [--for whatsapp|plain] [--copy] [--no-footer]",
 				);
 			const full = htmlToText(getBodyByTitle(folder, title));
 			// --for and --copy both imply the SENDABLE text: rendering the title heading and the
@@ -507,7 +530,10 @@ function main(): void {
 			}
 			if (wantsSendable) {
 				try {
+					// The BODY must never carry a footer of its own (a stray or quoted one); the note's real
+					// footer is then attached once, at the end, unless --no-footer.
 					assertNoProvenanceLeak(text);
+					if (!noFooter) text = withFooter(text, full);
 				} catch (e) {
 					die(`✗ REFUSING: ${(e as Error).message}`);
 				}
