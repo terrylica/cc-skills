@@ -20,6 +20,8 @@ import {
 	FOOTER_LEAD,
 	findFooterStart,
 	findLossyMarkdownLinks,
+	footerLineOf,
+	withFooter,
 	isReadableNoteBody,
 	ProvenanceLeakError,
 	renderForWhatsApp,
@@ -244,5 +246,24 @@ describe("selfHealTargets — self-heal can never orphan the draft", () => {
 	});
 	test("a lone new note has nothing to delete", () => {
 		expect(selfHealTargets(["new"], "new")).toEqual([]);
+	});
+});
+
+describe("withFooter — the session reference travels with every sent message (2026-10-26)", () => {
+	test("appends the note's own footer line once, after the body", () => {
+		const full = parkedNote(["Hello {{CONTACT}}."]);
+		const sent = withFooter(bodyOnly(full), full);
+		expect(sent).toBe(`Hello {{CONTACT}}.\n\n------\n${REAL_FOOTER[2]}`);
+		expect(sent.split(FOOTER_LEAD).length).toBe(2);
+	});
+	test("an author's own dash rule is not taken for the footer", () => {
+		const full = parkedNote(["Part one", "------", "Part two"]);
+		expect(footerLineOf(full)).toBe(REAL_FOOTER[2]);
+		expect(withFooter(bodyOnly(full), full)).toStartWith("Part one\n------\nPart two\n\n------\n");
+	});
+	test("refuses a note with no footer instead of sending one without", () => {
+		const bare = ["Title", "", "Hello."].join("\n");
+		expect(footerLineOf(bare)).toBeUndefined();
+		expect(() => withFooter("Hello.", bare)).toThrow(ProvenanceLeakError);
 	});
 });
