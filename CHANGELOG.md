@@ -1,3 +1,12 @@
+# [34.7.0](https://github.com/terrylica/cc-skills/compare/v34.6.0...v34.7.0) (2026-10-26)
+
+
+### Features
+
+* **notes-commander:** draft-park keeps the provenance footer on sendable text by default ([#58](https://github.com/terrylica/cc-skills/issues/58)) ([c91ebfd](https://github.com/terrylica/cc-skills/commit/c91ebfda51f7b88e12e4f644f4dab224dafc0285))
+
+The operator ruled the session reference mandatory on every outbound message, on every channel, extending the earlier Telegram footer rule. get --body-only / --for / --copy now append the note's own footer line after the body (withFooter, footerLineOf); --no-footer is the opt-out. The body is still refused if it carries a footer of its own, and a note without a footer is refused rather than sent without one. SKILL.md reflowed (no hard wraps) and its rules and evolution log updated.
+
 # [34.6.0](https://github.com/terrylica/cc-skills/compare/v34.5.1...v34.6.0) (2026-10-26)
 
 
