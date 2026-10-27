@@ -1,3 +1,31 @@
+# [34.8.0](https://github.com/terrylica/cc-skills/compare/v34.7.0...v34.8.0) (2026-10-27)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** plugin-root hook paths, one tab-tool path, hermetic hook test ([083459d](https://github.com/terrylica/cc-skills/commit/083459d97e10673e7e297b2251be0596094ba4b7))
+
+hooks.json resolves the hook through ${CLAUDE_PLUGIN_ROOT}, so it runs however the plugin is installed. chrome-profile.sh names chrome-tabs.ts once (TABS). The hook test stops the parent-process walk at itself (BROWSER_MCP_REMINDER_STOP_PID), so a test launched from a session started with --mcp-config still exercises the prompt cases.
+
+
+
+### Features
+
+* **chrome-profiles:** ship the browser-MCP reminder hook with the plugin ([b7248a8](https://github.com/terrylica/cc-skills/commit/b7248a82b1e043274eeff586507aa149aee6c1f3))
+
+Moved from a private ~/.claude hook, so every host with the plugin gets it. It now points agents at the shipped mcp-drive.ts and chrome-profile.sh tabs instead of telling them to hand-write a JSON-RPC client (the hand-written one leaked tabs), and the PreToolUse check stays quiet for search and VCS commands that merely mention CDP. Regression test: plugins/chrome-profiles/hooks/tests/test-browser-mcp-config-reminder.sh (12 cases; four of them fail against the old hook).
+
+* **chrome-profiles:** tabs list/close for every profile, leftover-tab sweep, no route waits on a click ([f42fd6f](https://github.com/terrylica/cc-skills/commit/f42fd6fc54fbb91452ca541e4d84f96b67ca9433))
+
+- chrome-tabs.ts: list and close any tab of any profile through Chrome's AppleScript (JXA): no extension, no debug port, no Allow dialog. Closes by exact id or a URL match bounded by --max, compares ids as strings, refuses to empty a window without --allow-window-close, never launches Chrome, names osascript -600 (outside the desktop session) and -1743 (no Automation grant).
+- chrome-profile.sh tabs: execs chrome-tabs.ts.
+- mcp-drive.ts: lists tabs before and after each run and closes the ones that appeared on a host named in its steps, plus the extension's connect page (MCP_DRIVE_NO_SWEEP=1 turns it off).
+- playwright-mcp refuses to start without a stored token instead of leaving the extension's "is trying to connect" page waiting for a person.
+- doctor compares digests of the stored and the extension's current token; setup replaces a stale token and closes the status tab it opened; setup re-uses the server name already serving an email and refuses a name serving another email (a local-part collision had repointed a server at the wrong account).
+- rotate-token &lt;email>: presses the extension's own "Generate new token" through Accessibility in the one window titled with that email, polls until the new token reaches disk, stores it and closes the page.
+
+Measured on macOS: live nonce-tab test (open 2, close by id, tab set restored); sweep closed a popup that the control run (sweep off) left open; a run with a rotated-out token was refused; doctor reported 12 registered profiles, 11 matching and 1 with no token, then fixed.
+
 # [34.7.0](https://github.com/terrylica/cc-skills/compare/v34.6.0...v34.7.0) (2026-10-26)
 
 
