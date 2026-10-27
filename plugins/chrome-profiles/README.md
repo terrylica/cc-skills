@@ -23,7 +23,10 @@ bash "$CP" doctor you@example.com
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `skills/browser-automation/SKILL.md`               | When to use a browser at all, which route, and the rules that keep it safe               |
 | `skills/browser-automation/references/doctrine.md` | The mechanics and measurements behind each rule                                          |
-| `scripts/chrome-profile.sh`                        | `setup`, `setup-main`, `doctor`, `resolve`, `open`, `extension-status`, `playwright-mcp` |
+| `scripts/chrome-profile.sh`                        | `setup`, `setup-main`, `doctor`, `resolve`, `open`, `tabs`, `rotate-token`, `extension-status`, `playwright-mcp` |
+| `scripts/chrome-tabs.ts` | List and close any tab of any profile through Chrome's AppleScript (exact ids, guarded); used by `tabs` and `mcp-drive.ts` |
+| `scripts/mcp-drive.ts` | Drive a browser MCP server from Bash without a restart; closes the tabs its run opened |
+| `hooks/browser-mcp-config-reminder.sh` | Reminds a session to use the zero-click servers and the shipped client, never the Allow-dialog route |
 | `scripts/chrome-debug-port-control.sh`             | `up` / `status` / `down` for a separate profile on a debug port                          |
 | `scripts/extension-token-from-profile.ts` | Reads the extension's token from a private copy of the profile's Local Storage for `setup`; never prints it |
 | `scripts/fill-secret.mjs` | Types a Keychain or vault secret into one field of a page on a debug-port profile; the value never reaches the AI |

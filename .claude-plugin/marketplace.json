@@ -115,7 +115,7 @@
     },
     {
       "name": "chrome-profiles",
-      "description": "Let Claude Code drive your everyday Google Chrome on macOS - choose a profile by account email, zero-click control of a signed-in profile via Microsoft's Playwright Extension (one setup command per account), the chrome://inspect auto-connect server, and when not to use a real browser at all",
+      "description": "Let Claude Code drive your everyday Google Chrome on macOS - choose a profile by account email, zero-click control of a signed-in profile via Microsoft's Playwright Extension (one setup command per account, stale-token detection and rotation), list and close any tab of any profile without a dialog, the chrome://inspect auto-connect server, and when not to use a real browser at all",
       "version": "34.7.0",
       "source": "./plugins/chrome-profiles",
       "category": "productivity",
