@@ -8,6 +8,8 @@
 #   chrome-profile.sh open <email> <url>               # open <url> in that profile of the RUNNING Chrome
 #   chrome-profile.sh extension-status                 # which profiles have the Playwright Extension
 #   chrome-profile.sh playwright-mcp <email>           # the MCP server command that `setup` registers
+#   chrome-profile.sh tabs list [--json] | close --id <tabId>…  # every tab of every profile, no dialog (chrome-tabs.ts)
+#   chrome-profile.sh rotate-token <email>             # after an exposure: new extension token, stored, page closed
 #
 # macOS + Google Chrome. Doctrine and the reasons behind every rule: ../skills/browser-automation/.
 #
@@ -202,11 +204,59 @@ case "$cmd" in
     "$CHROME_BIN" --profile-directory="$dir" "$url" >/dev/null 2>&1 &
     say "opened in $dir ($email): $url" ;;
 
+  tabs)
+    exec bun "$(dirname "$(stable_self)")/chrome-tabs.ts" "$@" ;;
+
+  rotate-token)
+    # After a token was exposed (a screenshot of the connect page, a log): make the extension generate a new one,
+    # store it, close the page. The only click is the extension's own "Generate new token" button, pressed through
+    # Accessibility (AXPress) in the ONE window whose title ends with "(<email>)" — Chrome puts the profile's name
+    # and email there. Needs the Accessibility grant for the host app and the desktop session.
+    email="${1:-}"
+    dir=$(resolve "$email")
+    pgrep -xq "Google Chrome" || die "Chrome is not running; start it normally first (no flags)"
+    hash_now() { token_from_profile "$ROOT/$dir" | shasum -a 256 | cut -c1-16; }
+    old_h=$(hash_now)
+    tabs_before=$(bun "$(dirname "$SELF")/chrome-tabs.ts" list --json | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))')
+    "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
+    sleep 3
+    res=$(osascript -l JavaScript - "$email" <<'JXA' 2>&1 || true
+function run(argv) {
+  const email = argv[0];
+  const p = Application("System Events").processes.byName("Google Chrome");
+  const ws = p.windows().filter(w => { const n = w.name(); return n.startsWith("Playwright Extension Status - Google Chrome - ") && n.endsWith("(" + email + ")"); });
+  if (ws.length !== 1) return "ABORT: " + ws.length + " status windows for " + email;
+  const b = ws[0].entireContents().filter(e => { try { return e.role() === "AXButton" && e.description() === "Generate new token"; } catch (x) { return false; } });
+  if (b.length !== 1) return "ABORT: " + b.length + " 'Generate new token' buttons";
+  b[0].actions.byName("AXPress").perform();
+  return "pressed";
+}
+JXA
+)
+    [ "$res" = "pressed" ] || die "rotate-token: $res (nothing changed; the old token is still valid)"
+    # Chrome flushes localStorage to disk lazily: measured ~15 s before the new token was readable (2026-10-27).
+    new_h="$old_h"
+    for _ in $(seq 1 20); do sleep 2; new_h=$(hash_now); [ "$new_h" != "$old_h" ] && break; done
+    [ "$new_h" != "$old_h" ] || die "rotate-token: pressed, but no new token reached disk within 40 s; run it again or check the status page"
+    tok=$(token_from_profile "$ROOT/$dir"); token_put "$email" "$tok"; unset tok
+    # token_get prefers the vault's Keychain mirror; a stale mirror would shadow what was just stored.
+    [ "$(token_get "$email" | shasum -a 256 | cut -c1-16)" = "$new_h" ] || die "rotate-token: stored, but token_get still returns another value (a vault copy in scope $VAULT_SCOPE?) — update it: vault set $VAULT_SCOPE $(token_key "$email") --stdin"
+    for id in $(bun "$(dirname "$SELF")/chrome-tabs.ts" list --url-match "^chrome-extension://$EXT_ID/status\\.html" | cut -f2); do
+      case " $tabs_before " in *" $id "*) ;; *) bun "$(dirname "$SELF")/chrome-tabs.ts" close --id "$id" --allow-window-close >/dev/null ;; esac
+    done
+    say "token rotated and stored for $email (the old one no longer connects)" ;;
+
   playwright-mcp)
     email="${1:-}"
     dir=$(resolve "$email")
     [ -d "$ROOT/$dir/Extensions/$EXT_ID" ] || die "the Playwright Extension is not installed in $dir ($email) — run: $(basename "$0") setup $email"
     tok=$(token_get "$email")
+    # No token means the extension opens its "… is trying to connect" page and the run waits for a person to
+    # click "Allow & select" (measured 2026-10-27: every run against one profile did this for a whole session).
+    # Fail fast instead; CHROME_PROFILE_ALLOW_CONNECT_PAGE=1 is for a supervised one-off.
+    if [ -z "$tok" ] && [ "${CHROME_PROFILE_ALLOW_CONNECT_PAGE:-}" != "1" ]; then
+      die "no extension token stored for $email: every connection would wait on the extension's Allow page — run: $(basename "$0") setup $email"
+    fi
     if [ -n "$tok" ]; then export PLAYWRIGHT_MCP_EXTENSION_TOKEN="$tok"; fi
     unset tok
     exec npx -y @playwright/mcp@latest --extension --profile-dir-name "$dir" \
@@ -222,7 +272,25 @@ case "$cmd" in
       esac
     done
     dir=$(resolve "$email")
-    [ -n "$name" ] || name="chrome-$(printf '%s' "${email%@*}" | tr -c '[:alnum:]\n' '-' | tr '[:upper:]' '[:lower:]')"
+    # NAME COLLISIONS. The default name comes from the local part only, so two accounts with the same local
+    # part on different domains share it; a re-setup of one silently repointed the other's server at the wrong
+    # account (2026-10-27). Re-use the name already serving this email; refuse a name serving another email.
+    owners=$(python3 - "$MCP_ON_DEMAND_FILE" "$HOME/.claude.json" <<'EOF'
+import json, os, sys
+for p in sys.argv[1:]:
+    try: servers = (json.load(open(p)).get("mcpServers") or {}) if os.path.exists(p) else {}
+    except Exception: continue
+    for n, s in servers.items():
+        a = s.get("args") or []
+        if "playwright-mcp" in a and a.index("playwright-mcp") + 1 < len(a): print(f"{n}\t{a[a.index('playwright-mcp') + 1]}")
+EOF
+)
+    if [ -z "$name" ]; then
+      name=$(awk -F'\t' -v e="$email" '$2 == e { print $1; exit }' <<<"$owners")
+      [ -n "$name" ] || name="chrome-$(printf '%s' "${email%@*}" | tr -c '[:alnum:]\n' '-' | tr '[:upper:]' '[:lower:]')"
+    fi
+    taken_by=$(awk -F'\t' -v n="$name" -v e="$email" '$1 == n && $2 != e { print $2; exit }' <<<"$owners")
+    [ -z "$taken_by" ] || die "MCP server name '$name' already drives $taken_by; pass --name <another-name> for $email"
     say "$email is $dir; MCP server name: $name"
     pgrep -xq "Google Chrome" || die "start Google Chrome normally first"
 
@@ -235,10 +303,20 @@ case "$cmd" in
       say "extension already installed in $dir"
     fi
 
-    if [ -z "$(token_get "$email")" ]; then
+    # A stored token that no longer matches the extension's (regenerated, or the extension reinstalled) is as
+    # bad as none: every connection stops on the extension's connect page. Re-read and replace it when they differ.
+    stored=$(token_get "$email"); cur_rc=0; cur=$(token_from_profile "$ROOT/$dir") || cur_rc=$?
+    if [ -n "$stored" ] && [ "$cur_rc" -eq 0 ] && [ -n "$cur" ] && [ "$stored" != "$cur" ]; then
+      say "the stored token is stale (the extension's token changed); replacing it"
+      token_put "$email" "$cur"; stored="$cur"
+    fi
+    unset cur
+    if [ -z "$stored" ]; then
       # Opening the status page makes the extension create its token; read it from the profile, and ask only when
-      # that fails. Only "not created yet" (exit 1) is worth waiting for.
+      # that fails. Only "not created yet" (exit 1) is worth waiting for. The page is closed again afterwards
+      # (it used to stay open after every setup), unless the paste dialog needs it.
       say "opening the extension's status page (it creates the token)"
+      tabs_before=$(bun "$(dirname "$SELF")/chrome-tabs.ts" list --json 2>/dev/null | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))' 2>/dev/null || true)
       "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
       tok=""; rc=0
       for _ in 1 2 3 4 5 6; do
@@ -263,6 +341,11 @@ case "$cmd" in
       token_put "$email" "$tok"
       unset tok
       say "token stored in the login Keychain (service $KC_SERVICE)"
+      if [ -n "$tabs_before" ]; then
+        for id in $(bun "$(dirname "$SELF")/chrome-tabs.ts" list --url-match "^chrome-extension://$EXT_ID/status\\.html" 2>/dev/null | cut -f2); do
+          case " $tabs_before " in *" $id "*) ;; *) bun "$(dirname "$SELF")/chrome-tabs.ts" close --id "$id" --allow-window-close >/dev/null 2>&1 || true ;; esac
+        done
+      fi
     else
       say "token already stored"
     fi
@@ -411,7 +494,18 @@ EOF
       echo "Target profile"
       if dir=$(resolve "$email" 2>/dev/null); then
         ok "$email → $dir"
-        if [ -n "$(token_get "$email")" ]; then ok "extension token stored"; else warn "no extension token stored — run setup $email"; fi
+        if [ -n "$(token_get "$email")" ]; then
+          ok "extension token stored"
+          # TOKEN DRIFT. A stored token that no longer matches the extension's own (it was regenerated, or the
+          # extension reinstalled) makes every connection stop on the extension's "… is trying to connect"
+          # page until a person clicks "Allow & select" (measured 2026-10-27). Compare digests only.
+          stored_h=$(token_get "$email" | shasum -a 256 | cut -c1-16)
+          prof_rc=0; prof_h=$(token_from_profile "$ROOT/$dir" | shasum -a 256 | cut -c1-16) || prof_rc=$?
+          empty_h=$(printf '' | shasum -a 256 | cut -c1-16)
+          if [ "$prof_rc" -ne 0 ] || [ "$prof_h" = "$empty_h" ]; then warn "could not read the extension's current token to compare (reader exit $prof_rc)"
+          elif [ "$stored_h" = "$prof_h" ]; then ok "stored token matches the extension's current token (no connect page)"
+          else bad "stored token is STALE: the extension will show its connect page and wait for a click — run: $(basename "$0") setup $email"; fi
+        else warn "no extension token stored — run setup $email"; fi
         # Look-alikes: other extensions with "Playwright" in the name are not the one the MCP server talks to.
         python3 - "$ROOT/$dir/Extensions" "$EXT_ID" <<'EOF' || true
 import glob, json, os, sys
@@ -428,5 +522,5 @@ EOF
     exit "$rc" ;;
 
   *)
-    sed -n '2,10p' "$0"; exit 2 ;;
+    sed -n '2,12p' "$0"; exit 2 ;;
 esac

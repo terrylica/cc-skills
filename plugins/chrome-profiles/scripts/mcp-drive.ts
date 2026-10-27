@@ -24,10 +24,16 @@
 // Blob download (then `vault set --stdin` and delete the file).
 // At the end of an ext-mode run its tab is closed (every run's tab used to stay open and pile up in the
 // operator's Chrome). Set MCP_DRIVE_KEEP_TAB=1 to keep it, e.g. while a download it started is still writing.
+// LEFTOVER SWEEP (both modes): the run lists every Chrome tab before it starts and again at the end
+// (chrome-tabs.ts, Chrome's AppleScript: no dialog), and closes tabs that appeared during the run on a host
+// named in steps.json, such as a "View rule" link that opened a new tab, or the extension's connect page. The server itself cannot see those
+// tabs. MCP_DRIVE_KEEP_TAB=1 or MCP_DRIVE_NO_SWEEP=1 turns the sweep off; outside the desktop session
+// (osascript -600) it is skipped with a note.
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { CONNECT_PAGE, TabsError, closeTabs, hostOf, listTabs, stepHosts } from "./chrome-tabs.ts";
 
 type Step = { tool: string; args?: Record<string, unknown>; quiet?: boolean; max?: number };
 
@@ -48,6 +54,14 @@ if (mode === "ext" && a1 && a2) {
 } else usage();
 
 const steps = JSON.parse(readFileSync(stepsPath, "utf8")) as Step[];
+
+const sweep = process.env.MCP_DRIVE_KEEP_TAB !== "1" && process.env.MCP_DRIVE_NO_SWEEP !== "1";
+const hosts = stepHosts(JSON.stringify(steps));
+let tabsBefore: Set<string> | null = null;
+if (sweep) {
+  try { tabsBefore = new Set(listTabs().map((t) => t.tabId)); }
+  catch (e) { console.error(`mcp-drive: leftover sweep off: ${e instanceof TabsError ? e.message : e}`); }
+}
 // The servers write console/snapshot logs into ./.playwright-mcp of their working directory; run them in a
 // private temp dir so a run from inside a repository never leaves page content there (it tripped a leak
 // scrub on 2026-10-18). Removed on exit.
@@ -138,5 +152,15 @@ if (mode === "ext" && process.env.MCP_DRIVE_KEEP_TAB !== "1") {
   }
 }
 child.kill();
+if (tabsBefore) {
+  try {
+    await Bun.sleep(1000);
+    const left = listTabs().filter((t) => !tabsBefore!.has(t.tabId) && (hosts.has(hostOf(t.url)) || CONNECT_PAGE.test(t.url)));
+    const closed = closeTabs(left.map((t) => t.tabId));
+    if (closed.length) console.error(`mcp-drive: closed ${closed.length} leftover tab(s) this run opened`);
+  } catch (e) {
+    console.error(`mcp-drive: leftover sweep failed: ${e instanceof TabsError ? e.message : e}; list them with chrome-profile.sh tabs list`);
+  }
+}
 rmSync(workDir, { recursive: true, force: true });
 process.exit(code);
