@@ -29,6 +29,8 @@ launched_with_browser_config() {
   local pid=$PPID args
   for _ in 1 2 3 4 5 6; do
     [ -n "$pid" ] && [ "$pid" -gt 1 ] 2>/dev/null || return 1
+    # Test seam: the walk stops at this pid, so a test is not affected by how ITS parent Claude was started.
+    [ "$pid" != "${BROWSER_MCP_REMINDER_STOP_PID:-}" ] || return 1
     args="$(ps -o args= -p "$pid" 2>/dev/null || true)"
     # Match only the claude process itself: a parent shell's `-c` text can merely MENTION the flag
     # (caught 2026-10-12 — a Bash tool command quoting it made the reminder go silent).

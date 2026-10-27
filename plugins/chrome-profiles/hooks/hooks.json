@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/chrome-profiles/hooks/browser-mcp-config-reminder.sh prompt",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/browser-mcp-config-reminder.sh prompt",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/chrome-profiles/hooks/browser-mcp-config-reminder.sh pretool",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/browser-mcp-config-reminder.sh pretool",
             "timeout": 10
           }
         ]

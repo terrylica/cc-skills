@@ -39,6 +39,7 @@ EXT_URL="https://chromewebstore.google.com/detail/playwright-extension/$EXT_ID"
 KC_SERVICE="playwright-extension-token"
 VAULT_SCOPE="chrome-extension-tokens"
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+TABS="$(dirname "$SELF")/chrome-tabs.ts"   # the one tab tool; every verb below uses this path
 
 die() { printf '✗ %s\n' "$*" >&2; exit 1; }
 say() { printf '→ %s\n' "$*"; }
@@ -205,7 +206,7 @@ case "$cmd" in
     say "opened in $dir ($email): $url" ;;
 
   tabs)
-    exec bun "$(dirname "$(stable_self)")/chrome-tabs.ts" "$@" ;;
+    exec bun "$TABS" "$@" ;;
 
   rotate-token)
     # After a token was exposed (a screenshot of the connect page, a log): make the extension generate a new one,
@@ -217,7 +218,7 @@ case "$cmd" in
     pgrep -xq "Google Chrome" || die "Chrome is not running; start it normally first (no flags)"
     hash_now() { token_from_profile "$ROOT/$dir" | shasum -a 256 | cut -c1-16; }
     old_h=$(hash_now)
-    tabs_before=$(bun "$(dirname "$SELF")/chrome-tabs.ts" list --json | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))')
+    tabs_before=$(bun "$TABS" list --json | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))')
     "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
     sleep 3
     res=$(osascript -l JavaScript - "$email" <<'JXA' 2>&1 || true
@@ -241,8 +242,8 @@ JXA
     tok=$(token_from_profile "$ROOT/$dir"); token_put "$email" "$tok"; unset tok
     # token_get prefers the vault's Keychain mirror; a stale mirror would shadow what was just stored.
     [ "$(token_get "$email" | shasum -a 256 | cut -c1-16)" = "$new_h" ] || die "rotate-token: stored, but token_get still returns another value (a vault copy in scope $VAULT_SCOPE?) — update it: vault set $VAULT_SCOPE $(token_key "$email") --stdin"
-    for id in $(bun "$(dirname "$SELF")/chrome-tabs.ts" list --url-match "^chrome-extension://$EXT_ID/status\\.html" | cut -f2); do
-      case " $tabs_before " in *" $id "*) ;; *) bun "$(dirname "$SELF")/chrome-tabs.ts" close --id "$id" --allow-window-close >/dev/null ;; esac
+    for id in $(bun "$TABS" list --url-match "^chrome-extension://$EXT_ID/status\\.html" | cut -f2); do
+      case " $tabs_before " in *" $id "*) ;; *) bun "$TABS" close --id "$id" --allow-window-close >/dev/null ;; esac
     done
     say "token rotated and stored for $email (the old one no longer connects)" ;;
 
@@ -316,7 +317,7 @@ EOF
       # that fails. Only "not created yet" (exit 1) is worth waiting for. The page is closed again afterwards
       # (it used to stay open after every setup), unless the paste dialog needs it.
       say "opening the extension's status page (it creates the token)"
-      tabs_before=$(bun "$(dirname "$SELF")/chrome-tabs.ts" list --json 2>/dev/null | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))' 2>/dev/null || true)
+      tabs_before=$(bun "$TABS" list --json 2>/dev/null | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))' 2>/dev/null || true)
       "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
       tok=""; rc=0
       for _ in 1 2 3 4 5 6; do
@@ -342,8 +343,8 @@ EOF
       unset tok
       say "token stored in the login Keychain (service $KC_SERVICE)"
       if [ -n "$tabs_before" ]; then
-        for id in $(bun "$(dirname "$SELF")/chrome-tabs.ts" list --url-match "^chrome-extension://$EXT_ID/status\\.html" 2>/dev/null | cut -f2); do
-          case " $tabs_before " in *" $id "*) ;; *) bun "$(dirname "$SELF")/chrome-tabs.ts" close --id "$id" --allow-window-close >/dev/null 2>&1 || true ;; esac
+        for id in $(bun "$TABS" list --url-match "^chrome-extension://$EXT_ID/status\\.html" 2>/dev/null | cut -f2); do
+          case " $tabs_before " in *" $id "*) ;; *) bun "$TABS" close --id "$id" --allow-window-close >/dev/null 2>&1 || true ;; esac
         done
       fi
     else

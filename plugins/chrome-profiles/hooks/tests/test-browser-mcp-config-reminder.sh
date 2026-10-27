@@ -5,6 +5,7 @@ H="$(cd "$(dirname "$0")/.." && pwd)/browser-mcp-config-reminder.sh"
 S="selftest-$$"; fail=0
 export HOME; HOME="$(mktemp -d)"   # private state dir: the hook writes under $HOME/.claude/hooks/state
 trap 'rm -rf "$HOME"' EXIT
+export BROWSER_MCP_REMINDER_STOP_PID=$$   # the hook never looks above this test, whatever launched it
 run() { local out; out="$(printf '%s' "$2" | bash "$H" "$1")"; printf '%s' "$out"; }
 expect() { # expect <name> <want: speak|quiet> <out>
   local got=quiet; [ -n "$3" ] && got=speak
