@@ -216,7 +216,7 @@ case "$cmd" in
     email="${1:-}"
     dir=$(resolve "$email")
     pgrep -xq "Google Chrome" || die "Chrome is not running; start it normally first (no flags)"
-    if [ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && [ "${CHROME_TABS_ALLOW_SSH:-}" != "1" ]; then
+    if [ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}${SSH_TTY:-}" ] && [ "${CHROME_TABS_ALLOW_SSH:-}" != "1" ]; then
       die "rotate-token refuses over ssh: the Apple events would hang and raise an Automation prompt on that Mac's screen; run it on the Mac's desktop"
     fi
     hash_now() { token_from_profile "$ROOT/$dir" | shasum -a 256 | cut -c1-16; }
