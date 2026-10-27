@@ -3,7 +3,7 @@
 // with CHROME_TABS_LIVE=1, from a terminal on the Mac's desktop.
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { CONNECT_PAGE, type Runner, type Tab, classify, closeTabs, hostOf, listTabs, planClose, stepHosts } from "./chrome-tabs.ts";
+import { CONNECT_PAGE, type Runner, type Tab, classify, overSsh, closeTabs, hostOf, listTabs, planClose, stepHosts } from "./chrome-tabs.ts";
 
 const T = (windowId: string, tabId: string, url: string): Tab => ({ windowId, tabId, url, title: "" });
 const tabs = [T("1", "11", "https://a.example/x"), T("1", "12", "https://b.example/"), T("2", "21", "https://a.example/y")];
@@ -37,6 +37,12 @@ describe("hosts (mcp-drive leftover sweep)", () => {
 
 describe("errors", () => {
   test("-600 names the desktop session", () => expect(classify("execution error: Error: (-600)").exitCode).toBe(4));
+  test("a hung osascript is named, not reported as an empty failure", () => expect(classify("TIMEOUT").exitCode).toBe(4));
+  test("ssh sessions are refused before any Apple event", () => {
+    expect(overSsh({ SSH_CONNECTION: "1.2.3.4 5 6.7.8.9 22" })).toBe(true);
+    expect(overSsh({ SSH_CONNECTION: "x", CHROME_TABS_ALLOW_SSH: "1" })).toBe(false);
+    expect(overSsh({})).toBe(false);
+  });
   test("-1743 names the Automation grant", () => expect(classify("Not authorized to send Apple events (-1743)").exitCode).toBe(5));
   test("Chrome not running is exit 3 and never launches it", () => {
     expect(() => listTabs(notRunning)).toThrow(/not running/);

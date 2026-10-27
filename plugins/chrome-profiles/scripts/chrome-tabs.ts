@@ -13,7 +13,9 @@
 // extension, no debug port and no dialog (measured 2026-10-27: 19 tabs left behind by automation runs
 // closed by exact id, the operator's own 4 untouched). It needs the macOS Automation grant for the host
 // app (Orca, Terminal, iTerm…) to control Google Chrome, and a call made from inside the logged-in desktop
-// session: from ssh or a launchd job, osascript fails with -600.
+// session. OVER SSH IT IS REFUSED before any Apple event is sent: measured 2026-10-27 on two Macs, `running()`
+// answered but `windows()` hung, and macOS put an "sshd-keygen-wrapper wants to control Google Chrome" prompt
+// on the screen of whoever sat at that Mac. CHROME_TABS_ALLOW_SSH=1 overrides, for a Mac you are sitting at.
 //
 // SAFETY RULES (each one is a measured failure):
 //   - Close only by exact tab id, or by a URL regex whose match count is at most --max (default 1).
@@ -26,8 +28,8 @@
 //   - Never launch Chrome. `Application(...).running()` is checked first, because touching the app object
 //     of a stopped Chrome would start it.
 //
-// Exit codes: 0 ok · 2 usage or refused · 3 Chrome not running · 4 -600 (not in the desktop session)
-//             5 -1743 (Automation permission missing) · 1 anything else.
+// Exit codes: 0 ok · 2 usage or refused · 3 Chrome not running · 4 not in the desktop session (ssh, -600, or no
+//             answer within 15 s) · 5 -1743 (Automation permission missing) · 1 anything else.
 import { spawnSync } from "node:child_process";
 
 export type Tab = { windowId: string; tabId: string; url: string; title: string };
@@ -63,12 +65,24 @@ function run(argv) {
 
 export type Runner = (args: string[]) => { status: number | null; stdout: string; stderr: string };
 
+export const OVER_SSH = "refusing over ssh: an Apple event from an ssh session hangs and makes macOS show an Automation prompt on that Mac's screen. Run it from a terminal on the Mac's desktop (Orca, Terminal), or set CHROME_TABS_ALLOW_SSH=1 if you are sitting at that Mac.";
+
+export function overSsh(env: Record<string, string | undefined> = process.env): boolean {
+  return !!(env.SSH_CONNECTION || env.SSH_CLIENT || env.SSH_TTY) && env.CHROME_TABS_ALLOW_SSH !== "1";
+}
+
 const osascript: Runner = (args) => {
-  const r = spawnSync("osascript", ["-l", "JavaScript", "-e", JXA, ...args], { encoding: "utf8", timeout: 30_000 });
+  if (overSsh()) throw new TabsError(OVER_SSH, 4);
+  const r = spawnSync("osascript", ["-l", "JavaScript", "-e", JXA, ...args], { encoding: "utf8", timeout: 15_000 });
+  // A hung Apple event is killed by the timeout and leaves stderr empty; say so instead of "osascript failed: ".
+  if (r.error && (r.error as NodeJS.ErrnoException).code === "ETIMEDOUT") return { status: 124, stdout: "", stderr: "TIMEOUT" };
   return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? String(r.error ?? "") };
 };
 
 export function classify(stderr: string): TabsError {
+  if (stderr === "TIMEOUT") {
+    return new TabsError("osascript did not answer within 15 s: this is not the Mac's desktop session, or macOS is showing an Automation prompt that someone must answer (System Settings → Privacy & Security → Automation).", 4);
+  }
   if (/-600\b/.test(stderr)) {
     return new TabsError("osascript -600: not running inside the logged-in desktop session (ssh, launchd or a tmux server started from ssh). Run it from a terminal on the Mac's desktop, e.g. an Orca or Terminal tab.", 4);
   }

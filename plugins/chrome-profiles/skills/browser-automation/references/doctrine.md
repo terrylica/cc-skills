@@ -54,7 +54,7 @@ Neither route lists every tab cheaply: the extension sees only its own session's
 
 - **Ids are numbers in JXA and strings in argv.** A strict comparison of the two matched nothing; compare as strings.
 - **Close by id, never by index**: indices shift as tabs close. The dictionary does not say which profile a window belongs to, so select by id plus URL, never by window position.
-- **Errors name their cause.** -600 ("application isn't running") means the call came from outside the logged-in desktop session (ssh, a launchd job, a tmux server started from ssh); -1743 means the calling app lacks the Automation grant for Google Chrome. The -600 cause is inferred, not yet reproduced here.
+- **Only from the Mac's own desktop session, never over ssh.** Measured 2026-10-27 on two other Macs over ssh: `running()` answered, but `windows()` hung, and macOS put an Automation prompt ("sshd-keygen-wrapper wants to control Google Chrome") on the screen of whoever sat at that Mac; one was recorded as a deny. `chrome-tabs.ts` and `rotate-token` therefore refuse when `SSH_CONNECTION` is set, before any Apple event is sent (`CHROME_TABS_ALLOW_SSH=1` for a Mac you are sitting at), and name a 15 s timeout instead of reporting an empty failure. -1743 means the calling app lacks the Automation grant for Google Chrome; -600 ("application isn't running") was the error seen earlier from a non-desktop context but was not what ssh produced.
 - **Touching the app object of a stopped Chrome launches it**; check `running()` first.
 
 ## Chrome versions

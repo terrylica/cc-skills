@@ -98,7 +98,7 @@ bash "$CP" tabs close --url-match <re> [--max n]                   # refuses mor
 bash "$CP" rotate-token <email>                                    # after a token was exposed: new token, stored, page closed
 ```
 
-`tabs close` refuses to empty a window unless `--allow-window-close` (closing a profile's last tab closes its window). `mcp-drive.ts` lists tabs before and after every run and closes the ones that appeared on a host named in its steps, plus the extension's connect page; `MCP_DRIVE_NO_SWEEP=1` turns that off. Never hand-write a JSON-RPC client instead of `mcp-drive.ts`: an ad-hoc client closes at most its own tab and leaks the rest. These need a terminal inside the Mac's desktop session (Orca, Terminal); from ssh or launchd osascript fails with -600, which `tabs` names.
+`tabs close` refuses to empty a window unless `--allow-window-close` (closing a profile's last tab closes its window). `mcp-drive.ts` lists tabs before and after every run and closes the ones that appeared on a host named in its steps, plus the extension's connect page; `MCP_DRIVE_NO_SWEEP=1` turns that off. Never hand-write a JSON-RPC client instead of `mcp-drive.ts`: an ad-hoc client closes at most its own tab and leaks the rest. These need a terminal inside the Mac's desktop session (Orca, Terminal). Over ssh they refuse before sending anything, because there the Apple event hangs and macOS shows an Automation prompt on that Mac's screen; never answer such a prompt with Allow.
 
 ## 5. Things that will bite
 
