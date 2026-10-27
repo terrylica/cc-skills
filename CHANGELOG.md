@@ -1,3 +1,14 @@
+## [34.8.1](https://github.com/terrylica/cc-skills/compare/v34.8.0...v34.8.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** refuse Apple events over ssh; hook test portable to bash 3.2 ([ce9c7d0](https://github.com/terrylica/cc-skills/commit/ce9c7d0c7652209ef12f351522ddd3e5b388c4c9))
+
+Measured on two remote Macs: over ssh, Chrome's running() answered but windows() hung and macOS raised an Automation prompt on that Mac's screen. chrome-tabs.ts and rotate-token now refuse when SSH_CONNECTION is set (CHROME_TABS_ALLOW_SSH=1 overrides) and name a 15 s osascript timeout instead of an empty error. The hook regression test built JSON inside $( "…" ), which stock macOS /bin/bash 3.2 brace-expands; it now builds JSON with jq and passes 12/12 under bash 3.2 and 5. The hook itself was unaffected.
+
+* **chrome-profiles:** rotate-token checks the same ssh variables as chrome-tabs ([0efeccd](https://github.com/terrylica/cc-skills/commit/0efeccd69312864e4e2b47df90454f5284ac1656))
+
 # [34.8.0](https://github.com/terrylica/cc-skills/compare/v34.7.0...v34.8.0) (2026-10-27)
 
 
