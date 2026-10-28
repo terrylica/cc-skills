@@ -1,3 +1,18 @@
+# [34.9.0](https://github.com/terrylica/cc-skills/compare/v34.8.1...v34.9.0) (2026-10-28)
+
+
+### Features
+
+* **itp-hooks:** html-measure guard, HTML text follows the window ([0834ecf](https://github.com/terrylica/cc-skills/commit/0834ecf9e0fda89b7e18b7f57fe04a99f2e70696))
+
+On 2026-10-28 the operator ruled that there should be no hard wrapping of lines in anything presented as HTML or Markdown, and asked for it to be a forced convention for every Orca artifact and HTML page. The Markdown half was already guarded. On a page the same defect comes from CSS rather than line breaks: in the case that prompted the rule, a stylesheet stopped prose at max-width:72em inside a 1560px page, so paragraphs ended well short of the tables beside them and could not reflow when the window widened. The new guard denies that CSS where agents write pages and where they publish them, in every repository.
+
+- New `pretooluse-html-measure-guard.ts` with the pure detector `lib/html-text-measure-detector.ts`. It flags max-width in em, ch or rem (also inside min()/clamp()), width in ch, a px max-width on a page container (body, main, article, .inner, .wrap, .container and similar), and white-space: pre* on prose. It allows @media conditions, images, charts, tooltips, table columns and code blocks.
+- Write/Edit surface, an eleventh subhook of the Write|Edit orchestrator: it covers pages, stylesheets and page builders (.html .css .py .ts .js and template formats). For an Edit it compares the whole file after the edit with the file before it, so only net-new findings are denied and a page with an old cap stays editable.
+- Bash surface, a twenty-sixth entry of the Bash guard orchestrator: it denies `orca artifacts share|update FILE` and `wrangler pages deploy DIR` when a page would be published with a fixed text width. This catches pages written by generator scripts, which no Write/Edit hook sees. Paths that do not exist on the machine, such as one inside an ssh command, are skipped.
+- Escape marker HTML-MEASURE-OK (FILE_WIDE, reason optional), registered in the iter-111 marker registry, with the marketplace marker reference regenerated. It is meant for outside pages archived verbatim.
+- 31 bun tests, including a deny control on each surface. The flagged and allowed vectors are the reference for any build-time copy of the rule that a repository keeps for pages its scripts generate. New spoke `docs/html-measure-guard.md`. The counts in hooks.json, the hub, the spoke index and both orchestrator spokes are updated.
+
 ## [34.8.1](https://github.com/terrylica/cc-skills/compare/v34.8.0...v34.8.1) (2026-10-27)
 
 
