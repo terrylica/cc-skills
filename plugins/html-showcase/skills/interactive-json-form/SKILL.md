@@ -106,6 +106,16 @@ optional hardening, not default.
 
 If your edge config is generated from a registry rather than hand-edited, change the registry and regenerate — that is the durable path, and it keeps the door reproducible.
 
+## Publishing as an Orca artifact (`orca artifacts share|update <file>`)
+
+Measured on share.onorca.dev, 2026-10-28. The page is served in a cross-origin content frame (`*.orcausercontent…`) under `Content-Security-Policy: sandbox allow-downloads allow-forms allow-modals allow-popups allow-scripts`.
+
+- **No browser storage.** Without `allow-same-origin`, `localStorage` throws, so Download, Copy and Import are the only ways to keep answers. Say so on the page.
+- **No Clipboard API.** The frame's permissions policy forbids `clipboard-write`. Calling `navigator.clipboard.writeText` logs a policy violation, and the `execCommand("copy")` fallback can return `true` while copying nothing. A page that says "Copied" here may be lying. Check `document.permissionsPolicy ?? document.featurePolicy` with `allowsFeature("clipboard-write")` first. Where it is blocked, select the whole answer text and ask the reader to press ⌘C / Ctrl+C, or on touch screens (`matchMedia("(pointer: coarse)")`) to touch and hold, then choose Copy. Never claim success you cannot verify. Downloads do work.
+- **Short file names.** Orca prints the original file name, twice and unwrapped, in its share header. A phone's browser zooms the whole page out to fit it: 27 characters fit a 375px phone, 37 need 439px, and 87 need 741px. Keep the name short, under 28 characters including `.html`, and explain the page in its `<h1>`. There is no title flag.
+- **Test the frame, not just the file.** A local overflow check run inside the content frame passes even when the top page is too wide. Emulate a phone (`isMobile: true`) on the share URL and compare the top page's `innerWidth` and `scrollWidth` to the viewport. Serve the local build with the sandbox header above to reproduce the storage behaviour. To prove what a real click copies, read the clipboard back from an unsandboxed page on the same origin.
+- `orca artifacts update <file>` keeps the URL. Renaming the file means `unshare` the old one and `share` the new one, which gives a new URL. Artifacts expire after 30 days.
+
 ## Ingesting responses
 
 The JSON is exactly `collect()`'s output. Consume it directly; key on
