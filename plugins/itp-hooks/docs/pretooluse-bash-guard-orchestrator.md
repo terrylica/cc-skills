@@ -2,7 +2,7 @@
 
 > Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Issue: [#111](https://github.com/terrylica/cc-skills/issues/111).
 
-`hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's 25 Bash guards in one bun process. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
+`hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's 26 Bash guards in one bun process. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
 
 ## How a guard runs inside it
 

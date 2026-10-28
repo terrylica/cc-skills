@@ -116,6 +116,7 @@ import { classifyNativeBinaryGuardForOrchestrator } from "./pretooluse-native-bi
 import { classifyValeClaudeMdGuardForOrchestrator } from "./pretooluse-vale-claude-md-guard.ts";
 import { classifyShellScriptSafetyGuardForOrchestrator } from "./pretooluse-shell-script-safety-guard.ts";
 import { classifySkillPluginRootGuardForOrchestrator } from "./pretooluse-skill-plugin-root-guard.ts";
+import { classifyHtmlMeasureGuardForOrchestrator } from "./pretooluse-html-measure-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -149,6 +150,13 @@ export const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubho
       classify: classifySkillPluginRootGuardForOrchestrator,
       description:
         "Blocks Write/Edit on skill markdown (any .md under a skills/ directory) that references CLAUDE_PLUGIN_ROOT in a shape the runtime cannot honor. Three deniable kinds: BARE_SPELLING (bare $CLAUDE_PLUGIN_ROOT — the substitution regex requires braces, so it is unsubstitutable everywhere, manifests included), NON_SUBSTITUTING_DEFAULT (the braced form carrying a ':-fallback' shell default — the regex needs the closing brace right after the name, so this silently always takes the hardcoded fallback and pins the skill to the L2 marketplace clone instead of the installed version), and BRACED_IN_SHELL_CONTEXT (the braced form on a non-JSON line — a SKILL.md body is served to the model verbatim on the Skill-tool path, so nothing substitutes it and Bash sees an unset variable). JSON manifest lines (key-value or array-element shape) keep the braced form and are exempt. Origin: the 2026-08-05 /notes-commander:draft-hold exit-127 incident, whose upstream cause was two reference docs teaching the rule inverted. Steers to the cc-plugin-root resolver (scripts/cc-plugin-root), which reads installed_plugins.json for the LIVE install path rather than globbing the version cache (which retains orphaned versions). Registry position EARLY — O(1) path filter (/skills/ substring + .md suffix) then an O(1) content-sentinel check; the single disk read is deferred until a real candidate violation exists. Escape hatch: FILE_WIDE `SKILL-PLUGIN-ROOT-OK: <reason ≥10 chars>`, honored in the proposed text or in the on-disk file (iter-15 pattern) so docs ABOUT the variable stay editable.",
+    },
+    {
+      name: "html-measure-guard",
+      timeoutMs: 3000,
+      classify: classifyHtmlMeasureGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on HTML pages, stylesheets and page builders (.html .css .py .ts .js …) that INTRODUCE a fixed text width: max-width in em/ch/rem (also inside min()/clamp()), width in ch, a px max-width on a page container (body, main, article, .inner, .wrap, .container …), or white-space: pre* on prose. Text on an HTML page follows the browser window (operator, 2026-10-28: no hard wrapping in anything presented as HTML or Markdown, forced for every Orca artifact and HTML page). For an Edit the whole file after the edit is compared with the file before it, so only net-new findings count. O(1) extension filter plus a substring fastpath pre-empt the scan. Escape: HTML-MEASURE-OK (FILE_WIDE, proposed text or on disk). Spoke: docs/html-measure-guard.md.",
     },
     {
       name: "typescript-version-guard",

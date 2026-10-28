@@ -10,20 +10,21 @@ Any tool name other than `Write` or `Edit` is allowed before the registry runs.
 
 ## Subhook registry
 
-The registry is `PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orchestrator source; it is the source of truth for this table. It holds 10 subhooks, run serially in this order (lightest first):
+The registry is `PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orchestrator source; it is the source of truth for this table. It holds 11 subhooks, run serially in this order (lightest first):
 
 | #   | Subhook                     | Blocks a Write/Edit that…                                                                  | Timeout  | Spoke                                                                |
 | --- | --------------------------- | ------------------------------------------------------------------------------------------ | -------- | -------------------------------------------------------------------- |
 | 1   | `version-guard`             | adds a hardcoded version string to markdown outside CHANGELOG/HISTORY/ADR/planning paths   | 3000 ms  | [version-guard.md](./version-guard.md)                               |
 | 2   | `shell-script-safety-guard` | adds `$?` after an `else`-less `fi`, or `local`/`export`/… `VAR=$(cmd)`, to a shell script | 3000 ms  | `~/.claude/shell-script-safety-CLAUDE.md`                            |
 | 3   | `skill-plugin-root-guard`   | references `CLAUDE_PLUGIN_ROOT` in skill markdown in a shape the runtime cannot substitute | 3000 ms  | [skill-plugin-root-guard.md](./skill-plugin-root-guard.md)           |
-| 4   | `typescript-version-guard`  | declares TypeScript below 7.x in a `package.json`                                          | 3000 ms  | `Skill(typescript-7)`                                                |
-| 5   | `hoisted-deps-guard`        | breaks the `pyproject.toml` root-only dependency and `[tool.uv.sources]` path policies     | 4000 ms  | [hoisted-deps-guard.md](./hoisted-deps-guard.md)                     |
-| 6   | `pyi-stub-guard`            | adds top-level definitions to a Python `__init__.py` / `__init__.pyi`                      | 3000 ms  | [pyi-stub-guard.md](./pyi-stub-guard.md)                             |
-| 7   | `native-binary-guard`       | introduces a shell script or bare interpreter as a launchd program                         | 4000 ms  | [native-binary-guard.md](./native-binary-guard.md)                   |
-| 8   | `gpu-optimization-guard`    | writes a PyTorch training script missing the mandatory GPU optimizations                   | 4000 ms  | [gpu-optimization-guard.md](./gpu-optimization-guard.md)             |
-| 9   | `file-size-guard`           | would push a file past its per-extension line limit                                        | 4500 ms  | [file-size-guard.md](./file-size-guard.md)                           |
-| 10  | `vale-claude-md-guard`      | leaves vale warning-or-error findings in a `CLAUDE.md` (spawns `vale`; heaviest, so last)  | 12000 ms | [vale-terminology-enforcement.md](./vale-terminology-enforcement.md) |
+| 4   | `html-measure-guard`        | adds a fixed text width (em/ch measure, page-width cap, pre whitespace on prose) to a page, stylesheet or page builder | 3000 ms  | [html-measure-guard.md](./html-measure-guard.md) |
+| 5   | `typescript-version-guard`  | declares TypeScript below 7.x in a `package.json`                                          | 3000 ms  | `Skill(typescript-7)`                                                |
+| 6   | `hoisted-deps-guard`        | breaks the `pyproject.toml` root-only dependency and `[tool.uv.sources]` path policies     | 4000 ms  | [hoisted-deps-guard.md](./hoisted-deps-guard.md)                     |
+| 7   | `pyi-stub-guard`            | adds top-level definitions to a Python `__init__.py` / `__init__.pyi`                      | 3000 ms  | [pyi-stub-guard.md](./pyi-stub-guard.md)                             |
+| 8   | `native-binary-guard`       | introduces a shell script or bare interpreter as a launchd program                         | 4000 ms  | [native-binary-guard.md](./native-binary-guard.md)                   |
+| 9   | `gpu-optimization-guard`    | writes a PyTorch training script missing the mandatory GPU optimizations                   | 4000 ms  | [gpu-optimization-guard.md](./gpu-optimization-guard.md)             |
+| 10  | `file-size-guard`           | would push a file past its per-extension line limit                                        | 4500 ms  | [file-size-guard.md](./file-size-guard.md)                           |
+| 11  | `vale-claude-md-guard`      | leaves vale warning-or-error findings in a `CLAUDE.md` (spawns `vale`; heaviest, so last)  | 12000 ms | [vale-terminology-enforcement.md](./vale-terminology-enforcement.md) |
 
 ## Run semantics
 

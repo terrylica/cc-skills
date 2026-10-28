@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 54 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 55 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (47; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (48; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -34,6 +34,7 @@ Jump directly to any of the 54 registered markers below. Markers are listed alph
 - [`GMAIL-SEND-OK`](#gmail-send-ok)
 - [`HAIKU-MONITOR-SKIP`](#haiku-monitor-skip)
 - [`HEADLESS-P-OK`](#headless-p-ok)
+- [`HTML-MEASURE-OK`](#html-measure-ok)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
@@ -90,7 +91,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (47 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (48 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -415,6 +416,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # HEADLESS-P-OK
+```
+
+## `HTML-MEASURE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-html-measure-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the HTML measure guard (pretooluse-html-measure-guard.ts), which DENIES writing an HTML page, stylesheet or page builder that introduces a fixed text width (max-width in em/ch/rem, width in ch, a px max-width on a page container, white-space: pre* on prose), and DENIES `orca artifacts share|update` or `wrangler pages deploy` of such a page. Text on an HTML page follows the browser window (operator, 2026-10-28). Put HTML-MEASURE-OK in a comment in the file (or anywhere in the command) only for a page that must stay as it is, such as an outside page archived verbatim. For your own page, delete the declaration instead. Spoke: plugins/itp-hooks/docs/html-measure-guard.md.
+
+**Example usage**:
+
+```
+# HTML-MEASURE-OK
 ```
 
 ## `INIT-MONOLITH-OK`

@@ -498,6 +498,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Allow a `gmail draft` / `draft-update` command whose body text contains hard-wraps at a fixed column width or raw markdown constructs. The gmail CLI turns every newline into an HTML `<br>` and HTML-escapes the body (does not render markdown), so prose wrapped at ~100 columns becomes columns of short mid-sentence lines, and `**bold**`, `` `code` ``, `[text](url)`, `#` headings, and `|tables|` render literally. The guard detects hard-wraps and literal markdown in --body and --body-file arguments. Add GMAIL-BODY-OK to the command when the wrapped/markdown format is intentional (e.g., an intentional ASCII table body).",
     },
     {
+      markerNameTokenIncludingSuffix: "HTML-MEASURE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-html-measure-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the HTML measure guard (pretooluse-html-measure-guard.ts), which DENIES writing an HTML page, stylesheet or page builder that introduces a fixed text width (max-width in em/ch/rem, width in ch, a px max-width on a page container, white-space: pre* on prose), and DENIES `orca artifacts share|update` or `wrangler pages deploy` of such a page. Text on an HTML page follows the browser window (operator, 2026-10-28). Put HTML-MEASURE-OK in a comment in the file (or anywhere in the command) only for a page that must stay as it is, such as an outside page archived verbatim. For your own page, delete the declaration instead. Spoke: plugins/itp-hooks/docs/html-measure-guard.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "GMAIL-SEND-OK",
       consumerHookSourceFileRelativePath:
         "plugins/gmail-commander/hooks/gmail-send-guard.ts",

@@ -31,14 +31,15 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-hoisted-deps-guard.ts`                    | Write\|Edit orch.        | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                                  |
 | `pretooluse-gpu-optimization-guard.ts`                | Write\|Edit orch.        | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                              |
 | `pretooluse-file-size-guard.ts`                       | Write\|Edit orch.        | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                                     |
-| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 10 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
+| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 11 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
 | `pretooluse-native-binary-guard.ts`                   | Write\|Edit orch.        | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                                 |
+| `pretooluse-html-measure-guard.ts`                    | Write\|Edit orch. + Bash orch. | Denies HTML/CSS that fixes text width  | [→](./docs/html-measure-guard.md)                                  |
 | `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                                      |
 | `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                                |
 | `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                                   |
 | `pretooluse-cargo-tty-guard.ts`                       | Bash (in pueue-wrap)     | Backgrounded cargo to PUEUE (via pueue-wrap)  | [→](./docs/cargo-tty-guard.md)                                     |
 | `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
-| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 25 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
+| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 26 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
 | `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
 | `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                            |
 | `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |

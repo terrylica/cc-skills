@@ -36,7 +36,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-write-edit-orchestrator.ts",
             "timeout": 15,
-            "description": "Runs 10 Write/Edit guards in one process, first deny or ask wins: version, shell-script-safety, skill-plugin-root, typescript-version, hoisted-deps, pyi-stub, native-binary, gpu-optimization, file-size, vale-claude-md."
+            "description": "Runs 11 Write/Edit guards in one process, first deny or ask wins: version, shell-script-safety, skill-plugin-root, html-measure, typescript-version, hoisted-deps, pyi-stub, native-binary, gpu-optimization, file-size, vale-claude-md."
           }
         ]
       },
