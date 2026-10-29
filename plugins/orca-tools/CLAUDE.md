@@ -7,6 +7,7 @@
 ## Skills
 
 - [floating-terminal](./skills/floating-terminal/SKILL.md) — **the default terminal for agents under Orca** (macOS, Linux): `orca-float run -- CMD` runs a command needing Touch ID, a TTY or a person in Orca's floating terminal and returns its real exit code. Never open iTerm/Terminal/gnome-terminal for this
+- [full-width-artifact](./skills/full-width-artifact/SKILL.md) — **every Orca artifact at full browser width**: `orca-artifact-share FILE.md|FILE.html` renders, lints, publishes and checks the served page. Never publish Markdown with a bare `orca artifacts share` (itp-hooks' html-measure guard denies it)
 - [worktree-spinoff](./skills/worktree-spinoff/SKILL.md)
 - [session-closeout](./skills/session-closeout/SKILL.md)
 

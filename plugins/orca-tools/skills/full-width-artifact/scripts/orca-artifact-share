@@ -1,0 +1,296 @@
+#!/usr/bin/env bun
+/**
+ * orca-artifact-share — publish a Markdown or HTML file as an Orca artifact that uses the FULL browser width.
+ *
+ * Why (measured 2026-10-29, Orca 1.4.x): `orca artifacts share report.md` renders Markdown through Orca's own
+ * template, whose stylesheet caps the body at a fixed pixel width and centres it, so every Markdown artifact is
+ * a narrow column whatever the window size. The share page around it is not the limit (its iframe is 100% wide),
+ * and an HTML artifact is served as uploaded. So: upload HTML whose stylesheet has no fixed content width.
+ *
+ *   orca-artifact-share FILE.md|FILE.html [--dry-run]   render (Markdown via pandoc), lint, publish, verify
+ *   orca-artifact-share --check SHARE_URL               lint what an existing artifact actually serves
+ *   orca-artifact-share --lint FILE.html                lint a local page only
+ *
+ * Publishing uses `orca artifacts update` (same link) and falls back to `share` the first time. The HTML goes to
+ * a stable path per source file, with the hash in the directory name because Orca shows the file name in the
+ * share page's header. After publishing, the served page is fetched and linted, so a future Orca change that
+ * narrows HTML artifacts fails here instead of reaching a reader.
+ *
+ * stdout is one JSON object; messages go to stderr. Exit: 0 ok, 1 lint/verification failed, 2 usage, 3 a
+ * pandoc or Orca command failed. Env: ORCA_CLI (explicit Orca CLI), ORCA_ARTIFACT_DIR (output root).
+ */
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname, extname, join, resolve } from "node:path";
+
+export const MARKER = '<meta name="orca-artifact-layout" content="full-width/v1">';
+const MARKER_RE = /<meta\s+name="orca-artifact-layout"\s+content="full-width\/v1"\s*\/?>/i;
+
+export const FULL_WIDTH_CSS = `
+:root{color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;max-width:none}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.6;color:#111827;background:#fff;padding:28px clamp(16px,3vw,48px);-webkit-text-size-adjust:100%;overflow-wrap:break-word}
+h1,h2,h3,h4,h5,h6{line-height:1.25;font-weight:600;margin:1.6em 0 .6em}
+h1{font-size:1.9em;margin-top:0}
+h2{font-size:1.45em;padding-bottom:.25em;border-bottom:1px solid #e5e7eb}
+h3{font-size:1.2em}
+p,ul,ol,blockquote{margin:0 0 1em}
+ul,ol{padding-left:1.5em}
+li{margin:.25em 0}
+a{color:#2563eb;text-decoration:underline;text-underline-offset:2px}
+hr{border:0;border-top:1px solid #e5e7eb;margin:2em 0}
+blockquote{border-left:3px solid #d1d5db;padding-left:1em;color:#4b5563}
+pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+code{font-size:.875em;background:#f3f4f6;padding:.15em .35em;border-radius:4px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;background:#f3f4f6;border-radius:8px;line-height:1.5;margin:0 0 1em}
+pre code{background:none;padding:0}
+img,video,svg,canvas,picture,iframe{max-width:100%;height:auto}
+.table-scroll{overflow-x:auto;margin:0 0 1.25em;border:1px solid #e5e7eb;border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9375em;line-height:1.45}
+th,td{border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:8px 12px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}
+tr>:last-child{border-right:0}
+tbody tr:last-child>*{border-bottom:0}
+th{background:#f9fafb;font-weight:600}
+`.trim();
+
+/** Injected into an HTML page that arrives without the marker; wins over any column the author's CSS sets. */
+export const OVERRIDE_CSS =
+  "html,body,main,article,section,.container,.content,.wrapper,.wrap,.inner,.page,.markdown-body" +
+  "{max-width:none!important;width:auto!important}" +
+  "html,body{margin-left:0!important;margin-right:0!important}" +
+  "pre{white-space:pre-wrap!important;overflow-wrap:anywhere}";
+
+// ---- Text-measure rules: an exact copy of itp-hooks/hooks/lib/html-text-measure-detector.ts ----
+// Skills install per plugin, so this script cannot import that file at run time. The test
+// (orca-artifact-share.test.ts) runs this copy and the original on the same FLAGGED/ALLOWED vectors
+// (itp-hooks/hooks/lib/html-text-measure-vectors.ts), so the two cannot drift apart.
+const TEXT_CAP = /max-width\s*:\s*(?:[\d.]+(?:em|ch|rem)\b|(?:min|clamp)\([^)]*?[\d.](?:em|ch|rem)\b)/g;
+const CH_WIDTH = /(?<![\w-])width\s*:\s*[\d.]+ch\b/g;
+const PX_CAP = /max-width\s*:\s*[\d.]+px\b/g;
+const PRE_WS = /white-space\s*:\s*pre(?:-wrap|-line)?\b/g;
+const CONTAINER =
+  /(?:^|[\s,>}])(?:body|main|article|\.inner|\.topin|\.wrap|\.container|\.page|\.content|\.viz-root|\.explain)(?:\.[\w-]+)*\s*$/;
+const CODE = /(?:^|[\s,>.#])(?:pre|code|kbd|samp|textarea)\b|\.(?:code|mono)\b/;
+const INLINE_CAP_TAGS = /<(body|main)\b[^>]*?style=(['"])([\s\S]*?)\2/g;
+const INLINE_PRE_TAGS = /<(p|li|div|span|td|blockquote)\b[^>]*?style=(['"])([\s\S]*?)\2/g;
+
+function isCondition(text: string, start: number): boolean {
+  let i = start - 1;
+  while (i >= 0 && /\s/.test(text[i]!)) i--;
+  return i >= 0 && text[i] === "(";
+}
+
+function selectorAt(text: string, start: number): string | null {
+  const open = text.lastIndexOf("{", start);
+  if (open < 0 || text.slice(open, start).includes("}")) return null;
+  const end = open > 0 && text[open - 1] === "{" ? open - 1 : open;
+  let from = -1;
+  for (const c of ["}", ";", '"', "'", "\n"]) from = Math.max(from, text.lastIndexOf(c, end - 1));
+  return text.slice(from + 1, end);
+}
+
+/** The detector's findings for `text` (no escape marker: a published page may not opt out). */
+export function measureViolations(text: string): string[] {
+  const out: string[] = [];
+  for (const re of [TEXT_CAP, CH_WIDTH]) {
+    for (const m of text.matchAll(re)) if (!isCondition(text, m.index!)) out.push(m[0]);
+  }
+  for (const m of text.matchAll(PX_CAP)) {
+    if (isCondition(text, m.index!)) continue;
+    const sel = selectorAt(text, m.index!);
+    if (sel !== null && CONTAINER.test(sel)) out.push(`${sel.trim()} {${m[0]}}`);
+  }
+  for (const m of text.matchAll(PRE_WS)) {
+    const sel = selectorAt(text, m.index!);
+    if (sel !== null && sel.trim() && !CODE.test(sel)) out.push(`${sel.trim()} {${m[0]}}`);
+  }
+  for (const m of text.matchAll(INLINE_CAP_TAGS)) for (const x of m[3]!.matchAll(PX_CAP)) out.push(`<${m[1]} style> ${x[0]}`);
+  for (const m of text.matchAll(INLINE_PRE_TAGS)) for (const x of m[3]!.matchAll(PRE_WS)) out.push(`<${m[1]} style> ${x[0]}`);
+  return out;
+}
+
+/** Rewrite every declaration the detector flags so the text follows the window (used on uploaded HTML). */
+export function neutralize(text: string): string {
+  const at = (re: RegExp, keep: (i: number) => boolean, to: string) =>
+    (text = text.replace(re, (m, ...rest) => (keep(rest[rest.length - 2] as number) ? to : m)));
+  at(TEXT_CAP, (i) => !isCondition(text, i), "max-width:none");
+  at(CH_WIDTH, (i) => !isCondition(text, i), "width:auto");
+  at(PX_CAP, (i) => {
+    if (isCondition(text, i)) return false;
+    const sel = selectorAt(text, i);
+    return sel !== null && CONTAINER.test(sel);
+  }, "max-width:none");
+  at(PRE_WS, (i) => {
+    const sel = selectorAt(text, i);
+    return sel !== null && !!sel.trim() && !CODE.test(sel);
+  }, "white-space:normal");
+  text = text.replace(INLINE_CAP_TAGS, (m) => m.replace(PX_CAP, "max-width:none"));
+  text = text.replace(INLINE_PRE_TAGS, (m) => m.replace(PRE_WS, "white-space:normal"));
+  return text;
+}
+
+/** Problems that stop text from following the window; empty means the page is full width. */
+export function lint(doc: string): string[] {
+  const out: string[] = [];
+  if (!MARKER_RE.test(doc)) out.push("layout marker <meta name=orca-artifact-layout content=full-width/v1> is missing");
+  for (const f of measureViolations(doc)) out.push(`fixed text width: ${f}`);
+  for (const m of doc.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    if (/<br\s*\/?>/i.test(m[1]!)) {
+      out.push(`hard line break inside a paragraph: ${m[1]!.replace(/<[^>]+>/g, "").slice(0, 80)}`);
+      break;
+    }
+  }
+  return out;
+}
+
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+export function wrapPage(bodyHtml: string, title: string): string {
+  const body = bodyHtml.replace(/(<table\b[\s\S]*?<\/table>)/g, '<div class="table-scroll">$1</div>');
+  return `<!doctype html>\n<html lang="und" data-layout="full-width">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n${MARKER}\n<title>${esc(title)}</title>\n<style>\n${FULL_WIDTH_CSS}\n</style>\n</head>\n<body>\n${body}</body>\n</html>\n`;
+}
+
+export function hardenHtml(doc: string): string {
+  const fixed = neutralize(doc);
+  if (MARKER_RE.test(fixed)) return fixed;
+  const inject = `${MARKER}\n<style>${OVERRIDE_CSS}</style>\n`;
+  if (/<\/head>/i.test(fixed)) return fixed.replace(/<\/head>/i, `${inject}</head>`);
+  return `<!doctype html>\n<html><head><meta charset="utf-8">\n${inject}</head><body>\n${fixed}\n</body></html>\n`;
+}
+
+function fail(code: number, error: string, extra: Record<string, unknown> = {}): never {
+  process.stdout.write(`${JSON.stringify({ ok: false, error, ...extra })}\n`);
+  process.exit(code);
+}
+
+function renderMarkdown(src: string): string {
+  const r = spawnSync("pandoc", ["-f", "gfm", "-t", "html5", "--wrap=none", src], { encoding: "utf8" });
+  if (r.error) fail(3, "pandoc is not installed (macOS: brew install pandoc; Debian/Ubuntu: apt install pandoc)");
+  if (r.status !== 0) fail(3, `pandoc failed: ${(r.stderr || "").trim()}`);
+  const h1 = readFileSync(src, "utf8").match(/^#\s+(.+)$/m);
+  return wrapPage(r.stdout, h1 ? h1[1]!.trim() : basename(src, extname(src)));
+}
+
+function isOrca(bin: string): boolean {
+  if (!bin || !existsSync(bin)) return false;
+  const r = spawnSync(bin, ["--help"], { encoding: "utf8", timeout: 10_000 });
+  const h = `${r.stdout || ""}`;
+  return h.includes("worktree create") && h.includes("terminal create");
+}
+
+/** Same order as scripts/lib/orca-cli.sh: never trust a bare `orca` (Linux screen reader). */
+export function findOrca(): string | null {
+  const env = process.env;
+  if (env.ORCA_CLI) return isOrca(env.ORCA_CLI) ? env.ORCA_CLI : null;
+  const which = (n: string) => {
+    const r = spawnSync("sh", ["-c", `command -v ${n}`], { encoding: "utf8" });
+    return (r.stdout || "").trim();
+  };
+  const home = homedir();
+  const candidates = [
+    env.ORCA_CLI_BIN_DIR ? join(env.ORCA_CLI_BIN_DIR, "orca") : "",
+    env.ORCA_CLI_BIN_DIR ? join(env.ORCA_CLI_BIN_DIR, "orca-ide") : "",
+    which("orca"), which("orca-ide"),
+    join(home, ".local/bin/orca-ide"), "/opt/Orca/resources/bin/orca-ide",
+    join(home, ".config/orca/linux-orca-cli-shim/orca"),
+    "/Applications/Orca.app/Contents/Resources/bin/orca",
+    join(home, "Applications/Orca.app/Contents/Resources/bin/orca"),
+  ];
+  return candidates.find((c) => isOrca(c)) ?? null;
+}
+
+function shareUrlOf(o: unknown): string | null {
+  if (o && typeof o === "object") {
+    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+      if ((k === "shareUrl" || k === "url") && typeof v === "string" && v.startsWith("https://")) return v;
+      const found = shareUrlOf(v);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function orcaArtifacts(bin: string, verb: string, file: string): unknown | null {
+  const r = spawnSync(bin, ["artifacts", verb, file, "--json"], { encoding: "utf8", timeout: 120_000 });
+  if (r.status !== 0) return null;
+  try {
+    return JSON.parse(r.stdout);
+  } catch {
+    return null;
+  }
+}
+
+/** Follow the share page's iframe to the served content and lint what is actually served. */
+export async function verifyRemote(shareUrl: string, attempts = 4): Promise<string[]> {
+  let last = ["not fetched"];
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const outer = await (await fetch(shareUrl)).text();
+      const m = outer.match(/<iframe[^>]+src="([^"]+)"/);
+      if (m && !/iframe\s*\{[^}]*width\s*:\s*100%/.test(outer)) return ["the share page's iframe is no longer width:100% (Orca changed its outer page)"];
+      const inner = m ? m[1]!.replace(/&amp;/g, "&") : shareUrl;
+      last = lint(await (await fetch(inner)).text());
+      if (last.length === 0) return [];
+    } catch (e) {
+      last = [`fetch failed: ${String(e)}`];
+    }
+    await Bun.sleep(2000 * (i + 1));
+  }
+  return last;
+}
+
+export function outPathFor(src: string): string {
+  const root = process.env.ORCA_ARTIFACT_DIR || join(homedir(), ".local/share/orca-artifact");
+  const key = createHash("sha256").update(resolve(src)).digest("hex").slice(0, 12);
+  return join(root, key, `${basename(src, extname(src))}.html`);
+}
+
+async function main(argv: string[]): Promise<void> {
+  const flags = new Set(argv.filter((a) => a.startsWith("--")));
+  const pos = argv.filter((a) => !a.startsWith("--"));
+  if (flags.has("--help") || pos.length !== 1) {
+    process.stderr.write("usage: orca-artifact-share FILE.md|FILE.html [--dry-run] | --check SHARE_URL | --lint FILE.html\n");
+    process.exit(flags.has("--help") ? 0 : 2);
+  }
+  const arg = pos[0]!;
+  if (flags.has("--check")) {
+    const problems = await verifyRemote(arg);
+    process.stdout.write(`${JSON.stringify({ ok: problems.length === 0, url: arg, problems })}\n`);
+    process.exit(problems.length ? 1 : 0);
+  }
+  if (!existsSync(arg) || !statSync(arg).isFile()) fail(2, `no such file: ${arg}`);
+  if (flags.has("--lint")) {
+    const problems = lint(readFileSync(arg, "utf8"));
+    process.stdout.write(`${JSON.stringify({ ok: problems.length === 0, file: arg, problems })}\n`);
+    process.exit(problems.length ? 1 : 0);
+  }
+  const ext = extname(arg).toLowerCase();
+  let doc: string;
+  if (ext === ".md" || ext === ".markdown") doc = renderMarkdown(arg);
+  else if (ext === ".html" || ext === ".htm") doc = hardenHtml(readFileSync(arg, "utf8"));
+  else fail(2, "only .md, .markdown, .html and .htm are supported");
+
+  const dst = outPathFor(arg);
+  mkdirSync(dirname(dst), { recursive: true });
+  writeFileSync(dst, doc);
+  const problems = lint(doc);
+  if (problems.length) fail(1, "the page is not full width", { html: dst, problems });
+  if (flags.has("--dry-run")) {
+    process.stdout.write(`${JSON.stringify({ ok: true, dryRun: true, html: dst })}\n`);
+    return;
+  }
+  const orca = findOrca();
+  if (!orca) fail(3, "Orca's CLI was not found (set ORCA_CLI, or run inside an Orca terminal)");
+  const result = orcaArtifacts(orca, "update", dst) ?? orcaArtifacts(orca, "share", dst);
+  if (!result) fail(3, `\`orca artifacts update/share ${dst}\` failed (is Orca running and signed in?)`, { html: dst });
+  const url = shareUrlOf(result);
+  if (!url) fail(3, "published, but Orca returned no share URL", { html: dst });
+  const remote = await verifyRemote(url);
+  process.stdout.write(`${JSON.stringify({ ok: remote.length === 0, url, html: dst, problems: remote })}\n`);
+  process.exit(remote.length ? 1 : 0);
+}
+
+if (import.meta.main) await main(process.argv.slice(2));
