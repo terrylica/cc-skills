@@ -15,34 +15,14 @@ import {
   findTextMeasureViolations,
   netNewTextMeasureViolations,
 } from "./lib/html-text-measure-detector.ts";
+import { ALLOWED, FLAGGED } from "./lib/html-text-measure-vectors.ts";
 import {
   classifyHtmlMeasureGuardForOrchestrator,
   main,
+  publishedMarkdown,
   publishedPageFindings,
 } from "./pretooluse-html-measure-guard.ts";
 
-const FLAGGED = [
-  "p,li{max-width:72em}",
-  ".cap{margin:0;max-width:60ch}",
-  "article{max-width:min(100%,70ch)}",
-  "p{width:66ch}",
-  "body{margin:0;max-width:1560px}",
-  "main{{max-width:1180px}}",
-  ".inner{margin:0 auto; max-width:1000px}",
-  "<body style='max-width:1200px;margin:auto'>",
-  "p.note{white-space:pre-line}",
-  '<div style="white-space:pre-wrap">text</div>',
-];
-const ALLOWED = [
-  "@media (max-width:640px){x{font-size:1em}}",
-  "@media (max-width:40em){p{margin:0}}",
-  "img{max-width:100%}",
-  "figure.narrow img{max-width:min(100%,1100px)}",
-  ".tip{max-width:320px}",
-  "td.d{min-width:22em}",
-  "pre{white-space:pre} textarea.code{white-space:pre}",
-  "<!-- HTML-MEASURE-OK: outside page archived verbatim --><style>p{max-width:40em}</style>",
-];
 const CAPPED_PAGE = "<!doctype html><style>body{margin:0 auto;max-width:1560px} p,li{max-width:72em}</style><p>x</p>";
 const CLEAN_PAGE = "<!doctype html><style>body{margin:0 auto;padding:18px} img{max-width:100%}</style><p>x</p>";
 
@@ -102,6 +82,7 @@ describe("Bash surface", () => {
   mkdirSync(join(dir, "site", "sub"), { recursive: true });
   writeFileSync(join(dir, "site", "index.html"), CLEAN_PAGE);
   writeFileSync(join(dir, "site", "sub", "page.html"), CAPPED_PAGE);
+  writeFileSync(join(dir, "report.md"), "# Report\n\nOne paragraph.\n");
 
   it("finds the capped page an orca share would publish (relative to cwd, with flags)", () => {
     expect(publishedPageFindings("orca artifacts share capped.html --json", dir)).toHaveLength(1);
@@ -127,5 +108,20 @@ describe("Bash surface", () => {
     expect(await decide("orca artifacts share clean.html --json")).not.toContain('"deny"');
     expect(await decide("orca artifacts share capped.html --json # HTML-MEASURE-OK: verbatim archive")).not.toContain('"deny"');
     expect(await decide("ls -la")).not.toContain('"deny"');
+  });
+  it("finds Markdown an orca share or update would publish (Orca's template is a fixed-width column)", () => {
+    expect(publishedMarkdown("orca artifacts share report.md --json", dir)).toEqual(["report.md"]);
+    expect(publishedMarkdown(`orca artifacts update "${join(dir, "report.md")}"`, undefined)).toHaveLength(1);
+    expect(publishedMarkdown("orca artifacts share clean.html", dir)).toEqual([]);
+    expect(publishedMarkdown("ssh mac 'orca artifacts share /Users/x/remote.md'", dir)).toEqual([]);
+    expect(publishedMarkdown("orca artifacts unshare report.md", dir)).toEqual([]);
+  });
+  it("CONTROL: main() denies publishing Markdown and points to the full-width tool; escape and unshare pass", async () => {
+    const denied = await decide("orca artifacts share report.md --json");
+    expect(denied).toContain('"deny"');
+    expect(denied).toContain("full-width-artifact/scripts/orca-artifact-share");
+    expect(await decide("orca artifacts share report.md # HTML-MEASURE-OK: deliberate Markdown artifact")).not.toContain('"deny"');
+    expect(await decide("orca artifacts unshare report.md")).not.toContain('"deny"');
+    expect(await decide("orca artifacts list")).not.toContain('"deny"');
   });
 });

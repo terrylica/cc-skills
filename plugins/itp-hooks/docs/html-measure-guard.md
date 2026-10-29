@@ -24,12 +24,13 @@ Page containers are `body`, `main`, `article`, `.inner`, `.topin`, `.wrap`, `.co
 - Images (`img{max-width:100%}`), charts, tooltips (`.tip{max-width:320px}`) and small banners: they are not text columns.
 - Table columns (`td{min-width:22em}`). Give a wide table its own `overflow-x:auto` box instead of narrowing the page.
 - Code: `pre`, `code`, `kbd`, `samp`, `textarea`, `.code` and `.mono` may keep their lines.
-- Markdown files, which the hard-wrap guards cover.
+- Markdown files on disk, which the hard-wrap guards cover. Publishing one to Orca is a different matter; see below.
 
 ## Where it runs
 
 1. **Write and Edit**, as a subhook of the [Write|Edit orchestrator](./pretooluse-write-edit-orchestrator.md), on pages, stylesheets and the sources that build them (`.html .css .scss .py .ts .tsx .js .mjs .vue .svelte .astro .sh` and template formats). For an Edit the whole file after the edit is compared with the file before it, so only findings the edit adds are denied, and a page with an old cap can still be edited elsewhere.
 2. **Bash**, as an entry of the [Bash guard orchestrator](./pretooluse-bash-guard-orchestrator.md), on `orca artifacts share|update FILE` (it reads the file) and `wrangler pages deploy DIR` (it reads every page under DIR). This catches pages written by generator scripts, which the Write|Edit surface never sees. A path that does not exist on this machine, such as one inside an `ssh` command, is skipped.
+3. **Markdown published to Orca**, on the same Bash entry: `orca artifacts share|update FILE.md` is denied unless the command carries the HTML-MEASURE-OK escape. Orca renders a Markdown artifact through its own template, whose stylesheet caps the body at a fixed pixel width and centres it (measured 2026-10-29), so the artifact is a narrow column whatever the window, and nothing in the local file shows why. The denial points to orca-tools' [`full-width-artifact`](../../orca-tools/skills/full-width-artifact/SKILL.md) script, which renders the Markdown to full-width HTML, publishes it, and fetches the served page to check it. That script carries a copy of this guard's rule; both are tested against the shared vectors in [`hooks/lib/html-text-measure-vectors.ts`](../hooks/lib/html-text-measure-vectors.ts).
 
 ## Escape hatch
 

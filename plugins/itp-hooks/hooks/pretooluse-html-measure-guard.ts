@@ -15,7 +15,9 @@
  *      page stays editable.
  *   2. Bash (entry of pretooluse-bash-guard-orchestrator.ts): DENIES `orca artifacts share|update FILE` of a
  *      page with a fixed text width, and `wrangler pages deploy DIR` when a page in DIR has one. This catches
- *      pages written by generator scripts, which the Write|Edit surface never sees.
+ *      pages written by generator scripts, which the Write|Edit surface never sees. It also DENIES
+ *      `orca artifacts share|update FILE.md`: Orca renders Markdown through its own template, which caps the
+ *      body at a fixed pixel width (measured 2026-10-29), so the fix is orca-tools' full-width-artifact script.
  *
  * Escape hatch: HTML-MEASURE-OK (FILE_WIDE) in the file, in the proposed text, or anywhere in the command, for
  * a page that must stay as it is (an outside page archived verbatim). Fails open on any error.
@@ -126,7 +128,7 @@ export async function classifyHtmlMeasureGuardForOrchestrator(
 }
 
 // ============================================================================
-// Surface 2: Bash (orca artifacts share|update FILE; wrangler pages deploy DIR)
+// Surface 2: Bash (orca artifacts share|update FILE, including Markdown; wrangler pages deploy DIR)
 // ============================================================================
 
 function unquote(token: string): string {
@@ -181,6 +183,32 @@ function pageFindings(path: string): string[] {
   }
 }
 
+/**
+ * Markdown files this command would publish to Orca. Orca renders Markdown through its own template, whose
+ * stylesheet caps the body at a fixed pixel width (measured 2026-10-29), so a Markdown artifact is always a
+ * narrow column and no check of the local file can see why. Paths that do not exist here (an ssh remote) are skipped.
+ */
+export function publishedMarkdown(command: string, cwd: string | undefined): string[] {
+  return targetsAfter(command, ORCA_PUBLISH)
+    .filter((raw) => /\.(?:md|markdown)$/i.test(unquote(raw)) && existsSync(resolvePath(raw, cwd)))
+    .map(unquote);
+}
+
+export function explainPublishedMarkdown(file: string): string {
+  return [
+    `[HTML-MEASURE-GUARD] Publishing ${file} to Orca as Markdown makes a narrow page.`,
+    "",
+    "Orca renders a Markdown artifact through its own template, whose stylesheet caps the body at a fixed",
+    "pixel width and centres it, so the text never follows the browser window (measured 2026-10-29).",
+    "Operator rule (2026-10-28/29): every Orca artifact uses the full browser width, with no hard wrapping.",
+    "",
+    "Publish it as full-width HTML instead (renders with pandoc, lints, publishes, then checks the served page):",
+    `  bun "$(cc-plugin-root orca-tools)/skills/full-width-artifact/scripts/orca-artifact-share" ${file}`,
+    "Re-running it for the same file keeps the same link. Skill: orca-tools:full-width-artifact.",
+    "Escape (a deliberate Markdown artifact): put HTML-MEASURE-OK in the command.",
+  ].join("\n");
+}
+
 /** Pages this command would publish that fix their text width: [label, findings][]. */
 export function publishedPageFindings(command: string, cwd: string | undefined): [string, string[]][] {
   const bad: [string, string[]][] = [];
@@ -212,6 +240,8 @@ export async function main(): Promise<void> {
     if (input.tool_name !== "Bash") return allow();
     const command = input.tool_input.command || "";
     if (!/\borca\s+artifacts\b|\bwrangler\b/.test(command) || hasEscape(command)) return allow();
+    const markdown = publishedMarkdown(command, input.cwd);
+    if (markdown.length) return deny(explainPublishedMarkdown(markdown[0]!));
     const bad = publishedPageFindings(command, input.cwd);
     if (bad.length === 0) return allow();
     const [label, findings] = bad[0]!;
