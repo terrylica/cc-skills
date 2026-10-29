@@ -1,3 +1,26 @@
+# [34.10.0](https://github.com/terrylica/cc-skills/compare/v34.9.0...v34.10.0) (2026-10-29)
+
+
+### Features
+
+* **itp-hooks:** html-measure guard denies publishing Markdown to Orca ([3fcc1e7](https://github.com/terrylica/cc-skills/commit/3fcc1e7c0a6b798fe6160b26f2ad1835cf45dca1))
+
+Orca renders a Markdown artifact through its own template, whose stylesheet caps the body at 820 px and centres it (measured 2026-10-29), so every `orca artifacts share report.md` is a narrow column whatever the window. The guard already read HTML files passed to `orca artifacts share|update` but skipped Markdown, which is exactly the case that produced the narrow page; nothing in the local file shows the cap, because Orca adds it server-side.
+
+- `orca artifacts share|update FILE.md` is now denied, and the message points to orca-tools' full-width-artifact script. `unshare`, `list`, a remote ssh path and the HTML-MEASURE-OK escape pass.
+- The FLAGGED/ALLOWED vectors move to `hooks/lib/html-text-measure-vectors.ts`, so the guard's test and the copy of the rule in orca-tools are tested on the same inputs. Orca's Markdown template is added as a flagged vector.
+- Spoke `docs/html-measure-guard.md` and the Bash orchestrator entry describe the new surface.
+
+* **orca-tools:** full-width-artifact skill for Orca artifacts ([7aaa577](https://github.com/terrylica/cc-skills/commit/7aaa5779a2debf033a1a034add0636c2b596d20b))
+
+Operator rule (2026-10-28/29): every Orca artifact uses the full browser width, with no fixed-width column and no hard line breaks. Orca's Markdown template caps the page at 820 px, while the share page's iframe is 100% wide and HTML artifacts are served as uploaded, so the fix is to publish HTML whose stylesheet sets no fixed content width.
+
+- `skills/full-width-artifact/scripts/orca-artifact-share FILE.md|FILE.html` renders Markdown with pandoc into a full-width page (tables in their own scroll box, no fixed column) or repairs uploaded HTML, lints it, publishes with `orca artifacts update` falling back to `share`, then fetches the served page through its iframe and lints that. A future Orca change that narrows HTML artifacts fails the run instead of reaching a reader.
+- Re-publishing a source keeps its link: the HTML lands at a stable per-source path, with the hash in the directory name because Orca shows the uploaded file name in the share page's header.
+- `--check SHARE_URL` audits an existing artifact; `--lint FILE` checks a local page. stdout is one JSON object; Orca's CLI is found like the other orca-tools scripts, never a bare `orca`.
+- The lint is a copy of itp-hooks' html-measure rule plus a layout marker and no `<br>` in prose; the test runs the copy and the original on the shared vectors.
+- Verified 2026-10-29 on a bilingual six-table report: the Markdown artifact was the 820 px column; the published HTML filled an 1800 px window, re-publishing kept the link, and `--check` passed on it and failed on the old one.
+
 # [34.9.0](https://github.com/terrylica/cc-skills/compare/v34.8.1...v34.9.0) (2026-10-28)
 
 
