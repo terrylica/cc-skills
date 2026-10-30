@@ -1782,11 +1782,11 @@ statusline_shows git && echo -e "$line1"
 #
 #   ... UTC | ... PDT | gateway 3/3 ✓ 1.93.0                                ← all healthy
 #   ... UTC | ... PDT | gateway 3/3 · unproven 1.93.0                         ← no recent evidence (idle), calm
-#   ... UTC | ... PDT | gateway 2/3 ⚠  flapping 1.93.0                        ← one account out of rotation
+#   ... UTC | ... PDT | gateway 2/3 ⚠ flapping 1.93.0                         ← one account out of rotation
 #   ... UTC | ... PDT | gateway 3/3 ⚠9/17 5m flapping 1.93.0                  ← degraded, but this session's requests complete
-#   ... UTC | ... PDT | gateway 1/3 ⚠  partial-outage 1.93.0                  ← last healthy account, pre-warn
+#   ... UTC | ... PDT | gateway 1/3 ⚠ partial-outage 1.93.0                   ← last healthy account, pre-warn
 #   ... UTC | ... PDT | gateway 3/3 ✗9/17 5m outage 1.93.0                    ← 9 of 17 forwarded requests failed in the 5m window
-#   ... UTC | ... PDT | gateway 0/3 ✗  outage 1.93.0                          ← no schedulable account, alarm
+#   ... UTC | ... PDT | gateway 0/3 ✗ outage 1.93.0                           ← no schedulable account, alarm
 #   ... UTC | ... PDT | gateway 3/3 ? no-health-signal 1.93.0                 ← answered without a health block
 #   ... UTC | ... PDT | gateway 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
 #   ... UTC | ... PDT | gateway unreachable 1.93.0                          ← gateway down
@@ -2200,15 +2200,15 @@ if [ "$gateway_status" = "healthy" ] || [ "$gateway_status" = "degraded" ]; then
             unified_state_name_visible_label_token=" ${YELLOW}no-health-signal${RESET}"
             ;;
         flapping)
-            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render}${canary_failure_duration_humanized_short_form:+ ${canary_failure_duration_humanized_short_form}}${RESET}"
             unified_state_name_visible_label_token=" ${YELLOW}flapping${RESET}"
             ;;
         partial-outage)
-            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render}${canary_failure_duration_humanized_short_form:+ ${canary_failure_duration_humanized_short_form}}${RESET}"
             unified_state_name_visible_label_token=" ${YELLOW}partial-outage${RESET}"
             ;;
         outage)
-            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_last_observed_http_status_for_render}${canary_failure_duration_humanized_short_form:+ ${canary_failure_duration_humanized_short_form}}${RESET}"
             unified_state_name_visible_label_token=" ${RED}outage${RESET}"
             ;;
         *)

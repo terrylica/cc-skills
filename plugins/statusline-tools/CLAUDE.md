@@ -73,11 +73,11 @@ When gateway is reachable, the datetime line gains:
 ```
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✓ 1.93.0                          ← all healthy
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 · unproven 1.93.0                 ← no recent evidence (idle), calm
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 2/3 ⚠  flapping 1.93.0                ← one account out of rotation
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 2/3 ⚠ flapping 1.93.0                 ← one account out of rotation
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ⚠9/17 5m flapping 1.93.0          ← degraded, but this session's own requests complete
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 1/3 ⚠  partial-outage 1.93.0          ← last healthy account, pre-warn
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 1/3 ⚠ partial-outage 1.93.0           ← last healthy account, pre-warn
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✗9/17 5m outage 1.93.0            ← 9 of 17 forwarded requests failed in the 5m window
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 0/3 ✗  outage 1.93.0                  ← no schedulable account, alarm
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 0/3 ✗ outage 1.93.0                   ← no schedulable account, alarm
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✓ 1.2.0=1.2.0                      ← wrapper exactly at floor, pre-warn
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway unreachable 1.93.0                    ← gateway down
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway ⌁35 1h stale 1.93.0                  ← refresh failing (curl 35), last snapshot 1h old: evidence withheld

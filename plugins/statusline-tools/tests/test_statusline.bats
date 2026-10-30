@@ -879,6 +879,22 @@ teardown() {
     done
 }
 
+@test "a severity glyph with no evidence to show is followed by exactly one space" {
+    # A full-health verdict over a shrunken or empty pool has no failed/forwarded
+    # evidence and no window, so the glyph must not leave a gap before the label.
+    local cache="$BATS_TEST_TMPDIR/cache.json"
+    render_pool() {
+        printf '%s\n' "{\"pool\":{\"schedulable_active_accounts\":$1,\"error_accounts\":$2},\"upstream_health_observed_from_forwarded_request_log\":{\"state\":\"serving\",\"failed_requests_in_window\":0,\"forwarded_requests_in_window\":9,\"observation_window_secs\":300}}" > "$cache"
+        echo "$TEST_INPUT" | STATUSLINE_GATEWAY_BASE_URL=http://127.0.0.1:9 \
+            STATUSLINE_GATEWAY_FLOOR_CACHE="$BATS_TEST_TMPDIR/floor" \
+            STATUSLINE_GATEWAY_STATE_LOG="$BATS_TEST_TMPDIR/gw.jsonl" \
+            STATUSLINE_GATEWAY_CACHE="$cache" "$STATUSLINE" | sed $'s/\x1b\\[[0-9;]*m//g'
+    }
+    [[ "$(render_pool 2 1)" == *"gateway 2/3 ⚠ flapping"* ]]
+    [[ "$(render_pool 1 2)" == *"gateway 1/3 ⚠ partial-outage"* ]]
+    [[ "$(render_pool 0 3)" == *"gateway 0/3 ✗ outage"* ]]
+}
+
 # --- STATUSLINE_HIDE: named segments can be left out of the render -----------
 
 @test "STATUSLINE_HIDE=repo,session drops the repo and JSONL ID lines" {
