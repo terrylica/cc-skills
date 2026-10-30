@@ -958,8 +958,32 @@ statusline_shows gateway || GATEWAY_CONFIGURED=0
 
 GATEWAY_CACHE=""
 [ "$GATEWAY_CONFIGURED" -eq 1 ] && \
-    GATEWAY_CACHE="/tmp/statusline-gateway-cache-$(printf '%s' "$GATEWAY_BASE" | shasum | cut -c1-8).json"
+    GATEWAY_CACHE="${STATUSLINE_GATEWAY_CACHE:-/tmp/statusline-gateway-cache-$(printf '%s' "$GATEWAY_BASE" | shasum | cut -c1-8).json}"
 GATEWAY_CACHE_TTL=60
+
+# GATEWAY_STALE_AFTER_SECS — how old a cached snapshot may be and still stand in
+# for live data when a refresh fails. Past it the segment renders `⌁ <age> stale`
+# and the cached evidence is not shown at all.
+#
+# Stale-on-failure exists so that one failed refresh does not blank the segment.
+# Before 2026-10-30 it had no bound, so a failure that LASTED kept repeating the
+# last snapshot as if it were current. Measured: a Mac that woke on a network
+# that resets TLS for the gateway's hostname rendered a 15:27Z snapshot, "✗9/17
+# 5m outage", from 16:42Z on; at 17:15Z it was 1h47m old and the gateway itself
+# reported serving 3/57. Nothing in the render said the evidence was old, and
+# "5m" read as "the last five minutes".
+#
+# 300 s is the gateway's own observation window: a snapshot older than that
+# describes a window that no longer overlaps the present at all.
+GATEWAY_STALE_AFTER_SECS="${STATUSLINE_GATEWAY_STALE_AFTER_SECS:-300}"
+
+# GATEWAY_FALLBACK_BASE — an optional second door to the SAME gateway, tried
+# only when the primary refresh fails. OPT-IN: empty by default, and empty means
+# no second request ever. A network that blocks the primary URL may still
+# allow a different one to the same gateway, and then the render stays live
+# instead of going stale. Set it in private configuration, never in this
+# repository.
+GATEWAY_FALLBACK_BASE="${STATUSLINE_GATEWAY_FALLBACK_BASE_URL:-}"
 
 # Gateway's minimum wrapper version floor — AUTO-DISCOVERED (L1a, 2026-05-13).
 #
@@ -1050,28 +1074,64 @@ fi
 
 # Fetch /v1/router-status (cache-aware). Skipped entirely — no curl, no DNS,
 # no cache file — when no gateway is configured.
+#
+# Four facts about every render are kept for the telemetry log and the render:
+#   gateway_snapshot_age_secs          age of the data being rendered (0 = fetched
+#                                      now; empty = there is no data at all)
+#   gateway_fetch_curl_exit_code       curl's exit code for this render's refresh
+#                                      of the PRIMARY door, verbatim (7 refused,
+#                                      28 timeout, 35 TLS reset, …); empty = no
+#                                      refresh was due
+#   gateway_fallback_curl_exit_code    the same for the fallback door; empty = not
+#                                      tried (none configured, or primary worked)
+#   gateway_fetch_source               primary | fallback | empty (no refresh due,
+#                                      or every door failed)
 gateway_raw=""
+gateway_snapshot_age_secs=""
+gateway_fetch_curl_exit_code=""
+gateway_fallback_curl_exit_code=""
+gateway_fetch_source=""
+gateway_snapshot_is_stale=0
 gateway_needs_fetch=0
+gateway_cache_age=""
 [ "$GATEWAY_CONFIGURED" -eq 1 ] && gateway_needs_fetch=1
 if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -f "$GATEWAY_CACHE" ]; then
     gateway_cache_mtime=$(file_mtime "$GATEWAY_CACHE")
-    gateway_cache_age=$(( ${NOW_EPOCH} - gateway_cache_mtime ))
+    gateway_cache_age=$(( NOW_EPOCH - gateway_cache_mtime ))
     [ "$gateway_cache_age" -lt "$GATEWAY_CACHE_TTL" ] && gateway_needs_fetch=0
 fi
 if [ "$gateway_needs_fetch" -eq 1 ]; then
+    gateway_fetch_curl_exit_code=0
     gateway_fresh=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 \
-        "${GATEWAY_BASE}/v1/router-status" 2>/dev/null) || gateway_fresh=""
-    if [ -n "$gateway_fresh" ]; then
+        "${GATEWAY_BASE}/v1/router-status" 2>/dev/null) || gateway_fetch_curl_exit_code=$?
+    if [ "$gateway_fetch_curl_exit_code" -eq 0 ] && [ -n "$gateway_fresh" ]; then
+        gateway_fetch_source="primary"
+    elif [ -n "$GATEWAY_FALLBACK_BASE" ]; then
+        gateway_fallback_curl_exit_code=0
+        gateway_fresh=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 \
+            "${GATEWAY_FALLBACK_BASE}/v1/router-status" 2>/dev/null) || gateway_fallback_curl_exit_code=$?
+        if [ "$gateway_fallback_curl_exit_code" -eq 0 ] && [ -n "$gateway_fresh" ]; then
+            gateway_fetch_source="fallback"
+        fi
+    fi
+    if [ -n "$gateway_fetch_source" ]; then
         echo "$gateway_fresh" > "$GATEWAY_CACHE"
         gateway_raw="$gateway_fresh"
-    elif [ -f "$GATEWAY_CACHE" ]; then
-        # Fetch failed but cache exists → render stale data rather than going
-        # dark. The cache mtime already telegraphs staleness to anyone reading
-        # the file directly.
-        gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
+        gateway_snapshot_age_secs=0
+    elif [ -n "$gateway_cache_age" ]; then
+        # Fetch failed but a cache exists. Inside the bound, render it: one failed
+        # refresh is a blip, not an outage. Past the bound, do NOT parse it — its
+        # evidence would render (and be logged) as the present state.
+        gateway_snapshot_age_secs="$gateway_cache_age"
+        if [ "$gateway_cache_age" -gt "$GATEWAY_STALE_AFTER_SECS" ]; then
+            gateway_snapshot_is_stale=1
+        else
+            gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
+        fi
     fi
 elif [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
     gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
+    gateway_snapshot_age_secs="$gateway_cache_age"
 fi
 
 # Local client wrapper version (cached by binary mtime). The subprocess
@@ -1164,9 +1224,66 @@ canary_last_observed_http_status_for_render=""
 pool_resilience_state_machine_label=""
 unified_state_name_for_render_label=""
 canary_failure_duration_humanized_short_form=""
+# A snapshot past GATEWAY_STALE_AFTER_SECS was not read at all (see the fetch
+# block), so every primitive above keeps its no-data default and the render and
+# the telemetry log both say "stale" instead of repeating old evidence.
+if [ "$gateway_snapshot_is_stale" -eq 1 ]; then
+    gateway_status="stale"
+    unified_state_name_for_render_label="stale"
+fi
+
+# L1c (real-traffic cross-check, 2026-05-13) — second-opinion damper on the
+# canary signal. The canary is one synthetic probe; if it's degraded, that
+# may or may not reflect actual upstream health. Real traffic is the ground
+# truth: when this Mac's Claude Code session is actively pumping requests
+# through gateway AND those requests are completing, gateway IS serving,
+# regardless of what the canary says.
+#
+# Detection signals:
+#   (a) $ANTHROPIC_BASE_URL points at gateway (bearer-mode routing) AND
+#   (b) The current session's transcript JSONL has been written to within
+#       the last 60s (Claude Code only appends to the transcript when it
+#       successfully receives upstream responses)
+#
+# Effect: when both hold, downgrade the canary class by one alarm level.
+# Computed BEFORE the parser and applied inside it, so the composed label
+# follows the damped class (see the parser's L1c block for why).
+# This is a damper, not a silencer — recent-degradation → transient,
+# transient → since-start-failure (i.e. "config bug, not outage"). Healthy
+# stays healthy. since-start-failure stays since-start-failure (already
+# minimum-alarm).
+#
+# Why we DON'T just suppress the canary signal entirely when real traffic
+# flows: the canary's interval (1-5min) doesn't perfectly align with the
+# user's prompt cadence. A 5min-stale transcript with an actively-failing
+# canary IS a credible early-warning of impending failure on the next
+# prompt. Damper-not-silencer preserves that signal at one severity level.
+# Deployment-agnostic "is this session routed through the configured gateway?"
+# test (2026-09-04). This previously pattern-matched one private hostname plus
+# two loopback forms. We now compare the live $ANTHROPIC_BASE_URL against the
+# gateway the operator actually configured, which is both generic AND more
+# correct: the old literal list went stale every time the fleet moved hosts,
+# silently disabling the damper while still looking like it worked.
+real_traffic_recent=0
+if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -n "${ANTHROPIC_BASE_URL:-}" ] \
+   && [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
+    # Compare on host[:port], ignoring scheme and any trailing path.
+    _rt_env_authority="${ANTHROPIC_BASE_URL#*://}"; _rt_env_authority="${_rt_env_authority%%/*}"
+    _rt_gw_authority="${GATEWAY_BASE#*://}";       _rt_gw_authority="${_rt_gw_authority%%/*}"
+    # Loopback is always accepted: the wrapper's local reverse proxy fronts the
+    # gateway on 127.0.0.1, so a loopback base URL still means gateway-routed.
+    case "$_rt_env_authority" in
+        127.0.0.1:*|localhost:*|"$_rt_gw_authority")
+            transcript_mtime=$(file_mtime "$transcript_file")
+            transcript_age=$(( NOW_EPOCH - transcript_mtime ))
+            [ "$transcript_age" -lt 60 ] && real_traffic_recent=1
+            ;;
+    esac
+    unset _rt_env_authority _rt_gw_authority
+fi
 if [ -n "$gateway_raw" ]; then
-    gateway_parsed=$(echo "$gateway_raw" | python3 -c "
-import sys, json
+    gateway_parsed=$(echo "$gateway_raw" | STATUSLINE_REAL_TRAFFIC_RECENT="$real_traffic_recent" python3 -c "
+import sys, json, os
 
 # ===========================================================================
 # L1d UNIFIED-RENDER PRIMITIVE EXTRACTOR (cc-skills statusline, 2026-05-13)
@@ -1393,6 +1510,17 @@ try:
         derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
             schedulable_active_accounts_count, rotation_working_set_size,
         )
+    # L1c real-traffic damper (detection is in the shell, before this parser).
+    # Applied HERE, after the evidence token and duration were taken from the
+    # undamped signal and before the label is composed, so the rendered label
+    # and the logged class always agree. Until 2026-10-30 the shell applied it
+    # after this parser had already composed the label: the log said
+    # 'transient' while the segment still rendered a red 'outage'.
+    if os.environ.get('STATUSLINE_REAL_TRAFFIC_RECENT') == '1':
+        if canary_classification_four_state == 'recent-degradation':
+            canary_classification_four_state = 'transient'
+        elif canary_classification_four_state == 'transient':
+            canary_classification_four_state = 'since-start-failure'
     unified_state_name_for_render_label = \
         compose_unified_state_name_for_render_label_from_canary_class_and_pool_state(
             canary_classification_four_state, pool_resilience_state_machine_label,
@@ -1438,58 +1566,8 @@ except Exception:
     fi
 fi
 
-# L1c (real-traffic cross-check, 2026-05-13) — second-opinion damper on the
-# canary signal. The canary is one synthetic probe; if it's degraded, that
-# may or may not reflect actual upstream health. Real traffic is the ground
-# truth: when this Mac's Claude Code session is actively pumping requests
-# through gateway AND those requests are completing, gateway IS serving,
-# regardless of what the canary says.
-#
-# Detection signals:
-#   (a) $ANTHROPIC_BASE_URL points at gateway (bearer-mode routing) AND
-#   (b) The current session's transcript JSONL has been written to within
-#       the last 60s (Claude Code only appends to the transcript when it
-#       successfully receives upstream responses)
-#
-# Effect: when both hold, downgrade the canary class by one alarm level.
-# This is a damper, not a silencer — recent-degradation → transient,
-# transient → since-start-failure (i.e. "config bug, not outage"). Healthy
-# stays healthy. since-start-failure stays since-start-failure (already
-# minimum-alarm).
-#
-# Why we DON'T just suppress the canary signal entirely when real traffic
-# flows: the canary's interval (1-5min) doesn't perfectly align with the
-# user's prompt cadence. A 5min-stale transcript with an actively-failing
-# canary IS a credible early-warning of impending failure on the next
-# prompt. Damper-not-silencer preserves that signal at one severity level.
-# Deployment-agnostic "is this session routed through the configured gateway?"
-# test (2026-09-04). This previously pattern-matched one private hostname plus
-# two loopback forms. We now compare the live $ANTHROPIC_BASE_URL against the
-# gateway the operator actually configured, which is both generic AND more
-# correct: the old literal list went stale every time the fleet moved hosts,
-# silently disabling the damper while still looking like it worked.
-real_traffic_recent=0
-if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -n "${ANTHROPIC_BASE_URL:-}" ] \
-   && [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
-    # Compare on host[:port], ignoring scheme and any trailing path.
-    _rt_env_authority="${ANTHROPIC_BASE_URL#*://}"; _rt_env_authority="${_rt_env_authority%%/*}"
-    _rt_gw_authority="${GATEWAY_BASE#*://}";       _rt_gw_authority="${_rt_gw_authority%%/*}"
-    # Loopback is always accepted: the wrapper's local reverse proxy fronts the
-    # gateway on 127.0.0.1, so a loopback base URL still means gateway-routed.
-    case "$_rt_env_authority" in
-        127.0.0.1:*|localhost:*|"$_rt_gw_authority")
-            transcript_mtime=$(file_mtime "$transcript_file")
-            transcript_age=$(( ${NOW_EPOCH} - transcript_mtime ))
-            [ "$transcript_age" -lt 60 ] && real_traffic_recent=1
-            ;;
-    esac
-    unset _rt_env_authority _rt_gw_authority
-fi
 if [ "$real_traffic_recent" -eq 1 ]; then
-    case "$canary_class" in
-        recent-degradation) canary_class="transient" ;;
-        transient)          canary_class="since-start-failure" ;;
-    esac
+    # The class downgrade itself happens inside the parser (L1c block there).
     # Also clear pool-error escalation: if traffic is flowing, error_accounts
     # might be a transient blip the rotation is already routing around.
     if [ "$gateway_status" = "degraded" ] && [ "$pool_errors" -gt 0 ] && [ "$canary_class" != "recent-degradation" ]; then
@@ -1799,6 +1877,7 @@ statusline_shows git && echo -e "$line1"
 #   ... UTC | ... PDT | gateway 0/3 ✗503 47m outage 1.93.0                    ← total outage, alarm
 #   ... UTC | ... PDT | gateway 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
 #   ... UTC | ... PDT | gateway unreachable 1.93.0                          ← gateway down
+#   ... UTC | ... PDT | gateway ⌁35 1h stale 1.93.0                        ← refresh failing (curl 35), snapshot past the stale bound
 #
 # The render grammar is:
 #   gateway <pool-ratio> <severity-glyph><type-code> [<duration>] [<state-name>] <wrapper-version>
@@ -1812,6 +1891,9 @@ statusline_shows git && echo -e "$line1"
 #   "wrapper skewed" → wrapper version in YELLOW with "<floor" suffix
 #   "wrapper at floor" → wrapper version in YELLOW with "=floor" suffix (pre-warn)
 #   "gateway down"   → literal RED word "unreachable" replaces numerics
+#   "stale"          → ⌁<curl exit code> <snapshot age> "stale" in YELLOW, no
+#                      numerics: the refresh is failing and the cached snapshot
+#                      is older than GATEWAY_STALE_AFTER_SECS (see the fetch block)
 #
 # Three label-stripping rounds preceded this design (all 2026-05-13):
 #   - dropped the "pool", "canary", "wrapper" field labels (redundant within
@@ -2075,7 +2157,19 @@ statusline_shows git && echo -e "$line1"
 # Schema (v1) — 20 fields, verbose snake_case names:
 #   schema_version                                          (int, monotonic)
 #   wall_clock_unix_seconds                                 (int, epoch seconds)
-#   gateway_gateway_legacy_binary_gate_status              ∈ {healthy, degraded, parse-error, unreachable}
+#   gateway_snapshot_age_seconds                           (int; age of the data this render used,
+#                                                           0 = fetched now; null = no data at all) [v4]
+#   gateway_router_status_fetch_curl_exit_code             (int; curl's exit code verbatim for this
+#                                                           render's refresh of the primary door;
+#                                                           null = none was due) [v4]
+#   gateway_router_status_fallback_curl_exit_code          (int; the same for STATUSLINE_GATEWAY_
+#                                                           FALLBACK_BASE_URL; null = not tried) [v4]
+#   gateway_router_status_fetch_source                     ∈ {primary, fallback, ""} ("" = no refresh
+#                                                           due, or every door failed) [v4]
+#   gateway_gateway_legacy_binary_gate_status              ∈ {healthy, degraded, parse-error, unreachable, stale}
+#     ('stale' [v4] = the refresh failed and the cached snapshot was older than
+#      GATEWAY_STALE_AFTER_SECS, so it was not parsed; every other primitive in
+#      that record keeps its no-data default rather than repeating old evidence)
 #   gateway_pool_schedulable_active_accounts_count         (int)
 #   gateway_pool_rotation_working_set_size                 (int, denom = schedulable + errors)
 #   gateway_pool_error_accounts_count                      (int)
@@ -2089,7 +2183,7 @@ statusline_shows git && echo -e "$line1"
 #   gateway_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
 #   gateway_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
 #   gateway_canary_real_traffic_damper_engaged             (bool)
-#   gateway_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unproven, no-health-signal, unknown}
+#   gateway_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unproven, no-health-signal, stale, unknown}
 #   gateway_local_client_version             (semver str, e.g. "1.93.0")
 #   gateway_minimum_supported_wrapper_version_floor        (semver str, e.g. "1.2.0")
 #   gateway_wrapper_skew_present                           (bool, wrapper < floor)
@@ -2127,8 +2221,12 @@ gateway_real_traffic_damper_engaged_boolean_serialized="false"
 [ "$real_traffic_recent" -eq 1 ] && gateway_real_traffic_damper_engaged_boolean_serialized="true"
 
 gateway_state_jsonl_log_record_for_this_render="{\
-\"schema_version\":3,\
+\"schema_version\":4,\
 \"wall_clock_unix_seconds\":${NOW_EPOCH},\
+\"gateway_snapshot_age_seconds\":${gateway_snapshot_age_secs:-null},\
+\"gateway_router_status_fetch_curl_exit_code\":${gateway_fetch_curl_exit_code:-null},\
+\"gateway_router_status_fallback_curl_exit_code\":${gateway_fallback_curl_exit_code:-null},\
+\"gateway_router_status_fetch_source\":\"${gateway_fetch_source}\",\
 \"gateway_gateway_legacy_binary_gate_status\":\"${gateway_status}\",\
 \"gateway_pool_schedulable_active_accounts_count\":${pool_schedulable},\
 \"gateway_pool_rotation_working_set_size\":${pool_rotation_size},\
@@ -2259,6 +2357,17 @@ if [ "$gateway_status" = "healthy" ] || [ "$gateway_status" = "degraded" ]; then
     esac
 
     gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${pool_part} ${severity_glyph_with_optional_type_code_and_duration}${unified_state_name_visible_label_token}"
+elif [ "$gateway_status" = "stale" ]; then
+    # The refresh failed and the last good snapshot is older than
+    # GATEWAY_STALE_AFTER_SECS. Say so, with curl's exit code verbatim in the
+    # type-code slot and the snapshot's age in the duration slot, and show NONE
+    # of the snapshot's evidence. This vantage point cannot see the gateway,
+    # which is not the same as the gateway being down: a network that resets TLS
+    # for the gateway's hostname (curl 35) still passes a client's tunnel.
+    # Yellow: a monitoring blind spot to look into, not an alarm.
+    gateway_stale_age_short=$(reltime "$(( NOW_EPOCH - gateway_snapshot_age_secs ))")
+    gateway_stale_age_short="${gateway_stale_age_short% ago}"
+    gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${YELLOW}⌁${gateway_fetch_curl_exit_code} ${gateway_stale_age_short} stale${RESET}"
 elif [ -n "$gateway_status" ] && [ "$gateway_status" != "unreachable" ]; then
     # Non-empty $gateway_status but not the expected healthy/degraded values —
     # surface the raw state token in red so the operator sees the literal

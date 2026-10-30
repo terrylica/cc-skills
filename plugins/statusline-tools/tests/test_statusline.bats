@@ -623,6 +623,130 @@ render_against_dead_gateway() {
     [ "$(sed -n 2p "$cache")" = "9.9.9" ]
 }
 
+# --- gateway snapshot age: stale evidence must never render as current -------
+#
+# 2026-10-30: a Mac that woke on a network that resets TLS for the gateway's
+# hostname kept rendering a 15:27Z snapshot, "✗9/17 5m outage"; at 17:15Z it
+# was 1h47m old and the gateway itself reported serving 3/57.
+# Stale-on-failure exists so a single failed refresh does not blank the
+# segment; past a bound, the render must say it cannot see, not repeat old
+# evidence as if it were current.
+# Every test isolates HOME, the cache, the floor cache and the state log, and
+# points the gateway at a closed local port so the refresh fails at once.
+DEGRADED_ROUTER_STATUS='{"pool":{"schedulable_active_accounts":12,"error_accounts":0,"total_accounts":15},"upstream_health_observed_from_forwarded_request_log":{"state":"degraded","failed_requests_in_window":9,"forwarded_requests_in_window":17,"observation_window_secs":300}}'
+
+# $1 = age of the cached snapshot in seconds; $2 = ANTHROPIC_BASE_URL for the
+# render ("" = unset, so the operator's own session value never leaks in);
+# $3 = stdin JSON (optional).
+render_with_cached_degraded_snapshot() {
+    local cache="$BATS_TEST_TMPDIR/router-status-cache.json"
+    printf '%s\n' "$DEGRADED_ROUTER_STATUS" > "$cache"
+    python3 -c 'import os, sys, time; t = time.time() - int(sys.argv[2]); os.utime(sys.argv[1], (t, t))' "$cache" "$1"
+    local base_url_env=(-u ANTHROPIC_BASE_URL)
+    [ -n "${2:-}" ] && base_url_env=(ANTHROPIC_BASE_URL="$2")
+    echo "${3:-$TEST_INPUT}" | env "${base_url_env[@]}" HOME="$BATS_TEST_TMPDIR" \
+        STATUSLINE_GATEWAY_STATE_LOG="$BATS_TEST_TMPDIR/gateway-state.jsonl" \
+        STATUSLINE_GATEWAY_BASE_URL=http://127.0.0.1:9 \
+        STATUSLINE_GATEWAY_FLOOR_CACHE="$BATS_TEST_TMPDIR/floor-cache" \
+        STATUSLINE_GATEWAY_CACHE="$cache" "$STATUSLINE"
+}
+strip_ansi() { printf '%s' "$1" | sed $'s/\x1b\\[[0-9;]*m//g'; }
+
+@test "a gateway snapshot older than the stale bound renders as stale, not as current evidence" {
+    run render_with_cached_degraded_snapshot 7200 ""
+    [ "$status" -eq 0 ]
+    plain=$(strip_ansi "$output")
+    [[ "$plain" == *"gateway ⌁7 2h stale"* ]]
+    [[ "$plain" != *"outage"* ]]
+    [[ "$plain" != *"9/17"* ]]
+}
+
+@test "a snapshot inside the stale bound still renders through one failed refresh" {
+    # 90 s: past the 60 s cache TTL, so a refresh is attempted and fails, but
+    # well inside the bound. This is the blip stale-on-failure exists for.
+    run render_with_cached_degraded_snapshot 90 ""
+    [ "$status" -eq 0 ]
+    plain=$(strip_ansi "$output")
+    [[ "$plain" == *"✗9/17 5m outage"* ]]
+    [[ "$plain" != *"stale"* ]]
+}
+
+@test "telemetry records the snapshot age and the failed refresh's curl exit code" {
+    run render_with_cached_degraded_snapshot 7200 ""
+    [ "$status" -eq 0 ]
+    record=$(tail -1 "$BATS_TEST_TMPDIR/gateway-state.jsonl")
+    [ "$(jq -r '.gateway_gateway_legacy_binary_gate_status' <<< "$record")" = "stale" ]
+    [ "$(jq -r '.gateway_unified_state_name_for_render' <<< "$record")" != "outage" ]
+    age=$(jq -r '.gateway_snapshot_age_seconds' <<< "$record")
+    [ "$age" -ge 7200 ] && [ "$age" -lt 7260 ]
+    # 7 = curl's "failed to connect": the closed port, recorded verbatim.
+    [ "$(jq -r '.gateway_router_status_fetch_curl_exit_code' <<< "$record")" = "7" ]
+}
+
+@test "the real-traffic damper changes the rendered label, not only the logged class" {
+    # A fresh snapshot (no refresh attempted) plus a transcript written just
+    # now through a loopback gateway URL: the session's own requests are
+    # completing, so the documented downgrade (recent-degradation -> transient)
+    # must reach the label. Before 2026-10-30 the label was composed before the
+    # damper ran, so it stayed "outage" while the log said "transient".
+    local transcript="$BATS_TEST_TMPDIR/transcript.jsonl"
+    : > "$transcript"
+    local input="{\"model\":{\"name\":\"opus-4\"},\"session_id\":\"test123\",\"transcript_path\":\"$transcript\"}"
+    run render_with_cached_degraded_snapshot 0 "http://127.0.0.1:38450" "$input"
+    [ "$status" -eq 0 ]
+    plain=$(strip_ansi "$output")
+    [[ "$plain" == *"⚠9/17 5m flapping"* ]]
+    [[ "$plain" != *"outage"* ]]
+    [ "$(tail -1 "$BATS_TEST_TMPDIR/gateway-state.jsonl" | jq -r '.gateway_unified_state_name_for_render')" = "flapping" ]
+    # Control: the same snapshot with no real traffic through the gateway is
+    # still an outage — the damper is not a silencer.
+    run render_with_cached_degraded_snapshot 0 "" "$input"
+    plain=$(strip_ansi "$output")
+    [[ "$plain" == *"✗9/17 5m outage"* ]]
+}
+
+@test "a failed primary refresh is served by STATUSLINE_GATEWAY_FALLBACK_BASE_URL" {
+    # A second URL to the SAME gateway turns a stale render into a live one
+    # when only the primary is blocked. Here a local HTTP server is the
+    # fallback and the primary is a closed port.
+    local root="$BATS_TEST_TMPDIR/www"; mkdir -p "$root/v1"
+    printf '%s\n' '{"pool":{"schedulable_active_accounts":12,"error_accounts":0},"upstream_health_observed_from_forwarded_request_log":{"state":"serving","failed_requests_in_window":4,"forwarded_requests_in_window":83,"observation_window_secs":300}}' > "$root/v1/router-status"
+    local port
+    port=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
+    python3 -m http.server "$port" --bind 127.0.0.1 --directory "$root" >/dev/null 2>&1 &
+    echo $! > "$BATS_TEST_TMPDIR/fallback-server.pid"
+    for _ in $(seq 1 50); do
+        env -u HTTP_PROXY -u http_proxy curl -sf "http://127.0.0.1:$port/v1/router-status" >/dev/null 2>&1 && break
+        sleep 0.1
+    done
+    run env STATUSLINE_GATEWAY_FALLBACK_BASE_URL="http://127.0.0.1:$port" \
+        bash -c "$(declare -f render_with_cached_degraded_snapshot); DEGRADED_ROUTER_STATUS='$DEGRADED_ROUTER_STATUS' TEST_INPUT='$TEST_INPUT' STATUSLINE='$STATUSLINE' BATS_TEST_TMPDIR='$BATS_TEST_TMPDIR' render_with_cached_degraded_snapshot 7200 ''"
+    [ "$status" -eq 0 ]
+    plain=$(strip_ansi "$output")
+    [[ "$plain" == *"gateway 12/12 ✓"* ]]
+    [[ "$plain" != *"stale"* ]]
+    record=$(tail -1 "$BATS_TEST_TMPDIR/gateway-state.jsonl")
+    [ "$(jq -r '.gateway_router_status_fetch_source' <<< "$record")" = "fallback" ]
+    [ "$(jq -r '.gateway_router_status_fetch_curl_exit_code' <<< "$record")" = "7" ]
+    [ "$(jq -r '.gateway_router_status_fallback_curl_exit_code' <<< "$record")" = "0" ]
+    [ "$(jq -r '.gateway_snapshot_age_seconds' <<< "$record")" = "0" ]
+    # The fallback's answer refreshed the cache, so the next render is live too.
+    grep -q '"forwarded_requests_in_window":83' "$BATS_TEST_TMPDIR/router-status-cache.json"
+}
+
+@test "with no fallback configured, a failed primary refresh makes no second request" {
+    run render_with_cached_degraded_snapshot 7200 ""
+    record=$(tail -1 "$BATS_TEST_TMPDIR/gateway-state.jsonl")
+    [ "$(jq -r '.gateway_router_status_fallback_curl_exit_code' <<< "$record")" = "null" ]
+    [ "$(jq -r '.gateway_router_status_fetch_source' <<< "$record")" = "" ]
+}
+
+teardown() {
+    if [ -f "$BATS_TEST_TMPDIR/fallback-server.pid" ]; then
+        kill "$(cat "$BATS_TEST_TMPDIR/fallback-server.pid")" 2>/dev/null || true
+    fi
+}
+
 # --- STATUSLINE_HIDE: named segments can be left out of the render -----------
 
 @test "STATUSLINE_HIDE=repo,session drops the repo and JSONL ID lines" {
