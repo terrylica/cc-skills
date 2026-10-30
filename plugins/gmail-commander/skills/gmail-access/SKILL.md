@@ -303,7 +303,14 @@ The canonical builder (`scripts/gmail-draft.ts`) renders each `> ` block as a `<
 | `scripts/gmail-draft.ts`                 | Styled `<blockquote>`                                         | **None** (no flag)     | Yes    | Built in (subject round-trip, forced-break check) |
 | `gmail draft` / `draft-update` (the CLI) | **Unstyled**: `>` is escaped and each line kept as plain text | `--attach`, repeatable | **No** | None; read it back yourself                       |
 
-So a reply that quotes several points and needs **no** attachment belongs in `gmail-draft.ts`. A reply that must carry a file (a signed agreement, a report) can only go through the CLI: keep the verbatim `> ` blocks anyway (they stay readable as quoted lines), then verify the stored draft with `read <messageId> --json --attachment-dir <dir>`: body equal to your source file, zero markdown markers, and each attachment's hash equal to the original.
+So a reply that quotes several points and needs **no** attachment belongs in `gmail-draft.ts`. A reply that must carry a file (a signed agreement, a report) has two routes. **Plain quotes:** the CLI with `--attach`; keep the verbatim `> ` blocks anyway (they stay readable as quoted lines). **Styled quotes (preferred):** build it with `gmail-draft.ts`, then attach the file in Gmail's web compose. Measured 2026-10-30:
+
+- The Playwright Extension cannot set a file from disk on Gmail's hidden `input[name=Filedata]` (`setInputFiles` times out: the extension has no file access). Assigning a `DataTransfer` FileList built from the file's bytes to that input and dispatching `change` does attach it.
+- Gmail persists the attachment only when the compose is left or its tab is closed; waiting on an open inline reply saved nothing for 100 seconds. Close the tab, then confirm through the API that the draft's `messageId` changed.
+- On that save Gmail regenerates the text/plain part from the HTML, so the `> ` marks drop out of the plain part. The styled `<blockquote>`s and the authored sign-off survive in the HTML part.
+- `gmail-draft.ts` enforces one draft per thread and names the superseded drafts; delete them before sending.
+
+Either way, verify the stored draft with `read <messageId> --json --attachment-dir <dir>`: every word equal to your source file, zero markdown markers, and each attachment's hash equal to the original. For the HTML part, open the draft in Gmail and read the editor's `blockquote` styles rather than trusting the plain part.
 
 ## 🔴 ATTRIBUTION DOCTRINE — run this before you ever write "they said X"
 
