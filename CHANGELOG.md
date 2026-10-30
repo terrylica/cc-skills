@@ -1,3 +1,18 @@
+# [34.11.0](https://github.com/terrylica/cc-skills/compare/v34.10.0...v34.11.0) (2026-10-30)
+
+
+### Features
+
+* **gmail-commander:** styled replies carry attachments; one verified command for every reply ([245a9ae](https://github.com/terrylica/cc-skills/commit/245a9ae037b56dd55dc6791ee494677ce40bad4a))
+
+The canonical draft builder renders quoted passages as styled blockquotes but could not attach a file, so a reply that had to carry a signed document either lost its styled quotes (the CLI path) or needed Gmail's web compose, which rewrote the plain part on save. The builder now takes --attach (repeatable): the message becomes multipart/mixed around the usual alternative body, missing, empty or oversized input is refused before any network call, and the post-write read-back downloads every stored attachment and compares its SHA-256 with the file sent. The skill makes this the documented house style for every reply.
+
+- gmail-draft.ts: --attach, guessMimeType, loadAttachments (25 MB limit), multipart/mixed assembly with safe filename parameters, Layer 2 attachment count check, Layer 1 leaf-part search and SHA-256 round-trip, attachments listed in the JSON output; without --attach the message is unchanged
+- gmail-draft.test.ts: nine tests (argument parsing, MIME tree, byte-exact decode, validation in both directions, ordering, filename escaping, file loading limits, nested part search); proven to fail when the size check or the mixed wrapper is broken on purpose
+- SKILL.md: "Replying to someone: the house style" with the exact command, the multi-line sign-off recipe, the two paths compared, and the triggers that load it for any reply
+- CLAUDE.md, README.md and docs/draft-integrity-guards.md describe the flag and the new read-back check
+- Also fixes a latent possibly-undefined in parseMimeHeaders
+
 # [34.10.0](https://github.com/terrylica/cc-skills/compare/v34.9.0...v34.10.0) (2026-10-29)
 
 
