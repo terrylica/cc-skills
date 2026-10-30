@@ -5,7 +5,7 @@ Gmail CLI, canonical draft builder and shared Telegram bot code for Claude Code.
 ## Features
 
 - **Gmail CLI**: Full email access (list, search, read, export, draft) via 1Password OAuth
-- **Draft builder**: `scripts/gmail-draft.ts`, the only sanctioned way to create or replace a Gmail draft (wrap-immune `multipart/alternative`)
+- **Draft builder**: `scripts/gmail-draft.ts`, the only sanctioned way to create or replace a Gmail draft (wrap-immune `multipart/alternative`; quoted passages arrive as styled blockquotes; `--attach` adds files, each verified by SHA-256 after upload)
 - **Sender Alignment**: Auto-detect reply sender, confirm for new emails
 - **Telegram bot code**: `buildBot()` in `scripts/bot.ts` wires 10 slash commands, inline keyboards, a compose/reply flow and AI free-text routing (Agent SDK), with no transport attached
 - **On-demand triage**: the bot's `/digest [hours]` sorts recent mail into System/Work/Personal by urgency

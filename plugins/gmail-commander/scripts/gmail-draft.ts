@@ -18,6 +18,11 @@
  *     [--to a@b] [--cc c@d] [--subject '…']   # required unless --reply-to supplies them
  *     [--replace <draftId>]                   # delete this stale draft after creating the new one
  *     [--html /path/to/body.html]             # AUTHORED html part (see AUTHORED HTML below)
+ *     [--attach /path/to/file]...             # repeatable; file attachments (see ATTACHMENTS below)
+ *
+ * REPLYING TO SOMEONE (the house style): quote each passage you answer VERBATIM in its own `> `
+ * block and answer it underneath. The HTML part renders every such block as a styled quotation
+ * (see QUOTE_BLOCK_STYLE), so the reader sees at a glance whose words are whose.
  *
  * BODY CONVERSION (deliberately minimal + predictable, not a full markdown renderer):
  *   - Blank-line-separated blocks become paragraphs; single newlines INSIDE a block are unwrapped
@@ -47,7 +52,16 @@
  * equal the file (CRLF-normalised); the forced-line-break check is not applied, because a break in
  * authored html is the author's choice, not a converter's accident.
  *
- * OUTPUT: one JSON line {draftId, threadId, account} — machine-readable per CLI-first doctrine.
+ * ATTACHMENTS (--attach, 2026-10-30): each file becomes a base64 part of a multipart/mixed message
+ * whose first part is the usual multipart/alternative body, so quotes stay styled and the files
+ * travel with them. A missing or empty file, or more than 25 MB in total (Gmail's message limit), is
+ * refused before any token or network call. After upload, every attachment Gmail stored is
+ * downloaded and its SHA-256 compared with the file that was sent. Before this flag existed the only
+ * way to put a file on a styled draft was Gmail's web compose, which also rewrote the plain part.
+ * Without --attach the message is byte-for-byte what it was before.
+ *
+ * OUTPUT: one JSON line {draftId, threadId, account, replaced, attachments} — machine-readable per
+ * CLI-first doctrine.
  */
 
 interface Args {
@@ -64,10 +78,12 @@ interface Args {
   subject?: string | undefined;
   replace?: string | undefined;
   html?: string | undefined;
+  /** Every `--attach` value, in the order given. Empty when the flag is absent. */
+  attach: string[];
 }
 
 export const USAGE =
-  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--html <file.html>]";
+  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--html <file.html>] [--attach <file>]...";
 
 /** Parse the command line. Throws with USAGE when a required flag is missing (main prints it and exits 1). */
 export function parseArgs(argv: string[] = process.argv): Args {
@@ -79,7 +95,91 @@ export function parseArgs(argv: string[] = process.argv): Args {
   const body = get("body");
   const from = get("from");
   if (!account || !body || !from) throw new Error(USAGE);
-  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), html: get("html") };
+  const attach = argv.flatMap((a, i) => {
+    if (a !== "--attach") return [];
+    const path = argv[i + 1];
+    if (!path || path.startsWith("--")) throw new Error(`--attach needs a file path\n${USAGE}`);
+    return [path];
+  });
+  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), html: get("html"), attach };
+}
+
+// ── attachments ──
+
+/** One file to attach: its name as the recipient sees it, its MIME type, and its exact bytes. */
+export interface Attachment {
+  filename: string;
+  mimeType: string;
+  bytes: Uint8Array;
+}
+
+/** Gmail refuses a message larger than this (attachments included, before base64 inflation). */
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+/**
+ * Guess a MIME type from the file extension; anything unknown is `application/octet-stream`, which
+ * Gmail shows as a plain download. The same table as `gmail-cli/lib/gmail-drafts.ts`, copied rather
+ * than imported because this script deliberately has no imports: it must run with bare `bun` on a
+ * machine where the CLI's node_modules are missing (plugin updates delete them).
+ */
+export function guessMimeType(filename: string): string {
+  const ext = filename.toLowerCase().split(".").pop() ?? "";
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    html: "text/html",
+    htm: "text/html",
+    csv: "text/csv",
+    xml: "application/xml",
+    zip: "application/zip",
+    gz: "application/gzip",
+    tar: "application/x-tar",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ppt: "application/vnd.ms-powerpoint",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    mp3: "audio/mpeg",
+    mp4: "video/mp4",
+    wav: "audio/wav",
+  };
+  return map[ext] ?? "application/octet-stream";
+}
+
+/**
+ * Read every `--attach` file. Runs BEFORE any token or network call, so a bad path costs nothing.
+ * Throws naming each missing or empty file, or the total when it exceeds MAX_ATTACHMENT_BYTES.
+ */
+export async function loadAttachments(paths: string[]): Promise<Attachment[]> {
+  const problems: string[] = [];
+  const out: Attachment[] = [];
+  for (const path of paths) {
+    const file = Bun.file(path);
+    if (!(await file.exists())) {
+      problems.push(`not found: ${path}`);
+      continue;
+    }
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.length === 0) {
+      problems.push(`empty file: ${path}`);
+      continue;
+    }
+    const filename = path.split("/").pop() ?? path;
+    out.push({ filename, mimeType: guessMimeType(filename), bytes });
+  }
+  const total = out.reduce((n, a) => n + a.bytes.length, 0);
+  if (total > MAX_ATTACHMENT_BYTES) problems.push(`attachments total ${total} bytes, over Gmail's ${MAX_ATTACHMENT_BYTES}-byte message limit`);
+  if (problems.length > 0) throw new Error(`REFUSED --attach:\n  ${problems.join("\n  ")}`);
+  return out;
 }
 
 /**
@@ -725,18 +825,19 @@ const FREE_TEXT_HEADERS_SAFE_TO_ENCODE = new Set(["Subject"]);
  * defects that actually reached the client (welded list bullets, and a mojibake em-dash Subject) were
  * both caught by a human reading Gmail rather than by a test. A builder whose output is never
  * assembled in a test is a builder whose output is never checked.
+ *
+ * With attachments (2026-10-30) the alternative body becomes the first part of a multipart/mixed
+ * message and each file follows as a base64 part. Without them the output is exactly the
+ * multipart/alternative message this function always produced.
  */
-export function buildMime(headers: Record<string, string>, plain: string, html: string): string {
+export function buildMime(headers: Record<string, string>, plain: string, html: string, attachments: Attachment[] = []): string {
   const boundary = `b${crypto.randomUUID().replaceAll("-", "")}`;
   const head = Object.entries(headers)
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}: ${FREE_TEXT_HEADERS_SAFE_TO_ENCODE.has(k) ? encodeHeaderValueAsRfc2047EncodedWordIfNonAscii(v) : v}`)
     .join("\r\n");
-  return [
-    head,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
+  const alternativeContentType = `Content-Type: multipart/alternative; boundary="${boundary}"`;
+  const alternativeBody = [
     `--${boundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
@@ -749,7 +850,46 @@ export function buildMime(headers: Record<string, string>, plain: string, html: 
     b64wrap(html),
     `--${boundary}--`,
     "",
+  ];
+  if (attachments.length === 0) return [head, "MIME-Version: 1.0", alternativeContentType, "", ...alternativeBody].join("\r\n");
+  const mixed = `m${crypto.randomUUID().replaceAll("-", "")}`;
+  const fileParts = attachments.flatMap((a) => {
+    const name = mimeParameterFilename(a.filename);
+    return [
+      `--${mixed}`,
+      `Content-Type: ${a.mimeType}; name="${name}"`,
+      `Content-Disposition: attachment; filename="${name}"`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      b64wrapBytes(a.bytes),
+    ];
+  });
+  return [
+    head,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${mixed}"`,
+    "",
+    `--${mixed}`,
+    alternativeContentType,
+    "",
+    ...alternativeBody,
+    ...fileParts,
+    `--${mixed}--`,
+    "",
   ].join("\r\n");
+}
+
+/** Base64 of raw bytes, wrapped at 76 columns as RFC 2045 requires. */
+const b64wrapBytes = (bytes: Uint8Array): string => (Buffer.from(bytes).toString("base64").match(/.{1,76}/g) ?? []).join("\r\n");
+
+/**
+ * A filename safe inside a quoted MIME parameter: quotes and backslashes escaped, control characters
+ * dropped, and a non-ASCII name sent as an RFC 2047 encoded-word, which is what Gmail itself emits.
+ */
+export function mimeParameterFilename(filename: string): string {
+  const cleaned = [...filename].filter((c) => c >= " " && c !== "\u007f").join("");
+  const escaped = cleaned.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  return encodeHeaderValueAsRfc2047EncodedWordIfNonAscii(escaped);
 }
 
 // ── round-trip verification (Layer 1: the builder verifies its own output) ──
@@ -778,11 +918,54 @@ interface VerificationFailure {
  * part) that might evade pattern-based checkers. This check catches regressions nobody
  * anticipated, as both 2026-07-23 and 2026-07-29 regressions did.
  */
+/** A MIME part as the Gmail API returns it with format=full (only the fields this file reads). */
+export interface GmailMimePart {
+  mimeType?: string;
+  filename?: string;
+  body?: { data?: string; attachmentId?: string; size?: number };
+  parts?: GmailMimePart[];
+}
+
+/**
+ * Every leaf part, depth first. With attachments the text parts sit one level down, inside the
+ * multipart/alternative that is the first child of multipart/mixed, so a search of the top level
+ * alone would report a correct message as broken.
+ */
+export function flattenMimeParts(parts: GmailMimePart[] = []): GmailMimePart[] {
+  return parts.flatMap((p) => (p.parts && p.parts.length > 0 ? flattenMimeParts(p.parts) : [p]));
+}
+
+/**
+ * Compare what Gmail stored with the files that were sent: the same names in the same order, and for
+ * each one the downloaded bytes' SHA-256 equal to the original's. Size alone would miss a re-encoded
+ * or truncated file of the same length; the hash cannot.
+ */
+async function assertAttachmentsRoundTrip(at: string, messageId: string, leaves: GmailMimePart[], sent: Attachment[]): Promise<void> {
+  const stored = leaves.filter((p) => p.filename);
+  const names = stored.map((p) => decodeRfc2047EncodedWordSequence(p.filename ?? ""));
+  const expected = sent.map((a) => a.filename);
+  if (names.join("\n") !== expected.join("\n")) {
+    throw new Error(`Attachments did not round-trip: sent [${expected.join(", ")}], Gmail stored [${names.join(", ")}]`);
+  }
+  for (const [i, part] of stored.entries()) {
+    const original = sent[i];
+    if (!original || !part.body?.attachmentId) throw new Error(`Attachment ${names[i]} has no attachmentId in the stored draft`);
+    const fetched = await api(at, `messages/${messageId}/attachments/${part.body.attachmentId}`);
+    const bytes = Buffer.from(String(fetched.data ?? ""), "base64url");
+    if (sha256Hex(bytes) !== sha256Hex(original.bytes)) {
+      throw new Error(`Attachment ${original.filename} changed in transit: sent ${original.bytes.length} bytes (sha256 ${sha256Hex(original.bytes)}), Gmail stored ${bytes.length} bytes (sha256 ${sha256Hex(bytes)})`);
+    }
+  }
+}
+
+export const sha256Hex = (b: Uint8Array): string => new Bun.CryptoHasher("sha256").update(b).digest("hex");
+
 async function assertCreatedDraftMatchesWhatWeSent(
   at: string,
   draftId: string,
   originalSubject: string,
   authoredHtml?: string,
+  attachments: Attachment[] = [],
 ): Promise<void> {
   // Fetch the draft we just created, fully decoded (format=full).
   //
@@ -796,7 +979,7 @@ async function assertCreatedDraftMatchesWhatWeSent(
   const payload = draftMessage.payload as {
     headers?: Array<{ name: string; value: string }>;
     mimeType?: string;
-    parts?: Array<{ mimeType?: string; body?: { data?: string } }>;
+    parts?: GmailMimePart[];
   };
   const headers = Object.fromEntries((payload.headers ?? []).map((h) => [h.name.toLowerCase(), h.value]));
 
@@ -820,10 +1003,16 @@ async function assertCreatedDraftMatchesWhatWeSent(
     );
   }
 
+  // ── attachments: same names, same order, byte-identical ──
+  // Checked before the html comparison below, which returns early for authored html.
+  const leaves = flattenMimeParts(payload.parts ?? []);
+  await assertAttachmentsRoundTrip(at, String(draftMessage.id ?? ""), leaves, attachments);
+
   // ── sanity-check the text/plain part is non-empty ──
   // If the MIME structure is corrupted (malformed boundary, missing part, empty body),
-  // text/plain might be missing or empty. This catches structural corruption.
-  const parts = (payload.parts ?? []);
+  // text/plain might be missing or empty. This catches structural corruption. The text parts are
+  // looked for among the LEAVES, because with attachments they are nested one level down.
+  const parts = leaves.filter((p) => !p.filename);
   const textPlainPart = parts.find((p) => p.mimeType === "text/plain");
   if (!textPlainPart?.body?.data) {
     throw new Error(
@@ -905,7 +1094,7 @@ function parseMimeHeaders(mimeString: string): Record<string, string> {
     const match = line.match(/^([^:]+):\s*(.*)$/);
     if (match) {
       const [, name, value] = match;
-      headers[name.toLowerCase()] = value.trim();
+      if (name !== undefined && value !== undefined) headers[name.toLowerCase()] = value.trim();
     }
   }
   return headers;
@@ -916,7 +1105,7 @@ function parseMimeHeaders(mimeString: string): Record<string, string> {
  * This is Layer 2 verification: catch encoder and MIME construction bugs before sending.
  * Fail loud if encoding is broken, so the operator can investigate immediately.
  */
-export function validateMimeBeforeUpload(mimeString: string, originalSubject: string): void {
+export function validateMimeBeforeUpload(mimeString: string, originalSubject: string, expectedAttachments = 0): void {
   // Extract and validate the Subject header.
   const headers = parseMimeHeaders(mimeString);
   const subjectHeader = headers.subject ?? "";
@@ -937,6 +1126,15 @@ export function validateMimeBeforeUpload(mimeString: string, originalSubject: st
       `LAYER 2 VALIDATION FAILED: MIME structure missing multipart/alternative boundary.`,
     );
   }
+
+  // Every file asked for must be in the message, and in a multipart/mixed wrapper.
+  const attachmentParts = mimeString.split("\r\nContent-Disposition: attachment;").length - 1;
+  if (attachmentParts !== expectedAttachments) {
+    throw new Error(`LAYER 2 VALIDATION FAILED: ${expectedAttachments} attachment(s) requested, ${attachmentParts} in the built message.`);
+  }
+  if (expectedAttachments > 0 && !mimeString.includes("Content-Type: multipart/mixed; boundary=")) {
+    throw new Error(`LAYER 2 VALIDATION FAILED: attachments present but the message is not multipart/mixed.`);
+  }
 }
 
 // ── main ──
@@ -949,9 +1147,11 @@ if (import.meta.main) {
 
   let args: Args;
   let parts: Awaited<ReturnType<typeof loadDraftParts>>;
+  let attachments: Attachment[];
   try {
     args = parseArgs();
     parts = await loadDraftParts(args);
+    attachments = await loadAttachments(args.attach);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
     process.exit(1);
@@ -997,11 +1197,12 @@ if (import.meta.main) {
     },
     plain,
     html,
+    attachments,
   );
 
   // ── LAYER 2: Validate the MIME before sending ──
   try {
-    validateMimeBeforeUpload(mime, subject);
+    validateMimeBeforeUpload(mime, subject, attachments.length);
   } catch (e) {
     console.error((e as Error).message);
     process.exit(1);
@@ -1034,7 +1235,7 @@ if (import.meta.main) {
   const createdDraftId = draft.id as string;
   const createdThreadId = ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId;
   try {
-    await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject, authoredHtml);
+    await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject, authoredHtml, attachments);
   } catch (e) {
     // The draft was created but round-trip verification failed. Report it clearly and exit non-zero.
     console.error(`LAYER 1 VERIFICATION FAILED on draft ${createdDraftId}:`);
@@ -1081,6 +1282,7 @@ if (import.meta.main) {
     threadId: createdThreadId ?? null,
     account: args.account,
     replaced: args.replace ?? null,
+    attachments: attachments.map((a) => ({ filename: a.filename, bytes: a.bytes.length, sha256: sha256Hex(a.bytes) })),
   };
   console.log(JSON.stringify(out));
 }

@@ -83,6 +83,8 @@ After creating a draft, `scripts/gmail-draft.ts` fetches it back and asserts the
 decodes to exactly what was asked for. This is the only layer that inspects what Gmail _stored_
 rather than what we _sent_.
 
+Since 2026-10-30 it also checks attachments. With `--attach` the text parts sit one level down, inside the multipart/alternative that is the first child of multipart/mixed, so the read-back searches the leaf parts rather than the top level (searching the top level alone would report a correct message as broken). Each stored attachment is downloaded and its SHA-256 compared with the file that was sent; names and order must match too. Proven both ways on 2026-10-30: unit tests fail when the size check or the mixed wrapper is broken on purpose, and a live draft's attachment hash matched.
+
 The Gmail `drafts.get` response nests the message: `{id, message: {payload: {headers: [...]}}}`.
 Reading `fetchedDraft.payload` yields `undefined`, the header scan finds nothing, and the check
 passes vacuously. It failed open on every draft it ever "verified".

@@ -799,3 +799,110 @@ describe("verbatim quotations (> lines) render in their own colour", () => {
     expect(() => validateMimeBeforeUpload(mime, "Re: x")).not.toThrow();
   });
 });
+
+// ── --attach: a styled reply that carries files ──
+//
+// Added 2026-10-30. Before this flag a styled reply (quotes rendered as blockquotes) could not carry a
+// file at all; the only route was Gmail's web compose, which rewrote the plain part on save. Every
+// test below checks the assembled message, not just a helper, so the MIME tree is proven whole.
+import { loadAttachments, guessMimeType, mimeParameterFilename, flattenMimeParts, sha256Hex, MAX_ATTACHMENT_BYTES, type Attachment } from "./gmail-draft.ts";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+describe("--attach: files travel with a styled reply", () => {
+  const pdfBytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x00, 0xff, 0x80]);
+  const attachment: Attachment = { filename: "Signed NDA.pdf", mimeType: "application/pdf", bytes: pdfBytes };
+  const quoted = "> the exact words being answered\n\nThe answer.";
+  const blocks = splitBodyIntoBlocks(quoted);
+  const headers = { From: "Jane Doe <alias@example.com>", To: "b@example.com", Subject: "Re: x" };
+
+  test("parseArgs collects every --attach in order and refuses a bare flag", () => {
+    const argv = ["bun", "gmail-draft.ts", "--account", "t", "--body", "b.md", "--from", "x", "--attach", "one.pdf", "--attach", "two.png"];
+    expect(parseArgs(argv).attach).toEqual(["one.pdf", "two.png"]);
+    expect(parseArgs(["bun", "gmail-draft.ts", "--account", "t", "--body", "b.md", "--from", "x"]).attach).toEqual([]);
+    expect(() => parseArgs(["bun", "gmail-draft.ts", "--account", "t", "--body", "b.md", "--from", "x", "--attach"])).toThrow(/--attach needs a file path/);
+    expect(() => parseArgs(["bun", "gmail-draft.ts", "--account", "t", "--body", "b.md", "--from", "x", "--attach", "--cc", "c@d"])).toThrow(/--attach needs a file path/);
+  });
+
+  test("without attachments the message is still plain multipart/alternative", () => {
+    const mime = buildMime(headers, blocksToPlainText(blocks), blocksToHtml(blocks));
+    expect(mime).toContain("Content-Type: multipart/alternative; boundary=");
+    expect(mime).not.toContain("multipart/mixed");
+    expect(() => validateMimeBeforeUpload(mime, "Re: x")).not.toThrow();
+  });
+
+  test("with an attachment: mixed wraps the alternative body, the file decodes byte-for-byte, the quote stays styled", () => {
+    const mime = buildMime(headers, blocksToPlainText(blocks), blocksToHtml(blocks), [attachment]);
+    const mixedBoundary = /Content-Type: multipart\/mixed; boundary="([^"]+)"/.exec(mime)?.[1];
+    expect(mixedBoundary).toBeTruthy();
+    const sections = mime.split(`--${mixedBoundary}`);
+    // preamble, alternative body, one file, closing "--"
+    expect(sections).toHaveLength(4);
+    expect(sections[1]).toContain("Content-Type: multipart/alternative; boundary=");
+    const html = Buffer.from(/text\/html; charset="UTF-8"\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/.exec(sections[1] ?? "")?.[1]?.replaceAll("\r\n", "") ?? "", "base64").toString("utf8");
+    expect(html).toContain(`<blockquote style="${QUOTE_BLOCK_STYLE}">the exact words being answered</blockquote>`);
+    const filePart = sections[2] ?? "";
+    expect(filePart).toContain('Content-Type: application/pdf; name="Signed NDA.pdf"');
+    expect(filePart).toContain('Content-Disposition: attachment; filename="Signed NDA.pdf"');
+    const b64 = filePart.split("\r\n\r\n")[1]?.replaceAll("\r\n", "") ?? "";
+    expect(sha256Hex(Buffer.from(b64, "base64"))).toBe(sha256Hex(pdfBytes));
+    expect(filePart.split("\r\n").every((l) => l.length <= 998)).toBe(true);
+    expect(() => validateMimeBeforeUpload(mime, "Re: x", 1)).not.toThrow();
+  });
+
+  test("validation is proven in both directions: a missing or extra attachment is caught before upload", () => {
+    const withOne = buildMime(headers, "p", "<p>h</p>", [attachment]);
+    const withNone = buildMime(headers, "p", "<p>h</p>");
+    expect(() => validateMimeBeforeUpload(withNone, "Re: x", 1)).toThrow(/1 attachment\(s\) requested, 0/);
+    expect(() => validateMimeBeforeUpload(withOne, "Re: x", 0)).toThrow(/0 attachment\(s\) requested, 1/);
+    expect(() => validateMimeBeforeUpload(withOne, "Re: x", 2)).toThrow(/2 attachment\(s\) requested, 1/);
+  });
+
+  test("two attachments keep their order", () => {
+    const second: Attachment = { filename: "b.png", mimeType: "image/png", bytes: new Uint8Array([1, 2, 3]) };
+    const mime = buildMime(headers, "p", "<p>h</p>", [attachment, second]);
+    expect(mime.indexOf('filename="Signed NDA.pdf"')).toBeLessThan(mime.indexOf('filename="b.png"'));
+    expect(() => validateMimeBeforeUpload(mime, "Re: x", 2)).not.toThrow();
+  });
+
+  test("filenames: quotes and backslashes escaped, controls dropped, non-ASCII as an encoded-word", () => {
+    expect(mimeParameterFilename('say "hi"\\.pdf')).toBe('say \\"hi\\"\\\\.pdf');
+    expect(mimeParameterFilename("a\r\nContent-Type: x.pdf")).toBe("aContent-Type: x.pdf");
+    expect(mimeParameterFilename("協議.pdf")).toMatch(/^=\?UTF-8\?B\?/);
+  });
+
+  test("guessMimeType knows common types and falls back to octet-stream", () => {
+    expect(guessMimeType("X.PDF")).toBe("application/pdf");
+    expect(guessMimeType("photo.jpeg")).toBe("image/jpeg");
+    expect(guessMimeType("archive.unknownext")).toBe("application/octet-stream");
+  });
+
+  test("loadAttachments reads bytes exactly and refuses missing, empty or oversized input before any network call", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gmail-draft-attach-"));
+    const good = join(dir, "Signed NDA.pdf");
+    const empty = join(dir, "empty.pdf");
+    writeFileSync(good, pdfBytes);
+    writeFileSync(empty, new Uint8Array());
+    const [loaded] = await loadAttachments([good]);
+    expect(loaded?.filename).toBe("Signed NDA.pdf");
+    expect(loaded?.mimeType).toBe("application/pdf");
+    expect(sha256Hex(loaded?.bytes ?? new Uint8Array())).toBe(sha256Hex(pdfBytes));
+    await expect(loadAttachments([join(dir, "nope.pdf"), empty])).rejects.toThrow(/not found: .*nope\.pdf[\s\S]*empty file: .*empty\.pdf/);
+    const big = join(dir, "big.bin");
+    writeFileSync(big, new Uint8Array(MAX_ATTACHMENT_BYTES + 1));
+    await expect(loadAttachments([big])).rejects.toThrow(/over Gmail's/);
+  });
+
+  test("flattenMimeParts finds the text parts nested under mixed, so a correct message is not reported broken", () => {
+    const payloadParts = [
+      { mimeType: "multipart/alternative", parts: [{ mimeType: "text/plain", body: { data: "cA" } }, { mimeType: "text/html", body: { data: "aA" } }] },
+      { mimeType: "application/pdf", filename: "Signed NDA.pdf", body: { attachmentId: "att1", size: 12 } },
+    ];
+    const leaves = flattenMimeParts(payloadParts);
+    expect(leaves.map((p) => p.mimeType)).toEqual(["text/plain", "text/html", "application/pdf"]);
+    expect(leaves.filter((p) => p.filename).map((p) => p.filename)).toEqual(["Signed NDA.pdf"]);
+    expect(flattenMimeParts([{ mimeType: "text/plain", body: { data: "x" } }])).toHaveLength(1);
+    expect(flattenMimeParts(undefined)).toEqual([]);
+  });
+});
