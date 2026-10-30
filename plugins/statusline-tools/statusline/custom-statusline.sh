@@ -985,6 +985,14 @@ GATEWAY_STALE_AFTER_SECS="${STATUSLINE_GATEWAY_STALE_AFTER_SECS:-300}"
 # repository.
 GATEWAY_FALLBACK_BASE="${STATUSLINE_GATEWAY_FALLBACK_BASE_URL:-}"
 
+# GATEWAY_REFRESH_BACKOFF_SECS — after a refresh in which every URL failed, the
+# next renders do not probe again for this long; they render the cache under the
+# same stale bound. A failure leaves no fresh cache, so without this every render
+# re-probed: measured 2026-10-30 against a URL that accepts and never answers,
+# 2.21 s per render with one URL and 4.32 s with a fallback that also hangs. The
+# floor probe got the same negative cache on 2026-10-05.
+GATEWAY_REFRESH_BACKOFF_SECS="${STATUSLINE_GATEWAY_REFRESH_BACKOFF_SECS:-30}"
+
 # Gateway's minimum wrapper version floor — AUTO-DISCOVERED (L1a, 2026-05-13).
 #
 # Earlier versions hardcoded "1.2.0" here and required a manual bump whenever
@@ -1079,13 +1087,18 @@ fi
 #   gateway_snapshot_age_secs          age of the data being rendered (0 = fetched
 #                                      now; empty = there is no data at all)
 #   gateway_fetch_curl_exit_code       curl's exit code for this render's refresh
-#                                      of the PRIMARY door, verbatim (7 refused,
+#                                      of the PRIMARY URL, verbatim (7 refused,
 #                                      28 timeout, 35 TLS reset, …); empty = no
-#                                      refresh was due
-#   gateway_fallback_curl_exit_code    the same for the fallback door; empty = not
+#                                      refresh this render (cache fresh, or the
+#                                      back-off after a failure)
+#   gateway_fallback_curl_exit_code    the same for the fallback URL; empty = not
 #                                      tried (none configured, or primary worked)
-#   gateway_fetch_source               primary | fallback | empty (no refresh due,
-#                                      or every door failed)
+#   gateway_fetch_source               primary | fallback | empty (no refresh this
+#                                      render, or every URL failed)
+#
+# A refresh in which every URL failed writes "$GATEWAY_CACHE.refresh-failed"
+# (line 1: the primary's curl exit code), and renders skip probing while it is
+# younger than GATEWAY_REFRESH_BACKOFF_SECS. A successful refresh removes it.
 gateway_raw=""
 gateway_snapshot_age_secs=""
 gateway_fetch_curl_exit_code=""
@@ -1094,11 +1107,22 @@ gateway_fetch_source=""
 gateway_snapshot_is_stale=0
 gateway_needs_fetch=0
 gateway_cache_age=""
+gateway_refresh_failed_stamp="${GATEWAY_CACHE}.refresh-failed"
+# The curl exit code the stale render names: this render's, or the last failed
+# refresh's while backing off.
+gateway_last_failed_refresh_curl_exit_code=""
 [ "$GATEWAY_CONFIGURED" -eq 1 ] && gateway_needs_fetch=1
 if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -f "$GATEWAY_CACHE" ]; then
     gateway_cache_mtime=$(file_mtime "$GATEWAY_CACHE")
     gateway_cache_age=$(( NOW_EPOCH - gateway_cache_mtime ))
     [ "$gateway_cache_age" -lt "$GATEWAY_CACHE_TTL" ] && gateway_needs_fetch=0
+fi
+if [ "$gateway_needs_fetch" -eq 1 ] && [ -f "$gateway_refresh_failed_stamp" ]; then
+    gateway_refresh_failed_age=$(( NOW_EPOCH - $(file_mtime "$gateway_refresh_failed_stamp") ))
+    if [ "$gateway_refresh_failed_age" -lt "$GATEWAY_REFRESH_BACKOFF_SECS" ]; then
+        gateway_needs_fetch=0
+        gateway_last_failed_refresh_curl_exit_code=$(sed -n 1p "$gateway_refresh_failed_stamp" 2>/dev/null)
+    fi
 fi
 if [ "$gateway_needs_fetch" -eq 1 ]; then
     gateway_fetch_curl_exit_code=0
@@ -1116,22 +1140,24 @@ if [ "$gateway_needs_fetch" -eq 1 ]; then
     fi
     if [ -n "$gateway_fetch_source" ]; then
         echo "$gateway_fresh" > "$GATEWAY_CACHE"
+        rm -f -- "$gateway_refresh_failed_stamp" 2>/dev/null
         gateway_raw="$gateway_fresh"
         gateway_snapshot_age_secs=0
-    elif [ -n "$gateway_cache_age" ]; then
-        # Fetch failed but a cache exists. Inside the bound, render it: one failed
-        # refresh is a blip, not an outage. Past the bound, do NOT parse it — its
-        # evidence would render (and be logged) as the present state.
-        gateway_snapshot_age_secs="$gateway_cache_age"
-        if [ "$gateway_cache_age" -gt "$GATEWAY_STALE_AFTER_SECS" ]; then
-            gateway_snapshot_is_stale=1
-        else
-            gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
-        fi
+    else
+        gateway_last_failed_refresh_curl_exit_code="$gateway_fetch_curl_exit_code"
+        { printf '%s\n' "$gateway_fetch_curl_exit_code" > "$gateway_refresh_failed_stamp"; } 2>/dev/null || true
     fi
-elif [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
-    gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
+fi
+# No fresh data this render: use the cache, under the stale bound. Inside the
+# bound, render it (one failed refresh is a blip, not an outage). Past it, do NOT
+# parse it: its evidence would render, and be logged, as the present state.
+if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -z "$gateway_fetch_source" ] && [ -n "$gateway_cache_age" ]; then
     gateway_snapshot_age_secs="$gateway_cache_age"
+    if [ "$gateway_cache_age" -gt "$GATEWAY_STALE_AFTER_SECS" ]; then
+        gateway_snapshot_is_stale=1
+    else
+        gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
+    fi
 fi
 
 # Local client wrapper version (cached by binary mtime). The subprocess
@@ -2367,7 +2393,7 @@ elif [ "$gateway_status" = "stale" ]; then
     # Yellow: a monitoring blind spot to look into, not an alarm.
     gateway_stale_age_short=$(reltime "$(( NOW_EPOCH - gateway_snapshot_age_secs ))")
     gateway_stale_age_short="${gateway_stale_age_short% ago}"
-    gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${YELLOW}⌁${gateway_fetch_curl_exit_code} ${gateway_stale_age_short} stale${RESET}"
+    gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${YELLOW}⌁${gateway_last_failed_refresh_curl_exit_code} ${gateway_stale_age_short} stale${RESET}"
 elif [ -n "$gateway_status" ] && [ "$gateway_status" != "unreachable" ]; then
     # Non-empty $gateway_status but not the expected healthy/degraded values —
     # surface the raw state token in red so the operator sees the literal

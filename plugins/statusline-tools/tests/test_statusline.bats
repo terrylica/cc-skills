@@ -796,10 +796,87 @@ strip_ansi() { printf '%s' "$1" | sed $'s/\x1b\\[[0-9;]*m//g'; }
     [ "$(jq -r '.gateway_router_status_fetch_source' <<< "$record")" = "" ]
 }
 
+# A TCP server that counts connections and closes each at once (curl exit 52),
+# so a test can count how many refreshes a render actually attempted.
+# Prints the port; the count is in $BATS_TEST_TMPDIR/connections.
+start_connection_counting_server() {
+    : > "$BATS_TEST_TMPDIR/connections"
+    python3 -c '
+import socket, sys
+s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("127.0.0.1", 0)); s.listen(16)
+print(s.getsockname()[1], flush=True)
+while True:
+    c, _ = s.accept()
+    with open(sys.argv[1], "a") as f: f.write("x\n")
+    c.close()
+' "$BATS_TEST_TMPDIR/connections" > "$BATS_TEST_TMPDIR/counting-server.port" &
+    echo $! > "$BATS_TEST_TMPDIR/counting-server.pid"
+    for _ in $(seq 1 50); do
+        [ -s "$BATS_TEST_TMPDIR/counting-server.port" ] && break
+        sleep 0.1
+    done
+    cat "$BATS_TEST_TMPDIR/counting-server.port"
+}
+connections() { wc -l < "$BATS_TEST_TMPDIR/connections" | tr -d ' '; }
+
+@test "after a failed refresh, renders inside the back-off make no request" {
+    local port; port=$(start_connection_counting_server)
+    local cache="$BATS_TEST_TMPDIR/cache.json"
+    printf '%s\n' "$DEGRADED_ROUTER_STATUS" > "$cache"
+    touch -t 202001010000 "$cache"
+    render() {
+        echo "$TEST_INPUT" | STATUSLINE_GATEWAY_BASE_URL="http://127.0.0.1:$port" \
+            STATUSLINE_GATEWAY_FLOOR_CACHE="$BATS_TEST_TMPDIR/floor" \
+            STATUSLINE_GATEWAY_STATE_LOG="$BATS_TEST_TMPDIR/gw.jsonl" \
+            STATUSLINE_GATEWAY_CACHE="$cache" "$STATUSLINE"
+    }
+    echo 1.0.0 > "$BATS_TEST_TMPDIR/floor"   # keep the floor probe out of the count
+    run render
+    [ "$(connections)" = "1" ]
+    # The closed connection's curl exit code varies by platform; read it back.
+    local rc; rc=$(tail -1 "$BATS_TEST_TMPDIR/gw.jsonl" | jq -r '.gateway_router_status_fetch_curl_exit_code')
+    [ "$rc" -gt 0 ]
+    [[ "$(strip_ansi "$output")" == *"⌁$rc "*" stale"* ]]
+    # Inside the back-off: no request, same stale render, same exit code.
+    run render
+    run render
+    [ "$(connections)" = "1" ]
+    [[ "$(strip_ansi "$output")" == *"⌁$rc "*" stale"* ]]
+    [ "$(tail -1 "$BATS_TEST_TMPDIR/gw.jsonl" | jq -r '.gateway_router_status_fetch_curl_exit_code')" = "null" ]
+    # Once the back-off has expired, the next render tries again.
+    touch -t 202001010000 "$cache.refresh-failed"
+    run render
+    [ "$(connections)" = "2" ]
+}
+
+@test "a successful refresh clears the back-off" {
+    local cache="$BATS_TEST_TMPDIR/cache.json"
+    printf '%s\n' "$DEGRADED_ROUTER_STATUS" > "$cache"
+    touch -t 202001010000 "$cache"
+    printf '7\n\n' > "$cache.refresh-failed"
+    touch -t 202001010000 "$cache.refresh-failed"
+    local root="$BATS_TEST_TMPDIR/www"; mkdir -p "$root/v1"
+    printf '%s\n' '{"pool":{"schedulable_active_accounts":3,"error_accounts":0},"upstream_health_observed_from_forwarded_request_log":{"state":"serving","failed_requests_in_window":0,"forwarded_requests_in_window":9,"observation_window_secs":300}}' > "$root/v1/router-status"
+    local port
+    port=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
+    python3 -m http.server "$port" --bind 127.0.0.1 --directory "$root" >/dev/null 2>&1 &
+    echo $! > "$BATS_TEST_TMPDIR/fallback-server.pid"
+    for _ in $(seq 1 50); do
+        curl -sf "http://127.0.0.1:$port/v1/router-status" >/dev/null 2>&1 && break
+        sleep 0.1
+    done
+    run bash -c "echo '$TEST_INPUT' | STATUSLINE_GATEWAY_BASE_URL='http://127.0.0.1:$port' STATUSLINE_GATEWAY_FLOOR_CACHE='$BATS_TEST_TMPDIR/floor' STATUSLINE_GATEWAY_STATE_LOG='$BATS_TEST_TMPDIR/gw.jsonl' STATUSLINE_GATEWAY_CACHE='$cache' '$STATUSLINE'"
+    [ "$status" -eq 0 ]
+    [[ "$(strip_ansi "$output")" == *"gateway 3/3 ✓"* ]]
+    [ ! -e "$cache.refresh-failed" ]
+}
+
 teardown() {
-    if [ -f "$BATS_TEST_TMPDIR/fallback-server.pid" ]; then
-        kill "$(cat "$BATS_TEST_TMPDIR/fallback-server.pid")" 2>/dev/null || true
-    fi
+    local pidfile
+    for pidfile in "$BATS_TEST_TMPDIR"/*.pid; do
+        [ -f "$pidfile" ] && kill "$(cat "$pidfile")" 2>/dev/null || true
+    done
 }
 
 # --- STATUSLINE_HIDE: named segments can be left out of the render -----------
