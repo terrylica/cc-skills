@@ -10,10 +10,42 @@ setup() {
 
     # Ensure script is executable
     chmod +x "$STATUSLINE"
+
+    # Every test owns its HOME. The script appends to $HOME/.claude/*.jsonl and
+    # configures its gateway from $HOME/.config/ccmax/bearer-pin-env.sh, so a
+    # run under the real HOME wrote into the operator's telemetry and probed the
+    # real gateway. Tests that need a gateway or a pin file set them explicitly.
+    export HOME="$BATS_TEST_TMPDIR/home"
+    mkdir -p "$HOME/.claude"
+    unset ANTHROPIC_BASE_URL STATUSLINE_GATEWAY_BASE_URL STATUSLINE_GATEWAY_ENV_FILE \
+        STATUSLINE_GATEWAY_FALLBACK_BASE_URL STATUSLINE_GATEWAY_STATE_LOG
+}
+
+# The account the fixture's remote host alias names (git@github.com-<account>:…).
+# The script looks for ~/.config/gh-<account>; tests create it from this so the
+# name lives only in the fixture.
+fixture_gh_account() {
+    git -C "$FIXTURES/sample_repo" remote get-url origin | sed -nE 's#^git@github\.com-([^:]+):.*#\1#p'
 }
 
 @test "statusline script exists and is executable" {
     [ -x "$STATUSLINE" ]
+}
+
+@test "the suite's default environment cannot reach the operator's real telemetry or gateway" {
+    # Measured 2026-10-30: one plain test render appended a record to the real
+    # ~/.claude/gateway-state.jsonl and ~/.claude/statusline.jsonl and probed the
+    # real gateway, because the script found the operator's bearer-pin file.
+    # Every test must start from a HOME it owns.
+    [[ "$HOME" == "$BATS_TEST_TMPDIR"/* ]]
+    run bash -c "echo '$TEST_INPUT' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    [ -s "$HOME/.claude/statusline.jsonl" ]
+    # No gateway is configured in a HOME with no bearer-pin file, so nothing is
+    # probed and no gateway telemetry is written anywhere.
+    [ ! -e "$HOME/.claude/gateway-state.jsonl" ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" != *"gateway"* ]]
 }
 
 @test "statusline handles valid JSON input" {
@@ -255,6 +287,9 @@ fi
 exit 1
 FAKE
     chmod +x "$fakebin/gh"
+    # The fixture's remote names an account, and a missing ~/.config/gh-<account>
+    # profile replaces gh's diagnostic with its own hint, so give it an empty one.
+    mkdir -p "$HOME/.config/gh-$(fixture_gh_account)"
 
     run bash -c "PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
     rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
@@ -274,7 +309,26 @@ FAKE
     # must NOT be the red `(?)` fault marker (which would mean gh was still
     # being routed through the broken proxy).
     cd "$FIXTURES/sample_repo"
+    rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
+    # Hermetic: a fake gh that answers only when no proxy variable reached it,
+    # which is exactly what probe_direct guarantees. It used to call the real
+    # GitHub API with the operator's own credentials.
+    local fakebin="$BATS_TEST_TMPDIR/fakebin-proxy"
+    mkdir -p "$fakebin" "$HOME/.config/gh-$(fixture_gh_account)"
+    cat > "$fakebin/gh" <<'FAKE'
+#!/usr/bin/env bash
+for v in HTTPS_PROXY HTTP_PROXY ALL_PROXY https_proxy http_proxy all_proxy; do
+    if [ -n "${!v:-}" ]; then
+        echo "gh: proxyconnect tcp: dial tcp 127.0.0.1:1: connect: connection refused" >&2
+        exit 1
+    fi
+done
+[ "$1" = "api" ] && { echo public; exit 0; }
+exit 1
+FAKE
+    chmod +x "$fakebin/gh"
     run env \
+        PATH="$fakebin:$PATH" \
         HTTPS_PROXY=http://127.0.0.1:1 \
         HTTP_PROXY=http://127.0.0.1:1 \
         ALL_PROXY=http://127.0.0.1:1 \
@@ -292,7 +346,8 @@ FAKE
     # fresh). If gh were still routed through the broken proxy, the badge
     # would instead carry gh's connection-error diagnostic verbatim
     # (the invented `(?)` marker was retired 2026-06-11).
-    [[ "$plain" == *"(public)"* || "$plain" == *"(private)"* ]]
+    [[ "$plain" == *"(public)"* ]]
+    rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
 }
 
 # =============================================================================
