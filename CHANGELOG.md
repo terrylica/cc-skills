@@ -1,3 +1,33 @@
+## [34.11.1](https://github.com/terrylica/cc-skills/compare/v34.11.0...v34.11.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **statusline-tools:** back off after a failed gateway refresh ([f68a019](https://github.com/terrylica/cc-skills/commit/f68a0196570215a5c0e9dc217bd7b052ff3442c5))
+
+A failed refresh leaves no fresh cache, so every render probed the gateway again. Measured against a URL that accepts and never answers: 2.21 s per render with one URL, 4.32 s with a fallback that also hangs.
+
+- A refresh in which every URL failed writes &lt;cache>.refresh-failed holding the primary's curl exit code; renders skip probing while it is younger than STATUSLINE_GATEWAY_REFRESH_BACKOFF_SECS (default 30 s) and render the cache under the same stale bound, naming that exit code.
+- A successful refresh removes the stamp.
+- One code path now applies the stale bound whether or not a refresh ran this render.
+- Measured after: 4.28 s for the failing render, then 0.20 s per render inside the back-off. Tests count connections to a local server, so they assert requests, not timings.
+
+* **statusline-tools:** never render a stale gateway snapshot as current ([6b738de](https://github.com/terrylica/cc-skills/commit/6b738deab36c521f863ca056a63d63e670f06b71))
+
+A Mac on a network that resets TLS for the gateway's hostname kept rendering one cached /v1/router-status snapshot ("✗9/17 5m outage") as current; by the time it was read it was 1h47m old and the gateway reported serving. The stale-on-failure fallback had no age limit.
+
+- A snapshot older than STATUSLINE_GATEWAY_STALE_AFTER_SECS (default 300 s, the gateway's observation window) is not parsed; the segment renders ⌁&lt;curl exit code> &lt;age> stale and shows none of its evidence.
+- STATUSLINE_GATEWAY_FALLBACK_BASE_URL (optional, empty by default) names a second URL to the same gateway, tried only when the primary refresh fails; its answer refreshes the cache.
+- The real-traffic damper is detected before the parser and applied inside it, so the rendered label follows the damped class; it used to change only the logged class.
+- gateway-state.jsonl schema v4 adds gateway_snapshot_age_seconds, both URLs' curl exit codes and gateway_router_status_fetch_source; STATUSLINE_GATEWAY_CACHE overrides the cache path.
+
+* **statusline-tools:** one space after a severity glyph with no evidence ([4efda0b](https://github.com/terrylica/cc-skills/commit/4efda0bbd1fe2b03b390905f213687a355659999))
+
+A full-health verdict over a shrunken or empty pool has no failed/forwarded evidence and no window, and the glyph was followed by two spaces: "gateway 2/3 ⚠  flapping", "gateway 0/3 ✗  outage". The window token now brings its own leading space only when it is present.
+
+- Applies to the flapping, partial-outage and outage renders; a test pins all three.
+- The legend and CLAUDE.md examples match the new output.
+
 # [34.11.0](https://github.com/terrylica/cc-skills/compare/v34.10.0...v34.11.0) (2026-10-30)
 
 
