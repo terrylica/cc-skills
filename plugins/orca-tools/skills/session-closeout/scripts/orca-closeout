@@ -208,7 +208,7 @@ def one_shots_fired(path, cron_ids):
                if inp.get("recurring") is False and (inp.get("prompt") or "").strip()}
     fired = set()
     if not pending: return fired
-    needles = {jid: json.dumps(p)[1:-1].encode() for jid, (_, p) in pending.items()}
+    needles = {jid: json.dumps(p, ensure_ascii=False)[1:-1].encode() for jid, (_, p) in pending.items()}
     with open(path, "rb") as fh:
         for line in fh:
             hits = [jid for jid, nd in needles.items() if jid not in fired and nd in line]

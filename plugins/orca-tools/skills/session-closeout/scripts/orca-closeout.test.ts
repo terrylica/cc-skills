@@ -339,7 +339,9 @@ describe("running work is reported by every form", () => {
     // A one-shot fires once and deletes itself, so no CronDelete follows; its
     // prompt being delivered is the record that it ran.
     const now = new Date().toISOString();
-    const prompt = "Run the final post-deploy check and report.";
+    // Non-ASCII on purpose: transcripts store raw UTF-8, so an escaped
+    // (\uXXXX) needle would never match.
+    const prompt = "Run the final post-deploy check — and report: 检查完成.";
     appendFileSync(
       transcript,
       `${JSON.stringify({ type: "assistant", timestamp: now, message: { content: [{ type: "tool_use", id: "tu5", name: "CronCreate", input: { cron: "52 15 30 10 *", prompt, recurring: false } }] } })}\n` +
