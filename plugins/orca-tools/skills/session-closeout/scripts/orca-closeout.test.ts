@@ -335,6 +335,38 @@ describe("running work is reported by every form", () => {
     );
     expect(JSON.parse(run([]).out).running_count).toBe(0);
   });
+  test("a one-shot cron is finished once its prompt has arrived as a user turn", () => {
+    // A one-shot fires once and deletes itself, so no CronDelete follows; its
+    // prompt being delivered is the record that it ran.
+    const now = new Date().toISOString();
+    const prompt = "Run the final post-deploy check and report.";
+    appendFileSync(
+      transcript,
+      `${JSON.stringify({ type: "assistant", timestamp: now, message: { content: [{ type: "tool_use", id: "tu5", name: "CronCreate", input: { cron: "52 15 30 10 *", prompt, recurring: false } }] } })}\n` +
+        `${JSON.stringify({ type: "user", timestamp: now, toolUseResult: { id: "2d97c865", recurring: false }, message: { content: [{ type: "tool_result", tool_use_id: "tu5", content: "Scheduled one-shot task 2d97c865" }] } })}\n`,
+    );
+    expect(JSON.parse(run([]).out).running.map((r: { id: string }) => r.id)).toEqual(["2d97c865"]);
+    appendFileSync(transcript, `${JSON.stringify({ type: "user", timestamp: now, message: { role: "user", content: prompt } })}\n`);
+    expect(JSON.parse(run([]).out).running_count).toBe(0);
+  });
+  test("api-request-blob copies of earlier tool calls are not new events", () => {
+    // Claude Code stores a copy of each API request, which replays earlier
+    // tool_use and tool_result blocks. Read as events, a replayed CronCreate
+    // was counted a second time (keyed by its tool-use id, since the copy has
+    // no result), and a replayed ScheduleWakeup could undo a later stop.
+    const now = new Date().toISOString();
+    const create = { type: "tool_use", id: "tu6", name: "CronCreate", input: { cron: "*/5 * * * *", prompt: "check", recurring: true } };
+    const result = { type: "tool_result", tool_use_id: "tu6", content: "Scheduled recurring task cron-def2" };
+    appendFileSync(
+      transcript,
+      `${JSON.stringify({ type: "assistant", timestamp: now, message: { content: [create] } })}\n` +
+        `${JSON.stringify({ type: "user", timestamp: now, toolUseResult: { id: "cron-def2" }, message: { content: [result] } })}\n` +
+        `${JSON.stringify({ type: "assistant", timestamp: now, message: { content: [{ type: "tool_use", id: "tu7", name: "CronDelete", input: { id: "cron-def2" } }] } })}\n` +
+        `${JSON.stringify({ type: "api-request-blob", message: { content: [create, { type: "tool_use", id: "tu8", name: "ScheduleWakeup", input: { delaySeconds: 1200 } }] } })}\n` +
+        `${JSON.stringify({ type: "api-request-blob", message: { content: [result] } })}\n`,
+    );
+    expect(JSON.parse(run([]).out).running_count).toBe(0);
+  });
 });
 
 describe("naming while work is running", () => {

@@ -139,8 +139,10 @@ def held_open(path):
     return r is None or bool(r.stdout.strip())
 def ledger(path, sid, since=None, now=None):
     """Work this session started and has not seen finish, read from its transcript: background commands and background
-    agents (launch, then a task notification or a TaskStop result), session-only crons (CronCreate minus CronDelete) and
-    the latest ScheduleWakeup while it is not yet due. Teammates are not here: their liveness is Orca status data.
+    agents (launch, then a task notification or a TaskStop result), session-only crons (CronCreate minus CronDelete, and
+    a one-shot minus the user turn that delivered its prompt: it fires once and deletes itself) and the latest
+    ScheduleWakeup while it is not yet due. Teammates are not here: their liveness is Orca status data.
+    `api-request-blob` records are skipped: they copy earlier requests, so their tool calls are not new events.
     `since`: launches older than this (the agent process start) died with an earlier process and are ignored."""
     now = now or time.time()
     bash, agents, done, uses, cron_ids, cron_del, wake = {}, {}, set(), {}, {}, set(), None
@@ -151,6 +153,7 @@ def ledger(path, sid, since=None, now=None):
             if not any(k in line for k in keys): continue
             try: d = json.loads(line)
             except Exception: continue
+            if d.get("type") == "api-request-blob": continue
             ts = epoch(d.get("timestamp"))
             text = json.dumps(d) if b"task-notification" in line else ""
             for tid in re.findall(r"<task-id>([^<]+)</task-id>", text): done.add(tid)
@@ -180,6 +183,7 @@ def ledger(path, sid, since=None, now=None):
                         mm = re.search(r"(?:job|cron|task)[ _-]?id[^A-Za-z0-9]{0,6}([A-Za-z0-9_-]{4,})", s, re.I)
                         jid = mm.group(1) if mm else b.get("tool_use_id")
                     cron_ids[str(jid)] = uses.pop(b.get("tool_use_id"))
+    fired = one_shots_fired(path, cron_ids)
     old = lambda t: since is not None and t is not None and t < since
     out = []
     for tid, t in bash.items():
@@ -191,12 +195,34 @@ def ledger(path, sid, since=None, now=None):
         if aid in done or old(t): continue
         out.append({"kind": "background-agent", "id": aid, "name": name, "state": "running", "source": "transcript"})
     for jid, (t, inp) in cron_ids.items():
-        if jid in cron_del or old(t): continue
+        if jid in cron_del or jid in fired or old(t): continue
         out.append({"kind": "cron", "id": jid, "name": (inp.get("prompt") or "")[:60], "state": "scheduled",
                     "source": "transcript"})
     if wake and wake[0] is not None and not old(wake[0]) and wake[0] + float(wake[1] or 0) > now - 30:
         out.append({"kind": "wakeup", "id": None, "name": "ScheduleWakeup", "state": "scheduled", "source": "transcript"})
     return out
+def one_shots_fired(path, cron_ids):
+    """Ids of one-shot crons (recurring: false) whose prompt has since arrived as a user turn. Only when there are any:
+    a second pass that matches the prompt as bytes before parsing, so a long transcript costs one scan."""
+    pending = {jid: (t, (inp.get("prompt") or "").strip()) for jid, (t, inp) in cron_ids.items()
+               if inp.get("recurring") is False and (inp.get("prompt") or "").strip()}
+    fired = set()
+    if not pending: return fired
+    needles = {jid: json.dumps(p)[1:-1].encode() for jid, (_, p) in pending.items()}
+    with open(path, "rb") as fh:
+        for line in fh:
+            hits = [jid for jid, nd in needles.items() if jid not in fired and nd in line]
+            if not hits: continue
+            try: d = json.loads(line)
+            except Exception: continue
+            if d.get("type") != "user": continue
+            c = (d.get("message") or {}).get("content")
+            text = c if isinstance(c, str) else " ".join(b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text")
+            ts = epoch(d.get("timestamp"))
+            for jid in hits:
+                t, prompt = pending[jid]
+                if text.strip() == prompt and (t is None or ts is None or ts >= t): fired.add(jid)
+    return fired
 def status_file():
     c = []
     if os.environ.get("ORCA_USER_DATA_PATH"): c.append(os.path.join(os.environ["ORCA_USER_DATA_PATH"], "agent-hooks", "last-status.json"))
