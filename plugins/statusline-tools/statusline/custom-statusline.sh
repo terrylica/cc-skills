@@ -880,14 +880,14 @@ fi
 # quota windows is actively misleading. This block instead surfaces four
 # signals that describe the live path:
 #
-#   1. Gate health   — composite of gateway reachability + canary state
+#   1. Gate health   — composite of gateway reachability + forward-path health
 #   2. Pool size     — pool.schedulable_active_accounts / pool.total_accounts
-#   3. Canary state  — canary_self_test.consecutive_failures count
+#   3. Forward-path health — upstream_health_observed_from_forwarded_request_log
 #   4. Client version — local client version vs the gateway's advertised floor
 #
 # EXPECTED GATEWAY CONTRACT — any gateway exposing these two anonymous,
 # unauthenticated GET routes works; nothing here is vendor-specific:
-#   GET /v1/health         → liveness + canary
+#   GET /v1/health         → liveness + forward-path health
 #   GET /v1/router-status  → superset: adds the per-account pool breakdown
 # We fetch the latter only, since it covers all four signals in one request.
 #
@@ -897,8 +897,8 @@ fi
 #
 # Failure semantics (drives $gateway_status string — used downstream to pick
 # the render branch and per-token color, no longer a leading visual glyph):
-#   reachable + status=ok + canary healthy + errors=0  → "healthy"    (all gray/✓)
-#   reachable but canary degraded OR errors>0          → "degraded"   (red ✗N or red ratio)
+#   reachable + health not degraded + errors=0         → "healthy"    (all gray/✓)
+#   reachable but health degraded OR errors>0          → "degraded"   (red ✗N or red ratio)
 #   unreachable / no cache                             → "unreachable" (literal red word replaces numerics)
 #   /v1/router-status JSON parse failure               → "parse-error" (red word replaces numerics)
 #
@@ -1187,11 +1187,16 @@ version_lt() {
 
 # Parse the gateway snapshot into primitives. One python invocation emits a
 # fixed-shape pipe-delimited line; shell unpacks with `IFS='|' read`. Output:
-#   <status>|<schedulable>|<rotation_size>|<errors>|<canary_failures>|<canary_class>
-# status      ∈ {healthy, degraded, parse-error}; unreachable is signalled by
-#               empty gateway_raw before we enter this block
-# canary_class ∈ {healthy, since-start-failure, transient, recent-degradation,
-#               unknown} — see classification rules below
+#   <status>|<schedulable>|<rotation_size>|<errors>|<failed_in_window>|<health_class>|…
+# status      ∈ {healthy, degraded, parse-error}; unreachable and stale are set
+#               by the fetch block before this one
+# health_class ∈ {healthy, recent-degradation, transient, unproven,
+#               no-health-signal, unknown} — see the classification below
+#
+# The health-signal variables keep their historical canary_* names because the
+# telemetry log's gateway_canary_* fields carry them, and that log's history
+# must stay readable. The synthetic canary itself is gone: the gateway retired
+# canary_self_test for zero-token health derived from real forwarded requests.
 #
 # Pool denominator semantics — we deliberately EXCLUDE inactive accounts from
 # the denominator. gateway's response distinguishes three account states:
@@ -1206,43 +1211,23 @@ version_lt() {
 # which is the actual rotation working-set size: "how many accounts are
 # expected to be able to serve, and how many of those actually can right now".
 #
-# Canary classification (L1b, 2026-05-13) — replaces the prior binary
-# "degraded vs healthy" flag with a four-state model that distinguishes
-# operationally-meaningful failure modes:
-#
-#   healthy              consecutive_failures == 0
-#                        → the canary just succeeded; nothing to see here.
-#
-#   since-start-failure  success_runs == 0 AND consecutive_failures == total_runs
-#                        → the canary has NEVER succeeded since the router
-#                          process started. This is the fingerprint of a
-#                          config bug (e.g. canary's request missing a
-#                          required header). It is NOT evidence of upstream
-#                          trouble — if upstream were broken, the canary
-#                          would have at least ONE prior success at boot.
-#                          Renderer dims this in gray instead of red.
-#
-#   transient            0 < consecutive_failures < consecutive_failure_threshold
-#                        → canary had successes before, currently has a small
-#                          run of failures below the alarm threshold. Worth
-#                          watching, not yet worth paging.
-#
-#   recent-degradation   consecutive_failures >= consecutive_failure_threshold
-#                        AND success_runs > 0 (i.e. NOT since-start-failure)
-#                        → canary worked at some point, now degraded past the
-#                          alarm threshold. This is the "real outage" signal.
-#
-#   unknown              canary fields absent or unreadable
-#                        → fail-safe to "degraded color" so we don't silently
-#                          hide a real problem behind missing data.
+# Health classification, from upstream_health_observed_from_forwarded_request_log:
+#   healthy              state=serving: real requests are succeeding
+#   recent-degradation   state=degraded: the failure ratio crossed the gateway's
+#                        threshold over enough samples — the "outage" signal
+#   transient            recent-degradation, damped by real traffic (L1c below)
+#   unproven             no recent request carried evidence either way (idle
+#                        or freshly restarted gateway): calm, never an alarm
+#   no-health-signal     the gateway answered without the block: a contract
+#                        break in the binary
+#   unknown              unreadable: fail-safe to red so nothing hides
 # All ten primitives below feed the unified renderer further down.
 gateway_status="unreachable"
 pool_schedulable=0
 pool_rotation_size=0
 pool_errors=0
-# canary_failures retained as a parsed primitive even though the L1d
-# renderer prefers humanized duration over raw count; downstream task #7 (L2
-# statistics surface) will append this to the per-render JSONL log.
+# canary_failures holds the window's failed-request count; it is logged, not
+# rendered (the render shows the failed/forwarded ratio instead).
 # shellcheck disable=SC2034
 canary_failures=0
 canary_class="unknown"
@@ -1258,32 +1243,17 @@ if [ "$gateway_snapshot_is_stale" -eq 1 ]; then
     unified_state_name_for_render_label="stale"
 fi
 
-# L1c (real-traffic cross-check, 2026-05-13) — second-opinion damper on the
-# canary signal. The canary is one synthetic probe; if it's degraded, that
-# may or may not reflect actual upstream health. Real traffic is the ground
-# truth: when this Mac's Claude Code session is actively pumping requests
-# through gateway AND those requests are completing, gateway IS serving,
-# regardless of what the canary says.
-#
-# Detection signals:
-#   (a) $ANTHROPIC_BASE_URL points at gateway (bearer-mode routing) AND
-#   (b) The current session's transcript JSONL has been written to within
-#       the last 60s (Claude Code only appends to the transcript when it
-#       successfully receives upstream responses)
-#
-# Effect: when both hold, downgrade the canary class by one alarm level.
-# Computed BEFORE the parser and applied inside it, so the composed label
-# follows the damped class (see the parser's L1c block for why).
-# This is a damper, not a silencer — recent-degradation → transient,
-# transient → since-start-failure (i.e. "config bug, not outage"). Healthy
-# stays healthy. since-start-failure stays since-start-failure (already
-# minimum-alarm).
-#
-# Why we DON'T just suppress the canary signal entirely when real traffic
-# flows: the canary's interval (1-5min) doesn't perfectly align with the
-# user's prompt cadence. A 5min-stale transcript with an actively-failing
-# canary IS a credible early-warning of impending failure on the next
-# prompt. Damper-not-silencer preserves that signal at one severity level.
+# L1c (real-traffic cross-check) — a damper on the gateway's health verdict.
+# The verdict covers the whole fleet over a window; this session's own requests
+# completing through the gateway right now is direct evidence that its path
+# serves. When both hold:
+#   (a) $ANTHROPIC_BASE_URL points at the gateway (or a loopback in front of it)
+#   (b) the session transcript was written within the last 60 s (Claude Code
+#       appends only when it receives upstream responses)
+# recent-degradation is downgraded to transient, which renders "flapping"
+# (yellow) instead of "outage" (red). A damper, not a silencer: the failures
+# other members are seeing stay visible. Detected here, before the parser, and
+# applied inside it so the composed label follows the damped class.
 # Deployment-agnostic "is this session routed through the configured gateway?"
 # test (2026-09-04). This previously pattern-matched one private hostname plus
 # two loopback forms. We now compare the live $ANTHROPIC_BASE_URL against the
@@ -1326,25 +1296,9 @@ import sys, json, os
 #    |<unified_state_name_for_render_label>
 #    |<canary_failure_duration_humanized_short_form>
 
-def passthrough_official_canary_http_status_for_render(
-    last_observed_http_status_code_from_canary_self_test_block,
-):
-    # OFFICIAL-VALUES rendering (operator directive 2026-06-11): emit the
-    # canary's last_observed_http_status_code VERBATIM. This replaces the
-    # retired AU/QT/CF/UP/IN letter-code translation (an RFC-9457-inspired
-    # taxonomy, removed because it was a hand-made re-labeling of official
-    # HTTP statuses — 401 IS the value the canary observed; no legend
-    # needed). The value 0 is also the field's official recorded value
-    # (HTTP request never completed — no status observed) and renders
-    # verbatim. 2xx/3xx return empty (not a failure token; the render path
-    # only attaches this on degraded states anyway). NOTE: this python runs
-    # inside a shell double-quoted python3 -c block — NEVER use a literal
-    # double-quote character anywhere in it (it terminates the shell string
-    # and the parser dies silently behind 2>/dev/null).
-    s = int(last_observed_http_status_code_from_canary_self_test_block or 0)
-    if 200 <= s < 400:
-        return ''
-    return str(s)
+# NOTE: this python runs inside a shell double-quoted python3 -c block — NEVER
+# use a literal double-quote character anywhere in it (it terminates the shell
+# string and the parser dies silently behind 2>/dev/null).
 
 def derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
     schedulable_active_accounts_count, rotation_working_set_size,
@@ -1367,13 +1321,12 @@ def derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_siz
 def compose_unified_state_name_for_render_label_from_canary_class_and_pool_state(
     canary_classification_four_state, pool_resilience_state,
 ):
-    # Single label combining the canary's failure classification with the
+    # Single label combining the forward-path health classification with the
     # pool's resilience state, taking the worst-of via this severity-ranked
     # precedence (highest to lowest):
-    #   outage (red)       ← pool total-outage OR canary recent-degradation
+    #   outage (red)       ← pool total-outage OR health recent-degradation
     #   partial-outage (yellow) ← pool partial-outage (last-account-standing)
-    #   flapping (yellow)  ← pool degraded OR canary transient
-    #   since-boot (gray)  ← canary never-succeeded-since-router-start config bug
+    #   flapping (yellow)  ← pool degraded OR damped degradation (transient)
     #   healthy (green)    ← both signals report no failure
     #   unproven (gray)    ← no recent request carried forward-path evidence
     #   no-health-signal (red) ← gateway exposed neither health block at all
@@ -1387,8 +1340,6 @@ def compose_unified_state_name_for_render_label_from_canary_class_and_pool_state
         return 'flapping'
     if canary_classification_four_state == 'transient':
         return 'flapping'
-    if canary_classification_four_state == 'since-start-failure':
-        return 'since-boot'
     # Contract break outranks 'unproven': a missing signal is a defect to fix,
     # whereas an unproven one is a normal idle state.
     if canary_classification_four_state == 'no-health-signal':
@@ -1426,26 +1377,12 @@ try:
     pool_error_accounts_count = int(pool.get('error_accounts', 0) or 0)
     rotation_working_set_size = schedulable_active_accounts_count + pool_error_accounts_count
 
-    # ── Tolerant reader: new access-log-derived block, else legacy canary ──
-    #
-    # gateway is migrating OFF the synthetic canary (the guiding rule being that monitoring
-    # must never spend inference). The new block derives forward-path health from
-    # real forwarded requests that already happened, so it costs nothing.
-    #
-    # Precedence is deliberate and must not be reordered:
-    #   1. upstream_health_observed_from_forwarded_request_log  (new, zero-token)
-    #   2. canary_self_test                                    (legacy, synthetic)
-    #   3. neither                                             (explicit unknown)
-    #
-    # This reader ships BEFORE gateway changes, so a statusline on any host keeps
-    # working against either binary during the rollout. Do NOT collapse it to the
-    # new field alone until every gateway in the fleet emits it — an old binary
-    # would then render 'no-health-signal' red across the whole fleet.
+    # Forward-path health from real forwarded requests: zero synthetic traffic
+    # (monitoring must never spend inference). The gateway's verdict travels
+    # with its counts and thresholds, so nothing here re-derives it.
     upstream_health = d.get('upstream_health_observed_from_forwarded_request_log') or {}
-    canary = d.get('canary_self_test', {}) or {}
 
     if upstream_health:
-        # NEW PATH — evidence from real traffic.
         observed_state = str(upstream_health.get('state') or 'unproven').strip()
         forwarded_in_window = int(upstream_health.get('forwarded_requests_in_window', 0) or 0)
         failed_in_window = int(upstream_health.get('failed_requests_in_window', 0) or 0)
@@ -1454,113 +1391,60 @@ try:
         )
         # 'unproven' is NOT a failure — it means no recent request carried
         # evidence either way (idle fleet, or fresh restart). Rendering it as a
-        # failure would page the operator for being idle, which is the exact
-        # trap the deep-probe conversion hit first.
+        # failure would page the operator for being idle.
         if observed_state == 'serving':
             canary_classification_four_state = 'healthy'
         elif observed_state == 'degraded':
             canary_classification_four_state = 'recent-degradation'
         else:
             canary_classification_four_state = 'unproven'
-        # The evidence token replaces the canary's single HTTP status: a ratio is
-        # what this signal actually knows. Empty while serving (nothing to say).
-        canary_last_observed_http_status_code = 0
-        # Only render the ratio when there IS evidence to summarize. A bare
-        # '0/0' on an idle fleet looks like a measurement; it is the absence of
-        # one, and the 'unproven' label already says that.
-        canary_evidence_token_for_render = (
+        # The evidence token is the failed/forwarded ratio, and only when there
+        # IS evidence to summarize: a bare '0/0' on an idle fleet looks like a
+        # measurement; it is the absence of one, and 'unproven' already says so.
+        canary_last_observed_http_status_for_render = (
             f'{failed_in_window}/{forwarded_in_window}'
             if (forwarded_in_window > 0 and canary_classification_four_state != 'healthy')
             else ''
         )
-        canary_failure_duration_seconds_lower_bound_override = (
+        # Duration: the observation window, not a streak. The honest statement
+        # is 'degraded across the last <window>'.
+        canary_failure_duration_seconds_lower_bound = (
             observation_window_seconds
             if canary_classification_four_state == 'recent-degradation' else 0
         )
         canary_consecutive_failures_count = failed_in_window
-    elif canary:
-        # LEGACY PATH — synthetic canary. Unchanged L1b four-state classification.
-        canary_consecutive_failures_count = int(canary.get('consecutive_failures', 0) or 0)
-        canary_lifetime_success_runs_count = int(canary.get('success_runs', 0) or 0)
-        canary_lifetime_total_runs_count = int(canary.get('total_runs', 0) or 0)
-        canary_consecutive_failure_alarm_threshold = int(
-            canary.get('consecutive_failure_threshold', 3) or 3
-        )
-        canary_configured_interval_seconds = int(
-            canary.get('configured_interval_secs', 300) or 300
-        )
-        canary_last_observed_http_status_code = canary.get('last_observed_http_status_code', 0)
-        if canary_consecutive_failures_count == 0:
-            canary_classification_four_state = 'healthy'
-        elif (
-            canary_lifetime_success_runs_count == 0
-            and canary_consecutive_failures_count == canary_lifetime_total_runs_count
-        ):
-            canary_classification_four_state = 'since-start-failure'
-        elif canary_consecutive_failures_count < canary_consecutive_failure_alarm_threshold:
-            canary_classification_four_state = 'transient'
-        else:
-            canary_classification_four_state = 'recent-degradation'
-        canary_evidence_token_for_render = None  # renderer uses the HTTP status
-        canary_failure_duration_seconds_lower_bound_override = None
     else:
-        # NEITHER field present. This is a real contract break (gateway answered
-        # /v1/router-status but exposes no forward-path health at all), so say so
-        # loudly rather than defaulting to 'healthy' — a monitor that reports
-        # health it cannot observe is worse than one that admits ignorance.
+        # The gateway answered /v1/router-status but exposes no forward-path
+        # health at all: a contract break, said loudly rather than defaulting to
+        # 'healthy' — a monitor that reports health it cannot observe is worse
+        # than one that admits ignorance.
         canary_classification_four_state = 'no-health-signal'
         canary_consecutive_failures_count = 0
-        canary_last_observed_http_status_code = 0
-        canary_evidence_token_for_render = ''
-        canary_failure_duration_seconds_lower_bound_override = 0
-        canary_configured_interval_seconds = 300
+        canary_last_observed_http_status_for_render = ''
+        canary_failure_duration_seconds_lower_bound = 0
 
-    # Gate-status binary (legacy primitive retained for backward-compat with
-    # the existing $gateway_status check that triggers render-or-suppress).
+    # Gate-status binary: drives which render branch runs.
     if pool_error_accounts_count > 0 or canary_classification_four_state == 'recent-degradation':
         legacy_gate_status_binary = 'degraded'
     else:
         legacy_gate_status_binary = 'healthy'
 
-    # L1d new primitives. The type-code slot carries whichever evidence the
-    # active signal actually has: the canary's official HTTP status (legacy) or
-    # the access-log failure ratio (new). Never both, never invented.
-    if canary_evidence_token_for_render is not None:
-        canary_last_observed_http_status_for_render = canary_evidence_token_for_render
-    else:
-        canary_last_observed_http_status_for_render = \
-            passthrough_official_canary_http_status_for_render(
-                canary_last_observed_http_status_code,
-            )
     pool_resilience_state_machine_label = \
         derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
             schedulable_active_accounts_count, rotation_working_set_size,
         )
-    # L1c real-traffic damper (detection is in the shell, before this parser).
-    # Applied HERE, after the evidence token and duration were taken from the
-    # undamped signal and before the label is composed, so the rendered label
+    # L1c real-traffic damper (detected in the shell, before this parser).
+    # Applied after the evidence token and duration were taken from the
+    # undamped verdict and before the label is composed, so the rendered label
     # and the logged class always agree. Until 2026-10-30 the shell applied it
-    # after this parser had already composed the label: the log said
-    # 'transient' while the segment still rendered a red 'outage'.
+    # after this parser had composed the label: the log said 'transient' while
+    # the segment still rendered a red 'outage'.
     if os.environ.get('STATUSLINE_REAL_TRAFFIC_RECENT') == '1':
         if canary_classification_four_state == 'recent-degradation':
             canary_classification_four_state = 'transient'
-        elif canary_classification_four_state == 'transient':
-            canary_classification_four_state = 'since-start-failure'
     unified_state_name_for_render_label = \
         compose_unified_state_name_for_render_label_from_canary_class_and_pool_state(
             canary_classification_four_state, pool_resilience_state_machine_label,
-        )
-    # Duration. Legacy multiplies consecutive failures by the tick interval (a
-    # lower bound). The new signal has no tick cadence, so it reports the
-    # observation window instead — the honest statement is 'degraded across the
-    # last <window>', not a fabricated streak length.
-    if canary_failure_duration_seconds_lower_bound_override is not None:
-        canary_failure_duration_seconds_lower_bound = \
-            canary_failure_duration_seconds_lower_bound_override
-    else:
-        canary_failure_duration_seconds_lower_bound = (
-            canary_consecutive_failures_count * canary_configured_interval_seconds
         )
     canary_failure_duration_humanized_short_form = (
         format_seconds_as_humanized_short_duration_with_no_ago_suffix(
@@ -1897,10 +1781,13 @@ statusline_shows git && echo -e "$line1"
 # Final output shapes (L1d unified multi-dimensional render, 2026-05-13):
 #
 #   ... UTC | ... PDT | gateway 3/3 ✓ 1.93.0                                ← all healthy
-#   ... UTC | ... PDT | gateway 3/3 ✗401 3d since-boot 1.93.0                ← today (config bug, gray)
-#   ... UTC | ... PDT | gateway 2/3 ⚠503 3m flapping 1.93.0                   ← one backend transient
-#   ... UTC | ... PDT | gateway 1/3 ⚠503 12m partial-outage 1.93.0            ← last healthy account, pre-warn
-#   ... UTC | ... PDT | gateway 0/3 ✗503 47m outage 1.93.0                    ← total outage, alarm
+#   ... UTC | ... PDT | gateway 3/3 · unproven 1.93.0                         ← no recent evidence (idle), calm
+#   ... UTC | ... PDT | gateway 2/3 ⚠  flapping 1.93.0                        ← one account out of rotation
+#   ... UTC | ... PDT | gateway 3/3 ⚠9/17 5m flapping 1.93.0                  ← degraded, but this session's requests complete
+#   ... UTC | ... PDT | gateway 1/3 ⚠  partial-outage 1.93.0                  ← last healthy account, pre-warn
+#   ... UTC | ... PDT | gateway 3/3 ✗9/17 5m outage 1.93.0                    ← 9 of 17 forwarded requests failed in the 5m window
+#   ... UTC | ... PDT | gateway 0/3 ✗  outage 1.93.0                          ← no schedulable account, alarm
+#   ... UTC | ... PDT | gateway 3/3 ? no-health-signal 1.93.0                 ← answered without a health block
 #   ... UTC | ... PDT | gateway 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
 #   ... UTC | ... PDT | gateway unreachable 1.93.0                          ← gateway down
 #   ... UTC | ... PDT | gateway ⌁35 1h stale 1.93.0                        ← refresh failing (curl 35), snapshot past the stale bound
@@ -1910,7 +1797,6 @@ statusline_shows git && echo -e "$line1"
 #
 # State is conveyed entirely by per-token coloring + the named state label:
 #   "all healthy"    → ✓ in GREEN, rest in BRIGHT_BLACK, no state label
-#   "since-boot"     → ✗401 (official status) and "since-boot" in BRIGHT_BLACK (calm, config bug)
 #   "flapping"       → ⚠<type> and "flapping" in YELLOW (watch, transient)
 #   "partial-outage" → ⚠<type> and "partial-outage" in YELLOW, pool ratio also YELLOW (pre-warn — last account standing)
 #   "outage"         → ✗<type> and "outage" in RED, pool ratio in RED if 0/N (alarm)
@@ -1935,8 +1821,7 @@ statusline_shows git && echo -e "$line1"
 #
 # ── Gate emoji (RETIRED 2026-05-13) ──────────────────────────────────────────
 #   Earlier versions led the segment with a 🟢/🟡/🔴 dot synthesised from
-#   pool.error_accounts + canary_self_test.is_degraded_per_threshold +
-#   reachability. Retired because:
+#   pool.error_accounts + the health verdict + reachability. Retired because:
 #     - 🟢 "all healthy" was redundant with every trailing token being gray/✓
 #     - 🟡 "degraded" was redundant with the RED ✗N glyph or RED pool ratio
 #     - 🔴 "unreachable" was redundant with the literal RED word "unreachable"
@@ -1971,60 +1856,25 @@ statusline_shows git && echo -e "$line1"
 #   carries each account's {name, status, schedulable} triple if you need to
 #   know WHICH account is in which state.
 #
-# ── "✓" or "✗401 3d" or "⚠503 12m"  ←  severity-glyph + official status + duration ──
-#   The L1d unified render replaced the raw consecutive-failure-count display
-#   with a three-token composite that's both more glanceable and more
-#   actionable. Each token answers a distinct operator question:
+# ── "✓" or "✗9/17 5m" or "·"  ←  severity glyph + evidence + window ──────────
+#   Source: /v1/router-status .upstream_health_observed_from_forwarded_request_log,
+#   derived by the gateway from real forwarded requests (no synthetic traffic):
+#     .state                         serving | degraded | unproven
+#     .failed_requests_in_window     } rendered as failed/forwarded, and only
+#     .forwarded_requests_in_window  } when there is evidence and it is not serving
+#     .observation_window_secs       rendered as the duration while degraded
+#   Its thresholds (minimum_sample_floor, degraded_failure_percent_threshold)
+#   travel with the verdict; nothing here re-derives the verdict.
 #
-#     severity-glyph   How urgent? — ✓ (none), ⚠ (warn), ✗ (alarm or calm)
-#     official status   What failed? — the canary's last_observed_http_status_code VERBATIM (401, 429, 503, 0=never completed)
-#     duration         How long has it been failing? — humanized short form
+#     severity glyph   ✓ serving · ✗ degraded · ⚠ damped or pool pre-warn · gray · unproven
+#     evidence         failed/forwarded, e.g. 9/17
+#     duration         the observation window ('5m'): "degraded across the last
+#                      5m", not a streak length and not how long ago
 #
-#   Source primitives = /v1/router-status .canary_self_test sub-object:
-#     .canary_self_test.consecutive_failures (int)            → drives classification + duration
-#     .canary_self_test.success_runs (int)                    → for classification
-#     .canary_self_test.total_runs (int)                      → for classification
-#     .canary_self_test.consecutive_failure_threshold (int)   → alarm cutoff
-#     .canary_self_test.configured_interval_secs (int)        → × failures = duration
-#     .canary_self_test.last_observed_http_status_code (int)  → maps to type-code
-#
-#   Status rendering (official-values directive 2026-06-11): the canary's
-#   last_observed_http_status_code renders VERBATIM (e.g. 401, 429, 503).
-#   0 is the field's official recorded value when the HTTP request never
-#   completed (network/timeout before any status was observed). The former
-#   AU/QT/CF/UP/IN letter-code translation (RFC-9457-inspired) is RETIRED —
-#   it re-labeled official statuses, violating the official-values policy.
-#
-#   The single source of type information today is the LAST observed canary
-#   status code. Richer per-account failure reasons (one type-code per pool
-#   account in the rotation) require L3 server work (task #8 — extending the
-#   gateway response with .pool.per_account_failure_reason[]).
-#
-#   Duration formula:
-#     duration_secs = consecutive_failures × configured_interval_secs
-#     human-readable form: '8s', '47m', '18h', '3d', '5w' (no 'ago' suffix)
-#   This is a lower bound — actual duration could be slightly larger because
-#   the response only reports the CURRENT consecutive run, not the precise
-#   first-failure timestamp. Exact timestamps require L3 server work (adding
-#   .canary_self_test.first_failure_at_unix_secs).
-#
-#   L1c real-traffic damper: when $ANTHROPIC_BASE_URL points at gateway AND
-#   the current transcript JSONL has mtime within last 60s (= real prompts
-#   are completing through gateway right now), recent-degradation gets
-#   downgraded to transient, and transient gets downgraded to since-start-
-#   failure. Healthy stays healthy. since-start-failure stays. Damper not
-#   silencer — real traffic confirms gateway is serving, so the canary alarm
-#   cannot be at "real problem" severity, but residual flapping signal is
-#   kept visible.
-#
-#   What the canary actually IS:
-#     A gateway implementing this contract runs a timer on
-#     .canary_self_test.configured_interval_secs. Each fire posts a synthetic
-#     /v1/messages request to .canary_self_test.target_loopback_url (i.e. the
-#     gateway probes ITSELF). If the response isn't 200 the
-#     consecutive_failures counter increments; on any success it resets to 0.
-#     This reader only consumes the reported fields — it does not depend on
-#     any particular gateway implementation.
+#   L1c real-traffic damper: when $ANTHROPIC_BASE_URL points at the gateway and
+#   this session's transcript was written within 60 s, recent-degradation is
+#   damped to transient: "flapping" in yellow instead of "outage" in red. The
+#   failures other members see stay visible.
 #
 # ── pool-resilience state machine label (color of N/M ratio) ─────────────────
 #   Source primitives:
@@ -2046,18 +1896,18 @@ statusline_shows git && echo -e "$line1"
 #   the pool has no resilience left, and the next request 503's the user.
 #
 # ── unified state-name label (the operator-facing word) ──────────────────────
-#   Combines canary classification + pool resilience state via worst-of
+#   Combines the health classification + pool resilience state via worst-of
 #   precedence (severity-ranked, highest to lowest):
 #     pool total-outage          → "outage" (red, alarm)
-#     canary recent-degradation  → "outage" (red, alarm)
+#     health recent-degradation  → "outage" (red, alarm)
 #     pool partial-outage        → "partial-outage" (yellow, pre-warn)
 #     pool degraded              → "flapping" (yellow, watch)
-#     canary transient           → "flapping" (yellow, watch)
-#     canary since-start-failure → "since-boot" (gray, calm — config bug)
+#     health transient (damped)  → "flapping" (yellow, watch)
+#     no-health-signal           → "no-health-signal" (yellow, contract break)
+#     unproven                   → "unproven" (gray, calm — no evidence)
 #     all healthy                → "healthy" (no rendered label)
 #
 #   The state-name IS the playbook hint:
-#     "since-boot" → file an issue against gateway; do NOT page
 #     "flapping"   → watch for next minute; may self-recover
 #     "partial-outage" → intervene now; pool has no redundancy
 #     "outage"     → page someone immediately
@@ -2084,7 +1934,7 @@ statusline_shows git && echo -e "$line1"
 #   from the slash-fractions and ✗N tokens that precede it.
 #
 # ── "unreachable" (replaces numeric tokens when fetch fails) ─────────────────
-#   Rendered as a literal RED word in place of the pool/canary numerics.
+#   Rendered as a literal RED word in place of the pool/health numerics.
 #   Kept as a word (not redundant labeling) because it carries the WHY:
 #   distinguishes "gateway is genuinely down" from "got a response but
 #   couldn't parse it" (the latter would just show empty numerics if we
@@ -2134,7 +1984,7 @@ statusline_shows git && echo -e "$line1"
 
 # NOTE: gate-state emoji (🟢/🟡/🔴) was REMOVED 2026-05-13. Rationale: every
 # state the emoji could signal is already expressed by a colored token after
-# the "gateway" anchor — the RED ✗N glyph carries "canary degraded", the
+# the "gateway" anchor — the RED ✗N glyph carries "health degraded", the
 # RED pool ratio carries "errors in rotation", and the literal RED word
 # "unreachable" carries "gateway down". The emoji was therefore pure
 # duplication. The state is now read entirely from the per-token coloring of
@@ -2150,22 +2000,16 @@ statusline_shows git && echo -e "$line1"
 #   N/M         pool ratio, colored by pool resilience state machine
 #               (BRIGHT_BLACK healthy, YELLOW degraded/partial-outage, RED total-outage)
 #   severity    ✓ healthy (GREEN) | ✗ degraded/outage (RED/gray) | ⚠ pre-warn (YELLOW)
-#   status      official HTTP status VERBATIM — only when severity != ✓ (the canary's
-#               last_observed_http_status_code; letter-code taxonomy retired 2026-06-11)
-#   duration    humanized canary failure duration (e.g. 18h, 3m, 2d) — only
-#               when severity != ✓
-#   state-name  since-boot | flapping | partial-outage | outage — operator-
-#               facing label that names the actionable failure category
+#   evidence    failed/forwarded from the health block (e.g. 9/17) — only when
+#               there is evidence and the verdict is not serving
+#   duration    the observation window (e.g. 5m) — only while degraded
+#   state-name  flapping | partial-outage | outage | unproven | no-health-signal
+#               — operator-facing label that names the actionable category
 #   wrapper     local client wrapper version, with <floor suffix (YELLOW) when
 #               below GATEWAY_MIN_WRAPPER_VERSION, or =floor suffix (YELLOW)
 #               when exactly at floor (pre-warn for next floor bump)
 #
-# Scenario examples (against today's live state and hypotheticals):
-#   gateway 3/3 ✓ 1.93.0                              all healthy
-#   gateway 3/3 ✗401 18h since-boot 1.93.0             today (config bug, gray)
-#   gateway 2/3 ⚠503 3m flapping 1.93.0                one backend transient
-#   gateway 1/3 ⚠503 12m partial-outage 1.93.0         last healthy, pre-warn
-#   gateway 0/3 ✗503 47m outage 1.93.0                 total outage, alarm
+# Scenario examples: the LEGEND above.
 #   gateway 3/3 ✓ 1.2.0=1.2.0                          wrapper exactly at floor
 #
 # Full source-of-truth legend for each token lives in the in-script LEGEND
@@ -2201,15 +2045,14 @@ statusline_shows git && echo -e "$line1"
 #   gateway_pool_error_accounts_count                      (int)
 #   gateway_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
 #   gateway_canary_consecutive_failures                    (int)
-#   gateway_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unproven, no-health-signal, unknown}
-#     (the name says "four_state" for wire compatibility with the L4 aggregator;
-#      the vocabulary grew when gateway's zero-token access-log health landed.
-#      'unproven' = no recent request carried evidence; 'no-health-signal' =
-#      gateway exposed neither the new nor the legacy health block.)
-#   gateway_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
-#   gateway_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
+#   gateway_canary_classification_four_state               ∈ {healthy, transient, recent-degradation, unproven, no-health-signal, unknown}
+#     (canary_* field names are historical and kept so the log's history stays
+#      comparable; the values come from the gateway's forwarded-request health
+#      block.)
+#   gateway_canary_failure_type_code                       (str; failed/forwarded, e.g. "9/17"; "" when none)
+#   gateway_canary_failure_duration_humanized              (str; the observation window while degraded, e.g. "5m"; "")
 #   gateway_canary_real_traffic_damper_engaged             (bool)
-#   gateway_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unproven, no-health-signal, stale, unknown}
+#   gateway_unified_state_name_for_render                  ∈ {healthy, flapping, partial-outage, outage, unproven, no-health-signal, stale, unknown}
 #   gateway_local_client_version             (semver str, e.g. "1.93.0")
 #   gateway_minimum_supported_wrapper_version_floor        (semver str, e.g. "1.2.0")
 #   gateway_wrapper_skew_present                           (bool, wrapper < floor)
@@ -2278,8 +2121,7 @@ gateway_state_jsonl_log_record_for_this_render="{\
 # WHY: this appends ~889 bytes on EVERY statusline render, and nothing ever
 # pruned it. Measured 2026-08-02 on the operator's Mac: 257,728,077 bytes across
 # 289,604 lines — a quarter of a gigabyte of telemetry about a gateway, growing
-# without limit. The L4 pusher `tail -n 1`s this file every 30s, so the cost is
-# not only disk: every read walks a file that only ever gets longer.
+# without limit.
 #
 # The check is a single stat() per render, which is nothing next to the work the
 # statusline already does. Rotation keeps 3 generations (~40MB ceiling).
@@ -2311,8 +2153,8 @@ fi
 gateway_inline=""
 if [ "$gateway_status" = "healthy" ] || [ "$gateway_status" = "degraded" ]; then
     # Pool ratio colored by pool_resilience_state_machine_label (orthogonal to
-    # canary state — pool can be healthy while canary is broken via L1c
-    # damper, or vice versa).
+    # the health verdict: the pool can be full while requests fail, or vice
+    # versa).
     case "$pool_resilience_state_machine_label" in
         healthy)
             pool_part="${BRIGHT_BLACK}${pool_schedulable}/${pool_rotation_size}${RESET}"
@@ -2335,17 +2177,12 @@ if [ "$gateway_status" = "healthy" ] || [ "$gateway_status" = "degraded" ]; then
     esac
 
     # Severity glyph + type-code + duration, composed from the unified state
-    # name. The four operator-facing state names map onto three visual
-    # severity tiers (GREEN healthy / BRIGHT_BLACK calm-since-boot / YELLOW
-    # warn-flapping-or-partial / RED alarm-outage):
+    # name, in four visual tiers (GREEN healthy / BRIGHT_BLACK calm-unproven /
+    # YELLOW warn-flapping-partial-or-contract-break / RED alarm-outage):
     case "$unified_state_name_for_render_label" in
         healthy)
             severity_glyph_with_optional_type_code_and_duration="${GREEN}✓${RESET}"
             unified_state_name_visible_label_token=""
-            ;;
-        since-boot)
-            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
-            unified_state_name_visible_label_token=" ${BRIGHT_BLACK}since-boot${RESET}"
             ;;
         unproven)
             # Calm on purpose. No recent request carried forward-path evidence

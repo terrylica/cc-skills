@@ -62,7 +62,7 @@ Dependency: `brew install scc` (Go binary, single-shot — no daemon).
 
 ## Optional: gateway health integration
 
-The statusline reads an optional admission gateway on every render and surfaces gate health, rotation pool size, canary state, and the local client wrapper version. This integration is **optional** — users who have not configured a gateway make no network call at all and see nothing (the whole segment is skipped).
+The statusline reads an optional admission gateway on every render and surfaces gate health, rotation pool size, forward-path health, and the local client wrapper version. This integration is **optional** — users who have not configured a gateway make no network call at all and see nothing (the whole segment is skipped).
 
 > **Do not surface the local keychain's OAuth account or its 5h/7d quota windows here**, and do not read a local quota API. A client wrapper may set `ANTHROPIC_BASE_URL` to the gateway, and the gateway picks from a rotation pool per-request — so the local credential is not the one being consumed, and its quota numbers describe spend the user isn't making. Surface the four signals below instead; they reflect the live pipeline.
 
@@ -72,22 +72,24 @@ When gateway is reachable, the datetime line gains:
 
 ```
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✓ 1.93.0                          ← all healthy
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✗401 3d since-boot 1.93.0          ← today's actual state (config bug, gray)
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 2/3 ⚠503 3m flapping 1.93.0            ← one backend transient
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 1/3 ⚠503 12m partial-outage 1.93.0     ← last healthy account, pre-warn
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 0/3 ✗UP 47m outage 1.93.0             ← total outage, alarm
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 · unproven 1.93.0                 ← no recent evidence (idle), calm
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 2/3 ⚠  flapping 1.93.0                ← one account out of rotation
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ⚠9/17 5m flapping 1.93.0          ← degraded, but this session's own requests complete
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 1/3 ⚠  partial-outage 1.93.0          ← last healthy account, pre-warn
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✗9/17 5m outage 1.93.0            ← 9 of 17 forwarded requests failed in the 5m window
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 0/3 ✗  outage 1.93.0                  ← no schedulable account, alarm
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✓ 1.2.0=1.2.0                      ← wrapper exactly at floor, pre-warn
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway unreachable 1.93.0                    ← gateway down
 Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway ⌁35 1h stale 1.93.0                  ← refresh failing (curl 35), last snapshot 1h old: evidence withheld
 ```
 
-**L1d multi-dimensional unified render (2026-05-13).** Replaced the raw consecutive-failure-count (the prior `✗1090` "magic number") with a three-token composite — severity glyph + the canary's official HTTP status verbatim (letter-code taxonomy retired 2026-06-11 per the official-values directive) + humanized duration — plus an operator-facing state-name word that doubles as the playbook hint. The state-name maps to a clear action (`since-boot` → file an issue; `flapping` → watch; `partial-outage` → intervene; `outage` → page). The full source-of-truth legend for every visible token lives in `custom-statusline.sh` — search for "Gateway summary — render LEGEND".
+**Render grammar.** `gateway <pool> <glyph><evidence> [<window>] [<state-name>] <wrapper>`. The evidence is the gateway's own `failed/forwarded` count and the duration is its observation window, so `5m` means "across the last five minutes", not a streak or an age. The state-name doubles as the playbook hint (`flapping` → watch; `partial-outage` → intervene; `outage` → page; `unproven` → nothing to do). The full legend for every visible token lives in `custom-statusline.sh` — search for "Gateway summary — render LEGEND".
 
 | Render token                      | Source field (in `/v1/router-status`)                                                                                                                                                                 | Meaning (short)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `gateway`                         | (anchor word, not a field)                                                                                                                                                                            | Names the subsystem so trailing numbers have context                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `3/3`                             | `pool.schedulable_active_accounts` / (`schedulable_active_accounts` + `error_accounts`)                                                                                                               | Rotation working-set ratio. Denominator EXCLUDES admin-inactive accounts (paused by operator intent, not failing). Red when any `error_accounts > 0`                                                                                                                                                                                                                                                                                                                                             |
-| `✓` / `✗401 3d` / `⚠503 3m` / `·` | `upstream_health_observed_from_forwarded_request_log` (preferred) **else** `canary_self_test.*` (legacy) — see [tolerant reader](#forward-path-health-tolerant-reader-across-two-gateway-generations) | Forward-path outcome glyph + evidence + humanized duration. On the new signal the evidence is a `failed/forwarded` ratio and the duration is the observation window; on the legacy signal it is the official `last_observed_http_status_code` and `consecutive_failures × configured_interval_secs` (AU/QT/CF/UP/IN letter codes retired 2026-06-11 — they re-labeled official statuses). Gray `·` = `unproven`. Raw counts go to `~/.claude/gateway-state.jsonl` (L2 telemetry), not the render |
+| `✓` / `✗9/17 5m` / `⚠9/17 5m` / `·` | `upstream_health_observed_from_forwarded_request_log` — see [forward-path health](#forward-path-health) | Forward-path verdict glyph + the `failed/forwarded` evidence + the observation window while degraded. Gray `·` = `unproven`. Raw counts go to `~/.claude/gateway-state.jsonl` (L2 telemetry), not the render |
 | `1.92.0` / `<1.2.0`               | `$STATUSLINE_CLIENT_WRAPPER_BIN --version` vs `GATEWAY_MIN_WRAPPER_VERSION`                                                                                                                           | Local wrapper version, with `<floor` suffix in yellow when below                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `unreachable`                     | (synthesized when fetch fails and no usable cache)                                                                                                                                                    | Literal word in RED that replaces the numeric tokens — distinguishes "gateway genuinely down" from "got a response but couldn't parse"                                                                                                                                                                                                                                                                                                                                                           |
 | `⌁35 1h stale`                    | (synthesized when the refresh fails and the cached snapshot is older than `STATUSLINE_GATEWAY_STALE_AFTER_SECS`, default 300)                                                                         | Yellow. Glyph + curl's exit code verbatim (7 refused, 28 timeout, 35 TLS reset, 6 DNS) + the snapshot's age + `stale`. None of the snapshot's evidence is shown: this vantage point cannot see the gateway, which is not the gateway being down                                                                                                                                                                                                                                                  |
@@ -100,17 +102,11 @@ A failed refresh falls back to the cached `/v1/router-status` snapshot so that o
 
 The L1c real-traffic damper is detected before the parser and applied inside it, so the rendered label follows the damped class (`recent-degradation` renders `flapping`, not `outage`). Before 2026-10-30 it ran after the label was composed and changed only the logged class.
 
-#### Forward-path health: tolerant reader across two gateway generations
+#### Forward-path health
 
-gateway is migrating off its synthetic canary because **monitoring must never spend inference** (the guiding rule). The replacement derives forward-path health from real forwarded requests that already happened, so it costs nothing. This statusline reads **either** generation, and the precedence must not be reordered:
+The gateway derives forward-path health from real forwarded requests that already happened, because **monitoring must never spend inference**; the synthetic canary it replaced is retired, and so is this statusline's reader for it. A gateway that answers `/v1/router-status` without the block renders `no-health-signal` (yellow): a contract break in the binary, not a fleet outage.
 
-1. `upstream_health_observed_from_forwarded_request_log` — new, zero-token
-2. `canary_self_test` — legacy, synthetic
-3. neither present → `no-health-signal` (yellow, explicit)
-
-The reader shipped **before** gateway changed, so a statusline on any host works against either binary throughout the rollout. **Do not collapse it to the new field alone** until every gateway in the fleet emits it — an older binary would then paint `no-health-signal` fleet-wide.
-
-New states, and why each renders the way it does:
+States, and why each renders the way it does:
 
 | State              | Render        | Why                                                                                                                       |
 | ------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -140,7 +136,7 @@ Only two gateway routes are wrapper-version-gate-exempt and therefore safe for a
 | Route                   | Bypass decision header                                   | Used by statusline?                                      |
 | ----------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
 | `GET /v1/health`        | `x-gateway-decision: health-probe-bypass`                | No (subset of `/v1/router-status`)                       |
-| `GET /v1/router-status` | `x-gateway-decision: router-status-introspection-bypass` | **Yes** — superset response with pool breakdown + canary |
+| `GET /v1/router-status` | `x-gateway-decision: router-status-introspection-bypass` | **Yes** — superset response with pool breakdown + forward-path health |
 
 The latter is a superset of `/v1/health` (it includes everything from health plus `pool.per_account_summaries[]`), so one fetch covers all four signals. Gateway enforces a 30 s server-side TTL on this route; the statusline overlays a 60 s client-side cache at `/tmp/statusline-gateway-cache.json` for two-window coverage with headroom. On fetch failure the cache is read stale rather than going dark.
 
@@ -199,7 +195,7 @@ Read-only — never mutates the JSONL log. Log path overridable via `--jsonl <pa
 
 Two independent triggers gate whether the gateway line is rendered at all (any one is sufficient):
 
-1. Gateway reachable (cached or fresh) → render gate badge + pool + canary
+1. Gateway reachable (cached or fresh) → render gate badge + pool + forward-path health
 2. Bearer-mode detected (env var or pin file) → triggers render so that a red `unreachable` warning still appears when gateway is down on a bearer-routed session
 
 If neither is true (most likely a public cc-skills install with no integration), just the bare datetime line renders. Public users see no change vs. a fully unconfigured statusline.
