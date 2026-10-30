@@ -294,7 +294,16 @@ Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`, `t
 The answer to that passage.
 ```
 
-The canonical builder (`scripts/gmail-draft.ts`, which every draft goes through) renders each `> ` block as a `<blockquote>` in its own colour with a left bar in the HTML part, and keeps the `> ` prefix in the plain-text part, so the reader sees at a glance whose words are whose. A block is a quotation only when **every** line in it starts with `>` (up to three spaces of indent); a stray `>` in prose stays prose. Do not hand-style quotes with HTML: the builder does it.
+The canonical builder (`scripts/gmail-draft.ts`) renders each `> ` block as a `<blockquote>` in its own colour with a left bar in the HTML part, and keeps the `> ` prefix in the plain-text part, so the reader sees at a glance whose words are whose. A block is a quotation only when **every** line in it starts with `>` (up to three spaces of indent); a stray `>` in prose stays prose. Do not hand-style quotes with HTML: the builder does it.
+
+🔴 **Not every draft goes through that builder, and the two paths do different things** (measured 2026-10-30, by reading both code paths):
+
+| Path                                     | `> ` quotes in the HTML part                                  | File attachments       | `--cc` | Read-back verification                            |
+| ---------------------------------------- | ------------------------------------------------------------- | ---------------------- | ------ | ------------------------------------------------- |
+| `scripts/gmail-draft.ts`                 | Styled `<blockquote>`                                         | **None** (no flag)     | Yes    | Built in (subject round-trip, forced-break check) |
+| `gmail draft` / `draft-update` (the CLI) | **Unstyled**: `>` is escaped and each line kept as plain text | `--attach`, repeatable | **No** | None; read it back yourself                       |
+
+So a reply that quotes several points and needs **no** attachment belongs in `gmail-draft.ts`. A reply that must carry a file (a signed agreement, a report) can only go through the CLI: keep the verbatim `> ` blocks anyway (they stay readable as quoted lines), then verify the stored draft with `read <messageId> --json --attachment-dir <dir>`: body equal to your source file, zero markdown markers, and each attachment's hash equal to the original.
 
 ## 🔴 ATTRIBUTION DOCTRINE — run this before you ever write "they said X"
 
@@ -319,6 +328,8 @@ bun scripts/attribution-parse.ts --id <messageId> --token-cmd '<cmd printing an 
 ```
 
 It prints which signals are actually present, what it attributes to the sender and why, and — the important part — what it **cannot** attribute. It reports `CONFLICT` when signals disagree and `UNKNOWN` when a line at quoted depth carries neither colour nor marker, because in that case the line genuinely could belong to either party. **`UNKNOWN` is a correct answer.** A tool that always decides is a tool that is sometimes confidently wrong.
+
+🔴 **It can also be confidently wrong when the quoted history carries no `>` at all.** Measured 2026-10-30: a top-posted reply whose client put the earlier message under an `On <date>, <name> wrote:` line **without `>` prefixes** came back with every one of its 100 lines "Attributed to the sender" at quote depth 0, including the whole of OUR earlier letter quoted below that line, with no `UNKNOWN` and no `CONFLICT`. Before quoting or attributing, find the `On … wrote:` (or `-----Original Message-----`, `From: … Sent: …`) boundary yourself and treat everything below it as not the sender's, whatever the parser says. Open defect: the parser should detect that boundary.
 
 ### Four rules that outlive any particular client
 
@@ -532,7 +543,7 @@ From: you@example.com (auto-detected from original email)
 
 This matters because the alias IS the identity, not a cosmetic label. Where a correspondence policy says which name to sign as, the account and the alias are different signatories, and getting it wrong sends the whole message as the wrong person. Note also that the _default_ alias on this account is `you@company.example`, which policy forbids for non-work mail — so an omitted or mis-detected `--from` can reach for an identity that is not merely wrong but prohibited.
 
-**So: always pass `--from` explicitly, on replies as well as new mail, and read the confirmation line back before trusting it.** If a draft was already created without it, `draft-update <draftId> --from …` recreates it correctly — it does not patch in place, so re-supply every other flag too.
+**So: always pass `--from` explicitly, on replies as well as new mail, and read the confirmation line back before trusting it.** Pass it **with the display name**, `--from "Jane Doe <alias@example.com>"`: a bare `--from "alias@example.com"` is stored as a bare From with no name (measured 2026-10-30, `drafts --json` showed the bare address), so the recipient's client may show only the address. The send-as display name is not filled in for you. If a draft was already created without it, `draft-update <draftId> --from …` recreates it correctly — it does not patch in place, so re-supply every other flag too.
 
 **There is no `--cc` flag.** A reply draft therefore carries only `To`, even when the thread it replies into copied other people. Threading is preserved (`In-Reply-To`/`References` are set), but the copies are not. On a thread with a client and several vendors copied, this silently drops all of them from a reply sent on that client's behalf. Either restore the copies in the Gmail compose window before sending, or state plainly in your handoff that the CC list needs restoring — never let a draft go out assumed to be a reply-all.
 
@@ -745,6 +756,13 @@ bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/script
 
 ## Evolution Log
 
+- **2026-10-30 — the quoting convention, sender display names and the attribution parser each failed in a real reply.**
+  - _Trigger_: a reply that quoted several passages and had to carry a file attachment.
+  - _Defect 1_: this file said every draft goes through `scripts/gmail-draft.ts`, which styles `> ` quotes. The CLI `gmail draft` / `draft-update` does not: it escapes `>` and keeps each line as plain text, has no `--cc`, and is the only path with `--attach` (`gmail-draft.ts` has no attachment flag). _Fix_: the table under "Quoting someone in a draft" says which path does what, and how to verify a CLI draft.
+  - _Defect 2_: `--from "alias@example.com"` stored a bare From; `--from "Name <alias@example.com>"` stored the name. _Fix_: Rule 1 now says to pass the display name.
+  - _Defect 3_: `attribution-parse.ts` credited 100 of 100 lines to the sender, including our own quoted letter, because the history sat under an `On … wrote:` line with no `>` prefixes. It reported no `UNKNOWN` or `CONFLICT`. _Fix_: the protocol now says to find that boundary by hand. The parser itself is not yet fixed.
+  - _Also seen_: an automatic plugin update deleted `scripts/gmail-cli/node_modules` mid-session, so `bun cli.ts …` and anything wrapping it failed until `bun install --frozen-lockfile` ran again. The compiled `gmail` binary (Preflight Step 1) does not depend on `node_modules` at run time.
+  - _Evidence_: two drafts in one thread, one with a bare From and one with a named From (five verbatim `> ` passages, PDF attachment hash identical to the source file). Real draft IDs are kept in the private session log, not in the published skill.
 - **2026-10-08 — a raw send went out under the account's default identity; token reads now go through one script.**
   - _Trigger_: an agent wrote a script that read a cached token file and POSTed to the Gmail send endpoint with no From line. Gmail used each account's default send-as alias, which was the wrong identity on both accounts. The messages reached only the operator's own test address.
   - _Fix_: `hooks/gmail-send-guard.ts` denies direct sends and raw reads of `~/.claude/tools/gmail-tokens/` (see `docs/gmail-send-guard.md`). The identity probe and the multi-account status check, which read `.access_token` and `expiry_date` straight from the token files, are replaced by `scripts/gmail-accounts.ts`, which reports the mailbox, the expiry and every send-as alias with its DEFAULT marked, and never prints a token.
