@@ -11,7 +11,8 @@
  *   orca-artifact-share --check SHARE_URL               lint what an existing artifact actually serves
  *   orca-artifact-share --lint FILE.html                lint a local page only
  *
- * Publishing uses `orca artifacts update` (same link) and falls back to `share` the first time. The HTML goes to
+ * Publishing uses `orca artifacts update` (same link) and falls back to `share` only when Orca says the file was
+ * never shared; any other update failure (e.g. a 429) exits 3 without re-sharing. The HTML goes to
  * a stable path per source file, with the hash in the directory name because Orca shows the file name in the
  * share page's header. After publishing, the served page is fetched and linted, so a future Orca change that
  * narrows HTML artifacts fails here instead of reaching a reader.
@@ -213,14 +214,39 @@ function shareUrlOf(o: unknown): string | null {
   return null;
 }
 
-function orcaArtifacts(bin: string, verb: string, file: string): unknown | null {
+interface OrcaRun {
+  status: number | null;
+  json: unknown;
+  raw: string;
+}
+
+function orcaArtifacts(bin: string, verb: string, file: string): OrcaRun {
   const r = spawnSync(bin, ["artifacts", verb, file, "--json"], { encoding: "utf8", timeout: 120_000 });
-  if (r.status !== 0) return null;
+  const raw = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
+  let json: unknown = null;
   try {
-    return JSON.parse(r.stdout);
+    json = JSON.parse(r.stdout ?? "");
   } catch {
-    return null;
+    // not JSON: kept in raw for the error message
   }
+  return { status: r.status, json, raw };
+}
+
+/** Orca's own wording when `update` is given a file this profile never shared (measured 2026-11-01, local, no network). */
+export const NEVER_SHARED = /has not been shared from the active Orca profile/i;
+
+/**
+ * What to do after `orca artifacts update`. Only "this file was never shared" may fall back to `share`: any other
+ * failure (a 429 rate limit, a network error, Orca signed out) must stop, because `share` mints a NEW link and
+ * re-points the file at it, so the link already sent to readers silently stops updating (happened 2026-11-01 on a
+ * cloud 429, the old edit token was overwritten and could not be recovered).
+ */
+export function afterUpdate(run: OrcaRun): { action: "done" | "share" | "fail"; reason?: string } {
+  const j = run.json as { ok?: boolean; error?: { message?: string } } | null;
+  if (run.status === 0 && j?.ok !== false && shareUrlOf(j)) return { action: "done" };
+  const message = j?.error?.message ?? run.raw;
+  if (NEVER_SHARED.test(message)) return { action: "share" };
+  return { action: "fail", reason: message || `exit ${run.status}` };
 }
 
 /** Follow the share page's iframe to the served content and lint what is actually served. */
@@ -284,9 +310,16 @@ async function main(argv: string[]): Promise<void> {
   }
   const orca = findOrca();
   if (!orca) fail(3, "Orca's CLI was not found (set ORCA_CLI, or run inside an Orca terminal)");
-  const result = orcaArtifacts(orca, "update", dst) ?? orcaArtifacts(orca, "share", dst);
-  if (!result) fail(3, `\`orca artifacts update/share ${dst}\` failed (is Orca running and signed in?)`, { html: dst });
-  const url = shareUrlOf(result);
+  const update = orcaArtifacts(orca, "update", dst);
+  const next = afterUpdate(update);
+  if (next.action === "fail") {
+    fail(3, `\`orca artifacts update\` failed and the link was left as it was (not re-shared): ${next.reason}`, { html: dst });
+  }
+  const run = next.action === "share" ? orcaArtifacts(orca, "share", dst) : update;
+  if (next.action === "share" && afterUpdate(run).action !== "done") {
+    fail(3, `\`orca artifacts share ${dst}\` failed (is Orca running and signed in?): ${run.raw}`, { html: dst });
+  }
+  const url = shareUrlOf(run.json);
   if (!url) fail(3, "published, but Orca returned no share URL", { html: dst });
   const remote = await verifyRemote(url);
   process.stdout.write(`${JSON.stringify({ ok: remote.length === 0, url, html: dst, problems: remote })}\n`);
