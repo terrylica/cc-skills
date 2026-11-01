@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { findTextMeasureViolations } from "../../../../itp-hooks/hooks/lib/html-text-measure-detector.ts";
 import { ALLOWED, FLAGGED } from "../../../../itp-hooks/hooks/lib/html-text-measure-vectors.ts";
-import { hardenHtml, lint, MARKER, measureViolations, outPathFor, wrapPage } from "./orca-artifact-share";
+import { afterUpdate, hardenHtml, lint, MARKER, measureViolations, outPathFor, wrapPage } from "./orca-artifact-share";
 
 const SCRIPT = join(import.meta.dir, "orca-artifact-share");
 const ESCAPE = "HTML-MEASURE-OK";
@@ -74,5 +74,31 @@ describe("Markdown renders to a full-width page (needs pandoc)", () => {
   });
   it("outPathFor keeps the hash out of the file name", () => {
     expect(basename(outPathFor(md))).toBe("report.html");
+  });
+});
+
+describe("publishing never mints a new link unless the file was never shared", () => {
+  // Verbatim shapes from `orca artifacts update --json`, 2026-11-01.
+  const run = (status: number, json: unknown) => ({ status, json, raw: JSON.stringify(json) });
+  const err = (message: string) => ({ ok: false, error: { code: "runtime_error", message } });
+
+  it("an updated artifact is done", () => {
+    const ok = { ok: true, result: { shareUrl: "https://share.onorca.dev/a/abc" } };
+    expect(afterUpdate(run(0, ok)).action).toBe("done");
+  });
+  it("a file never shared from this profile falls back to share", () => {
+    const never = err("This file has not been shared from the active Orca profile.");
+    expect(afterUpdate(run(0, never)).action).toBe("share");
+  });
+  it("a cloud rate limit stops instead of re-sharing", () => {
+    const limited = afterUpdate(run(0, err("orca_cloud_request_failed_429")));
+    expect(limited.action).toBe("fail");
+    expect(limited.reason).toContain("429");
+  });
+  it("a non-zero exit with no JSON stops", () => {
+    expect(afterUpdate({ status: 1, json: null, raw: "connection refused" }).action).toBe("fail");
+  });
+  it("ok:true without a URL is not success", () => {
+    expect(afterUpdate(run(0, { ok: true })).action).toBe("fail");
   });
 });
