@@ -206,9 +206,9 @@ describe("the reminder text", () => {
 
   test.each([
     ["the trigger", "(it runs in the background)"],
-    ["backgrounding", "`run_in_background: true`"],
+    ["backgrounding the monitor agent", "`model: \"haiku\"`, `run_in_background: true`. "],
     ["the cadence", "`sleep 240`"],
-    ["the sleep's Bash timeout", "`timeout: 270000`"],
+    ["the sleep runs in the background and is awaited", "then wait for its completion notification before the next check"],
     ["the report channel", "its report as its final answer"],
     ["the hands-off rule", "never kills or restarts"],
     ["the escape", "HAIKU-MONITOR-SKIP"],

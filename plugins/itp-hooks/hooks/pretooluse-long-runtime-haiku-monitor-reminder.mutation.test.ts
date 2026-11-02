@@ -58,8 +58,8 @@ const MUTANTS: readonly Mutant[] = [
   // Text
   { id: "model-pinned", search: '`model: \\"haiku\\"`', replace: '`model: \\"claude-haiku-4-5\\"`' },
   { id: "foreground-monitor", search: "`run_in_background: true`. ", replace: "" },
-  { id: "cadence-dropped", search: "`sleep 240` as a foreground Bash call", replace: "a foreground Bash call" },
-  { id: "sleep-timeout-dropped", search: " with `timeout: 270000`", replace: "" },
+  { id: "cadence-dropped", search: "`sleep 240` as a Bash call with `run_in_background: true`", replace: "a Bash call with `run_in_background: true`" },
+  { id: "sleep-wait-dropped", search: ", then wait for its completion notification before the next check", replace: "" },
   { id: "report-channel-dropped", search: "ends with its report as its final answer, which reaches you as a completion notification, and it ", replace: "" },
   { id: "monitor-may-kill", search: "It never kills or restarts anything", replace: "It may kill a stalled run" },
   { id: "escape-not-mentioned", search: "put ${ESCAPE_MARKER} in the command", replace: "say so" },
