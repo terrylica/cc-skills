@@ -388,6 +388,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the old-git guard (pretooluse-old-git-guard.ts), which DENIES a hook-firing git command (commit, push, merge, pull, rebase, cherry-pick, revert, am) when the git that would run is older than 2.54, including an explicit /usr/bin/git on macOS. Config-based hooks (hook.<name>.event in ~/.gitconfig) need git >= 2.54, and an older git silently runs none of them. A JUSTIFICATION IS MANDATORY: write `OLD-GIT-OK: <reason>` with at least 10 characters. The right fix is almost always /opt/homebrew/bin/git or Homebrew first on PATH; use the marker only where no config-based hook gate applies. Spoke: plugins/itp-hooks/docs/old-git-guard.md.",
     },
     {
+      markerNameTokenIncludingSuffix: "ORCA-NO-AGENT-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-orca-worktree-agent-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the Orca worktree agent guard (pretooluse-orca-worktree-agent-guard.ts), which DENIES `orca worktree create` without `--agent` (operator, 2026-11-01: a worktree gets an Orca sidebar entry only when it gets a session). Use it only when something else fills the worktree's terminal right away, and say what.",
+    },
+    {
       markerNameTokenIncludingSuffix: "PKILL-OPTION-ORDER-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-pkill-option-after-pattern-guard.ts",

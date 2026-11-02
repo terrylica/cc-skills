@@ -49,6 +49,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-headless-claude-p-guard.ts`               | Bash orch.               | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                                   |
 | `pretooluse-askuserquestion-line-terminator-guard.ts` | AskUserQuestion          | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md)        |
 | `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.               | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)                    |
+| `pretooluse-orca-worktree-agent-guard.ts`             | Bash orch.               | Blocks `orca worktree create` without `--agent` | [→](./docs/orca-worktree-agent-guard.md)                           |
 | `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                          |
 | `pretooluse-old-git-guard.ts`                         | Bash orch.               | Blocks hook-firing git below 2.54             | [→](./docs/old-git-guard.md)                                       |
 | `pretooluse-long-runtime-haiku-monitor-reminder.ts`   | Bash orch.               | Long run: start a `haiku` health monitor      | [→](./docs/long-runtime-haiku-monitor-reminder.md)                 |

@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 55 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 56 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (48; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (49; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -43,6 +43,7 @@ Jump directly to any of the 55 registered markers below. Markers are listed alph
 - [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
 - [`MD-TABLE-OK`](#md-table-ok)
 - [`OLD-GIT-OK`](#old-git-ok)
+- [`ORCA-NO-AGENT-OK`](#orca-no-agent-ok)
 - [`PII-GATE-OK`](#pii-gate-ok)
 - [`PII-SCAN-OK`](#pii-scan-ok)
 - [`PKILL-OPTION-ORDER-OK`](#pkill-option-order-ok)
@@ -91,7 +92,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (48 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (49 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -569,6 +570,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # OLD-GIT-OK: explain the deliberate exception here in at least 10 characters
+```
+
+## `ORCA-NO-AGENT-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-orca-worktree-agent-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Suppress the Orca worktree agent guard (pretooluse-orca-worktree-agent-guard.ts), which DENIES `orca worktree create` without `--agent` (operator, 2026-11-01: a worktree gets an Orca sidebar entry only when it gets a session). Use it only when something else fills the worktree's terminal right away, and say what.
+
+**Example usage**:
+
+```
+# ORCA-NO-AGENT-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `PII-GATE-OK`
