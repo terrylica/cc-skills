@@ -1,3 +1,49 @@
+# [34.12.0](https://github.com/terrylica/cc-skills/compare/v34.11.1...v34.12.0) (2026-11-02)
+
+
+### Bug Fixes
+
+* **itp-hooks:** pueue-wrap hazard tests never reach a real daemon ([79097d6](https://github.com/terrylica/cc-skills/commit/79097d6949afa01f72693d1308c5b8f9499b4abe))
+
+On el02 the hazard corpus's zsh runs reached the operator's own pueue daemon: ~/.zshenv prepends ~/.local/bin, where the real pueue lives, ahead of the stub the test puts on PATH, so the wrapper's bare `pueue add` queued every zsh case for real (330 tasks over six runs on 2026-11-01, all harmless corpus commands in the test's temp folders, since removed) and the 28 tests that read the stub's argv records failed with ENOENT. The same 28 failed on origin/main, which is why the pre-push gate blocked an unrelated commit.
+
+runUnder now gives every outer shell an empty ZDOTDIR and drops BASH_ENV and ENV, so no per-user startup file can move PATH, and the hazard block's beforeAll fails closed: it throws unless `command -v pueue` resolves to the stub under each outer shell. The file runs 146 pass, 28 skip (the opt-in end-to-end cases), 0 fail in 10 s instead of 216 s, and the real daemon's highest task id did not move during the run.
+
+* **itp-hooks:** the Haiku monitor waits with a backgrounded sleep; the harness blocks foreground sleep ([24b0d32](https://github.com/terrylica/cc-skills/commit/24b0d32178d31212c62a4ca8d1179c201e5e7ec5))
+
+The long-runtime reminder told monitors to pace checks with a foreground `sleep 240` (timeout 270000). On 2026-11-01 a Haiku monitor following it was refused on its first wait, so the monitoring the reminder exists for could not run as written. The cadence is now a `sleep 240` Bash call with run_in_background: true, awaited through its completion notification. The text assertion and the mutant follow the new sentence, and the backgrounding assertion is pinned to the agent line, because the cadence line now also says run_in_background and let the 'foreground-monitor' mutant survive. 62/62 pass, every mutant killed.
+
+* **orca-tools:** match a one-shot cron prompt as raw UTF-8 ([841f262](https://github.com/terrylica/cc-skills/commit/841f2622b4e340977e4d04ca8937e0865f7ce496))
+
+json.dumps escapes non-ASCII as \uXXXX by default, while Claude Code writes transcripts as raw UTF-8, so a one-shot prompt with an accent, an em dash or CJK text never matched the byte prefilter and stayed counted as running. Found by the public-repo privacy gate's review of the previous commit.
+
+- The prefilter needle is built with ensure_ascii=False.
+- The one-shot test's prompt now carries an em dash and CJK text; it fails without the change and passes with it.
+
+* **orca-tools:** never re-share an artifact when update fails for any reason but "never shared" ([#59](https://github.com/terrylica/cc-skills/issues/59)) ([99c0cba](https://github.com/terrylica/cc-skills/commit/99c0cbab998d95aa3fbdd26fa40826363951ca47))
+
+orca-artifact-share fell back to `orca artifacts share` whenever `update` failed. On a cloud 429 (about 30 re-publishes of one page in four hours) that minted a second artifact and overwrote the first link's edit token in Orca's artifact-shares.json, so the link readers already had could never be updated again.
+
+Now the script re-shares only when Orca answers "This file has not been shared from the active Orca profile." (measured, local, no network); any other update failure exits 3 and leaves the link alone. afterUpdate() is exported and covered by five tests (updated, never shared, 429, no JSON, ok without a URL). SKILL.md records the incident in its Verified table.
+
+* **orca-tools:** session-closeout no longer counts a fired one-shot cron, or replayed tool calls, as running work ([210fbbf](https://github.com/terrylica/cc-skills/commit/210fbbfc8db7f3804a1a92746861e82553cf4a6c))
+
+Closing out a session whose one-shot cron had already fired reported that cron as running work twice. A [running] tab marker would then have stayed until --settle-timeout, and a --close would have waited for it.
+
+- A one-shot cron (recurring: false) fires once and deletes itself, so no CronDelete ever follows. It now counts as finished once its prompt has arrived as a user turn after it was created. A second pass matches the prompt bytes before parsing, and runs only when a one-shot exists.
+- api-request-blob records are skipped. They copy earlier API requests, and read as events they registered the same CronCreate again, keyed by its tool-use id because the copy carries no result. They could equally bring back an old ScheduleWakeup after a stop.
+- Two tests, each shown to fail before the change; 51 pass. On the session that found it, the script went from 2 running items to 0.
+
+
+
+### Features
+
+* **itp-hooks:** deny orca worktree create without --agent ([8a57940](https://github.com/terrylica/cc-skills/commit/8a57940b7380d9f07e68b9567c6b6609d4bc305a))
+
+The operator set the rule on 2026-11-01 for every device: a worktree created with `orca worktree create` and no `--agent` sits in Orca's sidebar with an idle shell and no session, as the s503 worktree of shunshi-wang-888 did that day. The new Bash guard, the 26th in the orchestrator, denies such a command and names the three routes that leave no empty entry: a Claude Code worktree under &lt;repo>/.claude/worktrees/&lt;name> for a session's own isolated work (hidden in Orca by default), a subagent with isolation: worktree for a parallel sub-task, and `orca worktree create --agent claude --prompt …` for a separate session to watch.
+
+Mentions in echo, grep, comments, commit messages and gh issue, PR or release text stay allowed, as does --help; the escape hatch is ORCA-NO-AGENT-OK with a reason of at least 10 characters, registered in the iter-111 marker registry and the generated marker reference. Six tests spawn the real hook, the first with the 2026-11-01 command verbatim; repo:lint and repo:hook-lint pass, and 769 itp-hooks tests pass.
+
 ## [34.11.1](https://github.com/terrylica/cc-skills/compare/v34.11.0...v34.11.1) (2026-10-30)
 
 
