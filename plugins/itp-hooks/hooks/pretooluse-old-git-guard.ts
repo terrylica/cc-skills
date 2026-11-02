@@ -35,7 +35,10 @@ import {
 import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 const HOOK_NAME = "pretooluse-old-git-guard";
-const VERSION_PROBE_TIMEOUT_MS = 2000;
+// 2 s keeps a hung binary from stalling every Bash call. ITP_OLD_GIT_PROBE_TIMEOUT_MS exists for the test suite only:
+// under a loaded machine the stub git's probe can exceed 2 s and the guard then fails open (measured 2026-11-01).
+const probeTimeoutOverride = Number(process.env.ITP_OLD_GIT_PROBE_TIMEOUT_MS);
+const VERSION_PROBE_TIMEOUT_MS = probeTimeoutOverride > 0 ? probeTimeoutOverride : 2000;
 
 const OLD_GIT_ESCAPE_HATCH: Pick<
   EscapeHatchMarkerDetectionConfiguration,

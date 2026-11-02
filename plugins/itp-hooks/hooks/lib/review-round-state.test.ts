@@ -13,7 +13,7 @@
  * `git merge-base --is-ancestor` actually behaving like git.
  */
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,6 +28,10 @@ import {
   markBranchReviewable,
   unmarkBranchReviewable,
 } from "./review-round-state.ts";
+
+// Every test here runs real git in fresh repositories. On a loaded machine bun's 5 s default is too tight: in a
+// full-suite run on 2026-11-01 three tests of the remote-base group failed at ~5,010 ms each and passed alone.
+setDefaultTimeout(30_000);
 
 const created: string[] = [];
 

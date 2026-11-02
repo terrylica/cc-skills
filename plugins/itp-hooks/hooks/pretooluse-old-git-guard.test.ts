@@ -9,7 +9,7 @@
  *      version, so the verdict does not depend on which git this machine has.
  */
 
-import { afterAll, describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it, setDefaultTimeout } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,6 +21,11 @@ import {
   gitSubcommand,
   parseGitVersion,
 } from "./lib/old-git-detector.ts";
+
+// The stdin/stdout tests spawn the hook, which spawns a stub git. Under a loaded machine (2026-11-01, full suite)
+// the hook's 2 s version probe timed out, the guard failed open and "deny" came back "allow"; the test passed alone.
+// The hook's probe limit is raised for these runs only (ITP_OLD_GIT_PROBE_TIMEOUT_MS), and so is bun's test timeout.
+setDefaultTimeout(30_000);
 
 const HOOK_PATH = join(import.meta.dir, "pretooluse-old-git-guard.ts");
 const SESSIONSTART_PATH = join(import.meta.dir, "sessionstart-git-version-check.sh");
@@ -154,7 +159,7 @@ async function runHook(command: string, pathDirs: string[], toolName = "Bash") {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, PATH: [...pathDirs, "/bin"].join(":") },
+    env: { ...process.env, PATH: [...pathDirs, "/bin"].join(":"), ITP_OLD_GIT_PROBE_TIMEOUT_MS: "20000" },
   });
   proc.stdin.write(
     JSON.stringify({ tool_name: toolName, tool_input: { command }, session_id: `old-git-test-${process.pid}-${sessionCounter++}` }),
