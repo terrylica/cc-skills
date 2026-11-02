@@ -190,6 +190,7 @@ const HAZARD_RUNS = HAZARD_CORPUS.flatMap((c) =>
 
 let hazardRoot = "";
 let stubPath = "";
+let zdotdir = "";
 let failingPueuePath = "";
 let recorderShell = "";
 
@@ -228,8 +229,14 @@ function hazardWrapper(command: string, shell: string, cwd = hazardRoot): string
   return buildPueueWrapper({ command, cwd, onQueueFailure: "run-directly", label: "pueue-wrap", shell, taskLog: join(hazardRoot, "tasks.txt") });
 }
 
+/**
+ * The outer shell's startup files must not move PATH. On 2026-11-01 el02's ~/.zshenv put ~/.local/bin (the real
+ * pueue) ahead of the stub, and every zsh run of this corpus queued its command on the operator's daemon (325 tasks).
+ * An empty ZDOTDIR keeps zsh's per-user files out; `bash -c` reads only BASH_ENV (and sh ENV), which are dropped.
+ */
 function runUnder(outer: string, wrapped: string, path: string, env: Record<string, string> = {}) {
-  const r = Bun.spawnSync([outer, "-c", wrapped], { env: { ...process.env, ...env, PATH: path }, timeout: 30_000 });
+  const base = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== "BASH_ENV" && k !== "ENV"));
+  const r = Bun.spawnSync([outer, "-c", wrapped], { env: { ...base, ...env, ZDOTDIR: zdotdir, PATH: path }, timeout: 30_000 });
   return { stdout: r.stdout.toString(), stderr: r.stderr.toString(), exitCode: r.exitCode ?? -1 };
 }
 
@@ -249,6 +256,14 @@ describe("hazard corpus: the wrapper carries every command intact", () => {
     recorderShell = join(hazardRoot, "record-shell");
     writeFileSync(recorderShell, '#!/bin/sh\nprintf %s "$2" > "$RECORD_TO"\n');
     chmodSync(recorderShell, 0o755);
+    zdotdir = join(hazardRoot, "zdotdir");
+    mkdirSync(zdotdir);
+    // Fail closed: every outer shell must find the stub. Anything else would queue the corpus on a real daemon.
+    const stub = join(hazardRoot, "stub-bin", "pueue");
+    for (const outer of OUTER_SHELLS) {
+      const found = runUnder(outer, "command -v pueue", stubPath).stdout.trim();
+      if (found !== stub) throw new Error(`${outer} resolves pueue to ${found || "nothing"}, not the stub ${stub}: refusing to run the hazard corpus`);
+    }
   });
   afterAll(() => rmSync(hazardRoot, { recursive: true, force: true }));
 
