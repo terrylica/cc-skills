@@ -67,6 +67,8 @@ GitHub has **no API to create fine-grained PATs** (only the web UI). We created 
 
 21. **A spec for an org's repo must set `owner`.** `setOwner()` returns on its first line when `spec.owner` is unset (default = the signed-in user), so naming `org/repo` in `repositoryAccess.repos` alone mints an account-scoped token that cannot see the org repo. Measured 2026-09-04 on `specs/relay-monitor-release-bot.json`: `GET /repos/<org>/<repo>` → 404, git upload-pack and receive-pack → 403.
 
+22. **The full login page needs the username; the sudo page does not.** When the profile's session cookie has expired, `session()` sends the autonomous path to `/login`, which shows a username field beside the password. `tryPasswordTotp()` filled only the password, so after the stored passkey was refused ("Unable to sign in with your passkey") the fallback submitted an empty username and the sign-in failed. Measured 2026-11-02 on a second account whose cookie had expired. `fillLoginIfShown()` now fills the field when it is shown and does not already hold the account; unit-tested with a fake page in `test/autonomous.test.mjs` (mutation-checked).
+
 ## Live selector map (update when GitHub drifts)
 
 | Step              | Selector / strategy                                                                        |

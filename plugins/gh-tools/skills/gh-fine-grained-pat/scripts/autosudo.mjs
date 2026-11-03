@@ -61,12 +61,27 @@ async function tryPasskey(page, passkey) {
   }
 }
 
-async function tryPasswordTotp(page, blob) {
+/**
+ * The full /login page (an expired session) asks for the username beside the password; the sudo
+ * "Confirm access" page does not. Filling only the password there submits an empty username, and
+ * GitHub answers "Incorrect username or password" (GOTCHA #22). Fill it when the field is shown and
+ * does not already hold this account. Returns whether it filled.
+ */
+export async function fillLoginIfShown(page, account) {
+  const login = page.locator('input[name="login"]:visible, #login_field:visible').first();
+  if (!(await login.count())) return false;
+  if ((await login.inputValue()).trim().toLowerCase() === String(account).toLowerCase()) return false;
+  await login.fill(account);
+  return true;
+}
+
+async function tryPasswordTotp(page, blob, account) {
   if (!blob.password) return false;
   await clickByText(page, /use your password|use password/i);
   await sleep(800);
   const pw = page.locator('input[type="password"]:visible').first();
   if (!(await pw.count())) return false;
+  await fillLoginIfShown(page, account);
   await pw.fill(blob.password);
   await page.keyboard.press("Enter");
   await sleep(1500);
@@ -110,7 +125,7 @@ export async function autonomousSudo(page, account) {
   const blob = await getUnlockedBlob(account);
 
   if (await tryPasskey(page, blob.passkey)) return true;
-  if (await tryPasswordTotp(page, blob)) return true;
+  if (await tryPasswordTotp(page, blob, account)) return true;
 
   await shot(page, DEBUG_DIR, `autosudo-fail-${account}`);
   throw new Error(`autonomous sudo failed for ${account} (see DEBUG_DIR screenshot)`);

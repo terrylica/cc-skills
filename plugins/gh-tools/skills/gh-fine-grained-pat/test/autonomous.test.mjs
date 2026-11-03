@@ -82,5 +82,42 @@ async function agentRoundTrip() {
 }
 
 await agentRoundTrip();
+
+// --- autosudo: the full /login page needs the username filled (GOTCHA #22) ---
+function fakePage(field) {
+  const filled = [];
+  const loc = {
+    first: () => loc,
+    count: async () => (field ? 1 : 0),
+    inputValue: async () => field?.value ?? "",
+    fill: async (v) => {
+      filled.push(v);
+      if (field) field.value = v;
+    },
+  };
+  return { page: { locator: () => loc }, filled };
+}
+{
+  const { fillLoginIfShown } = await import("../scripts/autosudo.mjs");
+  const cases = [
+    ["login page, empty username → filled", { value: "" }, true, ["acme"]],
+    ["login page, other username → replaced", { value: "someone" }, true, ["acme"]],
+    ["login page, already this account → left alone", { value: "Acme" }, false, []],
+    ["sudo page, no username field → nothing", null, false, []],
+  ];
+  for (const [name, field, want, wantFilled] of cases) {
+    const { page, filled } = fakePage(field);
+    const got = await fillLoginIfShown(page, "acme");
+    try {
+      assert.equal(got, want);
+      assert.deepEqual(filled, wantFilled);
+      pass++;
+      console.log(`  ✓ ${name}`);
+    } catch (e) {
+      console.error(`  ✗ ${name}: ${e.message}`);
+      process.exitCode = 1;
+    }
+  }
+}
 console.log(`\n${process.exitCode ? "FAIL" : "PASS"} — ${pass} assertions`);
 process.exit(process.exitCode ?? 0);
