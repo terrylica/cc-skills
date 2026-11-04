@@ -82,6 +82,14 @@ The Admin console periodically sends an administrator to accounts.google.com for
 - **Save** closes the dialog, toasts "Default routing settings updated", and the table shows the new rule (Order, Status Enabled, Actions "Edit - Disable - Delete - Reorder", a short ID). No page-level save step.
 - **Failure path:** any failed step saves a screenshot (with `--screenshots`, or under `~/.local/state/web-forge/failures/`), presses **Cancel**, and reloads the page, so a half-filled rule is never saved.
 
+### Security › 2-Step Verification page (measured 2026-11-03, a live change driven by script; no recipe yet)
+
+- **Org unit tree:** each unit is a `treeitem` whose clickable child is a `group` named after the unit (`getByRole("group", { name: "<Unit>", exact: true })`); a unit with children shows a `treeitem "Expand <Unit>"` with an "Expand" button that must be clicked before its children exist in the tree. `treeitem` by plain name, or `getByText`, timed out.
+- **Read the form from `locator("body").ariaSnapshot()`**, between "Showing settings for users in <Unit>" and the next section: options read `option "2 weeks" [selected]`, radios `radio "On" [checked]`, and the "Authentication" line says Inherited, Overridden or Locally applied. The page has several `form` elements and unnamed checkboxes, so `locator("form").first()` queries found nothing.
+- **"New user enrollment period"** is a listbox with no name: find it by an option only it has (`getByRole("listbox").filter({ has: getByRole("option", { name: "2 weeks" }) })`), click it, then the option.
+- **Save is the page-level button "Save changes"** (Cancel is "Cancel changes"), and the bar above them reads **"N unsaved change(s)"**: assert N before saving, so a stray click elsewhere is never saved with the intended change. A child org unit then reads "Inherited" with the parent's value.
+- The Cloud Identity Policy API reads these settings but cannot write them: "Create, patch, and delete endpoints are only supported for rules and detectors settings for now" (cloud.google.com/identity/docs/how-to/create-patch-delete-policies, read 2026-11-03). It also allows "one QPS in total" per customer.
+
 ## Debug visually
 
 Pass `--screenshots <dir>` to save one PNG per step (failures are always saved, by default under `~/.local/state/web-forge/failures/`) (navigation, dialog open, every selection, Save, read-back), then read them. The console is complicated; the accessibility tree alone misled us once (above). Keep screenshots out of repositories: they show tenant data.
