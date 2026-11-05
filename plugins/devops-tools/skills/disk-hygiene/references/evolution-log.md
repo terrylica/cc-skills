@@ -2,6 +2,14 @@
 
 Reverse chronological - newest on top.
 
+## 2026-11-03 — `du` overcounts APFS clones: Aerials, bun node_modules, deduped HF store
+
+**Trigger**: In an audit at 89% full, three deletions (per-user Aerial videos, Rust `target/` dirs, 17 agent worktrees) totalled about 64 GB by `du`, but `df` rose by only about 15 GB across those three. The per-user Aerial videos (37 GB) are clones of a root-owned system store, and bun's `node_modules` in 17 agent worktrees (14 GB) are clonefile copies of bun's cache; only the Rust `target/` dirs freed what `du` showed. A later HF prune hit the same trap from another side: model dirs symlink into a second, shared `hub/blobs/<xx>/<sha>` store, so deleting a model dir alone freed nothing.
+
+**Fix**: Three Troubleshooting rows that name the real store to clean and the `df` check.
+
+**Evidence**: Safe caches gave 106 → 142 GB free (brew 8.4 GB, uv prune 17.6 GB of files). Aerials plus Rust `target/` gave → 156 GB. 17 worktrees gave ~1 GB. The HF blob-aware prune of 9 stale models gave 4.9 GB → 162 GB. Deleting the 72 videos in the root-owned system Aerial store then gave 162 → 197 GB (35 GB).
+
 ## 2026-10-16 — Hunt sudden losses by recent writes; three remote-host traps
 
 **Trigger**: Free space fell from 293 GB to 14 GB within hours. The age-based scan and the usual `du` targets missed the cause: a 262 GB log in `/private/tmp`, written by a `cat` whose glob matched its own output file. In the same session, work on a remote Linux data drive hit three more traps: deleting an old OS root that was still the documented rollback path, `rsync -a` loosening a 0700 staging directory, and agent worktrees each checking out a copy of LFS-tracked data.
