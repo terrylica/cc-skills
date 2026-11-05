@@ -1,3 +1,22 @@
+## [34.12.1](https://github.com/terrylica/cc-skills/compare/v34.12.0...v34.12.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **devops-tools:** disk-hygiene measures APFS clones with df, not du ([a12672a](https://github.com/terrylica/cc-skills/commit/a12672a6052f42af9ba1c506600c61c59a728e5b))
+
+In an audit at 89% full, three deletions (per-user Aerial videos, Rust target/ dirs, 17 agent worktrees) totalled about 64 GB by du, but df rose only about 15 GB across them, because the stores share blocks that du counts once per copy.
+
+The per-user Aerial videos under com.apple.wallpaper are APFS clones of the root-owned system store in com.apple.idleassetsd/Customer; deleting that store's 72 videos is what freed the space (162 -> 197 GB free). bun installs node_modules as clonefile copies of its cache, so removing 17 agent worktrees freed about 1 GB, not 14 GB. Some Hugging Face caches are deduplicated into a second hub/blobs/&lt;xx>/&lt;sha> store, so deleting a models-- dir frees nothing until its exclusively referenced blobs go.
+
+Three Troubleshooting rows name the real store and the df check, and the evolution log records the measured numbers per step.
+
+* **gh-tools:** autonomous login fills the username on /login ([9e3e926](https://github.com/terrylica/cc-skills/commit/9e3e9267f649e7df36e32a21dde3086072f84b38)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+When a profile's session cookie has expired, the autonomous path lands on /login, which asks for the username beside the password; the sudo "Confirm access" page does not. tryPasswordTotp() filled only the password, so once the stored passkey was refused the password fallback submitted an empty username and the sign-in failed.
+
+fillLoginIfShown() now fills the username when the field is shown and does not already hold the account, and autonomousSudo() passes the account through. Four unit cases with a fake page cover the login page (empty, other user, same user) and the sudo page; mutation-checked. Recorded as GOTCHA #22.
+
 # [34.12.0](https://github.com/terrylica/cc-skills/compare/v34.11.1...v34.12.0) (2026-11-02)
 
 
