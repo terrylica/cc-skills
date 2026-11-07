@@ -108,6 +108,16 @@
         ]
       },
       {
+        "matcher": "mcp__playwright[^_]*throwaway[^_]*__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-headless-browser-tier-reminder.ts",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
