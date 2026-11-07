@@ -58,7 +58,7 @@ ssh <gpu-host> "curl -s 'http://localhost:8123/?query=SELECT+1'"
 - [python-logging-best-practices](./skills/python-logging-best-practices/SKILL.md)
 - [python-memory-safe-scripts](./skills/python-memory-safe-scripts/SKILL.md)
 - [session-chronicle](./skills/session-chronicle/SKILL.md)
-- [session-debrief](./skills/session-debrief/SKILL.md)
+- `session-debrief` **removed 2026-11-06**, together with its scripts `session-debrief.ts`, `prompt-benchmark.ts` and `preprocess_session.py`. It was never used: its dedicated gateway key served 3 test requests on the day it was built, and no session ever ran it. That key was retired. Git history keeps the code.
 - [session-recovery](./skills/session-recovery/SKILL.md)
 
 ## Hooks
