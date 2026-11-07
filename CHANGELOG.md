@@ -1,3 +1,14 @@
+## [34.12.2](https://github.com/terrylica/cc-skills/compare/v34.12.1...v34.12.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **devops-tools:** remove unused session-debrief and its scripts ([#62](https://github.com/terrylica/cc-skills/issues/62)) ([5338365](https://github.com/terrylica/cc-skills/commit/53383656fa60cebe4bb02aad16495c0cba1d1b02))
+
+session-debrief, session-debrief.ts, prompt-benchmark.ts and preprocess_session.py are removed. Their dedicated gateway identity served 3 requests, all on the day they were built (2026-08-23). No session ever ran the skill or the scripts. The key was disabled 2026-10-23 for being idle, and the identity was deleted 2026-11-06, so the skill could only fail. The devops-tools CLAUDE.md records the removal; docs/release-notes/34.12.2.md carries the narrative.
+
+Validated: validate-plugins (40 plugins valid), moon run repo:check (8 tasks pass).
+
 ## [34.12.1](https://github.com/terrylica/cc-skills/compare/v34.12.0...v34.12.1) (2026-11-05)
 
 
