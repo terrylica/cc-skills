@@ -1,3 +1,19 @@
+## [34.12.3](https://github.com/terrylica/cc-skills/compare/v34.12.2...v34.12.3) (2026-11-07)
+
+
+### Bug Fixes
+
+* **orca-tools:** fit artifact table columns instead of squeezing them ([1cf7da8](https://github.com/terrylica/cc-skills/commit/1cf7da82fb03897d9babfb6e6f9ffd68accfca15))
+
+The full-width-artifact template set overflow-wrap:anywhere on table cells. Under automatic table layout that makes a column's min-content width one character, so a short column beside long prose shrank until its header broke into one letter per line.
+
+- Cells now break only between words (overflow-wrap:break-word, word-break:normal, text-wrap:pretty); headers use text-wrap:balance; only links and code in cells may break anywhere.
+- New pure planner planColumns: LaTeX tabulary's rule first (a column whose longest cell fits in an equal share stays on one line), then width goes step by step to the column that shortens the table most; a 7 em comfortable minimum yields first on narrow screens, and whole words never break (the box scrolls).
+- New FIT_SCRIPT, added once to generated pages and uploaded HTML that have a table: measures cells once (again after fonts load) and sets col widths with table-layout:fixed on every resize; skips colspan/rowspan, nested tables, author-set col widths and [data-fit=off]; fits a hidden table when it appears; wraps a table without a scrolling parent in an overflow-x:auto box.
+- Uploaded HTML's override stylesheet gets the same cell rules.
+- Six new tests (37 pass in total); SKILL.md records the measured cause, the method and a reflection step.
+- Verified in headless Chrome at 1300 px and 760 px: every header stays whole, and an eight-column test table needs about a quarter less height.
+
 ## [34.12.2](https://github.com/terrylica/cc-skills/compare/v34.12.1...v34.12.2) (2026-11-07)
 
 
