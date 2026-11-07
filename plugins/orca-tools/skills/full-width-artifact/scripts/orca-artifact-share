@@ -51,10 +51,12 @@ pre code{background:none;padding:0}
 img,video,svg,canvas,picture,iframe{max-width:100%;height:auto}
 .table-scroll{overflow-x:auto;margin:0 0 1.25em;border:1px solid #e5e7eb;border-radius:8px}
 table{border-collapse:collapse;width:100%;font-size:.9375em;line-height:1.45}
-th,td{border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:8px 12px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}
+th,td{border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:8px 12px;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:break-word;word-break:normal;hyphens:manual;text-wrap:pretty}
+td{font-variant-numeric:tabular-nums}
+td a,td code,th code{overflow-wrap:anywhere}
 tr>:last-child{border-right:0}
 tbody tr:last-child>*{border-bottom:0}
-th{background:#f9fafb;font-weight:600}
+th{background:#f9fafb;font-weight:600;vertical-align:bottom;text-wrap:balance}
 `.trim();
 
 /** Injected into an HTML page that arrives without the marker; wins over any column the author's CSS sets. */
@@ -62,7 +64,130 @@ export const OVERRIDE_CSS =
   "html,body,main,article,section,.container,.content,.wrapper,.wrap,.inner,.page,.markdown-body" +
   "{max-width:none!important;width:auto!important}" +
   "html,body{margin-left:0!important;margin-right:0!important}" +
-  "pre{white-space:pre-wrap!important;overflow-wrap:anywhere}";
+  "pre{white-space:pre-wrap!important;overflow-wrap:anywhere}" +
+  "th,td{overflow-wrap:break-word!important;word-break:normal!important}td a,td code{overflow-wrap:anywhere!important}";
+
+// ---- Table column fitting ----
+// Why (measured 2026-11-07): under automatic table layout a browser gives each column at least its min-content
+// width and shares the rest in proportion to max-content width. With `overflow-wrap:anywhere` on cells (this
+// template until then) min-content is ONE character, so a column of short labels beside long prose shrank until
+// its words broke mid-word. `break-word` keeps whole words, but auto layout still starves a column whose text is
+// moderate when a neighbour's is long. So the page measures each cell once and chooses the widths itself.
+
+/**
+ * Column widths (px, cell padding included) that minimise the table's estimated height in `avail` px.
+ * nat[r][c]: one-line width of cell r,c; floor[c]: narrowest the column may be. A row is as tall as its tallest
+ * cell, and a cell needs about nat/width lines, so width goes, step by step, to the column that shortens the
+ * table most: the one that is the bottleneck in the most rows. Returns null when every column fits on one line.
+ * Pure, so the test runs it without a browser; the page embeds it with Function#toString.
+ */
+export function planColumns(nat: number[][], floor: number[], pad: number, avail: number): number[] | null {
+  const n = floor.length;
+  const want = floor.map((f, c) => Math.max(f, ...nat.map((r) => r[c] ?? 0)));
+  if (want.reduce((a, b) => a + b, 0) <= avail) return null;
+  const w = floor.slice();
+  // LaTeX tabulary's rule first: a column whose longest cell fits in an equal share of the width still open keeps
+  // that cell on one line. Height alone would wrap a short label column to match a long prose neighbour.
+  const open = new Set(want.keys());
+  for (let changed = true; changed && open.size > 1; ) {
+    changed = false;
+    const fixedSum = want.reduce((a, x, c) => a + (open.has(c) ? 0 : x), 0);
+    const share = (avail - fixedSum) / open.size;
+    for (const c of [...open]) if (want[c] <= share) { w[c] = want[c]; open.delete(c); changed = true; }
+  }
+  let left = avail - w.reduce((a, b) => a + b, 0);
+  if (left <= 0) return w;
+  const step = Math.max(1, left / 400);
+  const height = (ws: number[]) =>
+    nat.reduce((h, r) => h + Math.max(1, ...r.map((x, c) => x / Math.max(1, ws[c]! - pad))), 0);
+  while (left >= step) {
+    let best = -1, gain = 1e-9;
+    const h0 = height(w);
+    for (let c = 0; c < n; c++) {
+      if (w[c]! >= want[c]!) continue;
+      w[c] += step;
+      const g = h0 - height(w);
+      w[c] -= step;
+      if (g > gain) { gain = g; best = c; }
+    }
+    if (best < 0) break;
+    w[best] += step;
+    left -= step;
+  }
+  if (left > 0) {
+    // No column shortens the table any more: share what is left in proportion to how much each still wants.
+    const room = w.map((x, c) => Math.max(0, want[c]! - x));
+    const total = room.reduce((a, b) => a + b, 0);
+    if (total > 0) for (let c = 0; c < n; c++) w[c] += (left * room[c]!) / total;
+  }
+  return w;
+}
+
+/** Runs in the page: measures every simple table once (again when fonts load) and refits it on every resize. */
+function fitTables(plan: typeof planColumns): void {
+  const tables = [...document.querySelectorAll("table")].filter(
+    (t) =>
+      !t.closest("[data-fit=off]") && !t.querySelector("table,[colspan],[rowspan],colgroup:not([data-fit]),col:not(colgroup[data-fit] col)") &&
+      (t.rows[0]?.cells.length ?? 0) > 1,
+  );
+  // A page without the template's .table-scroll box (uploaded HTML): give each table one, so a table wider
+  // than the window scrolls by itself instead of pushing the whole page sideways.
+  for (const t of tables) {
+    const p = t.parentElement!;
+    if (getComputedStyle(p).overflowX === "auto" || getComputedStyle(p).overflowX === "scroll") continue;
+    const box = document.createElement("div");
+    box.style.overflowX = "auto";
+    p.insertBefore(box, t);
+    box.append(t);
+  }
+  const memo = new Map<HTMLTableElement, { nat: number[][]; least: number[]; floor: number[]; pad: number }>();
+  const measure = (t: HTMLTableElement) => {
+    const s = t.style, keep = [s.width, s.tableLayout];
+    t.querySelector("colgroup[data-fit]")?.remove();
+    s.tableLayout = "auto";
+    s.width = "max-content";
+    const range = document.createRange();
+    const nat = [...t.rows].map((r) => [...r.cells].map((cell) => {
+      range.selectNodeContents(cell);
+      return range.getBoundingClientRect().width;
+    }));
+    const cells = [...t.rows[0]!.cells];
+    const cs = getComputedStyle(cells[0]!);
+    const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 1;
+    s.width = "min-content";
+    const least = cells.map((cell) => cell.getBoundingClientRect().width);
+    s.width = keep[0]!;
+    s.tableLayout = keep[1]!;
+    const comfort = 7 * parseFloat(cs.fontSize);
+    const floor = least.map((m, c) => Math.max(m, Math.min(comfort, pad + Math.max(...nat.map((r) => r[c] ?? 0)))));
+    memo.set(t, { nat, least, floor, pad });
+  };
+  const fit = (t: HTMLTableElement) => {
+    if (!t.getClientRects().length) return; // hidden (a closed tab or <details>): fit when it appears
+    if (!memo.has(t)) measure(t);
+    const { nat, least, floor, pad } = memo.get(t)!;
+    const box = t.parentElement!;
+    const avail = box.clientWidth - parseFloat(getComputedStyle(box).paddingLeft) - parseFloat(getComputedStyle(box).paddingRight);
+    // On a narrow screen the comfortable floor gives way first; a whole word never does (the box scrolls).
+    const lo = floor.map((f, c) => Math.max(least[c]!, Math.min(f, avail / floor.length)));
+    const w = plan(nat.map((r) => r.map((x) => x + pad)), lo, pad, avail);
+    t.querySelector("colgroup[data-fit]")?.remove();
+    if (!w) { t.style.tableLayout = ""; t.style.width = ""; return; }
+    const g = document.createElement("colgroup");
+    g.dataset.fit = "";
+    for (const x of w) g.append(Object.assign(document.createElement("col"), { style: `width:${x.toFixed(1)}px` }));
+    t.prepend(g);
+    t.style.tableLayout = "fixed";
+    t.style.width = `${Math.max(avail, w.reduce((a, b) => a + b, 0)).toFixed(1)}px`;
+  };
+  const ro = new ResizeObserver((entries) => {
+    for (const e of entries) for (const t of tables) if (t.parentElement === e.target) fit(t);
+  });
+  for (const t of tables) ro.observe(t.parentElement!);
+  document.fonts?.ready.then(() => { memo.clear(); for (const t of tables) fit(t); });
+}
+
+export const FIT_SCRIPT = `<script data-orca-table-fit>(${fitTables.toString()})(${planColumns.toString()});</script>`;
 
 // ---- Text-measure rules: an exact copy of itp-hooks/hooks/lib/html-text-measure-detector.ts ----
 // Skills install per plugin, so this script cannot import that file at run time. The test
@@ -151,15 +276,20 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 
 export function wrapPage(bodyHtml: string, title: string): string {
   const body = bodyHtml.replace(/(<table\b[\s\S]*?<\/table>)/g, '<div class="table-scroll">$1</div>');
-  return `<!doctype html>\n<html lang="und" data-layout="full-width">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n${MARKER}\n<title>${esc(title)}</title>\n<style>\n${FULL_WIDTH_CSS}\n</style>\n</head>\n<body>\n${body}</body>\n</html>\n`;
+  return `<!doctype html>\n<html lang="und" data-layout="full-width">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n${MARKER}\n<title>${esc(title)}</title>\n<style>\n${FULL_WIDTH_CSS}\n</style>\n</head>\n<body>\n${body}${FIT_SCRIPT}\n</body>\n</html>\n`;
 }
+
+const withFit = (doc: string) =>
+  doc.includes("data-orca-table-fit") || !/<table\b/i.test(doc)
+    ? doc
+    : /<\/body>/i.test(doc) ? doc.replace(/<\/body>(?![\s\S]*<\/body>)/i, `${FIT_SCRIPT}\n</body>`) : `${doc}\n${FIT_SCRIPT}\n`;
 
 export function hardenHtml(doc: string): string {
   const fixed = neutralize(doc);
-  if (MARKER_RE.test(fixed)) return fixed;
+  if (MARKER_RE.test(fixed)) return withFit(fixed);
   const inject = `${MARKER}\n<style>${OVERRIDE_CSS}</style>\n`;
-  if (/<\/head>/i.test(fixed)) return fixed.replace(/<\/head>/i, `${inject}</head>`);
-  return `<!doctype html>\n<html><head><meta charset="utf-8">\n${inject}</head><body>\n${fixed}\n</body></html>\n`;
+  if (/<\/head>/i.test(fixed)) return withFit(fixed.replace(/<\/head>/i, `${inject}</head>`));
+  return withFit(`<!doctype html>\n<html><head><meta charset="utf-8">\n${inject}</head><body>\n${fixed}\n</body></html>\n`);
 }
 
 function fail(code: number, error: string, extra: Record<string, unknown> = {}): never {

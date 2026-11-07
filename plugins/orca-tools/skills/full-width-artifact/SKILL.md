@@ -38,6 +38,13 @@ stdout is one JSON object, for example `{"ok":true,"url":"https://share.onorca.d
 
 The lint is a copy of itp-hooks' html-measure rule (`plugins/itp-hooks/hooks/lib/html-text-measure-detector.ts`): no `max-width` in em, ch or rem; no `width` in ch; no pixel `max-width` on a page container (`body`, `main`, `article`, `.container`, `.page`, …); no `white-space: pre*` on prose. Images, charts, tooltips, `@media` conditions and code blocks are left alone. On top of that it requires the layout marker `<meta name="orca-artifact-layout" content="full-width/v1">` and rejects a `<br>` inside a paragraph. Wide tables get their own horizontal scroll box instead of narrowing the page. The copy and the original are tested against the same vectors (`plugins/itp-hooks/hooks/lib/html-text-measure-vectors.ts`), so they cannot drift apart.
 
+## Tables: columns are fitted, never squeezed (measured 2026-11-07)
+
+- **Cause.** Under automatic table layout a browser gives each column at least its min-content width and shares the rest by max-content width. With `overflow-wrap:anywhere` on cells (this template before 2026-11-07) min-content is one character, so a short column beside long prose shrank until its header broke into one letter per line.
+- **CSS.** Cells use `overflow-wrap:break-word` (a whole word is the narrowest a column gets), `text-wrap:pretty`, headers `text-wrap:balance`; only links and code inside cells may break anywhere, so a long URL cannot force the table wide. Uploaded HTML gets the same cell rules in its override.
+- **Script.** Each page with a table carries a small inline script (`data-orca-table-fit`; Orca's content frame allows inline scripts). It measures every cell's one-line width once (again after fonts load), then sets `<col>` widths with `table-layout:fixed` on every resize: first LaTeX `tabulary`'s rule (a column whose longest cell fits in an equal share stays on one line), then width goes step by step to whichever column shortens the table most. On a narrow screen the comfortable minimum (7 em) gives way first; a whole word never does, and the table scrolls in its own box. Tables with `colspan`/`rowspan`, nested tables, the author's own `<col>` widths and anything inside `[data-fit=off]` are left to the browser. A table that is hidden at load (a closed tab or `<details>`) is fitted when it appears. In uploaded HTML without a scrolling parent, each table is wrapped in an `overflow-x:auto` box first. The planner, `planColumns`, is pure and unit-tested.
+- **Result.** On a 1300 px window an eight-column test table kept every header whole and needed about a quarter less height.
+
 ## Enforcement
 
 itp-hooks' html-measure guard denies `orca artifacts share|update FILE.md` and points here, and denies publishing an HTML page with a fixed text width. Its escape, `HTML-MEASURE-OK` in the command, is for a deliberate exception only.
@@ -50,6 +57,8 @@ itp-hooks' html-measure guard denies `orca artifacts share|update FILE.md` and p
 | 2026-11-01 | macOS, Orca CLI    | About 30 re-publishes of one page in four hours: `orca artifacts update` returned `orca_cloud_request_failed_429`, the old fallback ran `share`, and a second artifact was created; the first link's edit token was overwritten and not recoverable, so that link froze. Fixed: re-share only on Orca's "has not been shared from the active Orca profile" answer (local, no network); tests cover 429, no JSON, and ok without a URL. `bun test` 31 pass. |
 
 ## Post-Execution Reflection
+
+0. **Did a table look squeezed or lopsided?** Screenshot it in headless Chrome at desktop and narrow widths, and adjust `planColumns` with a test that reproduces the case.
 
 1. **Did the published page fill the window?** If a reader saw a narrow column or hard breaks, the lint missed a rule: add it to the shared vectors and the detector, then here.
 2. **Did `--check` or the after-publish check fail?** Orca changed how it serves artifacts; record what changed above, with the date, before working around it.

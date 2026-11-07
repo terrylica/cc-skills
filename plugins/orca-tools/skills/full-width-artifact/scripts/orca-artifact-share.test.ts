@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { findTextMeasureViolations } from "../../../../itp-hooks/hooks/lib/html-text-measure-detector.ts";
 import { ALLOWED, FLAGGED } from "../../../../itp-hooks/hooks/lib/html-text-measure-vectors.ts";
-import { afterUpdate, hardenHtml, lint, MARKER, measureViolations, outPathFor, wrapPage } from "./orca-artifact-share";
+import { afterUpdate, FIT_SCRIPT, hardenHtml, lint, MARKER, measureViolations, outPathFor, planColumns, wrapPage } from "./orca-artifact-share";
 
 const SCRIPT = join(import.meta.dir, "orca-artifact-share");
 const ESCAPE = "HTML-MEASURE-OK";
@@ -52,6 +52,42 @@ describe("uploaded HTML is repaired", () => {
     expect(fixed).toContain("img{max-width:100%}");
     expect(fixed).toContain(".tip{max-width:320px}");
     expect(hardenHtml(fixed)).toBe(fixed);
+  });
+});
+
+describe("table columns are fitted, never squeezed", () => {
+  const sum = (w: number[]) => w.reduce((a, b) => a + b, 0);
+  it("cells keep whole words (anywhere only for links and code)", () => {
+    const page = wrapPage("<table><tr><td>x</td></tr></table>", "t");
+    expect(page).toMatch(/th,td\{[^}]*overflow-wrap:break-word/);
+    expect(page).not.toMatch(/th,td\{[^}]*overflow-wrap:anywhere/);
+    expect(page).toContain(FIT_SCRIPT);
+  });
+  it("returns null when every column fits on one line", () => {
+    expect(planColumns([[100, 200]], [50, 50], 24, 400)).toBeNull();
+  });
+  it("a short label column beside long prose keeps its one-line width (the 2026-11-07 screenshot)", () => {
+    const nat = [[180, 2400], [150, 1900], [210, 2600]];
+    const w = planColumns(nat, [100, 100], 24, 1000)!;
+    expect(w[0]).toBeGreaterThanOrEqual(210);
+    expect(sum(w)).toBeCloseTo(1000, 0);
+  });
+  it("width goes to the column that is the bottleneck in most rows", () => {
+    // Column 0 is long in every row; column 1 only in one.
+    const nat = [[1500, 400], [1400, 300], [1600, 1600]];
+    const w = planColumns(nat, [120, 120], 24, 1000)!;
+    expect(w[0]).toBeGreaterThan(w[1]!);
+    expect(sum(w)).toBeLessThanOrEqual(1000.5);
+  });
+  it("never goes below a column's floor; the box scrolls instead", () => {
+    const w = planColumns([[900, 900, 900]], [400, 400, 400], 24, 600)!;
+    expect(w).toEqual([400, 400, 400]);
+  });
+  it("uploaded HTML with a table gets the fitter once; without a table it is untouched", () => {
+    const withTable = hardenHtml("<html><head></head><body><table><tr><td>a</td><td>b</td></tr></table></body></html>");
+    expect(withTable.split("data-orca-table-fit").length).toBe(2);
+    expect(hardenHtml(withTable)).toBe(withTable);
+    expect(hardenHtml("<html><head></head><body><p>x</p></body></html>")).not.toContain("data-orca-table-fit");
   });
 });
 
