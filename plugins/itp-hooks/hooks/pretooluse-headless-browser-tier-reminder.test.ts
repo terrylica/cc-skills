@@ -53,7 +53,6 @@ describe("classifyCommand: heavy browser launches", () => {
     ["python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch()'"],
     ["node -e 'const b = await chromium.launch({headless:true})'"],
     ["uv run python - <<'EOF'\nctx = p.chromium.launch_persistent_context('/tmp/x')\nEOF"],
-    ["python3 -c 'b = p.chromium.connect_over_cdp(\"http://127.0.0.1:9222\")'"],
     ["node -e 'puppeteer.launch()'"],
     ["npx -y playwright screenshot https://example.com shot.png"],
     ["bunx @playwright/mcp@latest --headless"],
@@ -67,7 +66,7 @@ describe("classifyCommand: heavy browser launches", () => {
 });
 
 describe("classifyCommand: publishing a page", () => {
-  test.each([["orca artifacts share report.html"], ["orca artifacts update report.html --json"], ["wrangler pages deploy ./site"], ["npx wrangler deploy"]])(
+  test.each([["orca artifacts share report.html"], ["orca artifacts update report.html --json"], ["wrangler pages deploy ./site"], ["npx wrangler pages deploy ./dist"]])(
     "reminds: %s",
     (command) => {
       expect(classifyCommand(command)).toBe("publish");
@@ -89,6 +88,13 @@ describe("classifyCommand: stays silent", () => {
     ["reading a file", "cat scripts/shot.sh | grep 'google-chrome --headless'"],
     ["git log mention", "git log --grep 'playwright screenshot'"],
     ["plain curl check", "curl -sI https://example.com"],
+    ["running an existing Playwright test suite", "npx playwright test"],
+    ["installing Playwright's browsers", "npx playwright install --with-deps chromium"],
+    ["a Playwright report", "npx playwright show-report"],
+    ["Playwright's test runner version", "bunx @playwright/test --version"],
+    ["attaching over CDP is not a launch", "python3 -c 'b = p.chromium.connect_over_cdp(\"http://127.0.0.1:9222\")'"],
+    ["a Worker deploy is not a page", "npx wrangler deploy"],
+    ["a PR body that mentions a launch", "gh pr create --title t --body 'replaces npx playwright screenshot with agent-browser'"],
     ["escape token", "npx playwright screenshot https://x a.png # HEADLESS-TIER-SKIP: needs Chromium's PDF engine"],
     ["empty", ""],
   ])("%s", (_name, command) => {
@@ -97,13 +103,28 @@ describe("classifyCommand: stays silent", () => {
 });
 
 describe("isThrowawayPlaywrightMcp", () => {
-  test("matches a throwaway Playwright server's tools", () => {
+  test("matches a throwaway Playwright server's tools, plain or plugin-namespaced", () => {
     expect(isThrowawayPlaywrightMcp("mcp__playwright-throwaway-headless__browser_navigate")).toBe(true);
+    expect(isThrowawayPlaywrightMcp("mcp__plugin_tools_playwright-throwaway__browser_navigate")).toBe(true);
+    expect(isThrowawayPlaywrightMcp("mcp__throwaway-playwright__browser_snapshot")).toBe(true);
   });
   test("ignores signed-in extension servers and other MCP tools", () => {
     expect(isThrowawayPlaywrightMcp("mcp__chrome-someone__browser_navigate")).toBe(false);
     expect(isThrowawayPlaywrightMcp("mcp__playwright-extension__browser_navigate")).toBe(false);
     expect(isThrowawayPlaywrightMcp("mcp__codegraph__codegraph_explore")).toBe(false);
+  });
+});
+
+describe("classifyCommand on very long commands", () => {
+  test("stays fast on a 400 KB single line full of browser names (review finding, 2026-11-07)", () => {
+    // No --headless anywhere: the pattern must fail, which is the case that rescans from every browser name.
+    const line = "chromium ".repeat(45_000);
+    const t0 = performance.now();
+    classifyCommand(line);
+    expect(performance.now() - t0).toBeLessThan(200);
+  });
+  test("still catches a launch near the start of a long command", () => {
+    expect(classifyCommand("npx playwright screenshot https://x a.png; " + "echo x; ".repeat(10_000))).toBe("launch");
   });
 });
 

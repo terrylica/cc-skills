@@ -17,10 +17,11 @@
  * model's call; the hook cannot see that.
  *
  * Fires on Bash when the command
- *   - starts a heavy browser for automation or a web check: a Playwright or Puppeteer launch,
- *     `connect_over_cdp`, `npx|bunx playwright …`, `playwright screenshot|pdf|open|codegen`, or branded
- *     Chrome / Chromium run with `--headless`; or
- *   - publishes an HTML page (`orca artifacts share|update`, `wrangler deploy` / `wrangler pages deploy`),
+ *   - starts a heavy browser for automation or a web check: a Playwright or Puppeteer launch, starting the
+ *     `@playwright/mcp` server, `playwright screenshot|pdf|open|codegen|cr`, or branded Chrome / Chromium run
+ *     with `--headless` (attaching with `connect_over_cdp` is not a launch, and `playwright test|install` is
+ *     not tier-1 work); or
+ *   - publishes an HTML page (`orca artifacts share|update`, `wrangler pages deploy`),
  *     the moment its rendering usually gets checked;
  * and on a tool call to a throwaway Playwright MCP server (its name contains "throwaway").
  * Silent when the command already uses agent-browser, Lightpanda or chrome-headless-shell, or names a real
@@ -58,25 +59,31 @@ const ON_THE_STACK = /\bagent-browser\b|\blightpanda\b|chrome-headless-shell/i;
 /** The real profile is involved, which is the legitimate tier-3 or signed-in case. */
 const NAMES_A_PROFILE = /--profile(-directory)?\b|--user-data-dir\b|chrome-profile\.sh|mcp-drive\.ts|fill-secret\.mjs/;
 /** Commands that only read or search text mention these words without starting anything. */
-const READ_ONLY_FIRST_WORD = /^\s*(rg|grep|egrep|ag|cat|bat|less|more|head|tail|sed|awk|wc|ls|find|fd|git|echo|printf|man|which|type)\b/;
+const READ_ONLY_FIRST_WORD = /^\s*(rg|grep|egrep|ag|cat|bat|less|more|head|tail|sed|awk|wc|ls|find|fd|git|gh|echo|printf|man|which|type)\b/;
+/**
+ * Only the first 16 KB of a command is classified. The branded-browser pattern rescans the rest of a line from every
+ * browser name, which on a single 400 KB line took 7.9 s (review, 2026-11-07); matching is synchronous, so the
+ * orchestrator's timeout cannot cut it off. A browser launch that matters sits near the start of a command.
+ */
+export const MAX_CLASSIFIED_CHARS = 16 * 1024;
 
 const HEAVY_LAUNCH: readonly RegExp[] = [
   /\b(chromium|firefox|webkit)\.(launch|launch_persistent_context|launchPersistentContext)\s*\(/,
-  /\bconnect_over_cdp\s*\(|\bconnectOverCDP\s*\(/,
   /\bpuppeteer\.launch\s*\(/,
-  /\b(npx|bunx)\s+(-y\s+|--yes\s+)?(@playwright\/(test|mcp)|playwright)(@\S+)?\b/,
-  /\bplaywright\s+(screenshot|pdf|open|codegen|cr)\b/,
+  /\b(npx|bunx)\s+(-y\s+|--yes\s+)?@playwright\/mcp(@\S+)?(\s|$)/,
+  /\bplaywright(@\S+)?\s+(screenshot|pdf|open|codegen|cr)\b/,
   /(Google Chrome|google-chrome(-stable)?|chromium(-browser)?|Chromium)\b[^|;&\n]*--headless/,
 ];
 const PUBLISHES_A_PAGE: readonly RegExp[] = [
   /\borca\s+artifacts\s+(share|update)\b/,
-  /\bwrangler\s+(pages\s+)?deploy\b/,
+  /\bwrangler\s+pages\s+deploy\b/,
 ];
 
 export type Trigger = "launch" | "publish";
 
 /** Which reminder a Bash command deserves, or null. Pure. */
-export function classifyCommand(command: string): Trigger | null {
+export function classifyCommand(fullCommand: string): Trigger | null {
+  const command = fullCommand.slice(0, MAX_CLASSIFIED_CHARS);
   if (!command || hasFileWideEscapeHatchMarkerInContent(command, ESCAPE_HATCH)) return null;
   if (ON_THE_STACK.test(command) || NAMES_A_PROFILE.test(command)) return null;
   if (READ_ONLY_FIRST_WORD.test(command)) return null;
@@ -87,7 +94,9 @@ export function classifyCommand(command: string): Trigger | null {
 
 /** A throwaway (signed-out) Playwright MCP server: a full Chromium for work tier 1 could do. Pure. */
 export function isThrowawayPlaywrightMcp(toolName: string): boolean {
-  return /^mcp__playwright[^_]*throwaway[^_]*__/i.test(toolName);
+  // Plain (`mcp__playwright-throwaway-headless__…`) or plugin-namespaced (`mcp__plugin_<p>_playwright-throwaway__…`).
+  return /^mcp__(plugin_[^_]+_)?[^_]*playwright[^_]*throwaway[^_]*__/i.test(toolName) ||
+    /^mcp__(plugin_[^_]+_)?[^_]*throwaway[^_]*playwright[^_]*__/i.test(toolName);
 }
 
 /**
@@ -126,9 +135,9 @@ export function buildReminder(kind: Trigger): string {
   return [
     head,
     "1. Public pages (the default): `agent-browser --session S --engine lightpanda open <url>`; about 145 MB. Reads text, links and structure; its screenshots are unstyled, so never judge a page's look from one.",
-    "2. A login, or a page Lightpanda cannot render: `agent-browser --session S --executable-path ~/.local/share/browser-stack/chrome-headless-shell/chrome-headless-shell [--state <login.json>] open <url>`; about 600 MB. Read the login file from the vault at run time.",
+    "2. A login, a page Lightpanda cannot render, or any check of how a page looks: `agent-browser --session S --executable-path <chrome-headless-shell> [--state <login.json>] open <url>`, where <chrome-headless-shell> is Google's Chrome for Testing headless shell on this host; about 600 MB. Read the login file from the vault at run time.",
     "3. Only when the real Chrome profile itself is needed (its cookies or bookmarks): `agent-browser --session S --profile \"<Profile dir>\" open <url>`, a copy deleted on close; about 2.3 GB. Work in the operator's own signed-in Chrome stays with the chrome-profiles tools.",
-    "End every job with `agent-browser close --all`. If agent-browser is not installed on this host, say so instead of falling back silently.",
+    "End every job with `agent-browser close --all`. If agent-browser, Lightpanda or chrome-headless-shell is not installed on this host, say so instead of falling back silently.",
     `This is a reminder, not a block. Skip it when a full browser is genuinely needed: put ${ESCAPE_MARKER} in the command.`,
   ].join("\n");
 }

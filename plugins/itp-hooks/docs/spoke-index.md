@@ -52,7 +52,7 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | [pueue-reminder.md](./pueue-reminder.md)                                           | Pueue reminder detection patterns + exceptions                                                                                              |
 | [pueue-local-guard.md](./pueue-local-guard.md)                                     | Pueue commands must target the local daemon                                                                                                 |
 | [long-runtime-haiku-monitor-reminder.md](./long-runtime-haiku-monitor-reminder.md) | A run that may pass 5 minutes gets a background `haiku` health monitor (bare alias, so always the newest Haiku); hermetic + 32-mutant suite |
-| [headless-browser-tier-reminder.md](./headless-browser-tier-reminder.md) | A heavy browser launch or a page publish is pointed at agent-browser: Lightpanda, then chrome-headless-shell, then a profile copy; hermetic suite, 3 mutants killed |
+| [headless-browser-tier-reminder.md](./headless-browser-tier-reminder.md) | A heavy browser launch or a page publish is pointed at agent-browser: Lightpanda, then chrome-headless-shell, then a profile copy; hermetic suite, 4 mutants killed |
 | [cargo-tty-guard.md](./cargo-tty-guard.md)                                         | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md))          |
 
 ## Linters, type checkers and correctness

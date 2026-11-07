@@ -31,7 +31,7 @@ A machine ran out of memory with many agent sessions and desktop Chrome open. Th
 | Tier | Use | Command | Memory |
 | --- | --- | --- | --- |
 | 1 | public pages, the default | `agent-browser --session S --engine lightpanda open <url>` | about 145 MB |
-| 2 | a login, or a page Lightpanda cannot render | `agent-browser --session S --executable-path ~/.local/share/browser-stack/chrome-headless-shell/chrome-headless-shell [--state <login.json>] open <url>` | about 600 MB |
+| 2 | a login, or a page Lightpanda cannot render | `agent-browser --session S --executable-path <chrome-headless-shell> [--state <login.json>] open <url>`, with Google's [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) headless shell | about 600 MB |
 | 3 | only when the real profile's cookies or bookmarks are needed | `agent-browser --session S --profile "<Profile dir>" open <url>` (a copy, deleted on close) | about 2.3 GB |
 
 - **Close every browser when done:** end every job with `agent-browser close --all`.
