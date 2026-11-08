@@ -84,11 +84,35 @@ const char *flagForIana(const char *iana) {
 // macOS's NSTimeZone abbreviationForDate: returns "GMT+1/+2" instead of
 // "BST/CEST" for many European zones on recent OS releases — so the table
 // hardcodes the regional forms traders actually recognize.
+//
+// British Columbia's own abbreviation (2026-11-08). Since 1 Nov 2026 BC keeps
+// UTC-7 all year and the province names it "Pacific Time", abbreviated PCT
+// (BC government, "No falling back with B.C.'s new time zone code, Pacific
+// Time: PCT"). tzdb 2026f labels the same offset MST for America/Vancouver and
+// has not adopted PCT (tz list thread "British Columbia (BC) announced PCT
+// abbreviation for Pacific Time"), and Apple's ICU still prints PDT. Keyed on
+// the ZONE and the instant, never a blanket MST rewrite: Arizona, Edmonton,
+// Fort_Nelson, Dawson_Creek and Creston really are MST, and BC's PST/PDT
+// before the change were correct then.
+static NSString *fcBcPctAbbrev(NSString *zoneName, NSDate *date) {
+    // 2026-11-01 09:00:00 UTC (02:00 PDT), the first instant of permanent UTC-7.
+    static const NSTimeInterval kBcPctFromUnix = 1793523600.0;
+    if (!zoneName || !date) return nil;
+    if (![zoneName isEqualToString:@"America/Vancouver"]
+        && ![zoneName isEqualToString:@"Canada/Pacific"]) return nil;
+    return date.timeIntervalSince1970 >= kBcPctFromUnix ? @"PCT" : nil;
+}
+
 NSString *friendlyAbbrevForIana(const char *iana, NSDate *date) {
     if (!iana || !*iana || !date) {
         NSTimeZone *loc = [NSTimeZone localTimeZone];
-        return [loc abbreviationForDate:date ?: [NSDate date]] ?: @"";
+        NSDate *when = date ?: [NSDate date];
+        NSString *bc = fcBcPctAbbrev(loc.name, when);
+        if (bc) return bc;
+        return [loc abbreviationForDate:when] ?: @"";
     }
+    NSString *bc = fcBcPctAbbrev([NSString stringWithUTF8String:iana], date);
+    if (bc) return bc;
     NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:iana]];
     const FCIanaZoneEntry *e = fcFindIanaZone(iana);
     if (e) {

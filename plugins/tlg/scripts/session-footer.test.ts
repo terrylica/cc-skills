@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { applyFooter, FOOTER_RE, localTimestamp, sessionFooter } from "./session-footer.ts";
+import { applyFooter, BC_PCT_FROM_MS, FOOTER_RE, localTimestamp, sessionFooter, zoneAbbrev } from "./session-footer.ts";
 
 const SID = "00000000-0000-4000-8000-000000000000";
 const prevSid = process.env.CLAUDE_CODE_SESSION_ID;
@@ -73,5 +73,20 @@ describe("localTimestamp", () => {
   test("renders YYYY-MM-DD HH:MM with a timezone abbreviation", () => {
     const ts = localTimestamp(new Date("2026-10-26T02:14:00Z"));
     expect(ts).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} \S+$/);
+  });
+
+  test("British Columbia from 2026-11-01 reads PCT (not ICU's PDT or tzdb's MST)", () => {
+    expect(localTimestamp(new Date("2026-12-15T20:00:00Z"), "America/Vancouver")).toBe("2026-12-15 13:00 PCT");
+    expect(zoneAbbrev(new Date(BC_PCT_FROM_MS), "Canada/Pacific")).toBe("PCT");
+  });
+
+  test("British Columbia before the change keeps PST/PDT, which were correct then", () => {
+    expect(localTimestamp(new Date("2026-01-15T20:00:00Z"), "America/Vancouver")).toBe("2026-01-15 12:00 PST");
+    expect(zoneAbbrev(new Date(BC_PCT_FROM_MS - 1), "America/Vancouver")).toBe("PDT");
+  });
+
+  test("other UTC-7 zones are never relabelled PCT", () => {
+    expect(zoneAbbrev(new Date("2026-12-15T20:00:00Z"), "America/Phoenix")).toBe("MST");
+    expect(zoneAbbrev(new Date("2026-12-15T20:00:00Z"), "America/Edmonton")).not.toBe("PCT");
   });
 });

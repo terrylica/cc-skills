@@ -455,6 +455,25 @@ static void test_abbrev_no_dst_zones(void) {
     ASSERT_EQ_STR(friendlyAbbrevForIana("Asia/Hong_Kong", winter), @"HKT");
 }
 
+static void test_abbrev_british_columbia_pct(void) {
+    // BC keeps UTC-7 all year from 2026-11-01 09:00Z and calls it PCT;
+    // before that its PST/PDT were correct. Other UTC-7 zones keep theirs.
+    NSDate *cut = [NSDate dateWithTimeIntervalSince1970:1793523600.0];
+    NSDate *before = [NSDate dateWithTimeIntervalSince1970:1793523599.0];
+    NSDate *dec = dateAt(@"America/Phoenix", 2026, 12, 15, 12, 0, 0);
+    NSDate *jan = dateAt(@"America/Vancouver", 2026, 1, 15, 12, 0, 0);
+    ASSERT_EQ_STR(friendlyAbbrevForIana("America/Vancouver", cut), @"PCT");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("America/Vancouver", dec), @"PCT");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("Canada/Pacific", dec), @"PCT");
+    ASSERT_EQ_STR(friendlyAbbrevForIana("America/Vancouver", jan), @"PST");
+    if ([friendlyAbbrevForIana("America/Vancouver", before) isEqualToString:@"PCT"]) {
+        fprintf(stderr, "FAIL %s: PCT before the cutover\n", __func__); failures++;
+    }
+    if ([friendlyAbbrevForIana("America/Phoenix", dec) isEqualToString:@"PCT"]) {
+        fprintf(stderr, "FAIL %s: Phoenix relabelled PCT\n", __func__); failures++;
+    }
+}
+
 static void test_utc_offset_format(void) {
     NSDate *summer = dateAt(@"America/New_York", 2026, 7, 15, 12, 0, 0);
     NSDate *winter = dateAt(@"America/New_York", 2026, 1, 15, 12, 0, 0);
@@ -782,6 +801,7 @@ int main(void) {
         RUN_TEST(test_abbrev_new_york_dst_vs_standard);
         RUN_TEST(test_abbrev_sydney_inverted);
         RUN_TEST(test_abbrev_no_dst_zones);
+        RUN_TEST(test_abbrev_british_columbia_pct);
         RUN_TEST(test_utc_offset_format);
         RUN_TEST(test_full_tz_label_composition);
 
