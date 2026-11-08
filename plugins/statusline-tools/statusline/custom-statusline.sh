@@ -705,6 +705,15 @@ system_tz=${system_tz##*/zoneinfo/}   # same as the old `| sed 's|.*/zoneinfo/||
 IFS='|' read -r utc_date utc_hm utc_month utc_year <<< "$(date -u -r "$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%b|%Y' 2>/dev/null || date -u -d "@$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%b|%Y')"
 # Same for the local clock: one `date` (was five, plus one more below).
 IFS='|' read -r local_date local_hm local_tz local_month local_year local_dd <<< "$(TZ="$system_tz" date -r "$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%Z|%b|%Y|%a %d' 2>/dev/null || TZ="$system_tz" date -d "@$NOW_EPOCH" +'%a %d %b %Y|%H:%M|%Z|%b|%Y|%a %d')"
+# British Columbia's own abbreviation (2026-11-08). Since 1 Nov 2026 BC keeps UTC-7 all year and the
+# province names it "Pacific Time", abbreviated PCT (BC government, "No falling back with B.C.'s new time
+# zone code, Pacific Time: PCT"). tzdb 2026f labels the same offset MST for America/Vancouver, and has
+# not adopted PCT (tz list thread "British Columbia (BC) announced PCT abbreviation for Pacific Time").
+# Keyed on the ZONE, never a blanket MST rewrite: Arizona, America/Fort_Nelson, Dawson_Creek and Creston
+# really are MST. A no-op once tzdata itself says PCT.
+case "$system_tz" in
+    America/Vancouver|Canada/Pacific) [ "$local_tz" = "MST" ] && local_tz="PCT" ;;
+esac
 
 if [ "$utc_date" = "$local_date" ]; then
     # Same date: show date once with UTC, local time-only
