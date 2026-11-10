@@ -61,6 +61,10 @@ Every other "Modify message" checkbox is set **clear**: the rule matches the spe
 
 **Read-back.** After Save the page is reloaded, the rule is found again and its Edit dialog is read and compared field by field. A mismatch exits 1. This is still the same console: an end-to-end mail test (or Email Log Search) is the independent confirmation.
 
+### `passwordless ensure` · `passwordless inspect`
+
+Security › Authentication › Passwordless: "Allow users to skip their password and authenticate with a passkey" (Google's help page calls it "Allow users to skip passwords at sign-in by using passkeys"). Off as Google ships it; users then read "Skip password when possible isn't allowed for this account". The Cloud Identity Policy API exposes only the sibling `settings/security.passkeys_restriction` (measured 2026-11-10 on a full `policies.list`). `--allow-skip on|off` acts on the unit the page opens with (the top organizational unit); `--verify`, `--dry-run` as above; `inspect` is a read-only survey (checkboxes, buttons, text) for writing new steps. Turning it on also stops users adding a security key for 2-Step Verification only (passkeys on security keys still work), as the page itself says.
+
 ## Re-authentication policy ("verify it's you")
 
 The Admin console periodically sends an administrator to accounts.google.com for a fresh password before admin pages. The shared gate (`scripts/lib/gate.ts`), with this family's classifier (`scripts/recipes/google-admin/family.ts`):
@@ -71,7 +75,7 @@ The Admin console periodically sends an administrator to accounts.google.com for
 4. **Polls the tab without reloading it** (every 5 s, up to `--reauth-wait`, default 600 s), because a reload discards what the operator is typing. When the tab reaches admin.google.com the run continues.
 5. On timeout it exits 4. If the check was passed in a **different** tab of the same profile, this tab does not notice: just re-run, the command is idempotent.
 
-## Lessons baked into the primitives (measured 2026-10-19)
+## Lessons baked into the primitives (measured 2026-10-19, extended 2026-11-10)
 
 - **Background tabs.** Playwright's normal click waits for "visible, enabled and stable" and hangs in a background tab, or hits the MCP's short action timeout. Every step calls `page.bringToFront()` and clicks with `{ force: true }`. Synthetic `dispatchEvent` clicks are ignored by the console (jsaction wants real input events).
 - **Listboxes** (Material): click the listbox, then the `option` by name, then confirm the listbox's selected option.
@@ -93,6 +97,8 @@ Pass `--screenshots <dir>` to save one PNG per step (failures are always saved, 
 3. Register it in `scripts/recipes/index.ts` with its `family`; `--help` and `recipes --json` pick it up.
 4. Unit-test the pure parts with a FormState **captured from the live page and anonymised** (example.com). Live steps are tested only by a live `--dry-run`, then the real run, then `--verify`.
 5. Record each project's invocation in that project's repository, never here: this plugin is public.
+
+- **(2026-11-10, Passwordless page)** The setting URL is `admin.google.com/ac/managedsettings/<id>/passwordless` (take it from Google's help page; `ac/security/passwordless` is a 404). The page opens as a read-only summary (label, then ON/OFF); its row's "Edit …" button opens the form. The checkbox is a native one named by `aria-label`, so `getByRole('checkbox', { name })` finds it (unlike the Material checkboxes above). The edit panel's **SAVE and CANCEL are outside `role=main` and are not `role=button`**: find them by visible text page-wide and click the **visible** match (a hidden "Save" span exists elsewhere on the page).
 
 ## Known fragility
 

@@ -6,6 +6,7 @@ import type { Family } from "../lib/gate.ts";
 import type { Driver } from "../lib/page.ts";
 import { GOOGLE_ADMIN } from "./google-admin/family.ts";
 import * as gmailDefaultRouting from "./google-admin/gmail-default-routing.ts";
+import * as passwordless from "./google-admin/passwordless.ts";
 
 export interface Recipe {
   name: string;
@@ -29,5 +30,14 @@ export const RECIPES: Record<string, Recipe> = {
     flags: gmailDefaultRouting.FLAGS,
     validate: (f) => void gmailDefaultRouting.specFromFlags(f),
     run: gmailDefaultRouting.run,
+  },
+  passwordless: {
+    name: "passwordless",
+    family: GOOGLE_ADMIN,
+    summary: "Security › Authentication › Passwordless: let users skip the password with a passkey (top organizational unit), with read-back",
+    url: passwordless.URL,
+    verbs: { inspect: "read-only survey of the page's checkboxes, buttons and text", ensure: "--allow-skip on|off; no-op when already so; --verify reads back only; --dry-run ticks then leaves without saving" },
+    flags: passwordless.FLAGS,
+    run: passwordless.run,
   },
 };
