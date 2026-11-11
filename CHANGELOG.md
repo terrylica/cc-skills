@@ -1,3 +1,17 @@
+## [34.13.1](https://github.com/terrylica/cc-skills/compare/v34.13.0...v34.13.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **orca-tools:** spinoff follows the user's Chat | CLI setting ([637fd21](https://github.com/terrylica/cc-skills/commit/637fd21e16b538f5f3e5ab4c0a84b469b4798e29)), closes [#66](https://github.com/terrylica/cc-skills/issues/66) [#68](https://github.com/terrylica/cc-skills/issues/68)
+* **orca-tools:** support Orca chat sessions in session-closeout and worktree-spinoff ([b627a2d](https://github.com/terrylica/cc-skills/commit/b627a2dc261b0e3bb2c3e258ec707953131c0daa))
+
+In an Orca chat (ORCA_STRUCTURED_SESSION set) orca-closeout now names the chat with `orca chat rename`, ignores any terminal handle left over from an earlier terminal tab, never marks [running], and refuses --close up front (exit 2), because Orca's CLI has no command to close a chat and a chat never reports tui-idle. Both forms report `surface`.
+
+orca-spinoff create gains --surface terminal|chat (default terminal, passed explicitly when Orca supports it, so the user's Chat | CLI setting cannot silently turn the launch into a chat). It reads result.launch: a structured outcome is reported as a chat (chat_session, agent_handle, prompt_outcome) without the terminal count warning or the 90 s wait for the prompt's title; Orca's fallback to a terminal is warned with its receipt.
+
+Tests: 8 new closeout tests (59 total), first orca-spinoff test file (8 tests).
+
 # [34.13.0](https://github.com/terrylica/cc-skills/compare/v34.12.3...v34.13.0) (2026-11-11)
 
 
