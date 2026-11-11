@@ -15,6 +15,8 @@
 #                 [--force]                         close as soon as the turn ends, even with work running or unreadable
 #                                                   status; that work is killed with the tab
 #   Every form takes --dry-run (check everything, change nothing). --title and --close can be combined.
+#   In an Orca chat (ORCA_STRUCTURED_SESSION set) the label goes to the chat with `orca chat rename`, and --close is
+#   refused (exit 2): Orca's CLI cannot close a chat. A terminal handle inherited from an earlier tab is ignored.
 #
 #   While work is running, the tab title gets a "[running] " prefix and, when this is the workspace's only agent
 #   session, the workspace gets status in-progress (only if it had a status) and a "Running: … | " comment prefix (only
@@ -449,7 +451,7 @@ while [ $# -gt 0 ]; do
     --force) force=1; shift ;;
     --allow-long) allow_long=1; shift ;;
     --dry-run) dry=1; shift ;;
-    -h|--help|help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help|help) sed -n '2,26p' "$0"; exit 0 ;;
     *) die "unknown argument: $1 (see --help)" ;;
   esac
 done
@@ -457,6 +459,16 @@ case $min_wait in ''|*[!0-9]*) die "--min-wait must be a whole number of seconds
 [ "$min_wait" -le "$MAX_WAIT" ] || die "--min-wait is at most $MAX_WAIT seconds"
 case $settle in ''|*[!0-9]*) die "--settle-timeout must be a whole number of seconds" ;; esac
 [ "$settle" -le "$MAX_SETTLE" ] || die "--settle-timeout is at most $MAX_SETTLE seconds"
+
+# ── An Orca chat (the GUI agent surface) rather than a terminal. Orca sets ORCA_STRUCTURED_SESSION in a chat's
+#    environment and gives it no terminal: `orca chat` has only `rename`, there is no command to close a chat, and a
+#    chat never reports tui-idle (Orca 1.4.255/1.4.256). A terminal handle seen here was inherited from an earlier
+#    terminal tab of the same session (Claude Code replays the environment it captured), so it is never trusted.
+chat=0
+[ -z "${ORCA_STRUCTURED_SESSION:-}" ] || chat=1
+if [ "$chat" -eq 1 ]; then
+  [ "$close" -eq 0 ] || die "--close is not possible in an Orca chat: Orca's CLI has no command to close a chat (orca chat has only rename) and a chat never reports idle. Close the chat tab by hand; nothing was changed"
+fi
 
 # ── The session: Claude Code exports its id to every Bash-tool command. ────────────────────────────────────────────
 sid=${CLAUDE_CODE_SESSION_ID:-}
@@ -506,10 +518,20 @@ find_orca() {
 handle=${ORCA_TERMINAL_HANDLE:-}
 tab=${ORCA_TAB_ID:-}
 worktree=${ORCA_WORKTREE_ID:-}
-case $handle in *[!A-Za-z0-9_.-]*) die "unexpected ORCA_TERMINAL_HANDLE: $handle" ;; esac
 ORCA=''
+if [ "$chat" -eq 1 ]; then
+  [ -z "$handle" ] || note "Orca chat: ignoring the terminal handle $handle, left over from an earlier terminal tab"
+  handle='' tab=''
+  ORCA=$(find_orca) || warn "inside an Orca chat, but the Orca IDE CLI was not found"
+fi
+case $handle in *[!A-Za-z0-9_.-]*) die "unexpected ORCA_TERMINAL_HANDLE: $handle" ;; esac
 if [ -n "$handle" ]; then ORCA=$(find_orca) || warn "inside an Orca terminal, but the Orca IDE CLI was not found"; fi
-need_orca() { [ -n "$handle" ] || die "$1 needs an Orca terminal (ORCA_TERMINAL_HANDLE is not set)"; [ -n "$ORCA" ] || die "$1 needs the Orca IDE CLI (set ORCA_CLI)"; }
+need_orca() {
+  [ -n "$handle" ] || [ "$chat" -eq 1 ] || die "$1 needs an Orca terminal or chat (ORCA_TERMINAL_HANDLE is not set)"
+  [ -n "$ORCA" ] || die "$1 needs the Orca IDE CLI (set ORCA_CLI)"
+}
+surface=''
+if [ "$chat" -eq 1 ]; then surface=chat; elif [ -n "$handle" ]; then surface=terminal; fi
 [ -z "$tab_title" ] || need_orca "--tab-title"
 
 current_title() { pa '
@@ -564,8 +586,9 @@ if [ -z "$title" ] && [ "$close" -eq 0 ] && [ -z "$tab_title" ]; then
 r = json.loads(sys.argv[6])
 print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
                   "terminal": sys.argv[4] or None, "running": r["running"], "running_count": len(r["running"]),
-                  "checks": r["checks"], "resume": "cd %s && claude --resume %s" % (sys.argv[5], sys.argv[1])}))' \
-    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd" "$rj"
+                  "checks": r["checks"], "surface": sys.argv[7] or None,
+                  "resume": "cd %s && claude --resume %s" % (sys.argv[5], sys.argv[1])}))' \
+    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd" "$rj" "$surface"
   exit 0
 fi
 
@@ -698,6 +721,14 @@ if [ -n "$shown_label" ] && [ -n "$handle" ]; then
   elif [ -n "$tab_title" ]; then die "orca terminal rename failed" 1
   else warn "orca terminal rename failed; the session name is unaffected"
   fi
+elif [ -n "$shown_label" ] && [ "$chat" -eq 1 ]; then
+  # Without --session, `orca chat rename` renames the chat it runs in (orca chat rename --help).
+  if [ -z "$ORCA" ]; then warn "chat not renamed: the Orca IDE CLI was not found"
+  elif [ "$dry" -eq 1 ]; then note "dry run: would rename this chat \"$shown_label\""
+  elif capped "$ORCA" chat rename --name "$shown_label" --json >/dev/null; then tabbed=true
+  elif [ -n "$tab_title" ]; then die "orca chat rename failed" 1
+  else warn "orca chat rename failed; the session name is unaffected"
+  fi
 fi
 if [ "$mark" -eq 1 ]; then
   wt_id=$(pa 'w = json.loads(sys.argv[1])["worktree"]; print(w["id"] if w else "")' "$plan")
@@ -772,7 +803,7 @@ pa '
 r = json.loads(sys.argv[11])
 print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
   "title_length": len(sys.argv[3]) if sys.argv[3] else None, "named": sys.argv[4] == "true",
-  "terminal": sys.argv[5] or None, "tab_labelled": sys.argv[6] == "true",
+  "terminal": sys.argv[5] or None, "surface": sys.argv[16] or None, "tab_labelled": sys.argv[6] == "true",
   "running": r["running"], "running_count": len(r["running"]), "checks": r["checks"],
   "marked": {"tab": sys.argv[12] == "true", "workspace": sys.argv[13] == "true"},
   "close_scheduled": sys.argv[14] == "close" and bool(sys.argv[7]),
@@ -781,4 +812,4 @@ print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sy
   "close_log": sys.argv[8] or None, "dry_run": sys.argv[9] == "1",
   "resume": "cd %s && claude --resume %s" % (sys.argv[10], sys.argv[1])}))' \
   "$sid" "$transcript" "$title" "$named" "$handle" "$tabbed" "$closer" "$log" "$dry" "$cwd" "$rj" \
-  "$marked_tab" "$marked_worktree" "$wmode" "$force"
+  "$marked_tab" "$marked_worktree" "$wmode" "$force" "$surface"

@@ -66,6 +66,10 @@ Measured, with the source read: Claude Code's title normaliser cuts at 200 code 
 
 Found live, fixed: the watcher was started by a relative `$0` after changing directory to `/`, so a close requested as `./orca-closeout` silently never happened (also in the earlier closer). Orca's CLI ignores an empty `--comment` (`getOptionalStringFlag`, `src/cli/flags.ts`), so a workspace comment cannot be cleared: the guard only ever prefixes an existing one.
 
+### Orca chat sessions
+
+An Orca agent can run as a terminal or as a structured chat (Orca 1.4.255+). A chat is detected by `ORCA_STRUCTURED_SESSION`; any `ORCA_TERMINAL_HANDLE` or tab id it carries is stale, inherited from the tab it started in, and is never used. `session-closeout` names a chat with `orca chat rename` and refuses `--close` (exit 2), because a chat never reports `tui-idle`. `worktree-spinoff` passes `--surface` only when the caller asks, as Orca's `orca-cli` guide directs, and reports what started from `result.launch.outcome.kind` (`structured` = chat). Tests: `orca-closeout.test.ts`, `orca-spinoff.test.ts`.
+
 ### floating-terminal (2026-10-24)
 
 | Platform | What ran |

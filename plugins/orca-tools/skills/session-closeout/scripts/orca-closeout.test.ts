@@ -57,6 +57,7 @@ case "$1 $2" in
   "terminal show") t=${tabId}; [ -f "${dir}/show-tab" ] && t=$(cat "${dir}/show-tab"); printf '{"ok":true,"result":{"terminal":{"handle":"${HANDLE}","tabId":"%s","title":"auto title"}}}\\n' "$t" ;;
   "terminal wait") [ -f "${dir}/wait-fails" ] && exit 1; sleep ${waitSeconds}; printf '{"ok":true}\\n' ;;
   "terminal rename") printf '{"ok":true}\\n' ;;
+  "chat rename") [ -f "${dir}/chat-fails" ] && exit 1; printf '{"ok":true}\\n' ;;
   "terminal close") printf '{"ok":true}\\n' ;;
   "worktree ps") cat "${dir}/ps.json" ;;
   "worktree set") printf '{"ok":true}\\n' ;;
@@ -701,5 +702,67 @@ describe("transcript reading", () => {
     );
     expect(await until(() => orcaCalls().includes("terminal close"), 12000)).toBe(true);
     expect(closerLog()).not.toContain("new prompt");
+  });
+});
+
+describe("an Orca chat (ORCA_STRUCTURED_SESSION; Orca 1.4.255 has no chat close and no chat idle signal)", () => {
+  // As measured: the chat's own environment has no terminal handle, but one from an earlier terminal tab of the same
+  // session can still be present. It must never be used.
+  const chatEnv = (orca: string): Record<string, string | undefined> => ({
+    ...orcaEnv(orca),
+    ORCA_STRUCTURED_SESSION: "1",
+    ORCA_AGENT_SESSION_ID: "chat-session-1",
+  });
+  test("names the session and renames the chat with `orca chat rename`, never touching the stale terminal", () => {
+    const r = run(["--title", "Area: what was done", "--tab-title", "Short"], chatEnv(stubOrca(TAB)));
+    expect(r.code).toBe(0);
+    const j = JSON.parse(r.out);
+    expect(j).toMatchObject({ named: true, tab_labelled: true, surface: "chat", terminal: null, close_scheduled: false });
+    expect(orcaCalls()).toContain("chat rename --name Short --json");
+    expect(orcaCalls()).not.toContain(HANDLE);
+    expect(r.err).toContain("ignoring the terminal handle");
+  });
+  test("the chat label defaults to the title", () => {
+    expect(run(["--title", "Whole title"], chatEnv(stubOrca(TAB))).code).toBe(0);
+    expect(orcaCalls()).toContain("chat rename --name Whole title --json");
+  });
+  test("--close is refused up front (exit 2): nothing named, no watcher, no Orca terminal call", () => {
+    const before = readFileSync(transcript, "utf8");
+    const r = runAsAgent(["--title", "t", "--close"], { env: chatEnv(stubOrca(TAB)) });
+    expect(r.code).toBe(2);
+    expect(r.err).toContain("no command to close a chat");
+    expect(readFileSync(transcript, "utf8")).toBe(before);
+    expect(orcaCalls()).not.toContain("terminal");
+    expect(orcaCalls()).not.toContain("chat rename");
+    expect(existsSync(join(dir, `orca-closeout-${HANDLE}.log`))).toBe(false);
+  });
+  test("--close --dry-run is refused too", () => {
+    expect(run(["--close", "--dry-run"], chatEnv(stubOrca(TAB))).code).toBe(2);
+  });
+  test("running work is reported but nothing is marked (a chat has no terminal title to restore)", () => {
+    appendFileSync(transcript, `${launch("bgtask01")}\n`);
+    const r = run(["--title", "t"], chatEnv(stubOrca(TAB)));
+    expect(r.code).toBe(0);
+    const j = JSON.parse(r.out);
+    expect(j.running_count).toBe(1);
+    expect(j.marked).toEqual({ tab: false, workspace: false });
+    expect(j.watcher_pid).toBeNull();
+    expect(orcaCalls()).toContain("chat rename --name t --json");
+    expect(orcaCalls()).not.toContain("[running]");
+  });
+  test("a failed chat rename fails an explicit --tab-title (exit 1), and only warns otherwise", () => {
+    writeFileSync(join(dir, "chat-fails"), "");
+    expect(run(["--title", "t", "--tab-title", "x"], chatEnv(stubOrca(TAB))).code).toBe(1);
+    const r = run(["--title", "t"], chatEnv(stubOrca(TAB)));
+    expect(r.code).toBe(0);
+    expect(r.err).toContain("orca chat rename failed");
+  });
+  test("the show form reports the chat surface and no terminal", () => {
+    const j = JSON.parse(run([], chatEnv(stubOrca(TAB))).out);
+    expect(j).toMatchObject({ surface: "chat", terminal: null });
+  });
+  test("a terminal session still reports the terminal surface", () => {
+    const j = JSON.parse(run([], orcaEnv(stubOrca(TAB))).out);
+    expect(j).toMatchObject({ surface: "terminal", terminal: HANDLE });
   });
 });
