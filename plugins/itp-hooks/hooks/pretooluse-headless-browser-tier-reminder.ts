@@ -42,6 +42,7 @@ import {
   type EscapeHatchMarkerDetectionConfiguration,
   hasFileWideEscapeHatchMarkerInContent,
 } from "./lib/escape-hatch-marker-detection-iter107.ts";
+import { walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 export const REMINDER_COOLDOWN_MS = 20 * 60 * 1000;
 
@@ -54,49 +55,88 @@ const ESCAPE_HATCH: Pick<
   requireMinimumReasonCharacterCountAfterColonOrZeroForOptional: 0,
 };
 
-/** Already on the decided stack: say nothing. */
+/** Already on the decided stack: say nothing. Checked per invocation, so `…; agent-browser close` cannot silence a launch. */
 const ON_THE_STACK = /\bagent-browser\b|\blightpanda\b|chrome-headless-shell/i;
 /** The real profile is involved, which is the legitimate tier-3 or signed-in case. */
 const NAMES_A_PROFILE = /--profile(-directory)?\b|--user-data-dir\b|chrome-profile\.sh|mcp-drive\.ts|fill-secret\.mjs/;
-/** Commands that only read or search text mention these words without starting anything. */
-const READ_ONLY_FIRST_WORD = /^\s*(rg|grep|egrep|ag|cat|bat|less|more|head|tail|sed|awk|wc|ls|find|fd|git|gh|echo|printf|man|which|type)\b/;
 /**
- * Only the first 16 KB of a command is classified. The branded-browser pattern rescans the rest of a line from every
- * browser name, which on a single 400 KB line took 7.9 s (review, 2026-11-07); matching is synchronous, so the
- * orchestrator's timeout cannot cut it off. A browser launch that matters sits near the start of a command.
+ * Only the first 16 KB of a command is classified. A launch that matters sits near the start of a command, and
+ * matching is synchronous, so the orchestrator's timeout cannot cut a slow match off (review, 2026-11-07).
  */
 export const MAX_CLASSIFIED_CHARS = 16 * 1024;
 
-const HEAVY_LAUNCH: readonly RegExp[] = [
-  /\b(chromium|firefox|webkit)\.(launch|launch_persistent_context|launchPersistentContext)\s*\(/,
-  /\bpuppeteer\.launch\s*\(/,
-  /\b(npx|bunx)\s+(-y\s+|--yes\s+)?@playwright\/mcp(@\S+)?(\s|$)/,
-  /\bplaywright(@\S+)?\s+(screenshot|pdf|open|codegen|cr)\b/,
-  /(Google Chrome|google-chrome(-stable)?|chromium(-browser)?|Chromium)\b[^|;&\n]*--headless/,
-];
-const PUBLISHES_A_PAGE: readonly RegExp[] = [
-  /\borca\s+artifacts\s+(share|update)\b/,
-  /\bwrangler\s+pages\s+deploy\b/,
-];
+/** A launch written as code: only meaningful as an interpreter's inline script or a heredoc it reads. */
+const CODE_LAUNCH = /\b(chromium|firefox|webkit)\.(launch|launch_persistent_context|launchPersistentContext)\s*\(|\bpuppeteer\.launch\s*\(/;
+/** Programs that run code given inline (`-c`, `-e`, `eval`) or on stdin. */
+const INTERPRETER = /^(node|bun|deno|python[0-9.]*|uv|uvx|tsx|ts-node|ruby|npx|bunx)$/;
+/** Package runners that put a CLI's name in the first argument. */
+const RUNNER = /^(npx|bunx|pnpx)$|^(pnpm|yarn)$/;
+const BRANDED_BROWSER = /^(Google Chrome|google-chrome(-stable)?|chromium(-browser)?|Chromium|chrome|msedge|Microsoft Edge)$/;
+const PLAYWRIGHT_CLI_SUBCOMMAND = new Set(["screenshot", "pdf", "open", "codegen", "cr"]);
+/** Runner flags that come before the package name (`npx -y`, `pnpm dlx`). */
+const RUNNER_PREFIX = new Set(["-y", "--yes", "dlx", "exec", "-p", "--package"]);
 
 export type Trigger = "launch" | "publish";
 
-/** Which reminder a Bash command deserves, or null. Pure. */
-export function classifyCommand(fullCommand: string): Trigger | null {
-  const command = fullCommand.slice(0, MAX_CLASSIFIED_CHARS);
-  if (!command || hasFileWideEscapeHatchMarkerInContent(command, ESCAPE_HATCH)) return null;
-  if (ON_THE_STACK.test(command) || NAMES_A_PROFILE.test(command)) return null;
-  if (READ_ONLY_FIRST_WORD.test(command)) return null;
-  if (HEAVY_LAUNCH.some((re) => re.test(command))) return "launch";
-  if (PUBLISHES_A_PAGE.some((re) => re.test(command))) return "publish";
+/** The CLI an invocation really runs, with its arguments: unwraps `npx -y pkg@1 …`, `pnpm dlx pkg …`. */
+function effectiveCli(program: string, args: string[]): { cli: string; rest: string[] } {
+  if (!RUNNER.test(program)) return { cli: program, rest: args };
+  let i = 0;
+  while (i < args.length && RUNNER_PREFIX.has(args[i])) i++;
+  const pkg = args[i] ?? "";
+  return { cli: pkg.replace(/^(@[^/@]+\/[^@]+|[^@]+)@.*$/, "$1"), rest: args.slice(i + 1) };
+}
+
+/** Which reminder one real program invocation deserves, or null. Pure. */
+function classifyInvocation(program: string, args: string[]): Trigger | null {
+  if (args.includes("--help") || args.includes("-h")) return null;
+  const text = [program, ...args].join(" ");
+  if (ON_THE_STACK.test(text) || NAMES_A_PROFILE.test(text)) return null;
+  const { cli, rest } = effectiveCli(program, args);
+  if (cli === "@playwright/mcp") return "launch";
+  if (cli === "playwright" && PLAYWRIGHT_CLI_SUBCOMMAND.has(rest[0] ?? "")) return "launch";
+  if (BRANDED_BROWSER.test(program) && args.some((a) => a === "--headless" || a.startsWith("--headless="))) return "launch";
+  if (INTERPRETER.test(program) && args.some((a) => CODE_LAUNCH.test(a))) return "launch";
+  if (cli === "orca" && rest[0] === "artifacts" && (rest[1] === "share" || rest[1] === "update")) return "publish";
+  if (cli === "wrangler" && rest[0] === "pages" && rest[1] === "deploy") return "publish";
   return null;
 }
 
-/** A throwaway (signed-out) Playwright MCP server: a full Chromium for work tier 1 could do. Pure. */
+/**
+ * Which reminder a Bash command deserves, or null. Pure.
+ *
+ * Classifies each program the shell would actually run (`walkShellInvocations`: through `&&`, pipes, `bash -c`,
+ * substitutions, past assignments and wrappers), so a word inside a quoted argument to grep, gh or echo, a comment,
+ * or a heredoc fed to cat/tee never fires. A heredoc body is not an argument, so a code launch fed to an interpreter
+ * on stdin (`python3 - <<'EOF'`) is checked against the whole command. A script file (`node shot.js`) is invisible.
+ */
+export function classifyCommand(fullCommand: string): Trigger | null {
+  const command = fullCommand.slice(0, MAX_CLASSIFIED_CHARS);
+  if (!command || hasFileWideEscapeHatchMarkerInContent(command, ESCAPE_HATCH)) return null;
+  let launch = false;
+  let publish = false;
+  let interpreterReadsHeredoc = false;
+  walkShellInvocations(command, /./, (invocation) => {
+    const args = invocation.args.map((w) => w.value);
+    const kind = classifyInvocation(invocation.program, args);
+    if (kind === "launch") launch = true;
+    else if (kind === "publish") publish = true;
+    if (INTERPRETER.test(invocation.program)) interpreterReadsHeredoc = true;
+  });
+  if (launch) return "launch";
+  if (interpreterReadsHeredoc && /<<-?\s*['"]?\w/.test(command) && CODE_LAUNCH.test(command) &&
+    !ON_THE_STACK.test(command) && !NAMES_A_PROFILE.test(command)) return "launch";
+  return publish ? "publish" : null;
+}
+
+/**
+ * A throwaway (signed-out) Playwright MCP server: a full Chromium for work tier 1 could do. Pure.
+ * The server segment (between `mcp__` and the next `__`) must name both "playwright" and "throwaway"; plugin names
+ * may contain `_`, so the segment is matched up to the `__` separator, not up to any `_`.
+ */
 export function isThrowawayPlaywrightMcp(toolName: string): boolean {
-  // Plain (`mcp__playwright-throwaway-headless__…`) or plugin-namespaced (`mcp__plugin_<p>_playwright-throwaway__…`).
-  return /^mcp__(plugin_[^_]+_)?[^_]*playwright[^_]*throwaway[^_]*__/i.test(toolName) ||
-    /^mcp__(plugin_[^_]+_)?[^_]*throwaway[^_]*playwright[^_]*__/i.test(toolName);
+  const server = /^mcp__(.+?)__/.exec(toolName)?.[1] ?? "";
+  return /playwright/i.test(server) && /throwaway/i.test(server);
 }
 
 /**
@@ -142,14 +182,16 @@ export function buildReminder(kind: Trigger): string {
   ].join("\n");
 }
 
-export async function main() {
-  const input = await parseStdinOrAllow("HEADLESS-BROWSER-TIER-REMINDER");
-  if (!input) return;
-  const agentId = (input as { agent_id?: unknown }).agent_id;
-  if (typeof agentId === "string" && agentId !== "") {
-    allow();
-    return;
-  }
+interface HookInput {
+  tool_name?: unknown;
+  tool_input?: unknown;
+  session_id?: unknown;
+  agent_id?: unknown;
+}
+
+/** The reminder text this tool call deserves (claiming the cooldown), or null. */
+export function reminderFor(input: HookInput): string | null {
+  if (typeof input.agent_id === "string" && input.agent_id !== "") return null;
   let kind: Trigger | null = null;
   if (input.tool_name === "Bash") {
     const command = (input.tool_input as { command?: unknown } | undefined)?.command;
@@ -157,20 +199,39 @@ export async function main() {
   } else if (typeof input.tool_name === "string" && isThrowawayPlaywrightMcp(input.tool_name)) {
     kind = "launch";
   }
-  if (kind === null || !claimCooldown(input.session_id, kind)) {
-    allow();
-    return;
-  }
-  output({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      additionalContext: buildReminder(kind),
-    },
-  });
+  if (kind === null || !claimCooldown(input.session_id, kind)) return null;
+  return buildReminder(kind);
 }
 
-// Standalone entry point (the throwaway Playwright MCP matcher). The Bash orchestrator imports `main`.
-if (import.meta.main) void main().catch((err) => {
+const remind = (text: string) =>
+  output({ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: text } });
+
+/** Bash orchestrator entry point (in-process): the orchestrator merges `allow` with its sibling guards. */
+export async function main() {
+  const input = await parseStdinOrAllow("HEADLESS-BROWSER-TIER-REMINDER");
+  if (!input) return;
+  const text = reminderFor(input);
+  if (text === null) allow();
+  else remind(text);
+}
+
+/**
+ * Standalone entry point (the MCP matcher in hooks.json). It must never print `permissionDecision: "allow"`, which
+ * skips the user's permission prompt for that MCP tool: when there is nothing to remind, or on any error, it prints
+ * nothing and exits 0, which leaves the normal permission flow untouched.
+ */
+async function standaloneMain() {
+  let input: HookInput;
+  try {
+    input = JSON.parse(await Bun.stdin.text()) as HookInput;
+  } catch (err) {
+    trackHookError("pretooluse-headless-browser-tier-reminder", `Failed to parse stdin: ${String(err)}`);
+    return;
+  }
+  const text = reminderFor(input);
+  if (text !== null) remind(text);
+}
+
+if (import.meta.main) void standaloneMain().catch((err) => {
   trackHookError("pretooluse-headless-browser-tier-reminder", err instanceof Error ? err.message : String(err));
-  allow();
 });

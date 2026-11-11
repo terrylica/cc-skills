@@ -108,7 +108,7 @@
         ]
       },
       {
-        "matcher": "mcp__.*throwaway.*__.*",
+        "matcher": "^mcp__[^_].*(playwright.*throwaway|throwaway.*playwright).*__",
         "hooks": [
           {
             "type": "command",

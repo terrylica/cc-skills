@@ -27,7 +27,7 @@ A Bash command that
 - **starts a heavy browser:** a Playwright `chromium|firefox|webkit.launch(…)` or `launch_persistent_context`, `puppeteer.launch(…)`, starting the `@playwright/mcp` server with `npx` or `bunx`, `playwright screenshot|pdf|open|codegen|cr`, or branded Chrome / Chromium with `--headless`; or
 - **publishes an HTML page:** `orca artifacts share|update`, or `wrangler pages deploy`.
 
-It also fires on a tool call to an MCP server whose name contains both `playwright` and `throwaway`, with or without a plugin prefix (a signed-out full Chromium).
+It also fires on a tool call to an MCP server whose server name (between `mcp__` and the next `__`) contains both `playwright` and `throwaway`, with or without a plugin prefix (a signed-out full Chromium). Run standalone for that matcher, the hook prints nothing at all when it does not remind: printing `permissionDecision: "allow"` would skip the user's permission prompt for the tool ([hooks reference](https://code.claude.com/docs/en/hooks), PreToolUse decision control).
 
 Not on purpose:
 
@@ -39,9 +39,9 @@ Only the first 16 KB of a command is classified. On a single 400 KB line, the br
 
 ## When it stays silent
 
-- **Already on the decided stack:** the command uses `agent-browser`, `lightpanda` or `chrome-headless-shell`. This includes Playwright connecting over CDP to a Lightpanda server, or launching chrome-headless-shell.
-- **The real profile is involved:** the command names one (`--profile`, `--profile-directory`, `--user-data-dir`) or uses the chrome-profiles tools (`chrome-profile.sh`, `mcp-drive.ts`, `fill-secret.mjs`). Signed-in work in the operator's own Chrome is the legitimate exception.
-- **The command only reads text or talks to GitHub:** it starts with `rg`, `grep`, `cat`, `sed`, `git`, `gh` or a similar command. Only the first word is checked, so `ls && npx playwright screenshot …` stays silent, and `cd r && git commit -m '… chromium.launch( …'` fires; the cooldown bounds the noise.
+- **Already on the decided stack:** the invocation uses `agent-browser`, `lightpanda` or `chrome-headless-shell`. This includes Playwright connecting over CDP to a Lightpanda server, or launching chrome-headless-shell. It is checked per program, so `npx playwright screenshot …; agent-browser close --all` still fires.
+- **The real profile is involved:** the invocation names one (`--profile`, `--profile-directory`, `--user-data-dir`) or uses the chrome-profiles tools (`chrome-profile.sh`, `mcp-drive.ts`, `fill-secret.mjs`). Signed-in work in the operator's own Chrome is the legitimate exception.
+- **The words are only text:** the hook classifies each program the shell would actually run (the shared `lib/shell-command-invocation-walker.ts`, through `&&`, pipes, `bash -c`, substitutions, assignments and `sudo`), so a launch spelled inside an argument to `grep`, `gh` or `echo`, a `#` comment, a heredoc written by `cat`/`tee`, or a `--help` run stays silent. A code launch (`chromium.launch(`, `puppeteer.launch(`) counts only as an interpreter's inline script (`python3 -c`, `node -e`) or a heredoc an interpreter reads.
 - **It runs inside a subagent.**
 - **It already fired:** once per 20 minutes per session for each of the two kinds (launch, publish).
 

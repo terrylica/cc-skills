@@ -97,8 +97,35 @@ describe("classifyCommand: stays silent", () => {
     ["a PR body that mentions a launch", "gh pr create --title t --body 'replaces npx playwright screenshot with agent-browser'"],
     ["escape token", "npx playwright screenshot https://x a.png # HEADLESS-TIER-SKIP: needs Chromium's PDF engine"],
     ["empty", ""],
+    // Mentions after the first word (PR #63 review): only real invocations are classified.
+    ["grep after cd", "cd docs && grep -n 'chromium.launch(' *.md"],
+    ["grep after an assignment", "FOO=1 grep 'google-chrome --headless' x"],
+    ["grep under sudo", "sudo grep 'playwright pdf' x"],
+    ["grep at the end of a pipe", "jq . x.json | grep 'chromium.launch('"],
+    ["a heredoc written by tee", "tee doc.md <<'EOF'\nchromium.launch()\nEOF"],
+    ["a test filter string", "bun test x.test.ts -t 'playwright screenshot'"],
+    ["a note argument to a script", "python3 x.py --note 'playwright screenshot is slow'"],
+    ["a shell comment", "rm -rf build # chromium --headless leftovers"],
+    ["playwright help", "npx playwright screenshot --help"],
+    ["playwright mcp help", "bunx @playwright/mcp@latest --help"],
+    ["orca artifacts help", "orca artifacts share --help"],
   ])("%s", (_name, command) => {
     expect(classifyCommand(command)).toBeNull();
+  });
+});
+
+describe("classifyCommand: real launches anywhere in the command (PR #63 review)", () => {
+  test.each([
+    ["after another command", "echo start && npx playwright screenshot https://x a.png", "launch"],
+    ["inside bash -c", "bash -c 'npx playwright screenshot https://x a.png'", "launch"],
+    ["an agent-browser cleanup later does not silence it", "npx playwright screenshot https://x a.png; agent-browser close --all", "launch"],
+    ["pnpm dlx playwright mcp", "pnpm dlx @playwright/mcp", "launch"],
+    ["plain chrome binary", "chrome --headless --dump-dom https://x", "launch"],
+    ["edge", "msedge --headless=new --screenshot https://x", "launch"],
+    ["python on a heredoc", "python3 - <<'EOF'\nb = p.chromium.launch()\nEOF", "launch"],
+    ["versioned wrangler", "npx -y wrangler@latest pages deploy dist", "publish"],
+  ])("%s", (_name, command, kind) => {
+    expect(classifyCommand(command)).toBe(kind as "launch" | "publish");
   });
 });
 
@@ -108,7 +135,12 @@ describe("isThrowawayPlaywrightMcp", () => {
     expect(isThrowawayPlaywrightMcp("mcp__plugin_tools_playwright-throwaway__browser_navigate")).toBe(true);
     expect(isThrowawayPlaywrightMcp("mcp__throwaway-playwright__browser_snapshot")).toBe(true);
   });
+  test("matches server names that contain underscores", () => {
+    expect(isThrowawayPlaywrightMcp("mcp__playwright_throwaway__browser_navigate")).toBe(true);
+    expect(isThrowawayPlaywrightMcp("mcp__plugin_my_tools_playwright-throwaway__browser_navigate")).toBe(true);
+  });
   test("ignores signed-in extension servers and other MCP tools", () => {
+    expect(isThrowawayPlaywrightMcp("mcp__throwaway-notes__delete_all")).toBe(false);
     expect(isThrowawayPlaywrightMcp("mcp__chrome-someone__browser_navigate")).toBe(false);
     expect(isThrowawayPlaywrightMcp("mcp__playwright-extension__browser_navigate")).toBe(false);
     expect(isThrowawayPlaywrightMcp("mcp__codegraph__codegraph_explore")).toBe(false);
@@ -179,6 +211,23 @@ describe("main, run as Claude Code runs it", () => {
   test("reminds on a throwaway Playwright MCP tool call", async () => {
     const r = await runHook({ tool_name: "mcp__playwright-throwaway-headless__browser_navigate", tool_input: {}, session_id: "m1" });
     expect(contextOf(r.out)).toContain("[HEADLESS-BROWSER-TIER]");
+  });
+  test("never auto-approves an MCP tool call it does not remind on (PR #63 review)", async () => {
+    // permissionDecision "allow" would skip the user's permission prompt for that tool.
+    for (const tool_name of ["mcp__throwaway-notes__delete_all", "mcp__playwright-throwaway__browser_click"]) {
+      const first = await runHook({ tool_name, tool_input: {}, session_id: "m2" });
+      const second = await runHook({ tool_name, tool_input: {}, session_id: "m2" });
+      for (const r of [first, second]) expect(r.out).not.toContain("permissionDecision");
+    }
+    const sub = await runHook({ tool_name: "mcp__playwright-throwaway__browser_click", tool_input: {}, session_id: "m3", agent_id: "a" });
+    expect(sub.out.trim()).toBe("");
+  });
+  test("fails open on malformed input without approving anything", async () => {
+    const proc = Bun.spawn(["bun", HOOK_PATH], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { PATH: process.env.PATH ?? "", HOME: sandbox, TMPDIR: sandbox } });
+    proc.stdin.write("not json");
+    proc.stdin.end();
+    expect(await new Response(proc.stdout).text()).not.toContain("permissionDecision");
+    expect(await proc.exited).toBe(0);
   });
   test("fails open on malformed input", async () => {
     const proc = Bun.spawn(["bun", HOOK_PATH], { stdin: "pipe", stdout: "pipe", stderr: "pipe", env: { PATH: process.env.PATH ?? "", HOME: sandbox, TMPDIR: sandbox } });
