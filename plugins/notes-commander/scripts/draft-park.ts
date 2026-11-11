@@ -37,9 +37,33 @@ import {
 	runOsaOrDie,
 } from "./lib/notes-core.ts";
 
+// British Columbia adopted permanent UTC-7 on 2026-11-01 and names it Pacific time, PCT (the same rule as
+// tlg's session-footer.ts and the statusline). The system zone database still labels it "MST" (macOS) and
+// ICU "PDT", so `date +%Z` alone stamped every footer "MST".
+const BC_ZONES = new Set(["America/Vancouver", "Canada/Pacific"]);
+/** 2026-11-01 02:00 PDT = 09:00 UTC, the first instant of BC's permanent UTC-7. */
+export const BC_PCT_FROM_MS = Date.UTC(2026, 10, 1, 9, 0, 0);
+
+/**
+ * The zone label for a footer stamp: the system's own, except "PCT" for British Columbia from 2026-11-01.
+ * Only a UTC-7 reading is relabelled: a host whose zone data predates the change reads PST (UTC-8, an hour
+ * off), and that label stays visible rather than being covered by a correct-looking one.
+ */
+export function zoneLabel(systemLabel: string, utcOffset: string, zone: string, atMs: number): string {
+	return BC_ZONES.has(zone) && atMs >= BC_PCT_FROM_MS && utcOffset === "-0700" ? "PCT" : systemLabel;
+}
+
+/** "YYYY-MM-DD HH:MM <zone>" from `date`'s output "YYYY-MM-DD HH:MM <label> <±hhmm>". */
+export function stampFrom(dateOut: string, zone: string, atMs: number): string {
+	const m = dateOut.trim().match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (\S+) ([+-]\d{4})$/);
+	if (!m) return dateOut.trim().replace(/ [+-]\d{4}$/, "");
+	return `${m[1]} ${zoneLabel(m[2], m[3], zone, atMs)}`;
+}
+
 function nowStamp(): string {
-	const r = spawnSync("date", ["+%Y-%m-%d %H:%M %Z"], { encoding: "utf8" });
-	return (r.stdout ?? "").trim();
+	// The wall clock comes from the system's `date` (the host's zone data), only the label is corrected.
+	const r = spawnSync("date", ["+%Y-%m-%d %H:%M %Z %z"], { encoding: "utf8" });
+	return stampFrom(r.stdout ?? "", Intl.DateTimeFormat().resolvedOptions().timeZone, Date.now());
 }
 
 /**
