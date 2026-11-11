@@ -16,6 +16,7 @@
 import { describe, expect, test } from "bun:test";
 import {
 	assertNoProvenanceLeak,
+	BC_PCT_FROM_MS,
 	bodyOnly,
 	FOOTER_LEAD,
 	findFooterStart,
@@ -26,6 +27,8 @@ import {
 	ProvenanceLeakError,
 	renderForWhatsApp,
 	selfHealTargets,
+	stampFrom,
+	zoneLabel,
 } from "./draft-park.ts";
 
 const REAL_FOOTER = [
@@ -265,5 +268,37 @@ describe("withFooter — the session reference travels with every sent message (
 		const bare = ["Title", "", "Hello."].join("\n");
 		expect(footerLineOf(bare)).toBeUndefined();
 		expect(() => withFooter("Hello.", bare)).toThrow(ProvenanceLeakError);
+	});
+});
+
+// On 2026-11-11 the operator read a parked scrum note whose footer ended "15:02 MST": macOS's zone
+// database labels British Columbia's permanent UTC-7 "MST", and `date +%Z` passed it through. The tlg
+// footer and the statusline already said PCT (v34.13.0); this footer had been missed.
+describe("footer stamp: British Columbia reads PCT", () => {
+	const NOV = Date.UTC(2026, 10, 11, 22, 2, 0);
+
+	test("the system's MST for America/Vancouver after the change becomes PCT", () => {
+		expect(stampFrom("2026-11-11 15:02 MST -0700\n", "America/Vancouver", NOV)).toBe("2026-11-11 15:02 PCT");
+		expect(zoneLabel("PDT", "-0700", "Canada/Pacific", BC_PCT_FROM_MS)).toBe("PCT");
+	});
+
+	test("before the change PDT and PST stay, they were correct then", () => {
+		expect(zoneLabel("PDT", "-0700", "America/Vancouver", BC_PCT_FROM_MS - 1)).toBe("PDT");
+		expect(stampFrom("2026-01-15 12:00 PST -0800", "America/Vancouver", Date.UTC(2026, 0, 15, 20))).toBe("2026-01-15 12:00 PST");
+	});
+
+	test("a stale host an hour off (PST, UTC-8, after the change) is not covered by a correct-looking label", () => {
+		expect(stampFrom("2026-11-11 14:02 PST -0800", "America/Vancouver", NOV)).toBe("2026-11-11 14:02 PST");
+	});
+
+	test("other UTC-7 zones are never relabelled", () => {
+		expect(stampFrom("2026-11-11 15:02 MST -0700", "America/Phoenix", NOV)).toBe("2026-11-11 15:02 MST");
+		expect(stampFrom("2026-11-11 15:02 MST -0700", "America/Edmonton", NOV)).toBe("2026-11-11 15:02 MST");
+	});
+
+	test("output that is not the expected shape passes through without its offset, never empty", () => {
+		expect(stampFrom("2026-11-11 15:02 UTC +0000", "UTC", NOV)).toBe("2026-11-11 15:02 UTC");
+		expect(stampFrom("garbled", "America/Vancouver", NOV)).toBe("garbled");
+		expect(stampFrom("", "America/Vancouver", NOV)).toBe("");
 	});
 });
