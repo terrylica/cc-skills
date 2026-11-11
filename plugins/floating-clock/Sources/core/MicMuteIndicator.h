@@ -27,8 +27,9 @@
 // HAL reports no default input. No device name is compiled in: it comes
 // from the `MicIndicatorDeviceName` preference, which defaults to empty,
 // meaning "follow the system default input". Bluetooth-transport devices
-// are never metered (a persistent IOProc would lock the headset into
-// HFP/SCO call mode); their software mute flag is still read.
+// are metered only while another process records them (our own IOProc
+// would lock the headset into HFP/SCO call mode), and then for the level
+// rail only, never the silence banner; their software mute flag is always read.
 //
 // Event-driven (AudioObjectAddPropertyListenerBlock on the main queue) —
 // no polling, preserving the clock's sub-0.1% idle CPU budget. Survives
@@ -61,7 +62,7 @@ NS_ASSUME_NONNULL_BEGIN
 // No-op while the mic is unmuted (banner hidden).
 - (void)syncPosition;
 // Level-meter rail (2026-10-15): newest input RMS + peak since the last read (linear 0..1).
-// NO when the meter is not running (Bluetooth input, no permission) or nothing new arrived.
+// NO when the meter is not running (Bluetooth input nobody else records, no permission) or nothing new arrived.
 - (BOOL)readInputPeak:(float *)peak rms:(float *)rms;
 - (BOOL)inputMeterAvailable;
 

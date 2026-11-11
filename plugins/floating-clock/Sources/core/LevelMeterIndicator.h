@@ -6,8 +6,9 @@
 // tick. Ballistics: FCMeterStep (LevelMeterMath.h).
 //
 // Sources:
-//  - Input: the mic-mute indicator's existing IOProc (no second capture). Bluetooth inputs are never
-//    metered (that would force the headset into call mode), so the IN half stays dark for them.
+//  - Input: the mic-mute indicator's existing IOProc (no second capture). A Bluetooth input is metered
+//    only while another app records it (a call, dictation): starting a capture ourselves would force
+//    the headset into call mode. Otherwise the IN half stays dimmed for it.
 //  - Output: FCOutputLevelTap, a Core Audio process tap that runs only while something is playing
 //    (purple privacy dot while it runs; one-time "System Audio Recording Only" permission).
 //

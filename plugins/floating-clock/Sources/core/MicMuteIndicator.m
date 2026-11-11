@@ -10,6 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
 #import <stdlib.h>
+#import <unistd.h>   // getpid(): exclude this process from the piggyback check
 #include <stdatomic.h>
 
 // Banner geometry. Height is fixed; width tracks the clock each sync.
@@ -190,6 +191,9 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // Audio-level metering (catches the analog hardware-button mute).
     _Atomic bool      _micAuthorized;    // written on main (permission), read on _halQueue
     _Atomic bool      _meteringStarted;  // written on _halQueue, read on main (level rail, banner)
+    // Bluetooth piggyback (2026-11-10): metering a Bluetooth mic only while ANOTHER process records
+    // it. Level rail only: the silence flags never feed the banner (see -startMetering).
+    _Atomic bool      _meteringLevelOnly;
     AudioDeviceIOProcID _ioProc;
     FCMeter           _meter;
     // Thread model (2026-10-21, cc-skills#37). Every CoreAudio HAL call this class makes, its device
@@ -292,6 +296,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         (def != kAudioObjectUnknown && def != _device)) {
         [self rebindDevice];
     } else {
+        [self syncBluetoothPiggyback];
         [self readMuteState];
     }
 }
@@ -363,13 +368,16 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 - (void)renderMuteFlag:(BOOL)propMuted {
     // Only trust the audio-silence signal when metering is actually live and
     // permitted — otherwise the IOProc would deliver zeros and false-positive.
-    BOOL audioMuted = (_micAuthorized && _meteringStarted && _meter.silent != 0);
+    // A piggybacked Bluetooth meter is excluded: headset voice processing can gate a quiet room to
+    // near-zero, which would read as a mute that is not there.
+    BOOL meterTrusted = (_micAuthorized && _meteringStarted && !_meteringLevelOnly);
+    BOOL audioMuted = (meterTrusted && _meter.silent != 0);
     _propMuted = propMuted;
     // Say WHY and HOW TO UNDO (2026-10-08). A mute FLAG is shown nowhere else
     // in macOS: System Settings has no input-mute indicator (its slider clears
     // the flag only as a side effect), so the banner must carry the remedy.
     // Silence alone means a mute outside the Mac's control.
-    BOOL noSignal = (_micAuthorized && _meteringStarted && _meter.noSignal != 0);
+    BOOL noSignal = (meterTrusted && _meter.noSignal != 0);
     NSString *text = propMuted ? @"⊘ MIC MUTED · click to unmute"
                    : noSignal  ? @"⊘ MIC NO SIGNAL · mic off or unlinked?"
                                : @"⊘ MIC SILENT · check the mic's own mute";
@@ -556,7 +564,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // denied / restricted → leave metering off; software-mute detection still works.
 }
 
-// Bluetooth transports must NOT be metered: a persistent capture IOProc on a
+// Bluetooth transports are never metered on our own initiative: a capture IOProc on a
 // BT mic holds the headset in HFP/SCO call mode permanently — degraded output
 // quality + battery drain (2026-06-11). Their mute is a software flag anyway;
 // the analog-silence meter exists for a wired mic's inline analog mute button
@@ -573,12 +581,75 @@ static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
         || t == kAudioDeviceTransportTypeBluetoothLE;
 }
 
+// Is some OTHER process capturing input from `dev` right now (a call, dictation, a recorder)?
+// Read from the HAL's per-process objects (macOS 14+): IsRunningInput plus the process's input
+// devices. This process is excluded, so our own IOProc never keeps the answer YES. A recorder
+// that reaches the device only through an aggregate lists the aggregate, not `dev`, and reads NO:
+// the safe direction (no meter rather than a held call mode). Verified on-device 2026-11-10: a
+// helper capturing AirPods Pro (device 123) appeared as runningInput=1 with input device 123, and
+// vanished from the list when it stopped.
+static BOOL FCDeviceCapturedByAnotherProcess(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return NO;
+    AudioObjectPropertyAddress la = { kAudioHardwarePropertyProcessObjectList,
+                                      kAudioObjectPropertyScopeGlobal,
+                                      kAudioObjectPropertyElementMain };
+    UInt32 sz = 0;
+    if (AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &la, 0, NULL, &sz) != noErr || sz == 0) return NO;
+    UInt32 count = sz / (UInt32)sizeof(AudioObjectID);
+    AudioObjectID procs[count];
+    if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &la, 0, NULL, &sz, procs) != noErr) return NO;
+    count = sz / (UInt32)sizeof(AudioObjectID);
+    pid_t me = getpid();
+    for (UInt32 i = 0; i < count; i++) {
+        AudioObjectPropertyAddress ra = { kAudioProcessPropertyIsRunningInput,
+                                          kAudioObjectPropertyScopeGlobal,
+                                          kAudioObjectPropertyElementMain };
+        UInt32 running = 0, rsz = sizeof(running);
+        if (AudioObjectGetPropertyData(procs[i], &ra, 0, NULL, &rsz, &running) != noErr || !running) continue;
+        AudioObjectPropertyAddress pa = { kAudioProcessPropertyPID,
+                                          kAudioObjectPropertyScopeGlobal,
+                                          kAudioObjectPropertyElementMain };
+        pid_t pid = 0; UInt32 psz = sizeof(pid);
+        if (AudioObjectGetPropertyData(procs[i], &pa, 0, NULL, &psz, &pid) != noErr || pid == me) continue;
+        AudioObjectPropertyAddress da = { kAudioProcessPropertyDevices,
+                                          kAudioObjectPropertyScopeInput,
+                                          kAudioObjectPropertyElementMain };
+        UInt32 dsz = 0;
+        if (AudioObjectGetPropertyDataSize(procs[i], &da, 0, NULL, &dsz) != noErr || dsz == 0) continue;
+        UInt32 nd = dsz / (UInt32)sizeof(AudioObjectID);
+        AudioObjectID devs[nd];
+        if (AudioObjectGetPropertyData(procs[i], &da, 0, NULL, &dsz, devs) != noErr) continue;
+        nd = dsz / (UInt32)sizeof(AudioObjectID);
+        for (UInt32 k = 0; k < nd; k++) if (devs[k] == dev) return YES;
+    }
+    return NO;
+}
+
+// _halQueue only, 1 Hz. A Bluetooth mic is metered exactly while another process records it: the
+// headset is already in call mode then, so the IOProc costs nothing. When that process stops, the
+// meter stops on the next pass (call mode held at most ~1 s longer); when one starts, it attaches.
+- (void)syncBluetoothPiggyback {
+    if (_device == kAudioObjectUnknown || !_micAuthorized) return;
+    if (!FCDeviceIsBluetoothTransport(_device)) return;
+    BOOL others = FCDeviceCapturedByAnotherProcess(_device);
+    if (_meteringStarted && !others) {
+        FCMicLog(@"bluetooth piggyback: other recorder gone, stop metering");
+        [self stopMetering];
+    } else if (!_meteringStarted && others) {
+        [self startMetering];
+    }
+}
+
 - (void)startMetering {
     if (_meteringStarted || !_micAuthorized || _device == kAudioObjectUnknown) return;
-    if (FCDeviceIsBluetoothTransport(_device)) {
-        FCMicLog(@"metering skipped: bluetooth transport (HFP/SCO lock avoidance)");
+    // A Bluetooth mic is metered only while another process already records it (piggyback,
+    // 2026-11-10); see -syncBluetoothPiggyback. Starting a capture ourselves would force the call mode.
+    BOOL bluetooth = FCDeviceIsBluetoothTransport(_device);
+    if (bluetooth && !FCDeviceCapturedByAnotherProcess(_device)) {
+        FCMicLog(@"metering skipped: bluetooth transport, no other recorder (HFP/SCO lock avoidance)");
         return;
     }
+    _meteringLevelOnly = bluetooth;
 
     Float64 sr = 48000.0;
     UInt32 sz = sizeof(sr);
@@ -603,7 +674,7 @@ static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
 }
 
 // Level-meter rail: newest RMS and the peak since the previous read. NO when the meter is not
-// running (Bluetooth input, no mic permission, no device) or no buffer arrived since last time.
+// running (Bluetooth input nobody else records, no mic permission, no device) or no buffer arrived.
 - (BOOL)readInputPeak:(float *)peak rms:(float *)rms {
     static int64_t lastSeen = -1;
     if (!_meteringStarted) { *peak = 0; *rms = 0; return NO; }
@@ -625,6 +696,7 @@ static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
     }
     _ioProc          = NULL;
     _meteringStarted = NO;
+    _meteringLevelOnly = NO;
     _meter.silent    = 0;
     _meter.silentRunFrames = 0;
     _meter.zeroRunFrames   = 0;
