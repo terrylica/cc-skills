@@ -1,3 +1,29 @@
+# [34.13.0](https://github.com/terrylica/cc-skills/compare/v34.12.3...v34.13.0) (2026-11-11)
+
+
+### Bug Fixes
+
+* **statusline-tools:** show BC's PCT, not tzdata's MST, for America/Vancouver ([8d9adae](https://github.com/terrylica/cc-skills/commit/8d9adaec3e69e17ade934531d205c2d1e493ef55))
+
+Since 1 Nov 2026 British Columbia keeps UTC-7 all year and names it Pacific Time, abbreviated PCT. tzdb 2026f labels that offset MST for America/Vancouver and has not adopted PCT, so the local clock read "14:29 MST". The rename is keyed on the zone (America/Vancouver, Canada/Pacific), never a blanket MST rewrite: Arizona, Fort_Nelson, Dawson_Creek and Creston really are MST. It does nothing once tzdata says PCT.
+
+* **time:** label British Columbia time PCT in the tlg footer and FloatingClock ([e3230be](https://github.com/terrylica/cc-skills/commit/e3230be265b9ea15b37b4f1c8d074483fc358aaa))
+
+Since 1 Nov 2026 British Columbia keeps UTC-7 all year and names it Pacific Time, abbreviated PCT (BC government release "No falling back with B.C.'s new time zone code, Pacific Time: PCT"; operator decision 2026-11-08). IANA tzdb 2026f labels the same offset MST for America/Vancouver and has not adopted PCT (tz list thread "British Columbia (BC) announced PCT abbreviation for Pacific Time"), and Apple's ICU, which Bun's Intl and NSTimeZone use, prints PDT. A zone file fixes libc on BC machines, but neither of these paths reads it.
+
+- tlg: session-footer.ts gains zoneAbbrev(date, zone) and BC_PCT_FROM_MS; localTimestamp takes an optional zone (default: the process zone) and prints PCT for America/Vancouver or Canada/Pacific from 2026-11-01 09:00 UTC.
+- floating-clock: friendlyAbbrevForIana returns PCT for the same zones and instants, both for a named zone and for the local-zone fallback.
+- Keyed on the zone and the instant, never a blanket MST rewrite: Arizona, Edmonton, Fort_Nelson, Dawson_Creek and Creston keep their labels, and BC's PST/PDT before the change stay as they were.
+- Tests: post-cutover PCT, the millisecond before (PDT), a pre-cutover winter instant (PST), and Phoenix/Edmonton never relabelled. The FloatingClock test is syntax-checked only (clang -fsyntax-only); its suite was not built or run here.
+
+
+
+### Features
+
+* **web-forge:** add passwordless recipe for Google Admin ([7c4bdb6](https://github.com/terrylica/cc-skills/commit/7c4bdb6043a64dd37dbfc204b20c3335e1345584))
+
+Security › Authentication › Passwordless ("skip passwords with a passkey") is a console-only Google Admin setting: the Cloud Identity Policy API exposes only the sibling security.passkeys_restriction. inspect surveys the page read-only; ensure --allow-skip on|off acts on the top organizational unit with --verify, --dry-run and a read-back after reload. Measured live 2026-11-10 (dry run, apply, verify, idempotent re-run). Lessons in the admin-console skill: the managedsettings URL (its numeric segment is the settings page id from Google's public help article), the summary-then-Edit layout, a native aria-label checkbox, and SAVE/CANCEL outside role=main and not role=button.
+
 ## [34.12.3](https://github.com/terrylica/cc-skills/compare/v34.12.2...v34.12.3) (2026-11-07)
 
 
