@@ -96,7 +96,7 @@ claude plugin install productivity-tools@cc-skills
 
 - [SKILL.md](skills/slash-command-factory/SKILL.md) - Slash command factory documentation
 - [HOW_TO_USE.md](skills/slash-command-factory/HOW_TO_USE.md) - Usage guide
-- [presets.json](skills/slash-command-factory/presets.json) - Preset definitions
+- [Preset commands](skills/slash-command-factory/references/preset-commands.md) - Preset definitions
 - [Calendar SKILL.md](skills/calendar-event-manager/SKILL.md) - Calendar event skill
 - [Sound Reference](skills/calendar-event-manager/references/sound-reference.md) - Sound duration data
 
@@ -106,7 +106,6 @@ claude plugin install productivity-tools@cc-skills
 | ------------------------------ | ------------------------------ | ----------------------------------------------------- |
 | Command not found after create | Output directory not in skills | Move generated files to `~/.claude/commands/`         |
 | YAML frontmatter invalid       | Syntax error in generated file | Check for missing quotes or invalid characters        |
-| Preset not loading             | presets.json not found         | Verify plugin installed correctly with `/plugin ls`   |
 | Question flow interrupted      | Context lost mid-generation    | Restart with `/slash-command-factory` trigger         |
 | Generated command too simple   | Wrong pattern selected         | Choose Multi-Phase or Agent-Style for complex needs   |
 | Bun not available              | Optional dependency missing    | Install with `brew install bun` for TypeScript        |

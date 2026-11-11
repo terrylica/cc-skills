@@ -128,9 +128,20 @@ SYNTHETIC_TYPO_INJECTION_TARGET_FILENAME="iter111-synthetic-typo-fixture-for-pro
 SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH="$SYNTHETIC_TYPO_INJECTION_TARGET_DIRECTORY/$SYNTHETIC_TYPO_INJECTION_TARGET_FILENAME"
 SYNTHETIC_TYPO_MARKER_TOKEN_DELIBERATELY_NOT_IN_REGISTRY="DELIBERATE-TYPO-FOR-ITER111-REGRESSION-TEST-OK"
 
+# The target directory need not hold tracked files (git keeps no empty directories), so create it when
+# missing and remove it again only if this test created it.
+SYNTHETIC_TYPO_INJECTION_CREATED_TARGET_DIRECTORY=0
+if [ ! -d "$SYNTHETIC_TYPO_INJECTION_TARGET_DIRECTORY" ]; then
+    mkdir -p "$SYNTHETIC_TYPO_INJECTION_TARGET_DIRECTORY"
+    SYNTHETIC_TYPO_INJECTION_CREATED_TARGET_DIRECTORY=1
+fi
+
 # Cleanup trap (removes the synthetic file even on early exit)
 cleanup_synthetic_typo_fixture() {
     rm -f "$SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
+    if [ "$SYNTHETIC_TYPO_INJECTION_CREATED_TARGET_DIRECTORY" = 1 ]; then
+        rmdir "$SYNTHETIC_TYPO_INJECTION_TARGET_DIRECTORY" 2>/dev/null || true
+    fi
 }
 trap cleanup_synthetic_typo_fixture EXIT
 
