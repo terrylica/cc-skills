@@ -1,3 +1,14 @@
+## [34.13.2](https://github.com/terrylica/cc-skills/compare/v34.13.1...v34.13.2) (2026-11-11)
+
+
+### Bug Fixes
+
+* **notes-commander:** the draft-park footer labels British Columbia time PCT, not the system's MST ([597c106](https://github.com/terrylica/cc-skills/commit/597c10623fa913e3cc5ba00534d7c88c570c64a6))
+
+The operator read a parked note whose footer ended "15:02 MST" (2026-11-11): nowStamp() printed `date +%Z`, and macOS's zone database labels B.C.'s permanent UTC-7 (since 2026-11-01) "MST". The tlg footer and the statusline were corrected in v34.13.0 (e3230be26, 8d9adaec3); this footer was missed.
+
+The wall clock still comes from the system's `date`; only the label is corrected by the pure zoneLabel() and stampFrom(): America/Vancouver or Canada/Pacific, on or after 2026-11-01 09:00 UTC, at UTC-7, reads PCT. A host whose zone data predates the change reads PST an hour off, and that label stays visible. Five unit tests (the Mac's real "MST -0700" output, pre-change PDT and PST, the stale-host PST, Phoenix and Edmonton, malformed output); repo:lint and repo:test pass (3089 pass, 0 fail). SKILL.md evolution log updated.
+
 ## [34.13.1](https://github.com/terrylica/cc-skills/compare/v34.13.0...v34.13.1) (2026-11-11)
 
 
