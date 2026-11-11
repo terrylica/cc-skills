@@ -53,6 +53,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                          |
 | `pretooluse-old-git-guard.ts`                         | Bash orch.               | Blocks hook-firing git below 2.54             | [→](./docs/old-git-guard.md)                                       |
 | `pretooluse-long-runtime-haiku-monitor-reminder.ts`   | Bash orch.               | Long run: start a `haiku` health monitor      | [→](./docs/long-runtime-haiku-monitor-reminder.md)                 |
+| `pretooluse-headless-browser-tier-reminder.ts`       | Bash orch. + MCP         | Heavy browser or page publish: use agent-browser tiers | [→](./docs/headless-browser-tier-reminder.md)                 |
 
 ### PostToolUse
 

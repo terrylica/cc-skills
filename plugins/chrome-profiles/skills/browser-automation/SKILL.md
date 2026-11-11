@@ -20,12 +20,30 @@ CP="$(cc-plugin-root chrome-profiles)/scripts/chrome-profile.sh"
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 0. **An API or OAuth token**          | the site's API with a scoped, short-lived token from the vault/Keychain                                                                                              | The site has an API for the job. **No browser at all**: the most reliable and the safest identity.                                  |
 | 1. **No browser, plain HTTP**         | `curl` / `httpx`                                                                                                                                                     | The page renders server-side.                                                                                                       |
-| 2. **A browser with its own profile** | the `playwright-throwaway-headless` MCP server or `chromium.launch()` (throwaway); a per-tool, sign-in-once profile on a debug port (`chrome-debug-port-control.sh`) | You need JavaScript; and, if a login is needed, the tool signs in once in **its own** profile. The default for anything unattended. |
+| 2. **A headless browser, no window**  | `agent-browser` by tier (below): Lightpanda, then chrome-headless-shell with a saved login, then a profile copy; or a per-tool, sign-in-once profile on a debug port (`chrome-debug-port-control.sh`) | You need JavaScript and no desktop window. The default for anything unattended. |
 | 3. **Your real Chrome**               | the servers below                                                                                                                                                    | Supervised work that needs **your own signed-in session**, or a site that blocks automated browsers.                                |
+
+### Rung 2: the lightest engine that can do the job (operator decision, 2026-11-07)
+
+A machine ran out of memory with many agent sessions and desktop Chrome open. The same five-page agent workload was then measured on every candidate engine, and the operator chose these tiers, all driven by Vercel's [`agent-browser`](https://github.com/vercel-labs/agent-browser) CLI:
+
+| Tier | Use | Command | Memory |
+| --- | --- | --- | --- |
+| 1 | public pages, the default | `agent-browser --session S --engine lightpanda open <url>` | about 145 MB |
+| 2 | a login, or a page Lightpanda cannot render | `agent-browser --session S --executable-path <chrome-headless-shell> [--state <login.json>] open <url>`, with Google's [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) headless shell | about 600 MB |
+| 3 | only when the real profile's cookies or bookmarks are needed | `agent-browser --session S --profile "<Profile dir>" open <url>` (a copy, deleted on close) | about 2.3 GB |
+
+- **Close every browser when done:** end every job with `agent-browser close --all`.
+- **Lightpanda reads, it does not draw:** text, links and structure are right, but its screenshots have no CSS layout, and CJK shows as empty boxes (measured 2026-11-07). Judge how a page *looks* from a tier-2 screenshot.
+- **Read a saved login file at run time:** it comes from the vault, never from a file left on disk.
+- **Lightpanda sends usage telemetry by default:** run it through a wrapper that sets `LIGHTPANDA_DISABLE_TELEMETRY=true`.
+- **Lightpanda reports itself to CDP clients as Chrome 124:** its `Browser.getVersion` answers `"product":"Chrome/124.0.6367.29"` (Lightpanda 1.0.3, measured 2026-11-11), while `navigator.userAgent` reads `Lightpanda/1.0`. agent-browser's "out of date" warning on tier 1 comes from that product string and does not apply.
+- **On Ubuntu 23.10 and later,** AppArmor's user-namespace restriction stops chrome-headless-shell's sandbox ("No usable sandbox!"). The fix is a one-time root AppArmor profile for the binary, Chromium's documented route ([AppArmor user namespace restrictions](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md): "A slightly safer way is to write an AppArmor profile"); `--no-sandbox` instead disables the protection against hostile pages.
+- **Avoid a full Chromium for tier-1 work:** a Playwright `chromium.launch()`, `npx playwright screenshot`, the `playwright-throwaway-headless` MCP server or branded Chrome with `--headless` costs tier-3 memory. The itp-hooks `headless-browser-tier-reminder` says so when one starts.
 
 ## Who signs in, and how
 
-- **Unattended work never runs in your real profile.** It uses rung 0, or a per-tool profile (rung 2) that holds only the one site it needs, so a mistake or a hostile page can reach that site and nothing else. This is how the agent platforms do it too (Browserbase _Contexts_, Steel and Kernel _Profiles_).
+- **Unattended work never runs in your real profile.** It uses rung 0, or a per-tool login file or profile copy (rung 2) that holds only the one site it needs, so a mistake or a hostile page can reach that site and nothing else. This is how the agent platforms do it too (Browserbase _Contexts_, Steel and Kernel _Profiles_).
 - **Your real profile (rung 3) is for work you are watching or have explicitly asked for.** It acts with every session in that profile at once.
 - **When a per-tool profile's session expires, refill the login from the Keychain or vault, never by having the AI read or type the password**:
 
@@ -66,7 +84,7 @@ bash "$CP" setup-main               # optional: one server that sees every profi
 | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `chrome-<name>` (from `setup`)                                                          | ONE profile, resolved by email at every start                                                                                                                                 | **None**, once the token is stored. With no token or a stale one the extension opens a "… is trying to connect" page that waits for a person; `playwright-mcp` now refuses instead and `doctor` flags drift, so fix it with `setup <email>`, never by clicking _Allow & select_. Chrome shows a "started debugging this browser" bar while attached — leave it |
 | `chrome-main` (from `setup-main`)                                                       | Every profile's tabs in one list. Target a page by opening it with `open <email> <url>` first, then selecting it; confirm the signed-in account **on the page** before acting | Chrome's **Allow** dialog, once per Claude Code session. It cannot be remembered (by design)                                                                 |
-| `playwright-throwaway-headless` (`npx -y @playwright/mcp@latest --headless --isolated`) | Its own throwaway browser (rung 2), in memory, no window                                                                                                                      | None                                                                                                                                                         |
+| `playwright-throwaway-headless` (`npx -y @playwright/mcp@latest --headless --isolated`) | Its own throwaway full Chromium, in memory, no window. Prefer `agent-browser` with Lightpanda (rung 2 above) unless a tool needs this MCP server's interface | None |
 
 Prefer `chrome-<name>` for unattended work. Use `chrome-main` when you need DevTools-level inspection (network, performance) or a page in a profile you have not set up.
 
