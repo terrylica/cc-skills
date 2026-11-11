@@ -18,10 +18,7 @@ Single function/enum-driven **Bun TypeScript** CLI using **GramJS** (MTProto cli
 
 ## Profiles
 
-| Profile          | Account            | User ID   | 1Password Item UUID   |
-| ---------------- | ------------------ | --------- | --------------------- |
-| `work` (default) | @ExampleOpsAccount | <user-id> | `<1password-item-id>` |
-| `personal`       | @personal_account  | <user-id> | `<1password-item-id>` |
+Profile names and their 1Password item IDs are machine-local, never committed: `~/.config/cc-skills/tlg-profiles.json`, shaped `{ "default": "<profile>", "profiles": { "<profile>": "<item-id>" } }` (read by `loadProfiles()` in `scripts/tg-cli.ts`). `TELETHON_OP_UUID` overrides the item for one run.
 
 ## Standing policies
 
@@ -97,7 +94,7 @@ bun "$SCRIPT" kick <group> @user
 bun "$SCRIPT" members <group> [--admins] [--search "name"]
 ```
 
-All commands accept `-p <profile>` (default: `eon`).
+All commands accept `-p <profile>` (default: the file's `default`, else its first profile).
 
 ## Credentials
 
@@ -117,22 +114,3 @@ MTProto client library is **GramJS** (`telegram` on npm):
 ## History
 
 The 2026-06-22 migration note and the 2026-03-17 validation results: [docs/history.md](./docs/history.md).
-
-## Skills
-
-- [cleanup-deleted](./skills/cleanup-deleted/SKILL.md)
-- [create-group](./skills/create-group/SKILL.md)
-- [delete-messages](./skills/delete-messages/SKILL.md)
-- [download-media](./skills/download-media/SKILL.md)
-- [draft-message](./skills/draft-message/SKILL.md)
-- [dump-channel](./skills/dump-channel/SKILL.md)
-- [find-user](./skills/find-user/SKILL.md)
-- [forward-message](./skills/forward-message/SKILL.md)
-- [list-dialogs](./skills/list-dialogs/SKILL.md)
-- [manage-members](./skills/manage-members/SKILL.md)
-- [mark-read](./skills/mark-read/SKILL.md)
-- [pin-message](./skills/pin-message/SKILL.md)
-- [search-messages](./skills/search-messages/SKILL.md)
-- [send-media](./skills/send-media/SKILL.md)
-- [send-message](./skills/send-message/SKILL.md)
-- [setup](./skills/setup/SKILL.md)
