@@ -122,22 +122,6 @@ NSColor *FCPhaseColorForHour(NSInteger hour) {
     return [NSColor colorWithRed:0.45 green:0.55 blue:0.85 alpha:1.0];                                // night — cool blue
 }
 
-// v4 iter-235 / iter-237: fine-grain boundary glyph selector.
-// Originally 5-level (○ ◔ ◐ ◕ ●) — but user reported quarter ◔
-// and three-quarter ◕ glyphs don't align cleanly with ● / ○ in
-// monospace rendering ("only interested in the half a dot that
-// slides right in the middle"). Reduced to 3-level: ○ ◐ ● with
-// the boundary cell using the half-dot when the remainder is in
-// the middle third:
-//   ≤0.25   → empty  ○   (round down)
-//   ≤0.75   → half   ◐
-//   >0.75   → full   ●   (round up)
-static NSString *fcFineGrainBoundaryGlyph(double remainder) {
-    if (remainder <= 0.25) return @"○";
-    if (remainder <= 0.75) return @"◐";
-    return @"●";
-}
-
 NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDay,
                                                      NSColor *filledColor, NSColor *emptyColor,
                                                      NSFont *font) {
@@ -166,7 +150,6 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDa
     // Build string char-by-char so we can substitute the boundary
     // glyph on the current day. Color attributes go alongside.
     NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
-    NSDictionary *fontOnly = @{NSFontAttributeName: font};
 
     for (NSInteger d = 0; d < 7; d++) {
         if (d > 0) {
@@ -229,6 +212,5 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDa
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: color}]];
         }
     }
-    (void)fontOnly;
     return out;
 }
