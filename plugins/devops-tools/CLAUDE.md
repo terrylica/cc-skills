@@ -54,11 +54,10 @@ ssh <gpu-host> "curl -s 'http://localhost:8123/?query=SELECT+1'"
 - [project-directory-migration](./skills/project-directory-migration/SKILL.md)
 - [pueue-job-orchestration](./skills/pueue-job-orchestration/SKILL.md)
 - [macos-fda-grant-helper](./skills/macos-fda-grant-helper/SKILL.md) — interactive Full Disk Access (FDA) grant walkthrough for launchd-spawned binaries (iter 21)
-- Pushover notifications **moved 2026-06-05** to the dedicated [`pushover-commander`](../pushover-commander/CLAUDE.md) plugin (send, emergency, headless app/sound management, incident-report rendering, UUID/JSONL verbatim audit). The former `pushover-verbatim-notify` skill is now `pushover-commander:verbatim-audit-notify`.
+- Pushover tooling lives in [`pushover-commander`](../pushover-commander/CLAUDE.md).
 - [python-logging-best-practices](./skills/python-logging-best-practices/SKILL.md)
 - [python-memory-safe-scripts](./skills/python-memory-safe-scripts/SKILL.md)
 - [session-chronicle](./skills/session-chronicle/SKILL.md)
-- `session-debrief` **removed 2026-11-06**, together with its scripts `session-debrief.ts`, `prompt-benchmark.ts` and `preprocess_session.py`. It was never used: its dedicated gateway key served 3 test requests on the day it was built, and no session ever ran it. That key was retired. Git history keeps the code.
 - [session-recovery](./skills/session-recovery/SKILL.md)
 
 ## Hooks

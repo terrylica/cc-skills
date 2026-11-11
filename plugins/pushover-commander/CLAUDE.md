@@ -2,10 +2,7 @@
 
 Hub: [`../CLAUDE.md`](../CLAUDE.md) · Siblings: [gmail-commander](../gmail-commander/CLAUDE.md) · [calcom-commander](../calcom-commander/CLAUDE.md) · [devops-tools](../devops-tools/CLAUDE.md)
 
-The single home for all Pushover automation. Migrated + consolidated 2026-06-05
-from the orphaned private `~/.claude/po-plugin` (`po` suite) **plus** the
-`pushover-verbatim-notify` skill formerly in `devops-tools` — so any future
-Claude Code session finds every Pushover capability in one registered place.
+The single home for all Pushover automation in cc-skills: every Pushover capability is in this one registered plugin.
 
 ## Public-tool / private-config split (READ FIRST)
 
@@ -73,7 +70,7 @@ A second `Google Chrome.app` instance shares the bundle id `com.google.Chrome` w
 
 ### Importable modules
 
-Every CLI in `skills/_lib/` (`pushover_headless_web_control.ts`, `batch_create_pushover_apps.ts`, `pushover_core.ts`, `pushover_inbox.ts`) runs only under `if (import.meta.main)`. Before 2026-09-22 the web-control module called `main()` at import, so `batch_create_pushover_apps.ts` — which imports its `login`/`createApp`/`editApp`/`withDashboard` helpers — ran a second CLI as a side effect that parsed the batch's argv, logged in on its own, and could `process.exit()` the batch mid-run. Keep new modules guarded; `pushover_headless_web_control.test.ts` imports each one in a child process and fails if anything runs.
+Every CLI in `skills/_lib/` (`pushover_headless_web_control.ts`, `batch_create_pushover_apps.ts`, `pushover_core.ts`, `pushover_inbox.ts`) runs only under `if (import.meta.main)`. An unguarded `main()` would run as a side effect of importing the module (parse the importer's argv, log in, possibly `process.exit()`); keep new modules guarded: `pushover_headless_web_control.test.ts` imports each one in a child process and fails if anything runs.
 
 ## Conventions
 

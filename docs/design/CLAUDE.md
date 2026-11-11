@@ -6,40 +6,11 @@ Context for design specifications in cc-skills.
 
 ## Overview
 
-Design specs are implementation specifications that pair with ADRs, though not 1:1 — 27 of 45 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
+Design specs are implementation specifications that pair with ADRs, though not 1:1 — 24 of 41 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
 
 ## Directory Structure
 
-```
-docs/design/
-├── 2025-12-05-centralized-version-management/
-├── 2025-12-05-itp-setup-todowrite-workflow/
-├── 2025-12-05-itp-todo-insertion-merge/
-├── 2025-12-06-pretooluse-posttooluse-hooks/
-├── 2025-12-06-release-notes-adr-linking/
-├── 2025-12-06-shell-command-portability-zsh/
-├── 2025-12-07-gitleaks-setup-integration/
-├── 2025-12-07-idempotency-backup-traceability/
-├── 2025-12-07-itp-hooks-settings-installer/
-├── 2025-12-07-setup-hooks-reminder/
-├── 2025-12-08-clickhouse-cloud-management-skill/
-├── 2025-12-08-mise-env-centralized-config/
-├── 2025-12-09-clickhouse-architect-skill/
-├── 2025-12-09-clickhouse-pydantic-config-skill/
-├── 2025-12-09-clickhouse-schema-documentation/
-├── 2025-12-09-itp-hooks-plan-file-exemption/
-├── 2025-12-10-clickhouse-skill-delegation/
-├── 2025-12-10-clickhouse-skill-documentation-gaps/
-├── 2025-12-11-link-checker-plugin-extraction/
-├── 2025-12-11-ruff-posttooluse-linting/
-├── 2025-12-12-mlflow-python-skill/
-├── 2025-12-15-iterm2-layout-config/
-├── 2025-12-27-fake-data-guard-universal/
-├── 2026-01-02-session-chronicle-s3-sharing/
-├── 2026-01-10-uv-reminder-hook/
-├── 2026-01-18-sred-dynamic-discovery/
-└── 2026-07-21-release-notes-extensiveness-guard/
-```
+One subdirectory per spec, named like its ADR (`YYYY-MM-DD-slug/spec.md`). `ls docs/design` is the list.
 
 ## ADR ↔ Design Relationship
 

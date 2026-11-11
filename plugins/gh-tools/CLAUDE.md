@@ -64,8 +64,6 @@ The hook only shows reminders for issues you own. Account resolution (ADR 2026-0
 
 The account is the one named by the repo's `origin` host-alias `git@github.com-<account>:…`, parsed from git alone (no `gh`, no network). When the remote has no alias, the hook stays silent.
 
-> Legacy `GH_ACCOUNT` env and `~/.claude/.secrets/gh-token-*` filename detection are **retired** (mise is retired and no longer injects env; `.secrets` is deleted). The hooks derive the account from the origin host-alias only.
-
 ### Threshold
 
 Reminder appears if title < 200 characters (room for improvement).
@@ -89,7 +87,7 @@ The `gh-repo-identity-guard.mjs` hook blocks gh CLI write operations when the au
 
 ### Why it exists
 
-An ambient `GH_TOKEN` belonging to the wrong account makes `gh` writes land under that account with no error to notice (incident 2026-02-09: a per-directory env config failed to parse and the global token won). The guard catches the mismatch before the write, not after.
+An ambient `GH_TOKEN` belonging to the wrong account makes `gh` writes land under that account with no error to notice (for example when a per-directory env config fails to parse and the global token wins). The guard catches the mismatch before the write, not after.
 
 ### Guard Behavior
 
@@ -175,7 +173,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 **Philosophy**: Treat GitHub Issues as human-readable insight repository for research and findings.
 
-**Body Limit**: Issue bodies and comments each support **65,536 characters**. Always aim to maximize a single post — pack comprehensive analysis, multi-perspective reasoning, historical context, and all evidence into one body rather than fragmenting across multiple issues or comments. Target ~60,000 chars to leave headroom. Only split if you genuinely exceed the limit. See [issue-create SKILL.md](./skills/issue-create/SKILL.md) for the pre-post size check pattern.
+**Body Limit**: 65,536 characters per body or comment; fill one post rather than splitting. Rule and pre-post size check: [issue-create SKILL.md](./skills/issue-create/SKILL.md#4-body-limit-maximization-65536-characters).
 
 ### When to Post Issue Comments
 
