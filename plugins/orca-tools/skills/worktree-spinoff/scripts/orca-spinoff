@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# orca-spinoff: spin a task off the default branch into its own Orca worktree with exactly one terminal (Orca's
-# built-in agent launcher, started with the handoff prompt), the handoff file already committed in the branch, and a
+# orca-spinoff: spin a task off the default branch into its own Orca worktree with exactly one agent tab, a terminal or
+# an Orca chat (Orca's built-in agent launcher, started with the handoff prompt), the handoff file already committed in the branch, and a
 # readable sidebar name; or remove such a worktree cleanly. See ../SKILL.md for the why of each step.
 #
 #   orca-spinoff create --name NAME --title "Short sidebar title" [--handoff FILE] [--display "Readable name"]
 #                       [--agent claude] [--remote R] [--base REF] [--handoff-dir docs/handoff]
 #                       [--staging-prefix handoff/] [--link PATH]... [--issue N] [--comment TEXT]
 #                       [--prompt-file FILE] [--parent SELECTOR] [--setup run|skip|inherit] [--activate] [--dry-run]
-#                       [--surface terminal|chat]   start the agent in a terminal (default) or as an Orca chat; a chat
-#                                                   reports chat_session and no terminal handle
+#                       [--surface terminal|chat]   start the agent in a terminal or as an Orca chat; default: the user's
+#                                                   Chat | CLI setting for the agent. A chat reports chat_session and
+#                                                   no terminal handle
 #   orca-spinoff remove --name NAME [--remote R] [--delete-remote-branch] [--force] [--dry-run]
 #   Every command also takes the Orca-native targeting flags:
 #     [--environment ID | --pairing-code CODE]   a paired remote Orca runtime (orca environment list); passed to
@@ -84,7 +85,7 @@ case $cmd in create|remove) ;; -h|--help|help|'') sed -n '2,23p' "$0"; exit 0 ;;
 
 name='' title='' display='' handoff='' issue='' comment='' prompt_file='' base='' remote='' agent=claude
 handoff_dir=docs/handoff staging_prefix=handoff/ parent='' activate=0 dry=0 del_remote=0 force=0
-host='' repo_id='' setup='' runtime_remote=0 surface=terminal
+host='' repo_id='' setup='' runtime_remote=0 surface=''
 links=() target=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -109,14 +110,14 @@ while [ $# -gt 0 ]; do
     --environment|--pairing-code) target=("$1" "$2"); runtime_remote=1; shift 2 ;;
     --host) host=$2; shift 2 ;;
     --setup) setup=$2; shift 2 ;;
-    --surface) surface=${2:-}; shift 2 ;;
+    --surface) [ $# -ge 2 ] || die "--surface needs a value: terminal or chat"; surface=$2; shift 2 ;;
     --repo-id) repo_id=$2; shift 2 ;;
     *) die "unknown argument: $1" ;;
   esac
 done
 [ -n "${ORCA_ENVIRONMENT:-}${ORCA_PAIRING_CODE:-}" ] && runtime_remote=1
 [ -n "$name" ] || die "--name is required"
-case $surface in terminal|chat) ;; *) die "--surface must be terminal or chat: $surface" ;; esac
+case $surface in ""|terminal|chat) ;; *) die "--surface must be terminal or chat: $surface" ;; esac
 [[ $name =~ ^[a-z0-9][a-z0-9._-]*$ ]] || die "name must be lowercase [a-z0-9._-]: $name"
 command -v python3 >/dev/null || die "python3 not on PATH" 1
 if ! ORCA=$(find_orca); then
@@ -371,8 +372,9 @@ if [ "$runtime_remote" = 1 ]; then
   args=(worktree create "${tgt[@]}" --name "$name" --json)
 else
   args=(worktree create "${tgt[@]}" --name "$name" --agent "$agent" --prompt "$prompt" --json)
-  # Explicit, so the user's Chat | CLI setting for the agent cannot silently turn the launch into a chat.
-  [ "$pass_surface" = 0 ] || args+=(--surface "$surface")
+  # Only when asked: Orca's orca-cli guide says to pass --surface "only when the user asked for a chat or a
+  # terminal"; otherwise the user's Chat | CLI setting decides, and the result says which started.
+  [ "$pass_surface" = 0 ] || [ -z "$surface" ] || args+=(--surface "$surface")
 fi
 [ -n "$start" ] && args+=(--base-branch "$start")
 if [ -n "$parent" ]; then args+=(--parent-worktree "$parent"); else args+=(--no-parent); fi
@@ -399,7 +401,7 @@ print("\x1f".join([w["id"], w["path"], w["branch"].removeprefix("refs/heads/"), 
                    re.sub(r"\s+", " ", (la.get("receipt") or {}).get("detail") or ""), h]))' <<<"$out")
 # Unit-separated, not tab-separated: IFS whitespace merges adjacent separators, so an empty field would shift the rest.
 IFS=$'\x1f' read -r wt_id wt_path branch launched chat_session agent_handle prompt_outcome receipt handle <<<"$fields"
-if [ "$launched" != "$surface" ] && [ "$runtime_remote" != 1 ]; then
+if [ -n "$surface" ] && [ "$launched" != "$surface" ] && [ "$runtime_remote" != 1 ]; then
   warn "asked for a $surface, Orca started a $launched${receipt:+: $receipt}"
 fi
 
@@ -445,7 +447,7 @@ for l in ${links[@]+"${links[@]}"}; do
   [ -e "$wt_path/$l" ] || ln -s "$main/$l" "$wt_path/$l" || warn "could not link $l"
 done
 
-# 5. verify: exactly one terminal, and the prompt's title reached it (bounded wait; no resend)
+# 5. verify: exactly one agent tab (for a terminal launch), and the prompt's title reached it (bounded wait; no resend)
 # The agent's tab, plus a "Setup" tab when the repo defines a setup script and Orca runs it in a new tab
 # (settings.setupScriptLaunchMode = new-tab); --setup skip leaves the agent's tab alone.
 n=null nsetup=null

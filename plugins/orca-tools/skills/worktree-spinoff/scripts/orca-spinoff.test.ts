@@ -88,8 +88,8 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-describe("terminal surface (default)", () => {
-  test("passes --surface terminal explicitly, so the user's Chat setting cannot turn it into a chat", () => {
+describe("terminal surface", () => {
+  test("by default passes no --surface, so the user's Chat | CLI setting decides (Orca's orca-cli guide)", () => {
     const orca = stubOrca({
       launch: { outcome: { kind: "terminal", handle: "term_a" }, prompt: { outcome: "handed-to-terminal" } },
       terminals: [{ handle: "term_a", title: "claude" }],
@@ -97,10 +97,20 @@ describe("terminal surface (default)", () => {
     });
     const r = run([], orca);
     expect(r.code).toBe(0);
-    expect(createCall()).toContain("--surface terminal");
+    expect(createCall()).not.toContain("--surface");
     const j = JSON.parse(r.out);
     expect(j).toMatchObject({ surface: "terminal", terminal: "term_a", chat_session: "", terminals: 1, prompt_seen: true });
     expect(r.err).not.toContain("warning");
+  });
+  test("--surface terminal is passed when asked for", () => {
+    const orca = stubOrca({
+      launch: { outcome: { kind: "terminal", handle: "term_a" }, prompt: { outcome: "handed-to-terminal" } },
+      terminals: [{ handle: "term_a", title: "claude" }],
+      tail: TITLE,
+    });
+    const r = run(["--surface", "terminal"], orca);
+    expect(r.code).toBe(0);
+    expect(createCall()).toContain("--surface terminal");
   });
   test("an Orca without --surface: the flag is left out, and the older agentTerminalHandle is read", () => {
     const orca = stubOrca({ surfaceFlag: false, legacyHandle: "term_old", terminals: [{ handle: "term_old", title: "claude" }], tail: TITLE });
@@ -138,7 +148,7 @@ describe("chat surface (--surface chat)", () => {
     const r = run([], orca);
     expect(r.code).toBe(0);
     expect(JSON.parse(r.out)).toMatchObject({ surface: "chat", chat_session: "chat-sess-1" });
-    expect(r.err).toContain("asked for a terminal, Orca started a chat");
+    expect(r.err).not.toContain("asked for");
   });
   test("Orca falling back to a terminal is warned with its reason", () => {
     const orca = stubOrca({
@@ -160,5 +170,10 @@ describe("chat surface (--surface chat)", () => {
     const r = run(["--surface", "window"], stubOrca());
     expect(r.code).toBe(2);
     expect(r.err).toContain("--surface must be terminal or chat");
+  });
+  test("--surface without a value is a usage error with a message (exit 2)", () => {
+    const r = run(["--surface"], stubOrca());
+    expect(r.code).toBe(2);
+    expect(r.err).toContain("--surface needs a value");
   });
 });
