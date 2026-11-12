@@ -46,7 +46,7 @@ Each new monorepo receives a root `tsconfig.base.json` with:
 
 Package-level `tsconfig.json` files extend the base and add their own `types` array + any legitimate package-specific overrides.
 
-**Reference**: `~/.claude/typescript-latest-CLAUDE.md` (applies estate-wide). Package.json declares `"typescript": "latest"` (TS7.0.2+).
+**Reference**: `~/.claude/skills/typescript-7/references/doctrine.md` (applies estate-wide). Package.json declares `"typescript": "latest"` (TS7.0.2+).
 
 For TS 7 migration details and per-repo adoption: consult the bootstrapped skill docstrings and the upstream reference.
 

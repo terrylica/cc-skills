@@ -16,7 +16,7 @@
  *   - Environment: `ALLOW_LEGACY_TS=1 npm i typescript@5.9.3`
  *   - Inline marker: `npm i typescript@5.9.3 # ALLOW-LEGACY-TS`
  *
- * SSoT: ~/.claude/typescript-latest-CLAUDE.md
+ * SSoT: ~/.claude/skills/typescript-7/references/doctrine.md
  * Hub row: ~/.claude/CLAUDE.md § "TypeScript 7 ONLY"
  *
  * ADR: (pending) iter-92 TypeScript 7 enforcement doctrine
@@ -214,7 +214,7 @@ function formatInstallCommandDenialReason(
 
   lines.push("");
 
-  lines.push("📖 Doctrine SSoT: ~/.claude/typescript-latest-CLAUDE.md");
+  lines.push("📖 Doctrine SSoT: ~/.claude/skills/typescript-7/references/doctrine.md");
 
   return lines.join("\n");
 }

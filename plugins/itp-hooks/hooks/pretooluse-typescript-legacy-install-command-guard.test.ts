@@ -255,7 +255,7 @@ describe("pretooluse-typescript-legacy-install-command-guard", () => {
       const result = await classifyTypeScriptLegacyInstallCommandForOrchestrator(
         makeInput("npm i typescript@5.9.3"),
       );
-      expect(result.verdict === "deny" && result.reason).toContain("~/.claude/typescript-latest-CLAUDE.md");
+      expect(result.verdict === "deny" && result.reason).toContain("~/.claude/skills/typescript-7/references/doctrine.md");
     });
 
     it("includes the compat alias fix in denial reason", async () => {

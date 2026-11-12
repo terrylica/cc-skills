@@ -4,7 +4,7 @@
  * Extends the package.json version guard to validate tsconfig.json files
  * for removed or forbidden compiler options that hard-error in TypeScript 7.
  *
- * Doctrine SSoT: ~/.claude/typescript-latest-CLAUDE.md § "What breaks"
+ * Doctrine SSoT: ~/.claude/skills/typescript-7/references/doctrine.md § "What breaks"
  * Policy: TypeScript 7 hard-errors block the build until removed.
  *
  * Hard-error options (TS5102/TS5108/TS5090):

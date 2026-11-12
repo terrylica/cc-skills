@@ -3,7 +3,7 @@
     // TS7 CANONICAL CONFIGURATION (TypeScript 7.0.2+)
     // SSoT: plugins/itp/skills/bootstrap-monorepo/templates/tsconfig.base.json
     // This file is the single source of truth for TypeScript 7 config shape across the estate.
-    // Reference: ~/.claude/typescript-latest-CLAUDE.md
+    // Reference: ~/.claude/skills/typescript-7/references/doctrine.md
 
     // Strictly enforced in all new repos
     "moduleResolution": "bundler",

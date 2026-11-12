@@ -116,7 +116,7 @@ if (!measurement.ok) {
   for (const reason of measurement.reasons) console.error(`  • ${reason}`);
   console.error(
     "  A release body needs BOTH a narrative paragraph AND a point-form list.\n" +
-      "  See ~/.claude/release-notes-doctrine-CLAUDE.md. Re-run with --force to override.",
+      "  See ~/.claude/skills/release-notes/references/doctrine.md. Re-run with --force to override.",
   );
   if (!values.force) process.exit(1);
   console.error("[augment-release-notes] --force set: proceeding despite thin notes.");

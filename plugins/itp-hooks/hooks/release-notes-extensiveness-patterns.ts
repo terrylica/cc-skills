@@ -28,7 +28,7 @@
  * overridable in tests). The stdin/stdout wrapper lives in
  * pretooluse-release-notes-extensiveness-guard.ts.
  *
- * Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md
+ * Doctrine SSoT: ~/.claude/skills/release-notes/references/doctrine.md
  * ADR: /docs/adr/2026-07-21-release-notes-extensiveness-guard.md
  * Spoke: plugins/itp-hooks/docs/release-notes-extensiveness-guard.md
  */
@@ -76,7 +76,7 @@ export const COMMIT_RICH_PARAGRAPH_MIN_CHARS = 160;
 export const COMMIT_THIN_BODY_CHARS = 160;
 
 /** Doctrine link surfaced in every deny message. */
-export const DOCTRINE_DOC = "~/.claude/release-notes-doctrine-CLAUDE.md";
+export const DOCTRINE_DOC = "~/.claude/skills/release-notes/references/doctrine.md";
 
 // ────────────────────────────────────────────────────────────────────────
 //  Command classification

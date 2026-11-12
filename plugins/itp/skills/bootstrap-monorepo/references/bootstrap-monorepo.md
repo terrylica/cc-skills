@@ -528,7 +528,7 @@ release-full:
 
 #### Extensive release notes (surface the commit BODY, not just the subject)
 
-**Doctrine**: every release must carry extensive, human-readable notes — a narrative paragraph (the _why_) **and** a point-form list (the _what_). SSoT: `~/.claude/release-notes-doctrine-CLAUDE.md`; enforced globally by the `itp-hooks` release-notes-extensiveness-guard (hard-blocks thin `gh release` / `git tag` / semantic-release commands).
+**Doctrine**: every release must carry extensive, human-readable notes — a narrative paragraph (the _why_) **and** a point-form list (the _what_). SSoT: `~/.claude/skills/release-notes/references/doctrine.md`; enforced globally by the `itp-hooks` release-notes-extensiveness-guard (hard-blocks thin `gh release` / `git tag` / semantic-release commands).
 
 **Gotcha**: the default `@semantic-release/release-notes-generator` (Angular preset) renders **only each commit's subject line** — its `writerOpts.transform` drops the body. So rich multi-paragraph Conventional-Commit bodies never reach the published notes. To surface them you need a JS `writerOpts` (a function YAML cannot hold), so use a **`release.config.cjs`** instead of `.releaserc.yml` (delete the YAML — cosmiconfig finds `.releaserc.{yaml,yml}` **before** `release.config.cjs`, so a leftover YAML shadows the JS config):
 

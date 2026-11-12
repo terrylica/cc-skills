@@ -57,7 +57,7 @@
  * Fail-open everywhere: any parse/read/logic error → allow (never blocks real
  * work). A missing/unreadable notes-file or body-file is skipped, not blocked.
  *
- * Doctrine SSoT: ~/~/.claude/release-notes-doctrine-CLAUDE.md (release-notes section)
+ * Doctrine SSoT: ~/.claude/skills/release-notes/references/doctrine.md (release-notes section)
  * Operator directive: hard-wrapped prose must never be published to GitHub
  */
 

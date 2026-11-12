@@ -2,7 +2,7 @@
  * Shared policy evaluator: is a declared `typescript` version specifier
  * conformant with the "TypeScript 7 ONLY" doctrine?
  *
- * SSoT for the doctrine: ~/.claude/typescript-latest-CLAUDE.md
+ * SSoT for the doctrine: ~/.claude/skills/typescript-7/references/doctrine.md
  * Hub row: ~/.claude/CLAUDE.md § "TypeScript 7 ONLY"
  *
  * Consumed by BOTH:
