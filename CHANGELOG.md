@@ -1,3 +1,29 @@
+# [34.14.0](https://github.com/terrylica/cc-skills/compare/v34.13.3...v34.14.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **itp-hooks:** test runs record fixture hook errors in a throwaway directory ([55c03d7](https://github.com/terrylica/cc-skills/commit/55c03d72fb84b0fd3c25ecfdedfb421f56e23664))
+
+hook-error-tracker.ts always recorded under $HOME/.claude/logs, and tests that exercise failing paths (a subhook that throws, hangs or answers late; a schema failure for a hook named test-hook) called it with the real HOME. In the week to 2026-11-11, 272 of 531 entries in the live hook-errors.jsonl were fixture errors, so the log could not show which hooks fail. The tracker's own test also deleted the live counts file around every test.
+
+The tracker now honours ITP_HOOKS_ERROR_LOG_DIR for the log and the counts (resolveHookErrorPaths, pure and tested). A bun test preload sets it to a fresh temp directory, registered in bunfig.toml at the repository root and in plugins/itp-hooks because bun reads bunfig.toml only from the directory it starts in (measured, bun 1.4.4). Both suite runners export it too, which also covers hooks that bash tests start. Nothing sets it in production, so hooks record where they did.
+
+Measured 2026-11-12 on this branch: the full unit suite (3,100 pass, 0 fail) and an ad-hoc run of the three leaking test files from plugins/itp-hooks added no line to the live log (49,054 lines and 4,975 fixture entries before and after). Closes #78.
+
+
+
+### Features
+
+* **floating-clock:** meter a Bluetooth mic while another app records it ([6713c58](https://github.com/terrylica/cc-skills/commit/6713c58f6e8605ffb5753df66c2f333b6f06e37a)), closes [#67](https://github.com/terrylica/cc-skills/issues/67)
+
+The level rail left the IN half dark for every Bluetooth input, because our own capture IOProc forces the headset into HFP/SCO call mode. When another process is already recording that headset, it is in call mode anyway, so metering costs nothing.
+
+- FCDeviceCapturedByAnotherProcess walks the HAL process objects (kAudioHardwarePropertyProcessObjectList) and returns YES when a process other than ours has kAudioProcessPropertyIsRunningInput = 1 and lists the device in kAudioProcessPropertyDevices (input scope).
+- -syncBluetoothPiggyback runs on the 1 Hz tick: attach when another recorder appears, stop when it goes (call mode held at most ~1 s).
+- The ride-along meter is level-only: it never drives the MIC SILENT / NO SIGNAL banner, since headset voice processing can gate a quiet room to near zero.
+- Wired and USB inputs are unchanged. make check: 150 tests pass.
+
 ## [34.13.3](https://github.com/terrylica/cc-skills/compare/v34.13.2...v34.13.3) (2026-11-12)
 
 
