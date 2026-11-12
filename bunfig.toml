@@ -1,0 +1,5 @@
+# bun reads this file only from the directory it is started in. The preload sends fixture hook errors to a
+# throwaway directory instead of the live ~/.claude/logs/hook-errors.jsonl (terrylica/cc-skills#78).
+# plugins/itp-hooks/bunfig.toml registers the same preload for runs started there.
+[test]
+preload = ["./plugins/itp-hooks/hooks/lib/test-preload-hermetic-hook-error-log.ts"]

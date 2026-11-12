@@ -40,6 +40,11 @@ echo "════════════════════════�
 # runs inside Claude Code's managed sandbox, which protects ~/.claude/state (2026-09-27).
 ITP_HOOKS_REVIEW_ROUND_STATE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/itp-review-round-state.XXXXXX")"
 export ITP_HOOKS_REVIEW_ROUND_STATE_ROOT
+# Fixture hook errors go to a throwaway dir, never the live ~/.claude/logs/hook-errors.jsonl
+# (terrylica/cc-skills#78). The bunfig.toml preload would choose one too; naming it here lets the run be
+# inspected, and the same variable covers hooks that tests start as child processes.
+ITP_HOOKS_ERROR_LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/itp-hooks-error-log.XXXXXX")"
+export ITP_HOOKS_ERROR_LOG_DIR
 # #143: bun's console names a failing test but not its file, and its summary names nothing.
 # The JUnit report records file and line for every testcase; the roster reads it after the run.
 # bun's own exit code stays the verdict: nothing is piped, so no tee/tail can swallow it.
@@ -53,5 +58,5 @@ if [[ $rc -ne 0 ]]; then
   printf '%s\n' "$roster"
   printf '%s\n' "$roster" >&2
 fi
-rm -rf -- "$ITP_HOOKS_REVIEW_ROUND_STATE_ROOT" "$JUNIT_REPORT" "$GIT_TEMPLATE_DIR"
+rm -rf -- "$ITP_HOOKS_REVIEW_ROUND_STATE_ROOT" "$ITP_HOOKS_ERROR_LOG_DIR" "$JUNIT_REPORT" "$GIT_TEMPLATE_DIR"
 exit "$rc"

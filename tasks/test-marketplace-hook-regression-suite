@@ -125,6 +125,9 @@ __iter188_release_capture_dir_then_refuse_to_exit_zero_without_a_verdict() {
     if [[ -n "${PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY:-}" ]]; then
         rm -rf "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY" || true
     fi
+    if [[ -n "${ITP_HOOKS_ERROR_LOG_DIR_CREATED_BY_THIS_RUN:-}" ]]; then
+        rm -rf "$ITP_HOOKS_ERROR_LOG_DIR_CREATED_BY_THIS_RUN" || true
+    fi
 
     if (( ITER188_SUITE_REACHED_ITS_OWN_VERDICT == 1 )); then
         exit "$iter188_status_the_shell_was_about_to_report"
@@ -198,6 +201,14 @@ __iter188_fail_fast_if_this_runner_does_not_survive_its_own_syntax_check
 # parity test directly via bash), the env var is unset and the full
 # two-tier coverage exercises.
 export MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1
+
+# Hooks that these bash tests run with broken input record a hook error. Send those to a throwaway
+# directory, never the live ~/.claude/logs/hook-errors.jsonl (terrylica/cc-skills#78). A directory the
+# caller already named is kept and left for the caller to remove.
+if [[ -z "${ITP_HOOKS_ERROR_LOG_DIR:-}" ]]; then
+    ITP_HOOKS_ERROR_LOG_DIR_CREATED_BY_THIS_RUN="$(mktemp -d "${TMPDIR:-/tmp}/itp-hooks-error-log.XXXXXX")"
+    export ITP_HOOKS_ERROR_LOG_DIR="$ITP_HOOKS_ERROR_LOG_DIR_CREATED_BY_THIS_RUN"
+fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
