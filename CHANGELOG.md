@@ -1,3 +1,14 @@
+## [34.13.3](https://github.com/terrylica/cc-skills/compare/v34.13.2...v34.13.3) (2026-11-12)
+
+
+### Bug Fixes
+
+* **itp-hooks:** doctrine pointers name the skill files, not the three redirect stubs in ~/.claude ([7b6f542](https://github.com/terrylica/cc-skills/commit/7b6f542f439b30e053fe936537f96353b79745e5))
+
+Since 2026-09-23 the release-notes, TypeScript 7 and WebFetch doctrines live in skills (skills/release-notes/references/doctrine.md, skills/typescript-7/references/doctrine.md, skills/web-fetch/SKILL.md). Three three-line stubs stayed at the old paths only because hook messages, comments, tests and docs here still cited them, so a blocked user was sent to a redirect instead of the doctrine. 25 files now cite the skill files directly; one test assertion follows; a doubled ~/ in the hard-wrap guard's header is fixed; the typescript-version-guard's section pointer names the heading that exists (Staying current). docs/RELEASE.md is reflowed with gfm-unwrap because the commit guard refuses the hard wraps on the lines touched. The two dated 2026-07-21 design records keep the old path as history.
+
+Tests: bun test over the 11 test files of the touched hooks, 326 pass, 0 fail.
+
 ## [34.13.2](https://github.com/terrylica/cc-skills/compare/v34.13.1...v34.13.2) (2026-11-11)
 
 
