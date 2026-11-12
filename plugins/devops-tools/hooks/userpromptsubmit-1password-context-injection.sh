@@ -108,6 +108,11 @@ confidential (the company vault is admin-visible/recoverable). If you reach for
 `op`, first ask: can this live in the SCS ladder instead? If 1Password is
 genuinely required: `unset HTTPS_PROXY HTTP_PROXY` first (the OAuth proxy 502s
 on api.1password.com), and resolve item refs from the local credential registry.
+
+Signing the operator's browser into a password-login web app from a vault
+item: follow cc-skills docs/self-custody-secrets.md "Signing an agent into a
+web app from a vault item" (metadata-only reads, fill without focus, redact
+on the Mac before output, read data via the app's API inside the page).
 CONTEXT_EOF
 
 exit 0
