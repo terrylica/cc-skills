@@ -15,6 +15,9 @@
  * Storage:
  * - Log: ~/.claude/logs/hook-errors.jsonl (append-only JSONL)
  * - Counts: /tmp/.claude-hook-error-counts-{uid}.json
+ * - Both move into $ITP_HOOKS_ERROR_LOG_DIR when that is set. Test runs set it (bunfig.toml preload,
+ *   the two suite runners), because fixtures raise errors on purpose: in the week to 2026-11-11, 272 of
+ *   531 entries in the live log were fixture errors (terrylica/cc-skills#78). Nothing sets it in production.
  */
 
 import {
@@ -27,16 +30,45 @@ import {
 
 // --- Paths ---
 
+/** Names the directory that holds the log and the counts instead of the live locations. */
+export const HOOK_ERROR_LOG_DIR_ENV = "ITP_HOOKS_ERROR_LOG_DIR";
+
+export interface HookErrorPaths {
+  logDir: string;
+  logFile: string;
+  countsFile: string;
+}
+
+/** Where errors are recorded for the given environment: the override directory when it is set, else the live files. */
+export function resolveHookErrorPaths(
+  env: Record<string, string | undefined> = process.env,
+): HookErrorPaths {
+  const override = env[HOOK_ERROR_LOG_DIR_ENV];
+  if (override) {
+    return {
+      logDir: override,
+      logFile: `${override}/hook-errors.jsonl`,
+      countsFile: `${override}/hook-error-counts.json`,
+    };
+  }
+  const logDir = `${env.HOME}/.claude/logs`;
+  return {
+    logDir,
+    logFile: `${logDir}/hook-errors.jsonl`,
+    countsFile: `/tmp/.claude-hook-error-counts-${process.getuid?.() ?? "unknown"}.json`,
+  };
+}
+
 function getLogDir(): string {
-  return `${process.env.HOME}/.claude/logs`;
+  return resolveHookErrorPaths().logDir;
 }
 
 function getLogFile(): string {
-  return `${getLogDir()}/hook-errors.jsonl`;
+  return resolveHookErrorPaths().logFile;
 }
 
 function getCountsFile(): string {
-  return `/tmp/.claude-hook-error-counts-${process.getuid?.() ?? "unknown"}.json`;
+  return resolveHookErrorPaths().countsFile;
 }
 
 // --- Types ---

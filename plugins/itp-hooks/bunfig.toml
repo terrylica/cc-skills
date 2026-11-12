@@ -1,0 +1,4 @@
+# Same preload as the repository root bunfig.toml, for `bun test` started in this directory
+# (bun does not read a parent directory's bunfig.toml). Only `bun test` reads the [test] table.
+[test]
+preload = ["./hooks/lib/test-preload-hermetic-hook-error-log.ts"]

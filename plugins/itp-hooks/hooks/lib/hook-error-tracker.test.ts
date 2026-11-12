@@ -6,40 +6,102 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+  HOOK_ERROR_LOG_DIR_ENV,
   trackHookError,
   getSessionErrors,
   getSessionId,
+  resolveHookErrorPaths,
   type HookErrorEntry,
 } from "./hook-error-tracker.ts";
 
+// Every test that records an error does so in its own throwaway directory, through the tracker's explicit
+// override, with HOME pointed at a second empty directory. Until 2026-11-12 these tests faked HOME only and
+// deleted /tmp/.claude-hook-error-counts-<uid>.json, the live counts file, around each test (#78).
 const ORIGINAL_HOME = process.env.HOME;
-const TEST_HOME = "/tmp/hook-error-tracker-test";
-const TEST_LOG_FILE = `${TEST_HOME}/.claude/logs/hook-errors.jsonl`;
+const ORIGINAL_LOG_DIR = process.env[HOOK_ERROR_LOG_DIR_ENV];
 const TEST_SESSION = "test-session-001";
+let TEST_DIR = "";
+let TEST_HOME = "";
+let TEST_LOG_FILE = "";
 
-// Counts file path mirrors the library's getCountsFile()
-function getTestCountsFile(): string {
-  return `/tmp/.claude-hook-error-counts-${process.getuid?.() ?? "unknown"}.json`;
+function enterThrowawayDirs(): void {
+  TEST_DIR = mkdtempSync(join(tmpdir(), "hook-error-tracker-test-log-"));
+  TEST_HOME = mkdtempSync(join(tmpdir(), "hook-error-tracker-test-home-"));
+  TEST_LOG_FILE = `${TEST_DIR}/hook-errors.jsonl`;
+  process.env[HOOK_ERROR_LOG_DIR_ENV] = TEST_DIR;
+  process.env.HOME = TEST_HOME;
 }
 
-describe("trackHookError", () => {
-  beforeEach(() => {
-    process.env.HOME = TEST_HOME;
-    // Clean up test artifacts
-    if (existsSync(TEST_LOG_FILE)) unlinkSync(TEST_LOG_FILE);
-    if (existsSync(TEST_HOME)) rmSync(TEST_HOME, { recursive: true, force: true });
-    const countsFile = getTestCountsFile();
-    if (existsSync(countsFile)) unlinkSync(countsFile);
+function leaveThrowawayDirs(): void {
+  process.env.HOME = ORIGINAL_HOME;
+  if (ORIGINAL_LOG_DIR === undefined) delete process.env[HOOK_ERROR_LOG_DIR_ENV];
+  else process.env[HOOK_ERROR_LOG_DIR_ENV] = ORIGINAL_LOG_DIR;
+  rmSync(TEST_DIR, { recursive: true, force: true });
+  rmSync(TEST_HOME, { recursive: true, force: true });
+}
+
+describe("resolveHookErrorPaths", () => {
+  it("names the live log and the live counts file when no override is set", () => {
+    const paths = resolveHookErrorPaths({ HOME: "/fixture-home" });
+
+    expect(paths.logDir).toBe("/fixture-home/.claude/logs");
+    expect(paths.logFile).toBe("/fixture-home/.claude/logs/hook-errors.jsonl");
+    expect(paths.countsFile).toStartWith("/tmp/.claude-hook-error-counts-");
   });
 
-  afterEach(() => {
-    process.env.HOME = ORIGINAL_HOME;
-    if (existsSync(TEST_HOME)) rmSync(TEST_HOME, { recursive: true, force: true });
-    const countsFile = getTestCountsFile();
-    if (existsSync(countsFile)) unlinkSync(countsFile);
+  it("puts the log and the counts inside the override directory when it is set", () => {
+    const paths = resolveHookErrorPaths({ HOME: "/fixture-home", [HOOK_ERROR_LOG_DIR_ENV]: "/somewhere/else" });
+
+    expect(paths.logDir).toBe("/somewhere/else");
+    expect(paths.logFile).toBe("/somewhere/else/hook-errors.jsonl");
+    expect(paths.countsFile).toBe("/somewhere/else/hook-error-counts.json");
   });
+
+  it("treats an empty override as unset", () => {
+    const paths = resolveHookErrorPaths({ HOME: "/fixture-home", [HOOK_ERROR_LOG_DIR_ENV]: "" });
+
+    expect(paths.logFile).toBe("/fixture-home/.claude/logs/hook-errors.jsonl");
+  });
+});
+
+describe("the override keeps a run away from the live files (#78)", () => {
+  beforeEach(enterThrowawayDirs);
+  afterEach(leaveThrowawayDirs);
+
+  it("records the error and the count in the override directory and creates nothing under HOME", () => {
+    trackHookError("test-hook", "a fixture error", TEST_SESSION);
+
+    expect(existsSync(TEST_LOG_FILE)).toBe(true);
+    expect(existsSync(`${TEST_DIR}/hook-error-counts.json`)).toBe(true);
+    expect(existsSync(`${TEST_HOME}/.claude`)).toBe(false);
+  });
+
+  it("the bun test preload names a throwaway directory, and keeps one that is already named", () => {
+    const preload = join(import.meta.dir, "test-preload-hermetic-hook-error-log.ts");
+    const print = `await import(${JSON.stringify(preload)}); console.log(process.env.${HOOK_ERROR_LOG_DIR_ENV});`;
+    const run = (env: Record<string, string | undefined>) =>
+      Bun.spawnSync([process.execPath, "-e", print], { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe" });
+
+    const unset = run({ [HOOK_ERROR_LOG_DIR_ENV]: "" });
+    const chosen = unset.stdout.toString().trim();
+    expect(unset.exitCode).toBe(0);
+    expect(chosen).toContain("itp-hooks-error-log-");
+    expect(chosen.startsWith(`${ORIGINAL_HOME}/.claude`)).toBe(false);
+    expect(existsSync(chosen)).toBe(false); // removed again when that process exited
+
+    const named = run({ [HOOK_ERROR_LOG_DIR_ENV]: TEST_DIR });
+    expect(named.stdout.toString().trim()).toBe(TEST_DIR);
+    expect(existsSync(TEST_DIR)).toBe(true); // a directory the caller named is left to the caller
+  });
+});
+
+describe("trackHookError", () => {
+  beforeEach(enterThrowawayDirs);
+  afterEach(leaveThrowawayDirs);
 
   it("creates log directory and JSONL file on first error", () => {
     trackHookError("test-hook", "something broke", TEST_SESSION);
@@ -149,19 +211,8 @@ describe("trackHookError", () => {
 });
 
 describe("getSessionErrors", () => {
-  beforeEach(() => {
-    process.env.HOME = TEST_HOME;
-    if (existsSync(TEST_HOME)) rmSync(TEST_HOME, { recursive: true, force: true });
-    const countsFile = getTestCountsFile();
-    if (existsSync(countsFile)) unlinkSync(countsFile);
-  });
-
-  afterEach(() => {
-    process.env.HOME = ORIGINAL_HOME;
-    if (existsSync(TEST_HOME)) rmSync(TEST_HOME, { recursive: true, force: true });
-    const countsFile = getTestCountsFile();
-    if (existsSync(countsFile)) unlinkSync(countsFile);
-  });
+  beforeEach(enterThrowawayDirs);
+  afterEach(leaveThrowawayDirs);
 
   it("returns empty map when no log file exists", () => {
     const result = getSessionErrors(TEST_SESSION);
