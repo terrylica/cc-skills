@@ -435,7 +435,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `moon run repo:release-*` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.",
+        "Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `moon run repo:release-*` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/skills/release-notes/references/doctrine.md.",
     },
     {
       markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
@@ -475,7 +475,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md",
+        "Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/skills/typescript-7/references/doctrine.md",
     },
     {
       markerNameTokenIncludingSuffix: "GH-HARD-WRAP-OK",

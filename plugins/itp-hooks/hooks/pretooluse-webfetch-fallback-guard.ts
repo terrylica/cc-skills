@@ -25,7 +25,7 @@
  * disable this hook (or migrate to the iter-107 shared helper to add a
  * properly-registered marker) rather than adding a hand-rolled escape hatch.
  *
- * SSoT: ~/.claude/webfetch-fallback-CLAUDE.md
+ * SSoT: ~/.claude/skills/web-fetch/SKILL.md
  * Upstream: anthropics/claude-code#8331, #22846, #39896, #13718, #17929
  */
 
@@ -47,7 +47,7 @@ USE INSTEAD (in order):
   3. WebSearch                           # when the exact URL is unknown
 
 Emit a one-line heads-up when you switch (e.g. "built-in fetch broken → used curl").
-SSoT: ~/.claude/webfetch-fallback-CLAUDE.md`;
+SSoT: ~/.claude/skills/web-fetch/SKILL.md`;
 
 async function main(): Promise<void> {
   const input = await parseStdinOrAllow(HOOK_NAME);

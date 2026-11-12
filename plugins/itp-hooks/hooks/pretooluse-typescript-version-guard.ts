@@ -6,7 +6,7 @@
  * a TypeScript version below 7.x (the Go-native tsc era). TypeScript 7 is
  * 8-12x faster for full builds and ~13x faster for time-to-first-error.
  *
- * Doctrine SSoT: ~/.claude/typescript-latest-CLAUDE.md
+ * Doctrine SSoT: ~/.claude/skills/typescript-7/references/doctrine.md
  * Policy: "typescript": "latest" + commit lockfile. Never a 5.x/6.x pin.
  * The ONE sanctioned exception is compiler-EMBEDDING tooling (Volar family,
  * Angular templates, typescript-eslint, ts-morph) which uses the dual-install
@@ -37,7 +37,7 @@
  *     PreToolUseSubhookContract: pure async function, no stdin/stdout/exit
  *     side-effects, returns a PreToolUseSubhookDecision object.
  *
- * ADR: ~/.claude/typescript-latest-CLAUDE.md § "Enforcement"
+ * ADR: ~/.claude/skills/typescript-7/references/doctrine.md § "Staying current"
  */
 
 import {
@@ -200,7 +200,7 @@ export async function classifyTypeScriptVersionGuardForOrchestrator(
         "Fixes required:",
         ...hardErrors.map((v) => `  • ${v.remediation}`),
         "",
-        "Complete migration guide: ~/.claude/typescript-latest-CLAUDE.md § 'What breaks'",
+        "Complete migration guide: ~/.claude/skills/typescript-7/references/doctrine.md § 'What breaks'",
       ];
 
       const denyReason = denyReasonLines.join("\n");
@@ -282,7 +282,7 @@ export async function classifyTypeScriptVersionGuardForOrchestrator(
     "Then: commit the regenerated lockfile (bun install, npm ci, etc.).",
     "Escape hatch: Add ALLOW-LEGACY-TS comment if legacy is truly required.",
     "",
-    `SSoT: ~/.claude/typescript-latest-CLAUDE.md (read it for complete migration recipe and TS 7 breakage list)`,
+    `SSoT: ~/.claude/skills/typescript-7/references/doctrine.md (read it for complete migration recipe and TS 7 breakage list)`,
   ];
 
   const denyReason = denyReasonLines.join("\n");

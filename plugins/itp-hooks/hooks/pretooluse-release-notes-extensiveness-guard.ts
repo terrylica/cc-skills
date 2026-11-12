@@ -17,7 +17,7 @@
  *
  * Fail-open: any parse/logic/IO error allows the command (never blocks work).
  *
- * Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md
+ * Doctrine SSoT: ~/.claude/skills/release-notes/references/doctrine.md
  * ADR: /docs/adr/2026-07-21-release-notes-extensiveness-guard.md
  * Spoke: plugins/itp-hooks/docs/release-notes-extensiveness-guard.md
  */

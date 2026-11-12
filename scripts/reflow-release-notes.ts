@@ -7,7 +7,7 @@
  * mid-sentence breaks that ignore the reader's viewport instead of reflowing to it. It is invisible
  * in the source and shows up only on the published page.
  *
- * WHY THIS LIVES HERE. The doctrine (~/.claude/release-notes-doctrine-CLAUDE.md § "NEVER hard-wrap
+ * WHY THIS LIVES HERE. The doctrine (~/.claude/skills/release-notes/references/doctrine.md § "NEVER hard-wrap
  * the release body") says to enforce this in code rather than as a rule callers must remember, and
  * to port the reference implementation into the releasing repo. cc-skills previously enforced the
  * EXTENSIVENESS half of the doctrine in code (scripts/augment-release-notes.mjs measures narrative +

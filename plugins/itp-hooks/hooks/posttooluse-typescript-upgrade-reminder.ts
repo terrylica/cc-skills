@@ -14,7 +14,7 @@
  * This subhook fires on the FIRST eligible code Write/Edit each session and
  * emits a once-per-session nudge surfacing the highest-yield TS 7 migration
  * checks (breaking changes, performance knobs, etc.) and the SSoT reference
- * (~/.claude/typescript-latest-CLAUDE.md).
+ * (~/.claude/skills/typescript-7/references/doctrine.md).
  *
  * This is the COMPANION to iter-92's PreToolUse guards:
  *   - pretooluse-typescript-version-guard: blocks Write/Edit of package.json
@@ -44,7 +44,7 @@
  *     strict defaults true, baseUrl/downlevelIteration/target/moduleResolution/
  *     module/esModuleInterop hard errors, rootDir defaults to ./)
  *   - Mentions perf knobs (--checkers, --builders, --singleThreaded)
- *   - Points at the SSoT ~/.claude/typescript-latest-CLAUDE.md
+ *   - Points at the SSoT ~/.claude/skills/typescript-7/references/doctrine.md
  *   - Invites surfacing concrete refactor opportunities
  *
  * Wrapped in the canonical truncation helper so the aggregated reason
@@ -234,7 +234,7 @@ export async function buildTypeScriptUpgradeReminderMessage(
   const baseMessage = [
     `[TS-7] TypeScript 7 (Go-native tsc) is the standard.`,
     ``,
-    `Pinning policy (see ~/.claude/typescript-latest-CLAUDE.md):`,
+    `Pinning policy (see ~/.claude/skills/typescript-7/references/doctrine.md):`,
     `  • Greenfield: "typescript": "latest" + commit lockfile`,
     `  • Compiler-embedding tools (Volar, Angular, typescript-eslint, ts-morph):`,
     `    dual-install compat alias (TS 6.0 API unavailable in 7.0; restored 7.1+)`,

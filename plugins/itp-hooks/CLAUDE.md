@@ -41,7 +41,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
 | `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 26 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
 | `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
-| `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                            |
+| `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/skills/web-fetch/SKILL.md`                              |
 | `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |
 | `pretooluse-gmail-body-guard.ts`                      | Bash orch.               | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                                    |
 | `pretooluse-markdown-commit-hard-wrap-guard.ts`       | Bash orch.               | Blocks a `git commit` adding `.md` hard wraps | [→](./docs/markdown-hard-wrap-reminder.md)                         |

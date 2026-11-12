@@ -57,7 +57,7 @@ describe("posttooluse-typescript-upgrade-reminder", () => {
       expect(msg).toContain("Go-native tsc");
       expect(msg).toContain("types defaults to []");
       expect(msg).toContain("strict defaults true");
-      expect(msg).toContain("typescript-latest-CLAUDE.md");
+      expect(msg).toContain("skills/typescript-7/references/doctrine.md");
       expect(msg.length).toBeGreaterThan(200); // meaningful length
       expect(msg.length).toBeLessThan(3000); // concise (not bloated; drift report may add content)
     });

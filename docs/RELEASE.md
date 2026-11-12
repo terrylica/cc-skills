@@ -50,59 +50,24 @@ Every phase is a plain script under `tasks/`, so `bash tasks/release/<phase>` ru
 
 ### Extensive release notes
 
-Release notes must carry BOTH a narrative paragraph (the _why_) and a point-form list
-(the _what_) — doctrine SSoT `~/.claude/release-notes-doctrine-CLAUDE.md`, enforced by the
-`itp-hooks` release-notes-extensiveness-guard. Two mechanisms surface the substance:
+Release notes must carry BOTH a narrative paragraph (the _why_) and a point-form list (the _what_) — doctrine SSoT `~/.claude/skills/release-notes/references/doctrine.md`, enforced by the `itp-hooks` release-notes-extensiveness-guard. Two mechanisms surface the substance:
 
-- **Automatic (in-generator)**: `release.config.cjs` carries a body-preserving
-  `writerOpts` so the full multi-paragraph commit **body** appears under each entry (the
-  default Angular preset renders subject-only). Pinned by `test/release-config-body-surfacing.test.ts`.
-- **Manual / cross-repo**: `bash tasks/release/augment --tag <tag> --notes-file <path>`
-  edits the GitHub Release through the same extensiveness gate (`scripts/augment-release-notes.mjs`).
+- **Automatic (in-generator)**: `release.config.cjs` carries a body-preserving `writerOpts` so the full multi-paragraph commit **body** appears under each entry (the default Angular preset renders subject-only). Pinned by `test/release-config-body-surfacing.test.ts`.
+- **Manual / cross-repo**: `bash tasks/release/augment --tag <tag> --notes-file <path>` edits the GitHub Release through the same extensiveness gate (`scripts/augment-release-notes.mjs`).
 
 <!-- SSoT-OK: the release numbers below are historical incident references, not version pins -->
 
 #### Five ways the body used to arrive mangled (all fixed 2026-08-19)
 
-All five sat BETWEEN the extensiveness guard and GitHub, so the guard passed bodies that
-rendered wrong. The PreToolUse guard could not see any of them either: it covers
-`gh release create`, and semantic-release publishes through the GitHub API. Pinned by
-`scripts/release-config-body-reflow.test.ts`, which asserts against **rendered** output —
-a transform-only test passes while every release still looks wrong.
+All five sat BETWEEN the extensiveness guard and GitHub, so the guard passed bodies that rendered wrong. The PreToolUse guard could not see any of them either: it covers `gh release create`, and semantic-release publishes through the GitHub API. Pinned by `scripts/release-config-body-reflow.test.ts`, which asserts against **rendered** output — a transform-only test passes while every release still looks wrong.
 
-- **Silent truncation.** `conventional-commits-parser`'s default `fieldPattern` is
-  `/^-(.*?)-$/`, which a line of dashes matches. A setext heading underline or a
-  horizontal rule diverts every remaining body line into a field no template emits.
-  The v27.0.1 incident: 66 body lines in, 8 published. `fieldPattern` is now a
-  never-matching regex on **both** `commit-analyzer` and `release-notes-generator` —
-  they must mirror.
-- **Body swallowed by its bullet.** Handlebars strips the trailing newline of a line
-  holding a lone block tag, so the template's blank line collapsed and GFM read the body
-  as a lazy continuation of the `* subject` bullet. The template now carries two blank
-  lines so one survives.
-- **Hard-wrapped prose.** Commit bodies are correctly wrapped at ~72 columns; GFM turns
-  every newline inside a paragraph into a literal `<br>`. The transform reflows via
-  `scripts/reflow-release-notes.ts` — imported, never reimplemented, so it cannot drift
-  from `repo:release-augment`. That module must stay free of top-level `await`, or Node refuses
-  the `require()` and the transform silently falls back to the raw body.
-- **Aligned blocks flattened.** CommonMark reads an indented-by-under-four block as
-  ordinary prose, so the reflow joined hand-aligned tables into one line. Indented lines
-  holding a run of 2+ interior spaces are now preserved.
-- **Angle brackets silently eaten.** GFM interprets raw HTML, so `Vec<T>` published as
-  "Vec" — the type parameter _deleted_, with no warning. `<details>` opened a collapsible
-  section that swallowed everything after it; `a<b and c>d` became bold. Every
-  angle-bracket occurrence in the last 400 commit bodies of this repo is prose or a CLI
-  placeholder (`<uuid>`, `<path>`, `<Command,Handler>`, `<verify|probe|bench>`), so
-  `scripts/escape-commit-body-html.ts` now escapes `<` outside code spans, fences and
-  markdown autolinks. Only `<` — escaping `>` would corrupt the `->` in aligned tables.
-  Escaping runs BEFORE the reflow, because the reflow treats a line starting with `<` as a
-  standalone HTML block and would otherwise leave that line hard-wrapped.
-  **If you ever want real HTML in a release body, put it in a notes file and use
-  `repo:release-augment`; a commit message is plain text.**
+- **Silent truncation.** `conventional-commits-parser`'s default `fieldPattern` is `/^-(.*?)-$/`, which a line of dashes matches. A setext heading underline or a horizontal rule diverts every remaining body line into a field no template emits. The v27.0.1 incident: 66 body lines in, 8 published. `fieldPattern` is now a never-matching regex on **both** `commit-analyzer` and `release-notes-generator` — they must mirror.
+- **Body swallowed by its bullet.** Handlebars strips the trailing newline of a line holding a lone block tag, so the template's blank line collapsed and GFM read the body as a lazy continuation of the `* subject` bullet. The template now carries two blank lines so one survives.
+- **Hard-wrapped prose.** Commit bodies are correctly wrapped at ~72 columns; GFM turns every newline inside a paragraph into a literal `<br>`. The transform reflows via `scripts/reflow-release-notes.ts` — imported, never reimplemented, so it cannot drift from `repo:release-augment`. That module must stay free of top-level `await`, or Node refuses the `require()` and the transform silently falls back to the raw body.
+- **Aligned blocks flattened.** CommonMark reads an indented-by-under-four block as ordinary prose, so the reflow joined hand-aligned tables into one line. Indented lines holding a run of 2+ interior spaces are now preserved.
+- **Angle brackets silently eaten.** GFM interprets raw HTML, so `Vec<T>` published as "Vec" — the type parameter _deleted_, with no warning. `<details>` opened a collapsible section that swallowed everything after it; `a<b and c>d` became bold. Every angle-bracket occurrence in the last 400 commit bodies of this repo is prose or a CLI placeholder (`<uuid>`, `<path>`, `<Command,Handler>`, `<verify|probe|bench>`), so `scripts/escape-commit-body-html.ts` now escapes `<` outside code spans, fences and markdown autolinks. Only `<` — escaping `>` would corrupt the `->` in aligned tables. Escaping runs BEFORE the reflow, because the reflow treats a line starting with `<` as a standalone HTML block and would otherwise leave that line hard-wrapped. **If you ever want real HTML in a release body, put it in a notes file and use `repo:release-augment`; a commit message is plain text.**
 
-A sixth, in the guard itself: it judged the **longest** paragraph rather than asking
-whether **any** paragraph qualified, so a long aligned table masked a real narrative and
-blocked correct notes. Fixed in `release-notes-extensiveness-patterns.ts`.
+A sixth, in the guard itself: it judged the **longest** paragraph rather than asking whether **any** paragraph qualified, so a long aligned table masked a real narrative and blocked correct notes. Fixed in `release-notes-extensiveness-patterns.ts`.
 
 ## Commit Conventions
 

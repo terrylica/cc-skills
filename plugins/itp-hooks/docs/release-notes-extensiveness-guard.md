@@ -1,6 +1,6 @@
 # Release-Notes Extensiveness Guard
 
-**Hook**: `pretooluse-release-notes-extensiveness-guard.ts` (matcher `Bash`) **Classifier**: `release-notes-extensiveness-patterns.ts` (pure, unit-tested) **Doctrine SSoT**: `~/.claude/release-notes-doctrine-CLAUDE.md` **ADR**: [/docs/adr/2026-07-21-release-notes-extensiveness-guard.md](/docs/adr/2026-07-21-release-notes-extensiveness-guard.md)
+**Hook**: `pretooluse-release-notes-extensiveness-guard.ts` (matcher `Bash`) **Classifier**: `release-notes-extensiveness-patterns.ts` (pure, unit-tested) **Doctrine SSoT**: `~/.claude/skills/release-notes/references/doctrine.md` **ADR**: [/docs/adr/2026-07-21-release-notes-extensiveness-guard.md](/docs/adr/2026-07-21-release-notes-extensiveness-guard.md)
 
 ## Policy
 
