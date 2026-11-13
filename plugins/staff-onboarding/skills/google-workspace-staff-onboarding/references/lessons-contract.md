@@ -19,7 +19,7 @@ The lessons log is how onboarding improves itself from the people being onboarde
 | `status`   | `open` (no fix yet), `proposed` (PR open), `applied` (merged), `rejected` (declined)            |
 | `pr`       | The PR URL, or `null`                                                                           |
 
-Step ids: `find-seat`, `introduce`, `first-signin`, `password-change`, `2sv`, `passkey`, `backup-codes`, `shared-seat`, `shared-drives`, `mail-questions`, `legacy-mail`, `mail-copy`, `labels-filters`, `send-as`, `end-forward`, `contacts`, `remote-support`, `ai-tools`, `github`, `conversation`, `tooling`, `record`. A new step in the skill adds its id here in the same change.
+Step ids: `find-seat`, `introduce`, `first-signin`, `password-change`, `2sv`, `passkey`, `backup-codes`, `shared-seat`, `shared-drives`, `mail-questions`, `legacy-mail`, `mail-copy`, `labels-filters`, `send-as`, `end-forward`, `contacts`, `remote-support`, `notifications`, `ai-tools`, `github`, `conversation`, `tooling`, `record`. A new step in the skill adds its id here in the same change.
 
 ## The loop
 
