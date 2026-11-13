@@ -11,12 +11,14 @@
 import { describe, expect, test } from "bun:test";
 import {
   classify,
+  commandDirectories,
   gatedCommandDirectory,
   ghRepoFlag,
   overrideReason,
   prCreateBaseBranch,
   sha256,
   prCreateHeadBranch,
+  runsRecordStep,
   undraftTarget,
   validateArtifact,
   type RepoFacts,
@@ -445,5 +447,37 @@ describe("quoted mentions of a gated command are not invocations (#21)", () => {
   test("matched names the invocation, and where the walker found it", () => {
     expect(classify("bash -c 'gh pr ready 12'").matched).toBe("gh pr ready (in shell -c script)");
     expect(classify("git -C ../wt push origin").matched).toBe("git -C ../wt push");
+  });
+});
+
+describe("commandDirectories and runsRecordStep: the chained-record push (2026-11-12)", () => {
+  const S = "/home/u/repo";
+  const H = "/home/u";
+  const INCIDENT =
+    'cd ~/wt && R="$(cc-plugin-root itp-hooks)/hooks/lib/review-round-cli.ts"; args=(); for f in $(git diff --name-only); ' +
+    'do case $f in a.txt) v="x";; *) v="y";; esac; args+=(--file "$f=$v"); done; bun "$R" record "${args[@]}" 2>&1 | tail -3 && git push';
+
+  test("the incident command is not located, which is why the gate needs the candidates", () => {
+    expect(gatedCommandDirectory(INCIDENT, S, H)).toBeNull();
+    expect(commandDirectories(INCIDENT, S, H)).toEqual(["/home/u/wt"]);
+  });
+
+  test.each([
+    ["cd ../wt; git push", ["/home/u/wt"]],
+    ["cd ../wt\ngit push", ["/home/u/wt"]],
+    ["cd /a && cd b; git -C ../c push", ["/a", "/a/b", "/a/c"]],
+    ['cd "$WT"; git push', []],
+    ["git push", []],
+  ])("commandDirectories %j → %j", (command, expected) => {
+    expect(commandDirectories(command, S, H)).toEqual(expected);
+  });
+
+  test.each([
+    [INCIDENT, true],
+    ["bun /p/hooks/lib/review-round-cli.ts record --file 'a=b' && git push", true],
+    ["bun /p/hooks/lib/review-round-cli.ts status; git push", false],
+    ["git push # record later", false],
+  ])("runsRecordStep %j → %s", (command, expected) => {
+    expect(runsRecordStep(command)).toBe(expected);
   });
 });

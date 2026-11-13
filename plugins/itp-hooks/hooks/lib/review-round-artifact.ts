@@ -578,8 +578,10 @@ export function resolveDirectoryArgument(value: string, base: string, home: stri
  * Follows `cd DIR` / `pushd DIR` in order up to the gated command, and `git -C DIR`. Assignments
  * and wrappers (`env`, `nice`, `timeout`, …) are skipped the way every other guard sharing the
  * invocation walker skips them. A directory that cannot be resolved from the text alone stops the
- * walk with null, so an unknown directory never widens what the gate allows: the caller keeps the
- * session cwd, which is the old behaviour.
+ * walk with null and the caller keeps the session cwd. FOR A PUSH THAT FALLBACK IS NOT SAFE ON ITS
+ * OWN: the session's checkout is usually a branch nobody marked reviewable, so measuring it allows
+ * the push unmetered. The gate therefore judges an unlocated push on every checkout the command
+ * names as well ({@link commandDirectories}); see the 2026-11-12 note in the gate.
  */
 /**
  * True when every `cd`/`pushd` in the command changes the directory of what FOLLOWS it for sure:
@@ -665,6 +667,59 @@ export function gatedCommandDirectory(command: string, sessionCwd: string, home:
     }
   }
   return null;
+}
+
+/**
+ * Every directory the command text names with `cd DIR`, `pushd DIR` or `git -C DIR`, resolved in
+ * order (a relative `cd` against the directory before it), whether or not the change is certain.
+ *
+ * For the push that {@link gatedCommandDirectory} cannot locate. 2026-11-12, a PR in a private repository:
+ * `cd <worktree> && …; for f in …; do case $f in x) …;; esac; done; <record> | tail -3 && git push`.
+ * The case pattern's `)` reads as a group, so the push was not located, the gate measured the
+ * session's checkout (`main`, never marked reviewable) and allowed a push to a branch in front of a
+ * reviewer with no valid record. Measuring each of these as well closes that: a push can only run in
+ * the session's cwd or in a directory the command moved to. Directories the text cannot resolve
+ * (`cd "$WT"`) are left out, as {@link resolveDirectoryArgument} leaves them out everywhere.
+ */
+export function commandDirectories(command: string, sessionCwd: string, home: string = homedir()): string[] {
+  const dirs: string[] = [];
+  let dir = sessionCwd;
+  for (const words of lexShellCommands(command).commands) {
+    const k = skipAssignmentsAndWrappers(words);
+    if (k === -1) continue;
+    const program = invocationBasename(words[k]!.value);
+    const args = words.slice(k + 1).map((w) => w.value);
+    if (DIRECTORY_CHANGERS.has(program)) {
+      const target = args.find((a) => !a.startsWith("-") || a === "-");
+      const next = target === undefined ? home : resolveDirectoryArgument(target, dir, home);
+      if (next !== null) {
+        dir = next;
+        dirs.push(next);
+      }
+      continue;
+    }
+    if (program === "git") {
+      for (let a = 0; a + 1 < args.length && args[a]!.startsWith("-"); a++) {
+        if (args[a] !== "-C") continue;
+        const resolved = resolveDirectoryArgument(args[a + 1]!, dir, home);
+        if (resolved !== null) dirs.push(resolved);
+      }
+    }
+  }
+  return [...new Set(dirs)];
+}
+
+/**
+ * True when the command also runs the record step (`review-round-cli.ts … record`).
+ *
+ * Read from the TEXT, because the incident's form hid the path in a variable
+ * (`R="$(cc-plugin-root itp-hooks)/hooks/lib/review-round-cli.ts"; bun "$R" record …`). It changes
+ * only the deny message, never the decision: the gate judges the record that exists before the
+ * command runs, so a record step in the same command can never count, and the message says to run it
+ * on its own first.
+ */
+export function runsRecordStep(command: string): boolean {
+  return /review-round-cli\b/.test(command) && /(?:^|[\s"'])record(?=$|[\s"';&|])/m.test(command);
 }
 
 // ---------------------------------------------------------------------------------------------

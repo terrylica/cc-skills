@@ -21,7 +21,9 @@ import { stripDataHeredocBodies } from "./lib/shell-heredoc-data.ts";
 import { isRemoteCommand } from "./lib/readonly-command-detector.ts";
 import {
   classify,
+  commandDirectories,
   gatedCommandDirectory,
+  runsRecordStep,
   ghRepoFlag,
   overrideReason,
   prCreateBaseBranch,
@@ -43,6 +45,7 @@ import {
   unmarkBranchReviewable,
   localCloneForRepo,
   worktreeForBranch,
+  type RepoIdentity,
 } from "./lib/review-round-state.ts";
 
 /**
@@ -84,11 +87,34 @@ function measuredLine(
   ].join("\n");
 }
 
+/**
+ * Said first in the deny when the denied command also runs the record step. The 2026-11-12 agent
+ * chained `<record> | tail -3 && git push` after a deny that only said "record it", and nothing told
+ * it that a record in the same command cannot count.
+ */
+const CHAINED_RECORD_NOTE = [
+  "This command also runs the record step. The gate decides before ANY part of the command runs,",
+  "so a record made in the same command can never count, and a rejected record does not stop a",
+  "push chained after it (`;`, a newline, or a pipe that hides its exit code).",
+  "Run the record step ON ITS OWN first, check that it printed `recorded …`, then push (or",
+  "gh pr ready / create) in a separate command.",
+];
+
+/** Said when the push's directory could not be read from the text and another checkout was measured. */
+function unlocatedNote(root: string): string[] {
+  return [
+    "The gate could not tell from the text which checkout this push runs in (a `;` or newline after",
+    "`cd`, a group, or a `case` pattern), so it measured every checkout the command names. Run the",
+    `push on its own: cd ${root} && git push   (or git -C ${root} push).`,
+  ];
+}
+
 function denyMessage(
   kind: GatedKind,
   matched: string,
   failures: readonly string[],
   measured: string,
+  notes: readonly string[] = [],
 ): string {
   const what =
     kind === "pr-ready"
@@ -100,6 +126,7 @@ function denyMessage(
   return [
     `[REVIEW-ROUND-GATE] No valid self-review record for HEAD — ${what}.`,
     "",
+    ...(notes.length > 0 ? [...notes, ""] : []),
     "Why: 73% of this reviewer's attention is re-review (110 of 150 submissions across 40 PRs),",
     "and PRs over 900 lines cost 7.43 rounds each against 1.36 for PRs under 400. A local",
     "adversarial pass at this exact commit is what converts a round he pays for into one you do.",
@@ -111,8 +138,9 @@ function denyMessage(
     `Matched: ${matched}`,
     measured,
     "",
-    "Fix: audit the diff, then record it (local only, no network):",
+    "Fix: audit the diff, then record it ON ITS OWN (local only, no network):",
     `    ${RECORD_COMMAND} --file 'path=what you checked and what survived' …`,
+    "  and only after it prints `recorded …`, re-run this command as a separate command.",
     "  Or keep it out of the queue for now:  gh pr create --draft …",
     limitsBlock(),
     "",
@@ -181,7 +209,8 @@ export async function main(): Promise<void> {
   // exact head. `gatedCommandDirectory` returns null whenever the directory cannot be read from the
   // text alone, and the session cwd then stands, as before.
   let cwd = input.cwd ?? process.cwd();
-  cwd = gatedCommandDirectory(command, cwd) ?? cwd;
+  const located = gatedCommandDirectory(command, cwd);
+  cwd = located ?? cwd;
   // The PR's base, when the command or GitHub names one. null = the remote's default branch.
   let baseBranch: string | null = null;
   // A `-R owner/other` names a repository other than cwd's: its head branch lives in THAT clone's
@@ -207,7 +236,26 @@ export async function main(): Promise<void> {
       baseBranch = refs.base;
     }
   }
-  const repo = identifyRepo(cwd);
+  // WHERE A PUSH MAY RUN (2026-11-12, a PR in a private repository). When the text does not locate the
+  // push, falling back to the session's checkout alone is a FAIL-OPEN, not a neutral default: that
+  // checkout is usually `main`, never marked reviewable, so the push was allowed unmetered while the
+  // branch it really pushed was in front of a reviewer with no valid record. The incident command was
+  // `cd <worktree> && …; for …; do case $f in x) …;; esac; done; <record> | tail -3 && git push`; the
+  // record was rejected and the push went out. An unlocated push is now judged on the session's
+  // checkout AND every checkout the command names, and each must hold up on its own.
+  const pushCheckouts: { dir: string; repo: RepoIdentity }[] = [];
+  if (kind === "push") {
+    const dirs = located === null ? [cwd, ...commandDirectories(command, cwd)] : [cwd];
+    const seen = new Set<string>();
+    for (const dir of dirs) {
+      const id = identifyRepo(dir);
+      if (id === null || seen.has(`${id.root}\0${id.branch}`)) continue;
+      seen.add(`${id.root}\0${id.branch}`);
+      pushCheckouts.push({ dir, repo: id });
+    }
+  }
+
+  const repo = identifyRepo(cwd) ?? pushCheckouts[0]?.repo ?? null;
   // Not a git repo, or detached HEAD: nothing to anchor an artifact to. Fail OPEN rather than
   // block work the gate cannot reason about.
   if (repo === null) return allow();
@@ -246,8 +294,31 @@ export async function main(): Promise<void> {
 
   if (kind === "inline-body") return deny(inlineBodyMessage(matched));
 
-  // A push only counts as a review round once the branch is actually in front of someone.
-  if (kind === "push" && !isBranchReviewable(repo)) return allow();
+  // The decision rests ONLY on the record already on disk. A record step in the same command has not
+  // run yet and cannot count; it changes the message, never the verdict.
+  const notes = runsRecordStep(rawCommand) ? CHAINED_RECORD_NOTE : [];
+
+  if (kind === "push") {
+    for (const { dir, repo: target } of pushCheckouts) {
+      // A push only counts as a review round once the branch is actually in front of someone.
+      if (!isBranchReviewable(target)) continue;
+      const facts = collectFacts(dir, null);
+      // No resolvable base branch: fail open for this checkout, as for a missing repo.
+      if (facts === null) continue;
+      const verdict = validateArtifact(readArtifact(target), facts);
+      if (!verdict.ok) {
+        const where = pushCheckouts.length > 1 ? unlocatedNote(target.root) : [];
+        return deny(
+          denyMessage(kind, matched, verdict.failures, measuredLine(target, facts.headSha, facts.baseRef, null), [
+            ...notes,
+            ...(notes.length > 0 && where.length > 0 ? [""] : []),
+            ...where,
+          ]),
+        );
+      }
+    }
+    return allow();
+  }
 
   const facts = collectFacts(cwd, baseBranch);
   // No resolvable base branch. Same reasoning as a missing repo: fail open rather than block with
@@ -256,7 +327,7 @@ export async function main(): Promise<void> {
 
   const verdict = validateArtifact(readArtifact(repo), facts);
   if (!verdict.ok) {
-    return deny(denyMessage(kind, matched, verdict.failures, measuredLine(repo, facts.headSha, facts.baseRef, baseBranch)));
+    return deny(denyMessage(kind, matched, verdict.failures, measuredLine(repo, facts.headSha, facts.baseRef, baseBranch), notes));
   }
 
   // Allowed, and the transition is now observable: remember that this branch is reviewable so
