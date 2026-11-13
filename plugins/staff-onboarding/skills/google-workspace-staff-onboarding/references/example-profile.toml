@@ -1,0 +1,86 @@
+# Example onboarding profile (contract version 1) for a fictional organisation, "Acme", on example.com.
+# Copy to onboarding/profile.toml in the organisation's own repository and keep only the sections that apply.
+# Tracked: roles, seats, paths and command templates only. Who holds which seat lives in the git-ignored roster.
+# The commands below are placeholders for the organisation's own admin tool; its `spec` command is the authority.
+
+schema = 1
+
+[org]
+key = "acme"
+display_name = "Acme"
+domain = "example.com"
+overlay_skill = ".claude/skills/acme-staff-onboarding/SKILL.md"
+decision_log = "docs/decisions.md"
+operator_name = "Pat Admin"       # how staff name the administrator, used only where a text must name him or her
+admin_contact = "Pat"
+
+[roster]
+people = ".secrets/roster.toml"   # git-ignored
+access_model = "access/model.toml"
+
+[admin]
+spec = "bun scripts/onboarding.ts spec"
+batch = "vault run acme-workspace -- {commands}"
+check = "bun scripts/onboarding.ts check --user {seat} --candidates {candidates}"
+first_signin = "bun scripts/onboarding.ts first-signin --user {seat} --chat {dm_chat} --write"
+backup_code = "bun scripts/onboarding.ts backup-code --user {seat} --chat {dm_chat} --write"
+alias_add = "bun scripts/onboarding.ts alias-add --user {seat} --alias {alias} --write"
+labels = "bun scripts/onboarding.ts labels --user {seat} --names {labels} --write"
+send_as = "bun scripts/onboarding.ts send-as --user {seat} --address {address} --name {sender_name} --write"
+filters = "bun scripts/onboarding.ts filters --user {seat} --file {filters_json} --write"
+drives_domain_only = "bun scripts/onboarding.ts drives-domain-only --write"
+login_audit = "bun scripts/onboarding.ts login-audit --user {seat}"
+
+[security]
+two_step_enforced_ou = "/Staff"
+passkey_required = true
+skip_password_on_shared_seat = true
+shared_seat_password_share = "password-manager-share-item"
+
+[chat]
+channel = "telegram"
+send_as = "the administrator's work account"
+footer_context = "Acme onboarding · {name}"
+name_signature = false
+languages = ["en"]
+workspace = "forum"
+forum_title = "Acme IT"
+secrets_channel = "one-to-one"
+reply_watch = "watch-replies {forum} --from {first_name} --download-attachments"
+
+[chat.bot]
+handle = "@AcmeOnboardingBot"
+vault_scope = "acme-chat-bot"
+flows_dir = "onboarding/flows"
+member_dir = ".secrets/onboarding/{first_name}"
+run = "scripts/onboarding-bot-run.sh {member_json} {flow_json} {run_dir}"
+one_run_per_token = true
+
+[legacy_mail]
+host = "the previous mail host"
+kind = "pop-to-pst"
+forward_target = "{local}@example.com.test-google-a.com"
+keep_copy_off = "bun scripts/legacy-mail.ts keep-copy {address} off"
+spam_filter_off = "bun scripts/legacy-mail.ts spam-filter {address} off"
+alias_forward = "bun scripts/legacy-mail.ts alias {local}={local}@example.com.test-google-a.com"
+
+[remote_support]
+tailnet = "example.com"
+key = "bun scripts/onboarding.ts tailnet-key --hostname {hostname} --pubkey-file {pubkey} --chat {dm_chat} --write"
+check = "bun scripts/onboarding.ts staff-pc-check --hostname {hostname}"
+policy = "access/tailscale-policy.hujson"
+windows_kit = "windows/staff-pc-access"
+mac_kit = "macos/staff-mac-access"
+hostname_pattern = "acme-{first_name}-pc"
+
+[github]
+org = "acme-example"
+team = "staff"
+username_pattern = "{first_name}-acme"
+address_pattern = "{first_name}@example.com"
+
+[lessons]
+log = "onboarding/lessons.ndjson"
+check = "bun scripts/onboarding-profile.ts check"
+generic_target = "terrylica/cc-skills: plugins/staff-onboarding/skills/google-workspace-staff-onboarding"
+org_target = ".claude/skills/acme-staff-onboarding/SKILL.md"
