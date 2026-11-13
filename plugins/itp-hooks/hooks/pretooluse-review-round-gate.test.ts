@@ -379,6 +379,102 @@ describe("the gate measures the directory the COMMAND runs in (2026-10-17)", () 
   });
 });
 
+const RECORD_CLI = join(dirname(import.meta.path), "lib", "review-round-cli.ts");
+
+/**
+ * The 2026-11-12 shape (a PR in a private repository): the session stands in the main checkout on
+ * `main`; `feature`, checked out in its own worktree, is in front of a reviewer, and its head has
+ * moved past its last record with a commit touching two files, so a push needs a fresh record.
+ */
+function reviewableBranchPastItsRecord(prefix: string): { main: string; worktree: string } {
+  const { main, worktree } = reviewedBranchInAWorktree(prefix);
+  const id = identifyRepo(worktree);
+  if (id === null) throw new Error("identifyRepo returned null");
+  markBranchReviewable(id, sh(["rev-parse", "HEAD"], worktree).trim());
+  writeFileSync(join(worktree, "a.txt"), "follow-up\n");
+  writeFileSync(join(worktree, "b.txt"), "new file\n");
+  sh(["add", "-A"], worktree);
+  sh(["commit", "-qm", "follow-up"], worktree);
+  return { main, worktree };
+}
+
+/** A record step the CLI REJECTS: two files, one verdict text reused for both. */
+function rejectedRecordStep(): string {
+  const same = "merge of origin/main only, nothing else changed";
+  return `bun ${RECORD_CLI} record --file 'a.txt=${same}' --file 'b.txt=${same}'`;
+}
+
+function recordExitCode(cwd: string, args: string[]): number {
+  try {
+    execFileSync("bun", [RECORD_CLI, "record", ...args], { cwd, stdio: ["ignore", "ignore", "ignore"] });
+    return 0;
+  } catch (error) {
+    return (error as { status?: number }).status ?? -1;
+  }
+}
+
+describe("a record step chained with a push never lets the push through (2026-11-12)", () => {
+  // The incident: the gate denied `git push` for want of a record; the agent then ran ONE command,
+  // `cd <worktree> && …; for …; do case $f in x) …;; esac; done; bun review-round-cli.ts record … | tail -3
+  // && git push`. The CLI rejected the record (identical verdicts) and the push still went out.
+  // The gate never looked at the record step: the case pattern's `)` made the command's directory
+  // unlocatable, the gate fell back to the SESSION's checkout (`main`, never marked reviewable) and
+  // allowed the push as unmetered. These cases stand in the main checkout, as the session did.
+  test("the record step really is rejected by the CLI (the premise of every case below)", () => {
+    const { worktree } = reviewableBranchPastItsRecord("chain-premise");
+    const same = "merge of origin/main only, nothing else changed";
+    expect(recordExitCode(worktree, ["--file", `a.txt=${same}`, "--file", `b.txt=${same}`])).toBe(1);
+  });
+
+  test("&&: the incident's own shape (cd &&, a case pattern, record | tail && git push) is denied", async () => {
+    const { main, worktree } = reviewableBranchPastItsRecord("chain-and");
+    const command =
+      `cd ${worktree} && args=(); for f in $(git diff --name-only main HEAD); do case $f in a.txt) v="first";; *) v="same";; esac; ` +
+      `args+=(--file "$f=$v"); done; ${rejectedRecordStep()} 2>&1 | tail -3 && git push 2>&1 | tail -2`;
+    const decision = await runHook(command, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain("Run the record step ON ITS OWN first");
+  });
+
+  test(";: cd <worktree>; record; git push is denied", async () => {
+    const { main, worktree } = reviewableBranchPastItsRecord("chain-semicolon");
+    const decision = await runHook(`cd ${worktree}; ${rejectedRecordStep()}; git push`, main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain("Run the record step ON ITS OWN first");
+  });
+
+  test("newline: cd, record and git push on three lines is denied", async () => {
+    const { main, worktree } = reviewableBranchPastItsRecord("chain-newline");
+    const decision = await runHook([`cd ${worktree}`, rejectedRecordStep(), "git push"].join("\n"), main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain("Run the record step ON ITS OWN first");
+  });
+
+  test("&& standing in the worktree itself is denied, and says to record on its own first", async () => {
+    // Already denied before the fix (the directory is the session's own); pinned for the message.
+    const { worktree } = reviewableBranchPastItsRecord("chain-in-worktree");
+    const decision = await runHook(`${rejectedRecordStep()} && git push`, worktree);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+    expect(decision.hookSpecificOutput.permissionDecisionReason).toContain("Run the record step ON ITS OWN first");
+  });
+
+  test("legitimate: the record alone, then the push in a later call, is allowed", async () => {
+    const { main, worktree } = reviewableBranchPastItsRecord("chain-legit");
+    expect(
+      recordExitCode(worktree, ["--file", "a.txt=line rewritten, checked the follow-up", "--file", "b.txt=new file, one line, checked"]),
+    ).toBe(0);
+    expect((await runHook(`cd ${worktree} && git push`, main)).hookSpecificOutput.permissionDecision).toBe("allow");
+    expect((await runHook(`git -C ${worktree} push`, main)).hookSpecificOutput.permissionDecision).toBe("allow");
+    // An unlocatable shape is judged on the checkouts it names, so a valid record lets it through too.
+    expect((await runHook(`cd ${worktree}; git push`, main)).hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: a push from the session's own unmarked checkout stays unmetered", async () => {
+    const { main } = reviewableBranchPastItsRecord("chain-control");
+    expect((await runHook("git push", main)).hookSpecificOutput.permissionDecision).toBe("allow");
+    expect((await runHook(`${rejectedRecordStep()}; git push`, main)).hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+});
 
 describe("a command that runs on another host is not metered here", () => {
   // 2026-10-18: `timeout --foreground 300 ssh mac '... gh pr create ...'` was judged against the LOCAL
