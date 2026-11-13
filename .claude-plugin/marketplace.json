@@ -864,6 +864,30 @@
       "category": "devops"
     },
     {
+      "name": "staff-onboarding",
+      "description": "Onboard staff onto Google Workspace seats for any organisation through a chat conversation: one generic skill (seat, first sign-in, password change, passkey and 2-Step Verification, shared seats and drives, old Outlook mail, labels, filters, send-as, remote support, GitHub) driven by each organisation's own onboarding/profile.toml and overlay skill, improved after every onboarding through a name-free lessons log that becomes pull requests.",
+      "version": "34.14.0",
+      "source": "./plugins/staff-onboarding",
+      "category": "productivity",
+      "author": {
+        "name": "terrylica",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "google-workspace",
+        "onboarding",
+        "staff",
+        "2sv",
+        "passkey",
+        "gmail",
+        "pst",
+        "profile",
+        "lessons",
+        "self-improving"
+      ],
+      "strict": false
+    },
+    {
       "name": "statusline-tools",
       "description": "Custom status line with git status indicators",
       "version": "34.14.0",
