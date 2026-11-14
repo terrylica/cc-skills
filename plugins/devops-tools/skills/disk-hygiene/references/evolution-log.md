@@ -4,11 +4,11 @@ Reverse chronological - newest on top.
 
 ## 2026-11-13 — `uv cache prune` reports removed files, not freed space
 
-**Trigger**: A routine prune printed `Removed N files (X GiB)`, but `df` showed only a small fraction of that freed. The removed entries were hardlinked into live `.venv`s, so their blocks stayed allocated. The Quick Wins row promised 5-40 GB.
+**Trigger**: A routine prune printed `Removed N files (X GiB)`, but `df` showed only a small fraction of that freed. The removed entries still shared their blocks with live `.venv`s, so the space stayed allocated. The Quick Wins row promised 5-40 GB.
 
 **Fix**: The Quick Wins row now gives 0.4-40 GB and says to measure with `df`, not uv's own count.
 
-**Evidence**: In the same audit, uv's own count was about 15 times the space `df` showed freed; Go's build cache, sccache and Homebrew freed what `du` predicted. Removing benchmark-only Hugging Face models from a deduplicated store: `du -L` per model summed to about twice the real gain, while counting only the blobs unique to those models predicted the `df` result exactly. In-repo build output in idle repos (`.venv`, Rust `target/`, bun `node_modules`) freed under a tenth of its `du` size, because the venvs are uv hardlinks and bun's `node_modules` are clones of its install cache. The dependent-service guard skipped about 45% of candidates (repos a launchd job or running process was using), plus a vendored checkout that a nightly test needs.
+**Evidence**: In the same audit, uv's own count was about 15 times the space `df` showed freed; Go's build cache, sccache and Homebrew freed what `du` predicted. Removing benchmark-only Hugging Face models from a deduplicated store: `du -L` per model summed to about twice the real gain, while counting only the blobs unique to those models predicted the `df` result exactly. In-repo build output in idle repos (`.venv`, Rust `target/`, bun `node_modules`) freed under a tenth of its `du` size, because uv and bun both clone files from their caches on macOS. Every `archive-v0` file showed `links=1` regardless, so the skill's hardlink-count check, which says `links=1` means deleting reclaims, is wrong on macOS; SKILL.md now limits it to Linux and explains the clone case. The dependent-service guard skipped about 45% of candidates (repos a launchd job or running process was using), plus a vendored checkout that a nightly test needs.
 
 ## 2026-11-03 — `du` overcounts APFS clones: Aerials, bun node_modules, deduped HF store
 

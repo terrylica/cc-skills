@@ -187,12 +187,14 @@ while read -r kb path; do
 done < /tmp/uv-all.txt | sort -k2 -rn | head
 ```
 
-**Also check hardlink counts before promising a number.** uv hardlinks cache files into live `.venv`s, so deleting a cache entry with `links>1` reclaims _nothing_:
+**On Linux, check hardlink counts before promising a number.** There uv hardlinks cache files into live `.venv`s, so deleting a cache entry with `links>1` reclaims _nothing_:
 
 ```bash
-stat -f 'links=%l size=%z %N' "$(find ~/.cache/uv/archive-v0 -type f -size +20M | head -1)"
-# links=1 -> deleting truly reclaims;  links>1 -> shared with a live venv, no gain
+stat -c 'links=%h size=%s %n' "$(find ~/.cache/uv/archive-v0 -type f -size +20M | head -1)"
+# Linux: links=1 -> deleting truly reclaims;  links>1 -> shared with a live venv, no gain
 ```
+
+**On macOS this check proves nothing.** uv's default link mode there is `clone`: each `.venv` file is an APFS copy-on-write clone of the cache file, which shares its blocks but has its own inode, so `stat` shows `links=1` on both and no tool reports the sharing. Measured 2026-11-14: a polars library in a live venv and its cache copy both showed `links=1`, and so did every file in `archive-v0`, while deleting 5 venvs and 72 `node_modules` (bun clones too) freed under a tenth of their `du` size. On macOS, a full `uv cache clean` or `bun pm cache rm` is still safe for existing venvs and `node_modules`, because clones survive deletion of the original, but the gain is unknowable in advance: measure it with `df`, and expect later installs to download again.
 
 **Don't let "Python is bloated" be the conclusion.** In the same audit, Rust's per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python `.venv`s — 8× more — because `target/` is per-repo with no sharing while uv's archive is shared across every project. Report the measured split, not the folk wisdom.
 
@@ -474,9 +476,9 @@ Ordered by typical space reclaimed (highest first):
 | Action                          | Typical Savings | Risk                                      | Command                                                                                         |
 | ------------------------------- | --------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Rust `target/` dirs (Phase 2.5) | 10-60 GB+       | None (cold rebuild on next `cargo build`) | `find ROOTS -type d -name target` + Cargo.toml-sibling guard                                    |
-| Python `.venv` dirs (Phase 2.5) | Often ~0 GB     | None (re-sync via `uv sync`)              | uv hardlinks venv files from its cache: measure with `df` before/after, not `du`                |
+| Python `.venv` dirs (Phase 2.5) | Often ~0 GB     | None (re-sync via `uv sync`)              | venv files share blocks with uv's cache (hardlinks on Linux, APFS clones on macOS): trust `df` |
 | `go clean -cache`               | 5-25 GB         | None (re-downloads)                       | `go clean -cache`                                                                               |
-| `uv cache prune`                | 0.4-40 GB       | None (drops only unused entries)          | `uv cache prune` (check lock first); its "Removed N GiB" counts hardlinked files, so trust `df` |
+| `uv cache prune`                | 0.4-40 GB       | None (drops only unused entries)          | `uv cache prune` (check lock first); its "Removed N GiB" counts files still shared with venvs, so trust `df` |
 | `brew cleanup --prune=all`      | 3-10 GB         | None (re-downloads)                       | `brew cleanup --prune=all`                                                                      |
 | Delete movie files in Downloads | 2-10 GB         | Check first                               | Manual after AskUserQuestion                                                                    |
 | Prune old rustup toolchains     | 2-5 GB          | Keep current                              | `rustup toolchain list` then `rustup toolchain uninstall <name>`                                |
