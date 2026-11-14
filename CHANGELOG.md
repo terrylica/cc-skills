@@ -1,3 +1,14 @@
+# [34.15.0](https://github.com/terrylica/cc-skills/compare/v34.14.1...v34.15.0) (2026-11-14)
+
+
+### Features
+
+* **pushover-commander:** --app <name> uses api_token_<name> ([49e2db9](https://github.com/terrylica/cc-skills/commit/49e2db97b8313d3f5108fe62d5418fa0f454a581))
+
+pushover_core.ts knew two apps: main, and test for everything else. So every long-running sender that named no app (or any app other than main) went out through the test app, and alerts from unrelated jobs piled up in one test channel. --app &lt;name> now reads the token stored as api_token_&lt;name> (vault scope, 1Password label or Keychain account, whichever the resolver finds first), so each long-running sender can have its own app without a code change. main and test keep their fields.
+
+Names are lower-case letters, digits and underscores (1-40), so a name cannot reach another credential field or the shell; anything else is refused before a request is sent. The mapping is the exported pure function tokenFieldFor, with tests. send-notification, emergency-priority2-receipt, custom-sounds, the resolver header, the example env and the private-config reference document the new form.
+
 ## [34.14.1](https://github.com/terrylica/cc-skills/compare/v34.14.0...v34.14.1) (2026-11-14)
 
 
