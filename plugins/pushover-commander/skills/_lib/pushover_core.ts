@@ -31,8 +31,22 @@ function creds(field: string): string {
   if (r.status !== 0) throw new Error(`resolve_pushover_secret failed for '${field}': ${r.stderr ?? ""}`);
   return r.stdout.trim();
 }
+/**
+ * The credential field that holds the token for `--app <app>`. `main` and `test` are the two built-in apps; any other
+ * name is a dedicated application whose token is stored as `api_token_<app>` (vault scope, 1Password label or
+ * Keychain account, whichever the resolver finds first), so a long-running sender gets its own app without a code
+ * change here. Names are lower-case letters, digits and underscores, so they cannot reach another field.
+ */
+export function tokenFieldFor(app: string): string {
+  if (app === "main") return "api_token_main";
+  if (app === "test") return "api_token_test";
+  if (!/^[a-z0-9_]{1,40}$/.test(app)) {
+    throw new Error(`--app '${app}': use main, test or a dedicated app name of lower-case letters, digits and underscores (token field api_token_<name>)`);
+  }
+  return `api_token_${app}`;
+}
 function tokenFor(app: string): string {
-  return app === "main" ? creds("api_token_main") : creds("api_token_test");
+  return creds(tokenFieldFor(app));
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

@@ -31,6 +31,7 @@ Override the scope name with `PUSHOVER_VAULT_SCOPE` if you want a different one.
    | `device`         | (optional) a default device name                                   |
    | `api_token_main` | (optional) production app token for `send-notification --app main` |
    | `api_token_test` | (optional) test app token (the default for `send-notification`)    |
+   | `api_token_<name>` | (optional) a dedicated app's token for `--app <name>`; give each long-running sender its own app |
 
 2. **Copy the template** to your private, gitignored location and fill it in:
 
