@@ -14,10 +14,10 @@ Send a Pushover notification via the TypeScript core `pushover_core.ts` (Bun). S
 ```bash
 env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" send \
   --message "your message" --title "Title" [--priority N] [--attach image.png] \
-  [--sound NAME] [--url https://link] [--url-title "link title"] [--html|--monospace] [--app main|test] [--force]
+  [--sound NAME] [--url https://link] [--url-title "link title"] [--html|--monospace] [--app main|test|<name>] [--force]
 ```
 
-- `--app test` (default) uses the test application token; `--app main` uses the production token.
+- `--app test` (default) uses the test application token; `--app main` uses the production token; `--app <name>` (lower-case letters, digits, underscores) uses a dedicated application whose token is stored as `api_token_<name>`. Give every long-running sender its own app this way, so the test app stays a test channel.
 - `--html` / `--monospace` enable rich formatting (mutually exclusive — preflight refuses both).
 - All limits live in `skills/_lib/pushover_api_limits.json` (SSoT). **Preflight** validates every send: it **refuses**
   url>512, attachment>5 MB, html+monospace (override with `--force`) and **warns** on message/title
