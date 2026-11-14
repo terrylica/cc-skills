@@ -47,6 +47,7 @@ workspace = "forum"
 forum_title = "Acme IT"
 secrets_channel = "one-to-one"
 reply_watch = "watch-replies {forum} --from {first_name} --download-attachments"
+watch_hours = { days = ["Mon", "Tue", "Wed", "Thu", "Fri"], start = "09:00", end = "17:00", utc_offset = "-05:00" }   # watchers run only inside these hours
 
 [chat.bot]
 handle = "@AcmeOnboardingBot"
