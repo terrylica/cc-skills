@@ -471,20 +471,20 @@ brew install dust dua-cli gdu
 
 Ordered by typical space reclaimed (highest first):
 
-| Action                          | Typical Savings | Risk                                      | Command                                                                          |
-| ------------------------------- | --------------- | ----------------------------------------- | -------------------------------------------------------------------------------- |
-| Rust `target/` dirs (Phase 2.5) | 10-60 GB+       | None (cold rebuild on next `cargo build`) | `find ROOTS -type d -name target` + Cargo.toml-sibling guard                     |
-| Python `.venv` dirs (Phase 2.5) | Often ~0 GB     | None (re-sync via `uv sync`)              | uv hardlinks venv files from its cache: measure with `df` before/after, not `du` |
-| `go clean -cache`               | 5-25 GB         | None (re-downloads)                       | `go clean -cache`                                                                |
-| `uv cache prune`                | 5-40 GB         | None (drops only unused entries)          | `uv cache prune` (check `lsof ~/.cache/uv/.lock` first)                          |
-| `brew cleanup --prune=all`      | 3-10 GB         | None (re-downloads)                       | `brew cleanup --prune=all`                                                       |
-| Delete movie files in Downloads | 2-10 GB         | Check first                               | Manual after AskUserQuestion                                                     |
-| Prune old rustup toolchains     | 2-5 GB          | Keep current                              | `rustup toolchain list` then `rustup toolchain uninstall <name>`                 |
-| Prune stale proto toolchains    | 0.5-3 GB        | Cross-check `.prototools` pins first      | `proto versions <tool> --installed`, then `proto uninstall <tool> <version>`     |
-| `npm cache clean --force`       | 0.5-2 GB        | None (re-downloads)                       | `npm cache clean --force`                                                        |
-| `pip cache purge`               | 0.5-2 GB        | None (re-downloads)                       | `pip cache purge`                                                                |
-| Docker system prune             | 5-30 GB         | Removes stopped containers                | `docker system prune -a`                                                         |
-| Empty Trash                     | Variable        | Irreversible                              | `find ~/.Trash -mindepth 1 -delete` (NOT `rm -rf ~/.Trash/*`)                    |
+| Action                          | Typical Savings | Risk                                      | Command                                                                                         |
+| ------------------------------- | --------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Rust `target/` dirs (Phase 2.5) | 10-60 GB+       | None (cold rebuild on next `cargo build`) | `find ROOTS -type d -name target` + Cargo.toml-sibling guard                                    |
+| Python `.venv` dirs (Phase 2.5) | Often ~0 GB     | None (re-sync via `uv sync`)              | uv hardlinks venv files from its cache: measure with `df` before/after, not `du`                |
+| `go clean -cache`               | 5-25 GB         | None (re-downloads)                       | `go clean -cache`                                                                               |
+| `uv cache prune`                | 0.4-40 GB       | None (drops only unused entries)          | `uv cache prune` (check lock first); its "Removed N GiB" counts hardlinked files, so trust `df` |
+| `brew cleanup --prune=all`      | 3-10 GB         | None (re-downloads)                       | `brew cleanup --prune=all`                                                                      |
+| Delete movie files in Downloads | 2-10 GB         | Check first                               | Manual after AskUserQuestion                                                                    |
+| Prune old rustup toolchains     | 2-5 GB          | Keep current                              | `rustup toolchain list` then `rustup toolchain uninstall <name>`                                |
+| Prune stale proto toolchains    | 0.5-3 GB        | Cross-check `.prototools` pins first      | `proto versions <tool> --installed`, then `proto uninstall <tool> <version>`                    |
+| `npm cache clean --force`       | 0.5-2 GB        | None (re-downloads)                       | `npm cache clean --force`                                                                       |
+| `pip cache purge`               | 0.5-2 GB        | None (re-downloads)                       | `pip cache purge`                                                                               |
+| Docker system prune             | 5-30 GB         | Removes stopped containers                | `docker system prune -a`                                                                        |
+| Empty Trash                     | Variable        | Irreversible                              | `find ~/.Trash -mindepth 1 -delete` (NOT `rm -rf ~/.Trash/*`)                                   |
 
 ## Post-Change Checklist
 

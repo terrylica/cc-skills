@@ -2,6 +2,14 @@
 
 Reverse chronological - newest on top.
 
+## 2026-11-13 — `uv cache prune` reports removed files, not freed space
+
+**Trigger**: A routine prune printed `Removed N files (X GiB)`, but `df` showed only a small fraction of that freed. The removed entries were hardlinked into live `.venv`s, so their blocks stayed allocated. The Quick Wins row promised 5-40 GB.
+
+**Fix**: The Quick Wins row now gives 0.4-40 GB and says to measure with `df`, not uv's own count.
+
+**Evidence**: In the same audit, uv's own count was about 15 times the space `df` showed freed; Go's build cache, sccache and Homebrew freed what `du` predicted. Removing benchmark-only Hugging Face models from a deduplicated store: `du -L` per model summed to about twice the real gain, while counting only the blobs unique to those models predicted the `df` result exactly. In-repo build output in idle repos (`.venv`, Rust `target/`, bun `node_modules`) freed under a tenth of its `du` size, because the venvs are uv hardlinks and bun's `node_modules` are clones of its install cache. The dependent-service guard skipped about 45% of candidates (repos a launchd job or running process was using), plus a vendored checkout that a nightly test needs.
+
 ## 2026-11-03 — `du` overcounts APFS clones: Aerials, bun node_modules, deduped HF store
 
 **Trigger**: In an audit at 89% full, three deletions (per-user Aerial videos, Rust `target/` dirs, 17 agent worktrees) totalled about 64 GB by `du`, but `df` rose by only about 15 GB across those three. The per-user Aerial videos (37 GB) are clones of a root-owned system store, and bun's `node_modules` in 17 agent worktrees (14 GB) are clonefile copies of bun's cache; only the Rust `target/` dirs freed what `du` showed. A later HF prune hit the same trap from another side: model dirs symlink into a second, shared `hub/blobs/<xx>/<sha>` store, so deleting a model dir alone freed nothing.
