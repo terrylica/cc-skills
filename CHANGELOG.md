@@ -1,3 +1,20 @@
+## [34.14.1](https://github.com/terrylica/cc-skills/compare/v34.14.0...v34.14.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **disk-hygiene:** hardlink-count check is Linux-only; macOS clones ([46a741d](https://github.com/terrylica/cc-skills/commit/46a741d3401282344fc36ebd87c65716d97aad93))
+
+On macOS uv's default link mode is clone, so a venv file and its archive-v0 copy are separate inodes sharing APFS blocks and both show links=1. The skill's check read links=1 as "deleting truly reclaims", which on macOS is always the answer and often wrong: deleting venvs and bun node_modules freed under a tenth of their du size. The check is now scoped to Linux (GNU stat syntax), and a macOS paragraph explains that a full uv or bun cache clean is safe for existing environments but its gain can only be measured with df. The previous commit's log entry wrongly called the venvs hardlinks; it now says clones.
+
+* **itp-hooks:** review gate meters every checkout a push may run in ([78caeaa](https://github.com/terrylica/cc-skills/commit/78caeaa43d32579b304e2f4e41cbe43e2083fb51))
+
+On 2026-11-12 the gate denied a bare `git push` for want of a record, then let through `cd <worktree> && R=…; args=(); for f in …; do case $f in x) …;; esac; …; done; bun "$R" record … | tail -3 && git push`. The record step was rejected (identical verdicts) and the push went out with no valid record.
+
+The record step played no part. `directoryChangesAreUnconditional` (lib/review-round-artifact.ts:613) reads the `)` of `args=()` or of a case pattern as a subshell group, so `gatedCommandDirectory` returned null, the gate fell back to the session's checkout (`main`, never marked reviewable) and the `isBranchReviewable` early return allowed the push as unmetered. Any `;`- or newline-chained `cd <worktree>` did the same.
+
+An unlocated push is now judged on the session's checkout and on every checkout the command names (`cd`, `pushd`, `git -C`, new `commandDirectories`); each one that is in front of a reviewer must hold a valid record that exists before the command runs. A record step in the same command never counts; it only adds a note to the deny telling the agent to run the record step on its own first and push in a separate command.
+
 # [34.14.0](https://github.com/terrylica/cc-skills/compare/v34.13.3...v34.14.0) (2026-11-12)
 
 
