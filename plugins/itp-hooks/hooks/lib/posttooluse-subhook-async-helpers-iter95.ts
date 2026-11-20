@@ -31,7 +31,7 @@
  * applies here too — these names are deliberately long.
  */
 
-import { mkdirSync, openSync, closeSync, constants } from "node:fs";
+import { mkdirSync, openSync, closeSync, constants, existsSync } from "node:fs";
 import { join } from "node:path";
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -386,7 +386,7 @@ export function tryAtomicallyClaimOncePerSessionGenericReminderGateFileForRemind
   reminderName: string,
   sessionId: string,
 ): boolean {
-  const gateDirectory = perUserGateDirectory(`/tmp/.claude-${reminderName}-reminder`);
+  const gateDirectory = genericReminderGateDirectory(reminderName);
   try {
     mkdirSync(gateDirectory, { recursive: true });
   } catch {
@@ -400,4 +400,24 @@ export function tryAtomicallyClaimOncePerSessionGenericReminderGateFileForRemind
   } catch {
     return false; // Lost the race or filesystem error; either way, no reminder
   }
+}
+
+/** The per-user gate directory of a generic once-per-session reminder. */
+function genericReminderGateDirectory(reminderName: string): string {
+  return perUserGateDirectory(`/tmp/.claude-${reminderName}-reminder`);
+}
+
+/**
+ * Read-only: has this session already claimed the reminder's gate? For an
+ * evidence-gated reminder, which must run its (costlier) evidence probe
+ * BEFORE claiming, so that a miss never spends the gate: checking this first
+ * keeps every edit after the reminder fired a sub-millisecond noop. The
+ * O_EXCL claim stays the only race-safe arbiter; this is a fast path, and a
+ * stale `false` merely costs one probe before the claim loses the race.
+ */
+export function isOncePerSessionGenericReminderGateFileAlreadyClaimed(
+  reminderName: string,
+  sessionId: string,
+): boolean {
+  return existsSync(join(genericReminderGateDirectory(reminderName), `${sessionId}.reminded`));
 }

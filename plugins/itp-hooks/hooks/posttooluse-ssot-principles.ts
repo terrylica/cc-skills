@@ -1,7 +1,23 @@
 #!/usr/bin/env bun
 /**
  * PostToolUse hook: SSoT/DI principles reminder with ast-grep detection.
- * Triggers ONCE PER SESSION on first Write/Edit of a code file.
+ * Triggers ONCE PER SESSION on the first Write/Edit of a code file in which
+ * ast-grep finds an SSoT anti-pattern (direct env-var read, hardcoded default).
+ *
+ * ─── 2026-11-15: evidence-gated ───────────────────────────────────────────
+ *
+ * Until 2026-11-15 the card fired on the first code file of the session even
+ * when ast-grep found nothing: a 35-line Cloudflare Worker redirect scanned
+ * clean (`[]`) and still got the four principles (operator report,
+ * 2026-11-15). The scan now runs BEFORE the once-per-session gate, and the
+ * card fires only with at least one finding; a clean file returns noop and
+ * leaves the gate unclaimed, so the first file with a real finding still gets
+ * it. The extension set is narrowed to the languages the rules cover
+ * (`ast-grep-ssot/rules/`: Python, TypeScript incl. .mts/.cts, Rust, Go);
+ * ast-grep has no rule for .tsx/.js/.jsx/.java/.kt/.rb, so scanning them
+ * could never produce evidence. Cost: one ast-grep spawn (~10 ms measured)
+ * per eligible edit until the first finding, in parallel with the other
+ * subhooks.
  *
  * ─── Iter-97 architectural change ─────────────────────────────────────────
  *
@@ -66,6 +82,7 @@ import {
 import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-iter106.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
+  isOncePerSessionGenericReminderGateFileAlreadyClaimed,
   tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName,
 } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 import { isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook } from "./lib/posttooluse-subhook-contract-iter93.ts";
@@ -91,17 +108,16 @@ const AST_GREP_SSOT_RULES_PROJECT_DIRECTORY_ABSOLUTE_PATH = join(
 const AST_GREP_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS = 2000;
 const MAX_RENDERED_AST_GREP_FINDINGS_BEFORE_TRUNCATION = 10;
 
+// Exactly the languages with rules in ast-grep-ssot/rules/ (ast-grep's
+// `typescript` language covers .ts/.mts/.cts but not .tsx/.js/.jsx). Add an
+// extension here only together with a rule directory that can match it.
 const CODE_FILE_EXTENSIONS_SCANNED_FOR_SSOT_VIOLATIONS = new Set([
   ".py",
   ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
+  ".mts",
+  ".cts",
   ".rs",
   ".go",
-  ".java",
-  ".kt",
-  ".rb",
 ]);
 
 const TEST_FILE_PATH_PATTERNS_EXCLUDED_FROM_SSOT_SCAN: readonly RegExp[] = [
@@ -260,11 +276,12 @@ function buildSsotPrinciplesReminderMessageWithAstGrepFindingsAppended(
  * Classify a PostToolUse Write|Edit event for SSoT-principles relevance.
  *
  *   - Returns `additional_context` ONCE PER SESSION on the first eligible
- *     code-file edit (gated atomically via O_EXCL).
- *   - All subsequent edits in the same session return `noop` (gate already
- *     claimed). The orchestrator's `Promise.all` parallelism is unaffected
- *     — the gate check + early-return is a sub-millisecond filesystem
- *     `mkdirSync` + `openSync(... O_EXCL)` round-trip.
+ *     code-file edit in which ast-grep finds at least one anti-pattern
+ *     (gated atomically via O_EXCL, claimed only after a finding).
+ *   - A clean scan returns `noop` and leaves the gate unclaimed.
+ *   - Until the first finding, each eligible edit pays one ~10 ms ast-grep
+ *     spawn. After the card fired, a read-only gate check returns `noop`
+ *     before the spawn, as cheaply as before 2026-11-15.
  *   - Skips test files (test fixtures legitimately hardcode values).
  *   - Honors `# SSoT-OK` / `// SSoT-OK` escape-hatch comment in the
  *     proposed content (suppresses the reminder for files explicitly
@@ -306,9 +323,10 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
-    const sessionId = input.session_id || process.env.CLAUDE_SESSION_ID || "unknown";
+    const sessionId = input.session_id || process.env.CLAUDE_SESSION_ID || "unknown"; // SSoT-OK: hook-runtime session id, not app config
+    // Fast path: once the card has fired, skip the ast-grep spawn entirely.
     if (
-      !tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName(
+      isOncePerSessionGenericReminderGateFileAlreadyClaimed(
         SSOT_PRINCIPLES_REMINDER_NAME_FOR_ONCE_PER_SESSION_GATE_FILE_NAMESPACE,
         sessionId,
       )
@@ -317,13 +335,9 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
     }
 
     // PostToolUse invariant: file is on disk with proposed content by the
-    // time we run. No temp-file scratch buffer needed.
-    if (!existsSync(filePath)) {
-      // The file should exist (PostToolUse fires after Write/Edit), but
-      // in edge cases (e.g., concurrent file deletion) we still want to
-      // fire the principles reminder even without ast-grep findings.
-      return buildPostToolUseAdditionalContextDecision(SSOT_PRINCIPLES_REMINDER_BASE_MESSAGE);
-    }
+    // time we run. No temp-file scratch buffer needed. A file that vanished
+    // (concurrent deletion) has no evidence to show.
+    if (!existsSync(filePath)) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
     const astGrepFindings = await runAstGrepScanOnEditedFileAndParseJsonFindingsAsynchronously(filePath);
 
@@ -332,6 +346,19 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
     const findingsExcludingPerLineEscapeHatch = astGrepFindings.filter(
       (f) => !/SSoT-OK/.test(f.text),
     );
+
+    // Evidence BEFORE the gate: a clean file must not spend the session's
+    // single reminder (2026-11-15 misfire on a redirect Worker).
+    if (findingsExcludingPerLineEscapeHatch.length === 0) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    if (
+      !tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName(
+        SSOT_PRINCIPLES_REMINDER_NAME_FOR_ONCE_PER_SESSION_GATE_FILE_NAMESPACE,
+        sessionId,
+      )
+    ) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
 
     // Iter-105: defense-in-depth against Claude's 10K-character file-spillover threshold
     // (astGrepFindings count is unbounded per edited file).
