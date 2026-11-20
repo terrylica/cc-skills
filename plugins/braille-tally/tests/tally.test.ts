@@ -99,8 +99,9 @@ describe("html", () => {
 });
 
 describe("AskUserQuestion guard", () => {
-  test("a tallied, legended, ranked question passes", () => {
+  test("a tallied, ranked question passes, with or without a legend in its text", () => {
     expect(problems(q(["⣿⣶⣴ Guard (Recommended)", "⣴⣶⣿ Reminder", "⣤⣠⣿ Rule only"]))).toEqual([]);
+    expect(problems(q(["⣿⣶⣴ Guard", "⣴⣶⣿ Reminder"], "Which way?"))).toEqual([]); // no legend preamble needed (operator, 2026-11-20)
   });
   test("a label without a tally is named", () => {
     const p = problems(q(["⣿⣶⣴ Guard", "Reminder"]));
@@ -108,8 +109,7 @@ describe("AskUserQuestion guard", () => {
     expect(p[0]).toContain('"Pick": 1 option label(s) do not start with a Braille Tally');
     expect(p[0]).toContain('"Reminder"');
   });
-  test("a missing legend, mixed cell counts and an out-of-rank order are each named", () => {
-    expect(problems(q(["⣿⣶⣴ A", "⣴⣶⣿ B"], "Which?"))[0]).toContain("needs the legend");
+  test("mixed cell counts and an out-of-rank order are each named", () => {
     expect(problems(q(["⣿⣶⣴ A", "⣴⣶ B"]))[0]).toContain("same number of cells");
     const r = problems(q(["⣤⣠⣿ Rule only", "⣿⣶⣿ Guard"]));
     expect(r[0]).toContain("option 2 (⣿⣶⣿) beats option 1 (⣤⣠⣿)");
@@ -119,7 +119,7 @@ describe("AskUserQuestion guard", () => {
     expect(problems(q([`Plain ${ESCAPE_TOKEN}`]))).toEqual([]);
     expect(problems(null)).toEqual([]);
     expect(problems({ questions: "x" })).toEqual([]);
-    expect(problems({ questions: [null, { question: "Braille Tally", options: [{ label: "x" }] }] })[0]).toStartWith("question 2:");
+    expect(problems({ questions: [null, { question: "Which?", options: [{ label: "x" }] }] })[0]).toStartWith("question 2:");
   });
   test("the deny message teaches the format but never names the escape token", () => {
     const m = denyMessage(["x"]);

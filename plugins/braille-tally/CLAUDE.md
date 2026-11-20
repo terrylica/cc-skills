@@ -11,14 +11,14 @@
 | [`skills/braille-tally/SKILL.md`](./skills/braille-tally/SKILL.md)               | **SSoT of the convention**: axes, legend, ranking, placement, the measurements                |
 | [`lib/tally.ts`](./lib/tally.ts)                                                 | The only implementation; no dependencies, so other plugins and projects can copy or import it |
 | [`scripts/braille-tally.ts`](./scripts/braille-tally.ts)                         | CLI over the library; `spec` prints its command set as JSON                                   |
-| [`hooks/askuserquestion-tally-guard.ts`](./hooks/askuserquestion-tally-guard.ts) | PreToolUse deny for untallied, unlegended or out-of-rank AskUserQuestion options              |
+| [`hooks/askuserquestion-tally-guard.ts`](./hooks/askuserquestion-tally-guard.ts) | PreToolUse deny for untallied or out-of-rank AskUserQuestion options              |
 | [`tests/tally.test.ts`](./tests/tally.test.ts)                                   | `bun test` from this directory                                                                |
 
 ## Hooks
 
 | Hook                             | Event      | Matcher         | Purpose                                                                                                                                                                                |
 | -------------------------------- | ---------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `askuserquestion-tally-guard.ts` | PreToolUse | AskUserQuestion | Deny until every option label starts with a tally, the question carries the legend, and the options are in rank order; escape token `BRAILLE-TALLY-EXEMPT` (never in the deny message) |
+| `askuserquestion-tally-guard.ts` | PreToolUse | AskUserQuestion | Deny until every option label starts with a tally and the options are in rank order (no legend in the question); escape token `BRAILLE-TALLY-EXEMPT` (never in the deny message) |
 
 `hooks/hooks.json` is the only registration.
 
