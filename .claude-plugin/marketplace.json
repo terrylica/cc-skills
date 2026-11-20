@@ -1010,6 +1010,27 @@
         "human-in-the-loop"
       ],
       "strict": false
+    },
+    {
+      "name": "braille-tally",
+      "description": "The Braille Tally: rank items on Importance · Urgency · Simplicity as one shape of Braille cells (level n = n dots, ⡀…⣿), evenly spaced even in plain text; a CLI to print, draw and Pareto-rank tallies, and a guard that makes every AskUserQuestion option carry one",
+      "version": "34.21.0",
+      "source": "./plugins/braille-tally",
+      "category": "productivity",
+      "author": {
+        "name": "terrylica",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "braille-tally",
+        "ranking",
+        "prioritization",
+        "pareto",
+        "askuserquestion",
+        "braille",
+        "sparkline"
+      ],
+      "strict": false
     }
   ]
 }

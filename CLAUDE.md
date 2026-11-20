@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **40 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **41 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -105,13 +105,13 @@ On macOS and Linux, a command that needs biometric unlock, a password manager's 
 
 Recurring architectural patterns across the plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
 
-| Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                 |
-| **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                           |
-| **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                             |
-| **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md) |
-| **Human-in-the-loop command** | A command needing a person or a TTY runs in Orca's floating terminal via `orca-float run`, never a new terminal window — rule above | [orca-tools floating-terminal](./plugins/orca-tools/skills/floating-terminal/SKILL.md) |
+| Pattern                       | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **setup + health skills**     | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                 |
+| **Credential resolution**     | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                           |
+| **Per-skill CLAUDE.md**       | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                             |
+| **Plugin path resolution**    | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md) |
+| **Human-in-the-loop command** | A command needing a person or a TTY runs in Orca's floating terminal via `orca-float run`, never a new terminal window — rule above              | [orca-tools floating-terminal](./plugins/orca-tools/skills/floating-terminal/SKILL.md)                                                           |
 
 > These are **conventions to adopt, not code to extract** — per-plugin isolation (own `package.json`/`tsconfig.json`, own installer) is intentional. Only `diff`-proven byte-identical logic is real duplication.
 
