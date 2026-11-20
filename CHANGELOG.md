@@ -1,3 +1,17 @@
+## [34.22.1](https://github.com/terrylica/cc-skills/compare/v34.22.0...v34.22.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **braille-tally:** no legend line required in AskUserQuestion ([98f32a8](https://github.com/terrylica/cc-skills/commit/98f32a8c04485937722d810d4afc9742309485e8))
+
+The operator asked for the legend line to be removed from every AskUserQuestion: "No need to be in the front of AskUserQuestion as preamble", while every option must still carry its tally. A question's options always use the default axes, Importance · Urgency · Simplicity, so the legend there only delays the actual question. Lists keep their legend once at the head.
+
+- hooks/askuserquestion-tally-guard.ts: the rule that the question text contain "Braille Tally" is removed; every option label must still start with a tally, in rank order; the deny message says the axes are always the default three and that no legend goes in the question
+- tests/tally.test.ts: a tallied, ranked question without a legend passes; the missing-legend case is gone
+- skills/braille-tally/SKILL.md: rules 2 and 5 and the guard section updated, with an evolution-log entry
+- README.md, CLAUDE.md, hooks/hooks.json, the ADR and the design spec say the same
+
 # [34.22.0](https://github.com/terrylica/cc-skills/compare/v34.21.0...v34.22.0) (2026-11-20)
 
 
