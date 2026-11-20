@@ -84,13 +84,14 @@ Claude Code installs a plugin's npm/Bun packages on every install and update, bu
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (40)
+## All Plugins (41)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
 - [agent-reach](./agent-reach/CLAUDE.md)
 - [arxiv-source-first](./arxiv-source-first/CLAUDE.md)
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
+- [braille-tally](./braille-tally/CLAUDE.md) — the Braille Tally ranking glyph (⡀…⣿), its CLI and the AskUserQuestion guard
 - [calcom-commander](./calcom-commander/CLAUDE.md)
 - [chrome-profiles](./chrome-profiles/CLAUDE.md)
 - [cli-anything](./cli-anything/CLAUDE.md)

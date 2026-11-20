@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hooks for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-40-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-41-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -14,6 +14,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools and workflow hoo
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | [agent-reach](./plugins/agent-reach/)                   | Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.                                                | productivity  |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                                                          | utilities     |
+| [braille-tally](./plugins/braille-tally/)               | The Braille Tally: rank items on Importance · Urgency · Simplicity as one shape of Braille cells (⡀…⣿), plus an AskUserQuestion guard                                                                                                                                                                   | productivity  |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                                                       | productivity  |
 | [chrome-profiles](./plugins/chrome-profiles/)           | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser                                                                                                    | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.                                    | development   |
@@ -62,8 +63,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 40 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
-for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf orca-tools plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
+# 2. Install all 41 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
+for p in agent-reach arxiv-source-first asciinema-tools braille-tally calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf orca-tools plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -460,8 +461,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (40 plugins) — SSoT
-├── plugins/                      # 40 marketplace plugins (each with its own CLAUDE.md)
+│   └── marketplace.json          # Plugin registry (41 plugins) — SSoT
+├── plugins/                      # 41 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools
