@@ -1,5 +1,5 @@
 {
-  "description": "Braille Tally: every AskUserQuestion option carries a tally, with a legend, in rank order",
+  "description": "Braille Tally: every AskUserQuestion option carries a tally, in rank order (no legend in the question)",
   "hooks": {
     "PreToolUse": [
       {

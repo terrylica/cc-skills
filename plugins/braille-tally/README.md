@@ -26,7 +26,7 @@ Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to 
 | Skill `braille-tally`       | The convention: axes, legend, Pareto ranking, where tallies go, the measurements behind it                                                                                 |
 | `scripts/braille-tally.ts`  | `tally`, `parse`, `legend`, `html` (drawn, no font needed, for email and web pages), `rank` (Pareto fronts) and `spec`                                                     |
 | `lib/tally.ts`              | The same functions to import, with no dependencies                                                                                                                         |
-| Hook: AskUserQuestion guard | Blocks a question in three cases: an option label that doesn't start with a tally, a question text without the legend, or options out of rank. It says exactly what to fix |
+| Hook: AskUserQuestion guard | Blocks a question in two cases: an option label that doesn't start with a tally, or options out of rank. The question itself needs no legend: its axes are always the default three. It says exactly what to fix |
 
 ## Adopt it
 

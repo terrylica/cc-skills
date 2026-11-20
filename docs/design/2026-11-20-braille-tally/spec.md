@@ -36,8 +36,7 @@ For each question in `tool_input.questions`:
 
 1. Every option `label` matches `^[⡀⣀⣠⣤⣴⣶⣾⣿]{2,6}` (a tally of 2 to 6 cells, then one space).
 2. All options of the question have the same number of cells.
-3. The `question` text contains "Braille Tally" (the legend).
-4. No later option dominates an earlier one: `outOfRank` returns undefined.
+3. No later option dominates an earlier one: `outOfRank` returns undefined.
 
 Any violation produces one deny that lists every problem. When the payload is unparseable or of an unexpected shape, the guard allows the call and prints nothing.
 

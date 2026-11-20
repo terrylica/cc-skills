@@ -5,10 +5,11 @@
  * For each question it requires:
  *   1. every option label to start with a tally (2-6 Braille cells, one per axis) and one space, the same number of cells
  *      on every option of that question;
- *   2. the question text to carry the legend, i.e. to contain the words "Braille Tally" (the default legend is
- *      `bun lib`'s legend(): "Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to ⣿ (highest) …");
- *   3. the options to be in rank order: no later option beats an earlier one on every axis at once (Pareto order), so the
+ *   2. the options to be in rank order: no later option beats an earlier one on every axis at once (Pareto order), so the
  *      first option is both the recommended and a top-ranked one.
+ *
+ * No legend is required in the question text (operator, 2026-11-20): AskUserQuestion always uses the default axes,
+ * Importance · Urgency · Simplicity, so a legend line there is only a preamble the reader has to skip.
  *
  * DENY, never repair: the guard says exactly what to change and hands the call back.
  *
@@ -47,8 +48,6 @@ export function problems(input: unknown): string[] {
     }
     const sizes = new Set(parsed.map((p) => p!.levels.length));
     if (sizes.size > 1) out.push(`${name}: every option needs the same number of cells (one per axis); found ${[...sizes].join(" and ")}.`);
-    if (typeof q.question !== "string" || !q.question.includes("Braille Tally"))
-      out.push(`${name}: the question text needs the legend, for example "Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to ⣿ (highest)." Name other axes there if you use them.`);
     if (sizes.size === 1) {
       const bad = outOfRank(parsed.map((p) => p!.levels));
       if (bad) {
@@ -63,10 +62,10 @@ export function problems(input: unknown): string[] {
 export function denyMessage(found: string[]): string {
   return [
     "Every AskUserQuestion option carries a Braille Tally (braille-tally plugin): each option label starts with one Braille cell per axis, then a space, e.g. \"⣿⣶⣴ Keep the guard (Recommended)\".",
-    "Level n (1-8) is the cell with n dots: ⡀ ⣀ ⣠ ⣤ ⣴ ⣶ ⣾ ⣿. Default axes, in order: Importance (how much it serves the goal), Urgency (how soon it matters), Simplicity (how little it takes).",
+    "Level n (1-8) is the cell with n dots: ⡀ ⣀ ⣠ ⣤ ⣴ ⣶ ⣾ ⣿. Axes, always in this order: Importance (how much it serves the goal), Urgency (how soon it matters), Simplicity (how little it takes). No legend line in the question.",
     "Problems:",
     ...found.map((f) => `- ${f}`),
-    "Fix the labels and the question text, then ask again. `bun \"$(cc-plugin-root braille-tally)/scripts/braille-tally.ts\" tally 8 6 5` prints a tally.",
+    "Fix the labels, then ask again. `bun \"$(cc-plugin-root braille-tally)/scripts/braille-tally.ts\" tally 8 6 5` prints a tally.",
   ].join("\n");
 }
 

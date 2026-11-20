@@ -26,14 +26,14 @@ Example: `⣿⣶⣴` is very important, fairly urgent, and moderately simple. `�
 
    For all three, taller is "sooner": do the tall ones first. Any other axes are allowed only with a legend that names them.
 
-2. **Every tallied list carries the legend once**, at its head or in the question text. The default legend is: _Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to ⣿ (highest), relative to the other items._
+2. **Every tallied list carries the legend once, at its head.** AskUserQuestion is the exception: no legend there, because its axes are always the default three. The default legend is: _Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to ⣿ (highest), relative to the other items._
 3. **Levels are relative.** Set each axis by comparing the items on that axis only, then snap to 1–8. Where a project has written anchors for the levels (what 8, 6, 4, 2 and 1 mean on each axis), use them, so adding an item does not reshuffle the others.
 4. **Never merge the axes.** Order items by **Pareto front**:
    - front 1 is what no other item beats on every axis at once, front 2 is what only front 1 beats, and so on;
    - inside a front, the most urgent comes first, then the most important, then the simplest.
 5. **Where it goes:**
    - **Lists a person reads** (open items, asks, tasks, findings, recommendations, plans, digests): each item starts with its tally.
-   - **AskUserQuestion:** each option label starts with its tally and one space. The question text carries the legend. Options are in rank order, so the first option is the recommended one and is in front 1. A guard in this plugin enforces all three.
+   - **AskUserQuestion:** each option label starts with its tally and one space, always on the default axes, with no legend line in the question (operator, 2026-11-20: no preamble). Options are in rank order, so the first option is the recommended one and is in front 1. A guard in this plugin enforces both.
    - **Plain text that may be read without the shape** (an email's plain part, a screen reader): add the levels after the tally, `⣀⣿⣿ (2·8·8)`.
    - **HTML** (email bodies, web pages): draw it with `html`, which needs no Braille font, and keep the levels in small text beside it.
 6. **Not for secrets or identity:** a tally carries only levels, so it is safe in any public place.
@@ -60,7 +60,6 @@ Code that needs it can import `lib/tally.ts`, which has no dependencies: `tally`
 
 - an option label does not start with a tally;
 - the options of one question have different numbers of cells;
-- the question text lacks the words "Braille Tally";
 - a later option beats an earlier one on every axis.
 
 It fails open on anything unexpected.
@@ -88,6 +87,7 @@ These were measured in Chrome on macOS in a replica of Gmail's subject line, pla
   - the tally at the start of each label, options ranked.
 
   _Evidence_: the measurements above; 17 tests in `tests/tally.test.ts`, including one that checks every drawn level against its Braille code point.
+- **2026-11-20 (b) — no legend in AskUserQuestion.** _Trigger_: the operator: the legend line "should be removed from all AskUserQuestion … No need to be in the front of AskUserQuestion as preamble". _Fix_: the guard no longer requires "Braille Tally" in the question text; AskUserQuestion always uses the default axes; lists keep their legend. _Evidence_: a test that a tallied, ranked question without a legend passes.
 
 ## Post-Execution Reflection
 
