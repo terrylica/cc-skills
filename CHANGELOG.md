@@ -1,3 +1,22 @@
+# [34.22.0](https://github.com/terrylica/cc-skills/compare/v34.21.0...v34.22.0) (2026-11-20)
+
+
+### Features
+
+* **braille-tally:** Braille Tally glyph, CLI, AskUserQuestion guard ([5f89cfb](https://github.com/terrylica/cc-skills/commit/5f89cfb3ce54b95c6db97ddb4931c0ec33aac1c8))
+
+The Braille Tally ranks an item on a few axes at once as one word-sized shape of Braille cells, one per axis, where level n of 8 is the cell with exactly n dots (⡀⣀⣠⣤⣴⣶⣾⣿). The default axes, in order, are Importance · Urgency · Simplicity, and items are ordered by Pareto front with urgency breaking ties, so the axes are never merged into one score. Braille cells were chosen after measuring the alternative: in a replica of Gmail's subject line the Unicode block characters ▁…█ come from three fonts (Hiragino Sans, Arial, Helvetica) and misalign by about 2.5 px, while one font draws every Braille pattern with one width and one bottom line.
+
+The plugin makes the tally a habit rather than a memory. A PreToolUse guard on AskUserQuestion denies a question until every option label starts with a tally, the question text carries the legend, and the options are in rank order; it fails open on anything unexpected and its escape token lives only in the skill.
+
+- skills/braille-tally/SKILL.md: the convention (axes, legend, relative levels, Pareto ranking, placement in lists, questions, plain text and HTML) and the measurements behind it
+- lib/tally.ts: the only implementation, dependency-free: tally, tallyWithLevels, levelsOf, leadingTally, legend, dominates, fronts, ranked, outOfRank, html
+- scripts/braille-tally.ts: CLI with tally, parse, legend, html (drawn from the Braille bit pattern, no font needed), rank (JSON lines in, ranked list out) and spec (machine-readable command set)
+- hooks/askuserquestion-tally-guard.ts: the AskUserQuestion guard, registered in hooks/hooks.json
+- tests/tally.test.ts: 17 tests, including cells checked from their code points, every drawn level checked against its Braille bits, and the guard run as a real hook process
+- docs/adr/2026-11-20-braille-tally.md and docs/design/2026-11-20-braille-tally/spec.md
+- marketplace.json entry, plugin lists, README table and install loop, and the documentation counts (41 plugins, 25 of 42 ADRs with a design spec)
+
 # [34.21.0](https://github.com/terrylica/cc-skills/compare/v34.20.0...v34.21.0) (2026-11-20)
 
 
