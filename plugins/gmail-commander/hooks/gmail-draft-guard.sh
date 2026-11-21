@@ -26,6 +26,8 @@ set -euo pipefail
 #
 GMAIL_DRAFT_SCRIPTS_DIR="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts"
 GMAIL_DRAFT_TEST_FILE="${GMAIL_DRAFT_SCRIPTS_DIR}/gmail-draft.test.ts"
+# The builder imports lingering-drafts.ts (2026-11-21), so its suite gates the builder too.
+GMAIL_DRAFT_LINGERING_TEST_FILE="${GMAIL_DRAFT_SCRIPTS_DIR}/lingering-drafts.test.ts"
 GMAIL_DRAFT_TEST_CACHE="${HOME}/.claude/.cache/gmail-draft-builder-test.cache"  # JSON: { fingerprint, result }
 
 # Fingerprint EVERY input that can change the test outcome, not just the builder.
@@ -88,7 +90,7 @@ MSG
   local test_output
   local test_exit
   set +e
-  test_output=$(bun test "$GMAIL_DRAFT_TEST_FILE" 2>&1)
+  test_output=$(bun test "$GMAIL_DRAFT_TEST_FILE" "$GMAIL_DRAFT_LINGERING_TEST_FILE" 2>&1)
   test_exit=$?
   set -e
 

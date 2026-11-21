@@ -89,6 +89,14 @@ The Gmail `drafts.get` response nests the message: `{id, message: {payload: {hea
 Reading `fetchedDraft.payload` yields `undefined`, the header scan finds nothing, and the check
 passes vacuously. It failed open on every draft it ever "verified".
 
+### Layer 6 — no earlier version lingers (2026-11-21)
+
+After the read-back, `scripts/gmail-draft.ts` reads every draft in the account (`lingering-drafts.ts`, at most 500) and compares them with the new one **as Gmail stored it**. Same sender, a shared recipient and the same subject (Braille Tally cells, `Re:`, case and spacing ignored) is an earlier version: `--prune-superseded` deletes it and re-lists to prove it is gone; otherwise the run exits 3 naming it. Same sender and recipient with another subject is reported as `related`. `scripts/gmail-drafts-audit.ts --keep-file <manifest> [--prune]` is the sweep for a whole batch.
+
+Why: new messages start their own threads, so the per-thread invariant (Layer 5 in `gmail-draft.ts`) cannot see an earlier copy of one. A re-ranked batch left an outdated cover draft next to its replacement until a manual sweep found it.
+
+Proven both ways on 2026-11-21, live: the first version compared the From that was _asked for_ and found nothing, because Gmail rewrites a From that is not a send-as alias to the account's own address. Compared with the stored draft, three throwaway drafts whose subjects differed only in their tally gave exit 3 naming the earlier ones, and `--prune-superseded` deleted all of them and exited 0. The batch audit, run against a real manifest, kept the five drafts in play and flagged nothing among 18. The suite (`lingering-drafts.test.ts`) runs in the Layer 3 gate with the builder's own.
+
 ## Verification log
 
 Both directions, observed rather than inferred. Re-run these after touching any guard.
@@ -150,11 +158,11 @@ commits behind, and it re-introduced both defects verbatim.
 
 Three separate things had to be true for that to reach a client, and each is now closed:
 
-| what failed | why it was possible | closed by |
-| --- | --- | --- |
-| the fix was not where the code ran | nine commits unpushed, in one directory | pushed; the working checkout is synced |
-| the stale copy was invokable | the guard allowed any path ending `scripts/gmail-draft.ts` | the guard names the installed COPY, not just the filename |
-| the corruption passed verification | the read-back compared bodies after collapsing whitespace | see below |
+| what failed                        | why it was possible                                        | closed by                                                 |
+| ---------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------- |
+| the fix was not where the code ran | nine commits unpushed, in one directory                    | pushed; the working checkout is synced                    |
+| the stale copy was invokable       | the guard allowed any path ending `scripts/gmail-draft.ts` | the guard names the installed COPY, not just the filename |
+| the corruption passed verification | the read-back compared bodies after collapsing whitespace  | see below                                                 |
 
 **The verification failure is the one worth internalising.** The check said `matches: True`. It
 compared the staged body against the source after `" ".join(text.split())` — which collapses exactly
