@@ -286,7 +286,7 @@ Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`, `t
 
 ## Replying to someone: the house style (verbatim quotes, styled, one command)
 
-**Convention for every reply and every draft that quotes someone** (the person being answered, an earlier message, a document): quote their words **verbatim**, each passage in its own `> ` block, and put your answer underneath, outside the block. Never paraphrase inside a quotation, never correct their spelling, and never merge two of their passages into one. When a reply answers several points, alternate: one quoted passage, then the answer to it.
+**Convention for every reply and every draft that quotes someone** (the person being answered, an earlier message, a document): quote their words **verbatim**, each passage in its own `>` block, and put your answer underneath, outside the block. Never paraphrase inside a quotation, never correct their spelling, and never merge two of their passages into one. When a reply answers several points, alternate: one quoted passage, then the answer to it.
 
 ```markdown
 > the exact words being answered, copied as written
@@ -294,7 +294,7 @@ Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`, `t
 The answer to that passage.
 ```
 
-The canonical builder (`scripts/gmail-draft.ts`) renders each `> ` block as a `<blockquote>` in its own colour with a left bar (muted purple, italic; `QUOTE_BLOCK_STYLE`) in the HTML part, and keeps the `> ` prefix in the plain-text part, so the reader sees at a glance whose words are whose. A block is a quotation only when **every** line in it starts with `>` (up to three spaces of indent); a stray `>` in prose stays prose. Do not hand-style quotes with HTML: the builder does it.
+The canonical builder (`scripts/gmail-draft.ts`) renders each `>` block as a `<blockquote>` in its own colour with a left bar (muted purple, italic; `QUOTE_BLOCK_STYLE`) in the HTML part, and keeps the `>` prefix in the plain-text part, so the reader sees at a glance whose words are whose. A block is a quotation only when **every** line in it starts with `>` (up to three spaces of indent); a stray `>` in prose stays prose. Do not hand-style quotes with HTML: the builder does it.
 
 ### The command
 
@@ -311,6 +311,26 @@ bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/script
 
 `--attach` is repeatable and optional; `--to`, `--cc` and `--subject` are inherited from `--reply-to` when omitted; `--replace` deletes the draft this one supersedes, only after the new one has passed verification. Before it prints its one JSON line the builder proves, against what Gmail actually stored: the Subject round-trips, the HTML part exists (byte-identical when `--html` is used) with no forced mid-sentence line breaks, every attachment's SHA-256 equals the file sent, and the thread holds exactly one draft (exit 1 naming the others when it does not; delete the superseded ones before sending). The output lists each attachment with its byte count and SHA-256.
 
+### No earlier version may linger (every run, since 2026-11-21)
+
+Every run reads the whole Drafts folder after the new draft is verified and compares it with what Gmail stored:
+
+| Finding      | Means                                                                                                                                      | What happens                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `superseded` | Same sender, a shared recipient, the same subject once Braille Tally cells, `Re:`/`Fwd:`, case and spacing are ignored: an earlier version | Deleted with `--prune-superseded`; otherwise **exit 3**, each one named on stderr and in the JSON |
+| `related`    | Same sender and a shared recipient, a different subject                                                                                    | Listed on stderr and in the JSON (exit unchanged): you decide whether it is still in play         |
+
+Exit 4 means the draft is made but the folder could not be read; check it by hand. Why this exists: a new message (not a reply) starts its own thread, so the one-draft-per-thread check cannot see an earlier copy of it. On 2026-11-21 a batch of new emails was re-ranked and redrafted, and an outdated cover draft stayed next to its replacement until a manual sweep found it.
+
+**The rule, every time you draft:** when a draft replaces one you know of, pass `--replace <id>`; when you redraft a batch, pass `--prune-superseded`; read every `related` line and delete what was merged, withdrawn or replaced. When a batch changes shape (items merged, withdrawn, re-ranked), sweep it against the list of drafts still in play:
+
+```bash
+bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-drafts-audit.ts" \
+  --account <token-uuid> --keep-file ./manifest.json [--keep <draftId>,<draftId>] [--prune]
+```
+
+It flags every draft a newer one repeats and, with a keep list, every draft from the same sender to the same people that is not kept; drafts to anyone else are never touched. Without `--prune` it only reports (exit 3 when something lingers); with it, it deletes and then proves the drafts are gone (exit 0). `--keep-file` takes any file and keeps every draft id written in it, so a batch manifest works as it is. A draft the operator may have edited by hand is still a draft: if you are not sure an older version holds no edits of theirs, read it and compare before pruning.
+
 Two things the converter will not do, and what to do instead:
 
 - **A multi-line sign-off.** Single newlines inside a block are joined into one paragraph and the builder never emits `<br>`, so `Best regards,` / name / title on three lines arrive as one line. Either give each line its own paragraph, or pass `--html` with an authored HTML part: render the body with the builder's own `loadDraftParts`, change only the sign-off to use `<br>`, and pass that file. The builder refuses an authored part that drops or reorders any word of the `--body` text, so the two parts cannot diverge.
@@ -318,14 +338,14 @@ Two things the converter will not do, and what to do instead:
 
 ### The other path, and why replies do not use it
 
-| Path                                     | `> ` quotes in the HTML part                                  | File attachments                    | `--cc` | Read-back verification                                                           |
-| ---------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | -------------------------------------------------------------------------------- |
-| `scripts/gmail-draft.ts`                 | Styled `<blockquote>`                                         | `--attach`, repeatable (2026-10-30) | Yes    | Built in (subject, HTML, forced breaks, attachment hashes, one draft per thread) |
-| `gmail draft` / `draft-update` (the CLI) | **Unstyled**: `>` is escaped and each line kept as plain text | `--attach`, repeatable              | **No** | None; read it back yourself                                                      |
+| Path                                     | `>` quotes in the HTML part                                   | File attachments                    | `--cc` | Read-back verification                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
+| `scripts/gmail-draft.ts`                 | Styled `<blockquote>`                                         | `--attach`, repeatable (2026-10-30) | Yes    | Built in (subject, HTML, forced breaks, attachment hashes, one draft per thread, no earlier version lingering) |
+| `gmail draft` / `draft-update` (the CLI) | **Unstyled**: `>` is escaped and each line kept as plain text | `--attach`, repeatable              | **No** | None; read it back yourself                                                                                    |
 
-The CLI is fine for a quick plain note to yourself. Every reply that quotes someone goes through `gmail-draft.ts`. Do not attach a file through Gmail's web compose afterwards: on save Gmail regenerates the plain part from the HTML and the `> ` marks are lost (measured 2026-10-30, before `--attach` existed).
+The CLI is fine for a quick plain note to yourself. Every reply that quotes someone goes through `gmail-draft.ts`. Do not attach a file through Gmail's web compose afterwards: on save Gmail regenerates the plain part from the HTML and the `>` marks are lost (measured 2026-10-30, before `--attach` existed).
 
-After creating a draft, confirm it independently with `read <messageId> --json --attachment-dir <dir>`: every word equal to your source file, zero markdown markers, every `> ` line present, and each downloaded attachment's hash equal to the original.
+After creating a draft, confirm it independently with `read <messageId> --json --attachment-dir <dir>`: every word equal to your source file, zero markdown markers, every `>` line present, and each downloaded attachment's hash equal to the original.
 
 ## 🔴 ATTRIBUTION DOCTRINE — run this before you ever write "they said X"
 
@@ -780,12 +800,12 @@ bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/script
 
 - **2026-10-30 — the quoting convention, sender display names and the attribution parser each failed in a real reply.**
   - _Trigger_: a reply that quoted several passages and had to carry a file attachment.
-  - _Defect 1_: this file said every draft goes through `scripts/gmail-draft.ts`, which styles `> ` quotes. The CLI `gmail draft` / `draft-update` does not: it escapes `>` and keeps each line as plain text, has no `--cc`, and is the only path with `--attach` (`gmail-draft.ts` has no attachment flag). _Fix_: the table under "Quoting someone in a draft" says which path does what, and how to verify a CLI draft.
+  - _Defect 1_: this file said every draft goes through `scripts/gmail-draft.ts`, which styles `>` quotes. The CLI `gmail draft` / `draft-update` does not: it escapes `>` and keeps each line as plain text, has no `--cc`, and is the only path with `--attach` (`gmail-draft.ts` has no attachment flag). _Fix_: the table under "Quoting someone in a draft" says which path does what, and how to verify a CLI draft.
   - _Defect 2_: `--from "alias@example.com"` stored a bare From; `--from "Name <alias@example.com>"` stored the name. _Fix_: Rule 1 now says to pass the display name.
   - _Defect 3_: `attribution-parse.ts` credited 100 of 100 lines to the sender, including our own quoted letter, because the history sat under an `On … wrote:` line with no `>` prefixes. It reported no `UNKNOWN` or `CONFLICT`. _Fix_: the protocol now says to find that boundary by hand. The parser itself is not yet fixed.
   - _Also seen_: an automatic plugin update deleted `scripts/gmail-cli/node_modules` mid-session, so `bun cli.ts …` and anything wrapping it failed until `bun install --frozen-lockfile` ran again. The compiled `gmail` binary (Preflight Step 1) does not depend on `node_modules` at run time.
   - _Defect 4, fixed in code the same day_: the canonical builder could not attach a file, which is what forced the web-compose workaround. `gmail-draft.ts` gained `--attach` (repeatable): the message becomes multipart/mixed around the usual alternative body, bad input is refused before any network call, and Layer 1 downloads every stored attachment and compares its SHA-256. Proven by unit tests that fail when the code is broken on purpose and by a live draft whose attachment hash matched.
-  - _Evidence_: two drafts in one thread, one with a bare From and one with a named From (five verbatim `> ` passages, PDF attachment hash identical to the source file). Real draft IDs are kept in the private session log, not in the published skill.
+  - _Evidence_: two drafts in one thread, one with a bare From and one with a named From (five verbatim `>` passages, PDF attachment hash identical to the source file). Real draft IDs are kept in the private session log, not in the published skill.
 - **2026-10-08 — a raw send went out under the account's default identity; token reads now go through one script.**
   - _Trigger_: an agent wrote a script that read a cached token file and POSTed to the Gmail send endpoint with no From line. Gmail used each account's default send-as alias, which was the wrong identity on both accounts. The messages reached only the operator's own test address.
   - _Fix_: `hooks/gmail-send-guard.ts` denies direct sends and raw reads of `~/.claude/tools/gmail-tokens/` (see `docs/gmail-send-guard.md`). The identity probe and the multi-account status check, which read `.access_token` and `expiry_date` straight from the token files, are replaced by `scripts/gmail-accounts.ts`, which reports the mailbox, the expiry and every send-as alias with its DEFAULT marked, and never prints a token.

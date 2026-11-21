@@ -17,6 +17,7 @@
  *     [--reply-to <messageId>]                # thread as a reply to this Gmail message id
  *     [--to a@b] [--cc c@d] [--subject '…']   # required unless --reply-to supplies them
  *     [--replace <draftId>]                   # delete this stale draft after creating the new one
+ *     [--prune-superseded]                    # delete every earlier version this draft repeats (see LINGERING)
  *     [--html /path/to/body.html]             # AUTHORED html part (see AUTHORED HTML below)
  *     [--attach /path/to/file]...             # repeatable; file attachments (see ATTACHMENTS below)
  *
@@ -60,9 +61,23 @@
  * way to put a file on a styled draft was Gmail's web compose, which also rewrote the plain part.
  * Without --attach the message is byte-for-byte what it was before.
  *
- * OUTPUT: one JSON line {draftId, threadId, account, replaced, attachments} — machine-readable per
- * CLI-first doctrine.
+ * LINGERING DRAFTS (2026-11-21): after the draft is verified, every other draft in the account is
+ * read and compared with it (`lingering-drafts.ts`). A draft from the same sender to a shared
+ * recipient with the same subject (Braille Tally cells, "Re:" and case ignored) is an earlier
+ * version: it is deleted with --prune-superseded, and otherwise the run exits 3 naming it. A draft
+ * from the same sender to a shared recipient with a different subject is listed as `related` on
+ * stderr and in the JSON, for a person to judge; `gmail-drafts-audit.ts --keep <ids>` sweeps those.
+ * New messages (not replies) each start their own thread, so the per-thread check below cannot see
+ * an earlier copy of one; this check is what does.
+ *
+ * OUTPUT: one JSON line {draftId, threadId, account, replaced, attachments, pruned, superseded,
+ * related} — machine-readable per CLI-first doctrine.
+ * EXIT: 0 done and clean · 1 failed (nothing to rely on) · 3 draft made and verified, but earlier
+ * versions still linger (listed in `superseded`) · 4 draft made and verified, but the lingering
+ * check could not read the Drafts folder.
  */
+
+import { describe as describeDraft, findLingering, listDraftMeta } from "./lingering-drafts.ts";
 
 interface Args {
   account: string;
@@ -77,13 +92,15 @@ interface Args {
   cc?: string | undefined;
   subject?: string | undefined;
   replace?: string | undefined;
+  /** Delete every earlier version of this draft that the lingering check finds. */
+  pruneSuperseded: boolean;
   html?: string | undefined;
   /** Every `--attach` value, in the order given. Empty when the flag is absent. */
   attach: string[];
 }
 
 export const USAGE =
-  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--html <file.html>] [--attach <file>]...";
+  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--prune-superseded] [--html <file.html>] [--attach <file>]...";
 
 /** Parse the command line. Throws with USAGE when a required flag is missing (main prints it and exits 1). */
 export function parseArgs(argv: string[] = process.argv): Args {
@@ -101,7 +118,7 @@ export function parseArgs(argv: string[] = process.argv): Args {
     if (!path || path.startsWith("--")) throw new Error(`--attach needs a file path\n${USAGE}`);
     return [path];
   });
-  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), html: get("html"), attach };
+  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), pruneSuperseded: argv.includes("--prune-superseded"), html: get("html"), attach };
 }
 
 // ── attachments ──
@@ -119,7 +136,7 @@ export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 /**
  * Guess a MIME type from the file extension; anything unknown is `application/octet-stream`, which
  * Gmail shows as a plain download. The same table as `gmail-cli/lib/gmail-drafts.ts`, copied rather
- * than imported because this script deliberately has no imports: it must run with bare `bun` on a
+ * than imported because this script deliberately imports no package (only its sibling `lingering-drafts.ts`, which has none): it must run with bare `bun` on a
  * machine where the CLI's node_modules are missing (plugin updates delete them).
  */
 export function guessMimeType(filename: string): string {
@@ -199,7 +216,7 @@ export async function loadDraftParts(args: Pick<Args, "body" | "html">): Promise
 
 const TOKENS_DIR = `${process.env.HOME}/.claude/tools/gmail-tokens`;
 
-async function accessToken(account: string): Promise<string> {
+export async function accessToken(account: string): Promise<string> {
   const tok = await Bun.file(`${TOKENS_DIR}/${account}.json`).json();
   const app = await Bun.file(`${TOKENS_DIR}/${account}.app-credentials.json`).json().catch(() => ({}));
   const clientId = tok.client_id ?? app.client_id;
@@ -214,7 +231,7 @@ async function accessToken(account: string): Promise<string> {
   return ((await res.json()) as { access_token: string }).access_token;
 }
 
-async function api(at: string, path: string, method = "GET", body?: unknown): Promise<Record<string, unknown>> {
+export async function api(at: string, path: string, method = "GET", body?: unknown): Promise<Record<string, unknown>> {
   const init: RequestInit = { method, headers: { Authorization: `Bearer ${at}`, "content-type": "application/json" } };
   if (body !== undefined) init.body = JSON.stringify(body);
   const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, init);
@@ -1137,6 +1154,9 @@ export function validateMimeBeforeUpload(mimeString: string, originalSubject: st
   }
 }
 
+/** A finding as the JSON output reports it. */
+const brief = (d: { id: string; subject: string }) => ({ id: d.id, subject: d.subject });
+
 // ── main ──
 //
 // Guarded so the module can be IMPORTED for unit tests. Without this, `import { … }` executed
@@ -1277,12 +1297,65 @@ if (import.meta.main) {
     }
   }
 
+  // ── LAYER 6 (2026-11-21): no earlier version of this email may linger in another thread ──
+  let exitCode = 0;
+  const pruned: string[] = [];
+  let superseded: ReturnType<typeof findLingering>["superseded"] = [];
+  let related: ReturnType<typeof findLingering>["related"] = [];
+  let lingeringError: string | null = null;
+  try {
+    const all = await listDraftMeta((path) => api(at, path));
+    // Compare the draft as Gmail STORED it, not as it was asked for: Gmail rewrites a From that is
+    // not one of the account's send-as aliases to the account's own address (measured 2026-11-21),
+    // and the earlier versions were stored the same way.
+    const stored = all.find((d) => d.id === createdDraftId);
+    if (!stored) throw new Error(`the new draft ${createdDraftId} is not in the Drafts listing, so nothing could be compared with it`);
+    const found = findLingering(stored, all.filter((d) => d.id !== args.replace));
+    related = found.related;
+    if (args.pruneSuperseded) {
+      for (const d of found.superseded) {
+        await api(at, `drafts/${d.id}`, "DELETE");
+        pruned.push(d.id);
+      }
+      const left = new Set((await listDraftMeta((path) => api(at, path))).map((d) => d.id));
+      superseded = found.superseded.filter((d) => left.has(d.id));
+    } else {
+      superseded = found.superseded;
+    }
+  } catch (e) {
+    lingeringError = (e as Error).message;
+  }
+  if (pruned.length > 0) console.error(`Pruned ${pruned.length} earlier version(s) of this draft: ${pruned.join(", ")}`);
+  if (superseded.length > 0) {
+    exitCode = 3;
+    console.error(
+      `LINGERING: ${superseded.length} earlier version(s) of this draft are still in the Drafts folder ` +
+        `(same sender, a shared recipient, the same subject):\n  ${superseded.map(describeDraft).join("\n  ")}\n` +
+        `Delete them before anything is sent: re-run with --prune-superseded, or pass --replace <id> next time.`,
+    );
+  }
+  if (related.length > 0) {
+    console.error(
+      `NOTE: ${related.length} other draft(s) from this sender to the same people are open. If any was replaced, merged ` +
+        `or withdrawn, delete it (gmail-drafts-audit.ts --keep <the ids still in play> --prune):\n  ${related.map(describeDraft).join("\n  ")}`,
+    );
+  }
+  if (lingeringError) {
+    exitCode = 4;
+    console.error(`LINGERING CHECK COULD NOT RUN: ${lingeringError}\nThe draft is made; check the Drafts folder for earlier versions by hand.`);
+  }
+
   const out = {
     draftId: createdDraftId,
     threadId: createdThreadId ?? null,
     account: args.account,
     replaced: args.replace ?? null,
     attachments: attachments.map((a) => ({ filename: a.filename, bytes: a.bytes.length, sha256: sha256Hex(a.bytes) })),
+    pruned,
+    superseded: superseded.map(brief),
+    related: related.map(brief),
+    lingeringCheck: lingeringError ? `failed: ${lingeringError}` : "ok",
   };
   console.log(JSON.stringify(out));
+  process.exit(exitCode);
 }

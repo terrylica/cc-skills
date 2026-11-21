@@ -114,7 +114,7 @@ In the deployment these are injected from its own secret store at deploy time. N
 
 **Write emphasis in Markdown; it arrives as rich text.** In the body file, `**bold**`, `*italic*` or `_italic_`, and `` `code` `` become real bold, italic and code in the HTML part, and the plain-text part drops the markers. Identifiers stay literal (`snake_case_name`, `2*3*4`). Never hand-write HTML or leave asterisks for the recipient to read.
 
-**Quote people verbatim in `> ` blocks; they arrive in their own colour.** Every quotation in a draft is the other person's exact words, one `> ` block per passage, with the reply outside it. The HTML part renders each block as a coloured, left-barred `<blockquote>` (`QUOTE_BLOCK_STYLE`); the plain-text part keeps `> `. This is the house style for every reply: one quoted passage, then the answer to it. The convention, the command and its edge cases (multi-line sign-off, quoting only the sender's own text) are in [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "Replying to someone: the house style".
+**Quote people verbatim in `>` blocks; they arrive in their own colour.** Every quotation in a draft is the other person's exact words, one `>` block per passage, with the reply outside it. The HTML part renders each block as a coloured, left-barred `<blockquote>` (`QUOTE_BLOCK_STYLE`); the plain-text part keeps `>`. This is the house style for every reply: one quoted passage, then the answer to it. The convention, the command and its edge cases (multi-line sign-off, quoting only the sender's own text) are in [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "Replying to someone: the house style".
 
 ```bash
 bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \
@@ -124,8 +124,12 @@ bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts
   [--reply-to <messageId>]         # derives Subject/In-Reply-To/References/threadId
   [--to a@b] [--cc c@d] [--subject '…'] [--replace <staleDraftId>]
   [--attach <file>]...             # repeatable; each file's SHA-256 is verified after upload
-# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[{"filename","bytes","sha256"}]}
+  [--prune-superseded]             # delete earlier versions of this draft found in other threads
+# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[…],"pruned":[…],"superseded":[…],"related":[…],"lingeringCheck":"ok"}
+# exit: 0 clean · 1 failed · 3 earlier versions still linger · 4 the lingering check could not read the folder
 ```
+
+**No earlier version may linger (2026-11-21).** Every run compares the new draft with every other draft in the account (`scripts/lingering-drafts.ts`): the same sender, a shared recipient and the same subject, once Braille Tally cells and `Re:` are ignored, is an earlier version; another subject to the same people is reported as `related`. For a batch whose drafts in play are listed in a manifest, `scripts/gmail-drafts-audit.ts --account <tokenbase> --keep-file <manifest> [--prune]` flags everything else from the same sender to the same people. Procedure: [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "No earlier version may linger".
 
 ## Nothing here sends mail: send guard and the token directory
 
