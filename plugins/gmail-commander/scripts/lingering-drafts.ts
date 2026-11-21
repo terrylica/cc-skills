@@ -11,12 +11,17 @@
  * made, prove that no earlier version of it, and nothing the new edition replaced, is still waiting.
  *
  * TWO KINDS OF FINDING
- *   superseded  same sender, at least one shared recipient, and the same subject once Braille Tally
- *               cells, "Re:"/"Fwd:" prefixes, case and spacing are ignored. Almost certainly an
- *               earlier version of the same email (a re-ranked subject differs only in its tally).
- *   related     same sender and at least one shared recipient, different subject. Possibly still in
- *               play (a batch to one person holds many drafts), possibly merged or withdrawn. Only a
- *               person, or a list of the drafts in play (`--keep`), can tell which.
+ *   superseded  same sender, at least one shared To address, both replies or both new messages, and
+ *               the same subject once Braille Tally cells, "Re:"/"Fwd:" prefixes, case and spacing
+ *               are ignored. Almost certainly an earlier version of the same email (a re-ranked
+ *               subject differs only in its tally).
+ *   related     same sender and at least one shared To address, otherwise different. Possibly still
+ *               in play (a batch to one person holds many drafts), possibly merged or withdrawn. Only
+ *               a person, or a list of the drafts in play (`--keep`), can tell which.
+ *
+ * Only To counts, never Cc: when one person (an owner, a manager) is copied on everything, a shared
+ * Cc would tie every draft to every other one, and a reply to a vendor would be "superseded" by a
+ * new email to an assistant (review finding, 2026-11-21).
  */
 
 /** What the checks need to know about one draft. `date` is Gmail's internalDate in ms. */
@@ -34,17 +39,15 @@ export interface DraftMeta {
 const BRAILLE = /[⠀-⣿]/g;
 const REPLY_PREFIX = /^(?:(?:re|fwd?|aw|sv|wg)\s*:\s*)+/i;
 
+const untallied = (subject: string): string => subject.normalize("NFKC").replace(BRAILLE, " ").replace(/\s+/g, " ").trim();
+
 /** A subject reduced to what identifies the email: no tally, no reply prefix, no case or spacing. */
 export function subjectKey(subject: string): string {
-  return subject
-    .normalize("NFKC")
-    .replace(BRAILLE, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(REPLY_PREFIX, "")
-    .trim()
-    .toLowerCase();
+  return untallied(subject).replace(REPLY_PREFIX, "").trim().toLowerCase();
 }
+
+/** Whether the subject carries a reply or forward prefix (after any tally). */
+export const isReply = (subject: string): boolean => REPLY_PREFIX.test(untallied(subject));
 
 /** Every email address in a header value, lowercased (`Name <a@b>, c@d` → {a@b, c@d}). */
 export function addresses(header: string): Set<string> {
@@ -52,7 +55,7 @@ export function addresses(header: string): Set<string> {
 }
 
 const sender = (d: DraftMeta): string => [...addresses(d.from)][0] ?? "";
-const recipients = (d: DraftMeta): Set<string> => addresses(`${d.to}, ${d.cc}`);
+const recipients = (d: DraftMeta): Set<string> => addresses(d.to);
 const overlap = (a: Set<string>, b: Set<string>): boolean => [...a].some((x) => b.has(x));
 
 export interface Lingering {
@@ -73,7 +76,7 @@ export function findLingering(created: DraftMeta, others: DraftMeta[]): Lingerin
     if (d.id === created.id) continue;
     if (created.threadId && d.threadId === created.threadId) continue;
     if (!from || sender(d) !== from || !overlap(to, recipients(d))) continue;
-    if (key && subjectKey(d.subject) === key) out.superseded.push(d);
+    if (key && subjectKey(d.subject) === key && isReply(d.subject) === isReply(created.subject)) out.superseded.push(d);
     else out.related.push(d);
   }
   return out;
@@ -131,6 +134,8 @@ export async function listDraftMeta(api: Api, concurrency = 8): Promise<DraftMet
     ids.push(...(page.drafts ?? []).map((d) => d.id));
     pageToken = page.nextPageToken;
   } while (pageToken && ids.length < MAX_DRAFTS_SCANNED);
+  // A partial read must never pass as clean: the earlier versions may be in the part not read.
+  if (pageToken) throw new Error(`more than ${MAX_DRAFTS_SCANNED} drafts; only part of the Drafts folder could be checked`);
   const out: DraftMeta[] = [];
   const headers = ["From", "To", "Cc", "Subject"].map((h) => `metadataHeaders=${h}`).join("&");
   for (let i = 0; i < Math.min(ids.length, MAX_DRAFTS_SCANNED); i += concurrency) {

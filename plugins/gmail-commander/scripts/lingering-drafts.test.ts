@@ -57,8 +57,19 @@ group("findLingering", () => {
     expect(found.superseded).toEqual([]);
     expect(found.related.map((d) => d.id)).toEqual([other.id]);
   });
-  test("a shared CC is enough to relate two drafts", () => {
-    const other = draft("The passkey", { to: "someone@else.io" });
+  test("REVIEW 2026-11-21: a shared CC alone ties nothing (the owner copied on everything)", () => {
+    const toVendor = draft("Re: Invoice", { to: "vendor@else.io" });
+    const sameSubjectToVendor = draft("Invoice", { to: "vendor@else.io" });
+    expect(findLingering(draft("Invoice"), [toVendor, sameSubjectToVendor])).toEqual({ superseded: [], related: [] });
+  });
+  test("REVIEW 2026-11-21: a reply is never superseded by a new message of the same subject", () => {
+    const reply = draft("Re: Invoice");
+    const found = findLingering(draft("Invoice"), [reply]);
+    expect(found.superseded).toEqual([]);
+    expect(found.related.map((d) => d.id)).toEqual([reply.id]);
+  });
+  test("a shared To address is enough, whatever the Cc", () => {
+    const other = draft("The passkey", { to: `${TO}, extra@else.io`, cc: "" });
     expect(findLingering(draft("The passkey"), [other]).superseded).toHaveLength(1);
   });
   test("another sender, or nobody in common, is left alone", () => {
@@ -105,6 +116,11 @@ group("auditDrafts", () => {
     expect(got.superseded).toEqual([]);
     expect(got.outOfPlay.map((d) => d.id)).toEqual([newer.id]);
   });
+  test("REVIEW 2026-11-21: a draft sharing only the Cc with a kept draft is not out of play", () => {
+    const kept = draft("Cover");
+    const toVendor = draft("Quote", { to: "vendor@else.io" });
+    expect(auditDrafts([kept, toVendor], new Set([kept.id])).outOfPlay).toEqual([]);
+  });
   test("kept ids missing from the folder are reported", () => {
     expect(auditDrafts([draft("a")], new Set(["r999999999999999"])).missingKept).toEqual(["r999999999999999"]);
   });
@@ -128,6 +144,18 @@ test("listDraftMeta pages the list and reads each draft's headers", async () => 
     ["r2", "S r2", "t-r2", 5000, ""],
   ]);
   expect(calls.filter((c) => c.startsWith("drafts/")).every((c) => c.includes("format=metadata"))).toBe(true);
+});
+
+test("REVIEW 2026-11-21: a Drafts folder larger than the cap is an error, never a clean pass", async () => {
+  let page = 0;
+  const api = async (path: string): Promise<Record<string, unknown>> => {
+    if (path.startsWith("drafts?")) {
+      page++;
+      return { drafts: Array.from({ length: 100 }, (_, i) => ({ id: `r${page}-${i}` })), nextPageToken: `p${page + 1}` };
+    }
+    return { id: "x", message: {} };
+  };
+  await expect(listDraftMeta(api)).rejects.toThrow("more than 500 drafts");
 });
 
 group("gmail-drafts-audit arguments", () => {

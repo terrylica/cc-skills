@@ -1308,9 +1308,8 @@ if (import.meta.main) {
     // Compare the draft as Gmail STORED it, not as it was asked for: Gmail rewrites a From that is
     // not one of the account's send-as aliases to the account's own address (measured 2026-11-21),
     // and the earlier versions were stored the same way.
-    const stored = all.find((d) => d.id === createdDraftId) ?? {
-      id: createdDraftId, threadId: createdThreadId, from: args.from, to: to ?? "", cc: args.cc ?? "", subject, date: Date.now(),
-    };
+    const stored = all.find((d) => d.id === createdDraftId);
+    if (!stored) throw new Error(`the new draft ${createdDraftId} is not in the Drafts listing, so nothing could be compared with it`);
     const found = findLingering(stored, all.filter((d) => d.id !== args.replace));
     related = found.related;
     if (args.pruneSuperseded) {
