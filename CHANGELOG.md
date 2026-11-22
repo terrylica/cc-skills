@@ -1,3 +1,14 @@
+## [34.23.1](https://github.com/terrylica/cc-skills/compare/v34.23.0...v34.23.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **itp-hooks:** the PII push gate scans the commits a push publishes ([6c930ce](https://github.com/terrylica/cc-skills/commit/6c930ce0c4b2f1d3417dd15c9c758ff51e9ecf4f)), closes [#125](https://github.com/terrylica/cc-skills/issues/125)
+
+The gate diffed the tree against @{u}, which is not what a push sends. With origin/main as the upstream, changes main made after the branch point came back reversed, so a file main deleted read as added. After merging main into a PR branch, all of main's new content read as added. A value added and removed again inside the push netted out and passed.
+
+pushedAddedLines() now reads the commits HEAD has that the push remote lacks (HEAD --not --remotes=&lt;remote>), each as its own diff. Merges count only lines new against every parent (dense combined diff). The remote is the branch's upstream remote, else origin. Each failure mode is a test on a real repository with a bare remote, and all three fail on the old diff.
+
 # [34.23.0](https://github.com/terrylica/cc-skills/compare/v34.22.2...v34.23.0) (2026-11-22)
 
 
