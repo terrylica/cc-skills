@@ -161,3 +161,89 @@ describe("empty and irrelevant input", () => {
     ).toEqual([]);
   });
 });
+
+// ── What a push publishes: measured on real repositories ──────────────────────────────────────
+// Each case builds a throwaway repository with a bare "origin", so the range is the one git itself
+// resolves. Values are synthetic markers, not personal detail.
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach } from "bun:test";
+import { addedLinesOfPatchLog, pushedAddedLines } from "./pretooluse-pii-push-gate.ts";
+
+const scratch: string[] = [];
+afterEach(() => {
+  for (const d of scratch.splice(0)) rmSync(d, { recursive: true, force: true });
+});
+
+function repoWithOrigin(): { dir: string; git: (...args: string[]) => string } {
+  const root = mkdtempSync(join(tmpdir(), "pii-range-"));
+  scratch.push(root);
+  const dir = join(root, "work");
+  const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+  const run = (cwd: string, args: string[]) => {
+    const r = spawnSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "user.email=t@example.invalid", "-c", "user.name=t", ...args], { cwd, env, encoding: "utf8" });
+    if (r.status !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  run(root, ["init", "-q", "--bare", "origin.git"]);
+  run(root, ["init", "-q", "-b", "main", "work"]);
+  run(dir, ["remote", "add", "origin", join(root, "origin.git")]);
+  const git = (...args: string[]) => run(dir, args);
+  return { dir, git };
+}
+const write = (dir: string, file: string, text: string) => writeFileSync(join(dir, file), text);
+
+describe("pushedAddedLines measures what the push newly publishes", () => {
+  test("a file main deleted after the branch point is not reported as added", () => {
+    const { dir, git } = repoWithOrigin();
+    write(dir, "old.txt", "MARK-DELETED-ON-MAIN\n");
+    git("add", "."), git("commit", "-qm", "base"), git("push", "-q", "origin", "main");
+    git("checkout", "-q", "-b", "feat", "--track", "origin/main");
+    git("checkout", "-q", "main"), git("rm", "-q", "old.txt"), git("commit", "-qm", "drop"), git("push", "-q", "origin", "main");
+    git("checkout", "-q", "feat"), write(dir, "new.txt", "MARK-BRANCH-LINE\n"), git("add", "."), git("commit", "-qm", "feat");
+    git("fetch", "-q", "origin");
+    expect(pushedAddedLines(dir)).toEqual(["MARK-BRANCH-LINE"]);
+  });
+
+  test("merging a published main reports only the branch's own lines and the resolution", () => {
+    const { dir, git } = repoWithOrigin();
+    write(dir, "a.txt", "base\n");
+    git("add", "."), git("commit", "-qm", "base"), git("push", "-q", "origin", "main");
+    git("checkout", "-q", "-b", "feat"), write(dir, "a.txt", "MARK-OURS\n"), git("commit", "-qam", "ours"), git("push", "-q", "-u", "origin", "feat");
+    git("checkout", "-q", "main"), write(dir, "a.txt", "MARK-THEIRS\n"), write(dir, "m.txt", "MARK-MAIN-ONLY\n");
+    git("add", "."), git("commit", "-qm", "theirs"), git("push", "-q", "origin", "main");
+    git("checkout", "-q", "feat");
+    spawnSync("git", ["-c", "core.hooksPath=/dev/null", "merge", "-q", "main"], { cwd: dir, encoding: "utf8" }); // conflicts
+    write(dir, "a.txt", "MARK-RESOLVED\n");
+    git("add", "."), git("commit", "-qm", "merge main");
+    expect(pushedAddedLines(dir)).toEqual(["MARK-RESOLVED"]);
+  });
+
+  test("a value added and removed again inside the push range is still reported", () => {
+    const { dir, git } = repoWithOrigin();
+    write(dir, "a.txt", "base\n");
+    git("add", "."), git("commit", "-qm", "base"), git("push", "-q", "-u", "origin", "main");
+    write(dir, "a.txt", "MARK-TRANSIENT\n"), git("commit", "-qam", "add");
+    write(dir, "a.txt", "base\n"), git("commit", "-qam", "revert");
+    expect(pushedAddedLines(dir)).toContain("MARK-TRANSIENT");
+  });
+
+  test("with no remote there is nothing to measure against", () => {
+    const { dir, git } = repoWithOrigin();
+    git("remote", "remove", "origin");
+    expect(pushedAddedLines(dir)).toBeNull();
+  });
+});
+
+describe("addedLinesOfPatchLog", () => {
+  test("a combined diff keeps only lines new against every parent", () => {
+    const patch = ["diff --cc a.txt", "--- a/a.txt", "+++ b/a.txt", "@@@ -1,1 -1,1 +1,1 @@@", "+ from-ours", " +from-theirs", "++resolved", "++++ starts-with-plus"].join("\n");
+    expect(addedLinesOfPatchLog(patch)).toEqual(["resolved", "++ starts-with-plus"]);
+  });
+  test("a file header's +++ line is not content, a hunk line starting +++ is", () => {
+    const patch = ["diff --git a/x b/x", "--- a/x", "+++ b/x", "@@ -0,0 +1,2 @@", "+one", "+++two"].join("\n");
+    expect(addedLinesOfPatchLog(patch)).toEqual(["one", "++two"]);
+  });
+});
