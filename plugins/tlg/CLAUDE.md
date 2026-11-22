@@ -12,6 +12,8 @@ Single function/enum-driven **Bun TypeScript** CLI using **GramJS** (MTProto cli
 | -------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
 | CLI Script     | `scripts/tg-cli.ts`                       | Bun TS, invoked via `bun`; `telegram` is vendored in `scripts/vendor/`, no install      |
 | Session footer | `scripts/session-footer.ts`               | SSoT for the provenance footer appended to every send (tests: `session-footer.test.ts`) |
+| Exact links    | `scripts/safe-links.ts`                   | Dependency-free: `exactLinks` (bare links → exact `<a>`), `badLinks` (read-back check)  |
+| Link entities  | `scripts/link-entities.ts`                | The same cut as GramJS entities, `relink` fixes, mention entities for `EditMessage`     |
 | Cleanup        | `scripts/cleanup_deleted.ts`              | Purge deleted/ghost accounts (reuses CLI helpers)                                       |
 | Sessions       | `~/.local/share/gramjs/<profile>.session` | Per-profile GramJS StringSession (one per account)                                      |
 | Credentials    | 1Password `Claude Automation` vault       | Per-profile Telegram API id/hash                                                        |
@@ -23,6 +25,8 @@ Profile names and their 1Password item IDs are machine-local, never committed: `
 ## Standing policies
 
 - **Session-reference footer on every send.** Every composed send — `send`, a `send-file` caption, and a `draft` — carries a provenance footer (`via Claude Code | session <uuid> | <context> | <timestamp>`), for all recipients, so the Telegram history doubles as a provenance trail. Use `--no-footer` for an external or sensitive chat where the session reference should not be disclosed. The context label is opt-in via `--context` and is never auto-filled from the working directory. Logic + tests live in `scripts/session-footer.ts`; `forward` is exempt (it relays, composing no new text). Content already bearing a Claude Code footer is not re-stamped.
+
+- **Exact links on every send.** Telegram's server extends a bare link over the full-width punctuation and CJK text after it, up to the next whitespace (measured 2026-11-22). `send`, `draft`, `send-file` captions and `edit` therefore give each bare link an explicit link that ends where its URL ends, read each message back, and exit 1 naming any stored link that covers more than its URL; `relink <chat> <ids>` fixes sent messages. Logic, tests and the measurement: `scripts/safe-links.ts` and [send-message](./skills/send-message/SKILL.md#exact-links-automatic--no-link-may-swallow-chinese-text). Other code imports `exactLinks`/`badLinks` from `"$(cc-plugin-root tlg)/scripts/safe-links.ts"`, as it already imports `tg-cli.ts` and `session-footer.ts`.
 
 ## Skills by area
 
@@ -73,6 +77,7 @@ bun "$SCRIPT" send <to> "text"
 bun "$SCRIPT" send-file <to> /path/to/file [-c "caption"]
 bun "$SCRIPT" forward <from> <msg_ids> <to>
 bun "$SCRIPT" edit <chat> <msg_id> "new text"
+bun "$SCRIPT" relink <chat> <msg_ids>        # make the links of sent messages exact
 bun "$SCRIPT" delete <chat> <msg_ids>
 bun "$SCRIPT" pin <chat> <msg_id> [--unpin] [--silent]
 bun "$SCRIPT" mark-read <chat>
