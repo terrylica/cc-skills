@@ -10,10 +10,12 @@
  * Solution: On session end, perform comprehensive cleanup:
  * - Kill all PUEUE jobs
  * - Kill all background processes
- * - Detach orphaned processes
- * - Clear TTY locks and references
+ * - Kill orphaned TTY holders inside this session's own subtree
+ * (It no longer touches /dev/tty itself: see the 2026-11-21 note below.)
  *
- * Coverage: Session-level cleanup (runs once on shutdown)
+ * Coverage: runs on every Stop event (each time Claude finishes a turn, via
+ * stop-orchestrator.ts), not once at shutdown, so every action here repeats
+ * many times per session.
  *
  * Reference: GitHub Issues #11898, #12507, #13598
  * Note: the former per-tool twin, posttooluse-subprocess-orphan-cleanup.ts, was deleted 2026-09-05 —
@@ -226,41 +228,24 @@ async function cleanupOrphanedProcesses(): Promise<void> {
   }
 }
 
-/**
- * Clear TTY locks and references
+/*
+ * ── 2026-11-21: clearTTYReferences() removed. ───────────────────────────────
+ * It ran `fuser -k /dev/tty` and `fuser -k /dev/tty.lock` at the end of every
+ * turn. /dev/tty is not a file this session owns: it is the alias every process
+ * uses for its own controlling terminal, so with psmisc's fuser (Linux) `-k`
+ * sends SIGKILL to EVERY process of the user that has /dev/tty open (editors,
+ * pagers, ssh and sudo password prompts) in every terminal, not only this
+ * session's subtree. Where several terminals run as one Linux user (a shared
+ * host where all of one person's IDE terminals use a single account), one agent
+ * finishing its turn could kill an editor in another terminal. On macOS the call
+ * was a silent no-op (Apple's /usr/bin/fuser accepts only -c, -f and -u), so the
+ * "TTY references cleared" line it printed was never true there either.
+ * /dev/tty.lock is not a standard path on either system (absent on macOS 26).
+ * The commit that added it (564592b7d)
+ * cites no incident it fixed; the TTY suspensions it names were fixed by the
+ * pueue wrapping of backgrounded commands. A process of ours that holds a TTY is
+ * the orphan cleanup's job above, which stays inside this session's subtree.
  */
-async function clearTTYReferences(): Promise<void> {
-  try {
-    console.warn("🧹 Clearing TTY references...");
-
-    // Try to close any open TTY file descriptors
-    const tty_files = ["/dev/tty", "/dev/tty.lock"];
-
-    for (const tty_file of tty_files) {
-      try {
-        // Just check if file exists and is accessible
-        const stat_check = Bun.spawnSync(["test", "-e", tty_file], {
-          stdout: "ignore",
-          stderr: "ignore",
-        });
-
-        // If we can access it, try to clear any locks (limited privileges)
-        if (stat_check.exitCode === 0) {
-          Bun.spawnSync(["bash", "-c", `fuser -k ${tty_file} 2>/dev/null; true`], {
-            stdout: "ignore",
-            stderr: "ignore",
-          });
-        }
-      } catch (e) {
-        // Ignore - we may not have permissions
-      }
-    }
-
-    console.warn("   ✓ TTY references cleared");
-  } catch (e) {
-    console.warn("   ⚠️  TTY cleanup error:", e);
-  }
-}
 
 /**
  * Final verification
@@ -318,7 +303,6 @@ async function main() {
     await cleanupPueueJobs();
     await cleanupBackgroundJobs();
     await cleanupOrphanedProcesses();
-    await clearTTYReferences();
     await verifyCleanup();
 
     console.warn(

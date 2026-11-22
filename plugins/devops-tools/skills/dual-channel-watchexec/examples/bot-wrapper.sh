@@ -50,8 +50,10 @@ for dir in "${WATCH_DIRS[@]}"; do
     if [[ -d "$dir" ]]; then
         while IFS= read -r file; do
             if [[ -f "$file" ]]; then
-                # Get file modification time (macOS: -f %m, Linux: -c %Y)
-                FILE_MTIME=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null || echo "0")
+                # Get file modification time. GNU form first: GNU `stat -f` means --file-system, so `stat -f %m FILE`
+                # prints FILE's filesystem report to stdout before failing, and that text ended up in FILE_MTIME.
+                # BSD stat rejects -c and falls through to its own -f %m.
+                FILE_MTIME=$(stat -c %Y "$file" 2>/dev/null || stat -f %m "$file" 2>/dev/null || echo "0")
                 AGE=$((NOW - FILE_MTIME))
 
                 # If file was modified in last 60 seconds and is newer than current best

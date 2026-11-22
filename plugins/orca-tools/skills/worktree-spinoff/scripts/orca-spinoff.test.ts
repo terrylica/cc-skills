@@ -1,5 +1,6 @@
 // Tests for orca-spinoff create: the real script against a throwaway git repo and a stub Orca CLI. No network, no real
-// Orca. Covers the launch surface: a terminal (the default) and an Orca chat (--surface chat, Orca 1.4.255+).
+// Orca. Covers the launch surface (a terminal, the default, and an Orca chat, --surface chat, Orca 1.4.255+), and the
+// repo setup script whose Setup tab is closed once Orca reports status 0.
 import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,15 +20,34 @@ let orcaLog: string;
 
 /**
  * A stub Orca CLI. `create.json` is what `worktree create` returns; `wc-help` is its --help text (with or without
- * --surface); `terminals.json` is `terminal list`; `read.json` is `terminal read`.
+ * --surface); `terminals.json` is `terminal list`; `read.json` is `terminal read` of the agent's tab and
+ * `setup-read.json` of the Setup tab (term_setup); `wait.json` is `terminal wait`. `orcaYaml` is written into the new
+ * worktree, `hookSettings` into Orca's repo record.
  */
-function stubOrca(opts: { launch?: unknown; legacyHandle?: string; surfaceFlag?: boolean; terminals?: unknown[]; tail?: string } = {}) {
+function stubOrca(
+  opts: {
+    launch?: unknown;
+    legacyHandle?: string;
+    surfaceFlag?: boolean;
+    terminals?: unknown[];
+    tail?: string;
+    setupTail?: string[];
+    setupStatus?: "running" | "exited";
+    wait?: unknown;
+    orcaYaml?: string;
+    hookSettings?: unknown;
+  } = {},
+) {
   const wt = join(dir, "wt", "my-task");
   const result: Record<string, unknown> = {
     worktree: { id: `${REPO_ID}::${wt}`, path: wt, branch: "refs/heads/me/my-task" },
   };
   if (opts.launch) result.launch = opts.launch;
   if (opts.legacyHandle) result.agentTerminalHandle = opts.legacyHandle;
+  if (opts.orcaYaml !== undefined) {
+    mkdirSync(wt, { recursive: true });
+    writeFileSync(join(wt, "orca.yaml"), opts.orcaYaml);
+  }
   writeFileSync(join(dir, "create.json"), JSON.stringify({ ok: true, result }));
   writeFileSync(
     join(dir, "wc-help"),
@@ -36,14 +56,22 @@ function stubOrca(opts: { launch?: unknown; legacyHandle?: string; surfaceFlag?:
   writeFileSync(join(dir, "terminals.json"), JSON.stringify({ ok: true, result: { terminals: opts.terminals ?? [] } }));
   writeFileSync(join(dir, "read.json"), JSON.stringify({ ok: true, result: { terminal: { tail: [opts.tail ?? ""] } } }));
   writeFileSync(
-    join(dir, "repos.json"),
-    JSON.stringify({ ok: true, result: { repos: [{ id: REPO_ID, path: repo, gitRemoteIdentity: { remoteUrl: "https://github.com/acme/widget.git", remoteName: "origin" } }] } }),
+    join(dir, "setup-read.json"),
+    JSON.stringify({ ok: true, result: { terminal: { handle: "term_setup", status: opts.setupStatus ?? "running", tail: opts.setupTail ?? [] } } }),
   );
+  // `terminal wait --for exit`: Orca 1.4.255's result shape (measured 2026-11-16).
+  writeFileSync(join(dir, "wait.json"), JSON.stringify(opts.wait ?? { ok: true, result: { wait: { satisfied: true, status: "exited", exitCode: 0 } } }));
+  const r: Record<string, unknown> = { id: REPO_ID, path: repo, gitRemoteIdentity: { remoteUrl: "https://github.com/acme/widget.git", remoteName: "origin" } };
+  if (opts.hookSettings) r.hookSettings = opts.hookSettings;
+  writeFileSync(join(dir, "repos.json"), JSON.stringify({ ok: true, result: { repos: [r] } }));
   const p = join(dir, "orca");
   writeFileSync(
     p,
     `#!/bin/sh
 echo "$*" >> "${orcaLog}"
+case "$1 $2 $3 $4" in
+  "terminal read --terminal term_setup") cat "${dir}/setup-read.json"; exit 0 ;;
+esac
 case "$1 $2 $3" in
   "--help  ") echo "Commands: worktree create" ;;
   "worktree create --help") cat "${dir}/wc-help" ;;
@@ -52,6 +80,7 @@ case "$1 $2 $3" in
   "worktree create "*) cat "${dir}/create.json" ;;
   "terminal list "*) cat "${dir}/terminals.json" ;;
   "terminal read "*) cat "${dir}/read.json" ;;
+  "terminal wait "*) cat "${dir}/wait.json" ;;
   *) printf '{"ok":true,"result":{}}\\n' ;;
 esac
 `,
@@ -101,6 +130,16 @@ describe("terminal surface", () => {
     const j = JSON.parse(r.out);
     expect(j).toMatchObject({ surface: "terminal", terminal: "term_a", chat_session: "", terminals: 1, prompt_seen: true });
     expect(r.err).not.toContain("warning");
+  });
+  test("the title is found in a stream that lost the spaces the agent drew by cursor moves", () => {
+    const orca = stubOrca({
+      launch: { outcome: { kind: "terminal", handle: "term_a" }, prompt: { outcome: "handed-to-terminal" } },
+      terminals: [{ handle: "term_a", title: "claude" }],
+      tail: `>${TITLE.replace(/\s+/g, "")}`,
+    });
+    const r = run([], orca);
+    expect(JSON.parse(r.out).prompt_seen).toBe(true);
+    expect(r.err).not.toContain("did not appear");
   });
   test("--surface terminal is passed when asked for", () => {
     const orca = stubOrca({
@@ -175,5 +214,107 @@ describe("chat surface (--surface chat)", () => {
     const r = run(["--surface"], stubOrca());
     expect(r.code).toBe(2);
     expect(r.err).toContain("--surface needs a value");
+  });
+});
+
+describe("the repo's setup script (Orca's Setup tab)", () => {
+  const launch = { outcome: { kind: "terminal", handle: "term_a" }, prompt: { outcome: "handed-to-terminal" } };
+  const yaml = "scripts:\n  setup: |\n    scripts/prepare.sh\n";
+  const agent = { handle: "term_a", title: "claude" };
+  const setupTab = { handle: "term_setup", title: "..my-task", paneTitle: "Setup" };
+  // What Orca 1.4.255 leaves in the Setup tab (measured 2026-11-16): the typed command, the script's output, the marker.
+  const done = (status: number) => [
+    "bash -lc '/x/orca/setup-runner.sh'; status=$?; printf '\\n__ORCA_SETUP_COMPLETE__:run-1:%s\\n' \"$status\"; exit \"$status\"",
+    "prepared",
+    "",
+    `__ORCA_SETUP_COMPLETE__:run-1:${status}`,
+  ];
+
+  test("a setup whose marker says 0 has its tab closed, and the result says so", () => {
+    const orca = stubOrca({ launch, orcaYaml: yaml, terminals: [agent, setupTab], setupTail: done(0), tail: TITLE });
+    const r = run([], orca);
+    expect(r.code).toBe(0);
+    expect(calls()).toContain("terminal read --terminal term_setup --limit 400");
+    expect(calls()).toContain("terminal close --terminal term_setup");
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "succeeded", setup_exit: 0, setup_tab: "closed" });
+    expect(r.err).not.toContain("warning");
+  });
+  test("the command line Orca typed (its printf template) is not read as the marker", () => {
+    const orca = stubOrca({ launch, orcaYaml: yaml, terminals: [agent, setupTab], setupTail: done(0).slice(0, 2), tail: TITLE });
+    const r = run(["--setup-timeout", "1"], orca);
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "unfinished", setup_exit: null, setup_tab: "kept" });
+  });
+  test("a failed setup keeps its tab open and warns with the exit status", () => {
+    const orca = stubOrca({ launch, orcaYaml: yaml, terminals: [agent, setupTab], setupTail: done(3), tail: TITLE });
+    const r = run([], orca);
+    expect(r.code).toBe(0);
+    expect(calls()).not.toContain("terminal close");
+    expect(r.err).toContain("setup script exited 3");
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "failed", setup_exit: 3, setup_tab: "kept", terminals: 2, setup_tabs: 1 });
+  });
+  test("a setup still running at --setup-timeout keeps its tab and warns", () => {
+    const orca = stubOrca({ launch, orcaYaml: yaml, terminals: [agent, setupTab], setupTail: ["installing..."], tail: TITLE });
+    const r = run(["--setup-timeout", "2"], orca);
+    expect(r.code).toBe(0);
+    expect(calls()).not.toContain("terminal close");
+    expect(r.err).toContain("did not finish within 2 s");
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "unfinished", setup_exit: null, setup_tab: "kept" });
+  });
+  test("a Setup tab whose own process ended is read with terminal wait", () => {
+    const orca = stubOrca({
+      launch,
+      orcaYaml: yaml,
+      terminals: [agent, setupTab],
+      setupStatus: "exited",
+      wait: { ok: true, result: { wait: { satisfied: true, status: "exited", exitCode: 0 } } },
+      tail: TITLE,
+    });
+    const r = run([], orca);
+    expect(calls()).toContain("terminal wait --terminal term_setup --for exit");
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "succeeded", setup_exit: 0, setup_tab: "closed" });
+  });
+  test("--keep-setup-tab leaves a successful setup's tab open", () => {
+    const orca = stubOrca({ launch, orcaYaml: yaml, terminals: [agent, setupTab], setupTail: done(0), tail: TITLE });
+    const r = run(["--keep-setup-tab"], orca);
+    expect(r.code).toBe(0);
+    expect(calls()).not.toContain("terminal close");
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "succeeded", setup_exit: 0, setup_tab: "kept" });
+  });
+  test("a script in Orca's repo settings is expected even without an orca.yaml", () => {
+    const orca = stubOrca({
+      launch,
+      hookSettings: { setupRunPolicy: "run-by-default", scripts: { setup: "make deps", archive: "" } },
+      terminals: [agent, setupTab],
+      setupTail: done(0),
+      tail: TITLE,
+    });
+    const r = run([], orca);
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "succeeded", setup_tab: "closed" });
+  });
+  test("--setup skip, or a policy that does not run setups by default, is not waited for", () => {
+    for (const [args, hookSettings] of [
+      [["--setup", "skip"], undefined],
+      [[], { setupRunPolicy: "skip-by-default", scripts: { setup: "", archive: "" } }],
+    ] as const) {
+      const orca = stubOrca({ launch, orcaYaml: yaml, hookSettings, terminals: [agent, setupTab], setupTail: done(0), tail: TITLE });
+      const r = run([...args], orca);
+      expect(r.code).toBe(0);
+      expect(calls()).not.toContain("--terminal term_setup");
+      expect(JSON.parse(r.out)).toMatchObject({ setup: "none", setup_exit: null, setup_tab: "none" });
+      rmSync(orcaLog, { force: true });
+    }
+  });
+  test("a repo without a setup script is not waited for", () => {
+    const orca = stubOrca({ launch, orcaYaml: "worktree:\n  defaultTabs: []\n", terminals: [agent], tail: TITLE });
+    const t0 = Date.now();
+    const r = run([], orca);
+    expect(Date.now() - t0).toBeLessThan(15_000);
+    expect(JSON.parse(r.out)).toMatchObject({ setup: "none", setup_tab: "none" });
+  });
+  test("a bad --setup-timeout is refused before any change", () => {
+    const r = run(["--setup-timeout", "soon"], stubOrca());
+    expect(r.code).toBe(2);
+    expect(r.err).toContain("--setup-timeout must be a whole number");
+    expect(createCall()).toBe("");
   });
 });

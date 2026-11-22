@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * pretooluse-stale-checkout-claim-guard.mjs
  *

@@ -16,7 +16,7 @@
 # fields, with a macOS Keychain fallback for each candidate:
 #   login_email    -> login_email | username | email
 #   login_password -> login_password | password
-#   (user_key, device, api_token_main, api_token_test resolve by their own label)
+#   (user_key, device, api_token_main, api_token_test and any api_token_<name> resolve by their own label)
 #
 # Config (set as env vars, or in the private config file below):
 #   PUSHOVER_VAULT_SCOPE                self-custody `vault` scope name (default: pushover-dashboard)
@@ -33,7 +33,7 @@
 #                                       (default: ~/.claude/pushover-commander.private/pushover-commander.local.env)
 #
 # Usage: resolve_pushover_secret.sh <field>
-#   field in: api_token_main api_token_test user_key device login_email login_password
+#   field in: api_token_main api_token_test api_token_<name> user_key device login_email login_password
 set -euo pipefail
 field="${1:?usage: resolve_pushover_secret.sh <field>}"
 

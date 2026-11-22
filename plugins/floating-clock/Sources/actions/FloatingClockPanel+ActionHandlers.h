@@ -55,6 +55,7 @@ NS_ASSUME_NONNULL_BEGIN
 // it costs the compiler's ability to catch a selector typo in the menu
 // builder. Do not copy it.
 - (void)toggleShowNetworkBar:(NSMenuItem *)sender;      // network picker bar
+- (void)toggleShowPowerRail:(NSMenuItem *)sender;       // battery + Bluetooth rail (2026-11-15)
 - (void)toggleShowLevelMeters:(NSMenuItem *)sender;     // input/output level meters (2026-10-15)
 - (void)toggleShowBrightnessBar:(NSMenuItem *)sender;   // 2026-09-19 brightness rail
 - (void)toggleShowTTSBar:(NSMenuItem *)sender;          // 2026-10-08 TTS-rate rail

@@ -68,6 +68,7 @@
  */
 
 import { closeSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { perUserTempPath } from "./per-user-temp-path.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Tunables — every number is justified against measured behaviour
@@ -196,7 +197,9 @@ export function tryAcquireMachineWideConcurrencySlotForGuardedSubprocess(
   guardedToolName: string,
   slotCount: number = MACHINE_WIDE_CONCURRENT_GUARDED_SUBPROCESS_SLOT_COUNT,
 ): AcquiredConcurrencySlot | null {
-  const slotDirectory = `${CONCURRENCY_SLOT_DIRECTORY_PREFIX}-${guardedToolName}`;
+  // Per user: a slot directory another account created (umask 0755) cannot be written, so every other account on a
+  // shared Linux host got null here, which skips the check silently. The bound is therefore per user and per tool.
+  const slotDirectory = perUserTempPath(`${CONCURRENCY_SLOT_DIRECTORY_PREFIX}-${guardedToolName}`);
   try {
     mkdirSync(slotDirectory, { recursive: true });
   } catch {

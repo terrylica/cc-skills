@@ -17,7 +17,7 @@
 #   Pth = Path violations (lint-relative-paths)
 #
 # Session line format:
-#   ~/.claude/projects JSONL ID: <claude-code-uuid>
+#   ~/.claude/projects JSONL ID: <claude-code-uuid> [(not saved until the first message[; resume <parent>])]
 #   ~/asciinemalogs cast: <iterm2-uuid>
 #   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
 #
@@ -2292,12 +2292,41 @@ fi
 
 statusline_shows repo && echo -e "$line_repo"
 
+# An id whose transcript does not exist yet cannot be resumed. Claude Code
+# writes a session's JSONL only when the first new entry is appended, so a
+# session that has had no message yet (a fresh start, or a --fork-session
+# restore nobody typed into) shows an id that `claude --resume` answers with
+# "No conversation found". Say so, and for a fork name the conversation it was
+# forked from, read from the claude process's own argv: that id is the one that
+# resumes. Costs nothing once the transcript exists (one `test -f`).
+session_unsaved_note=""
+if [ -n "$session_id" ] && [ -n "$transcript_file" ] && [ ! -e "$transcript_file" ]; then
+    session_unsaved_note="not saved until the first message"
+    fork_parent=""
+    fork_parent_re='(--resume[ =]|-r )([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'
+    walk_pid=$PPID
+    # Up the ancestry (statusline -> wrapper scripts -> claude -> launcher),
+    # at most six hops; one `ps` per hop, only while the transcript is missing.
+    for _ in 1 2 3 4 5 6; do
+        [[ "$walk_pid" =~ ^[0-9]+$ ]] && [ "$walk_pid" -gt 1 ] || break
+        walk_line=$(ps -ww -o ppid= -o args= -p "$walk_pid" 2>/dev/null) || break
+        read -r walk_ppid walk_args <<< "$walk_line"
+        if [[ " $walk_args " == *" --fork-session "* ]]; then
+            [[ "$walk_args" =~ $fork_parent_re ]] && fork_parent=${BASH_REMATCH[2]}
+            break
+        fi
+        walk_pid=$walk_ppid
+    done
+    [ -n "$fork_parent" ] && [ "$fork_parent" != "$session_id" ] \
+        && session_unsaved_note="${session_unsaved_note}; resume ${fork_parent}"
+fi
+
 if ! statusline_shows session; then
     :
 elif [ -n "$session_chain" ]; then
-    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}"
+    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID:${RESET} ${session_chain}${session_unsaved_note:+${BRIGHT_BLACK} (${session_unsaved_note})${RESET}}"
 elif [ -n "$session_id" ]; then
-    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${RESET}"
+    echo -e "${BRIGHT_BLACK}~/.claude/projects JSONL ID: ${session_id}${session_unsaved_note:+ (${session_unsaved_note})}${RESET}"
 fi
 
 if [ -n "$iterm_session_uuid" ] && statusline_shows cast; then

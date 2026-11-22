@@ -8,6 +8,8 @@ allowed-tools: Bash, Read
 
 > **Self-Evolving Skill**: This skill improves through use. If Orca's artifact pages change, a measured fact below no longer holds, or a workaround was needed: fix this file and the script immediately, don't defer. Only update for real, reproducible issues.
 
+> **Publishing standard:** every page this skill produces also carries the must-haves in `Skill(devops-tools:publishing-standard)`: a live "changed N ago" marker, the exact build time, version, commit and source, a link back to its index, one registry record and a place on the sitemap.
+
 **Rule (operator, 2026-10-28/29):** every Orca artifact uses the full width of the browser. No fixed-width column, and no hard line breaks in any text on the page. Text follows the reader's window.
 
 ## Why a bare `orca artifacts share` is not enough (measured 2026-10-29)

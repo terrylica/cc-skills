@@ -194,6 +194,13 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // Bluetooth piggyback (2026-11-10): metering a Bluetooth mic only while ANOTHER process records
     // it. Level rail only: the silence flags never feed the banner (see -startMetering).
     _Atomic bool      _meteringLevelOnly;
+    // Hosted recorders (2026-11-15): metering joined because the device ran with no process listed as
+    // recording it (macOS 26 voice processing runs inside coreaudiod). _halQueue only.
+    BOOL              _hostedJoin;
+    CFAbsoluteTime    _hostedSince;      // when this hosted join began
+    NSUInteger        _hostedTick;       // 1 Hz passes since the last probe
+    BOOL              _hostedProbing;    // a stop-and-look probe is in flight
+    CFAbsoluteTime    _hostedQuietUntil; // after the hard cap: no hosted join before this
     AudioDeviceIOProcID _ioProc;
     FCMeter           _meter;
     // Thread model (2026-10-21, cc-skills#37). Every CoreAudio HAL call this class makes, its device
@@ -473,6 +480,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 // last-resort fallback when the HAL reports no default input at all.
 - (void)rebindDevice {
     [self stopMetering];
+    _hostedJoin = NO; _hostedTick = 0;   // a hosted join belongs to the device it was made on
     [self removeMuteListener];
     AudioObjectID def = [self defaultInputDevice];
     _device = def;
@@ -625,19 +633,88 @@ static BOOL FCDeviceCapturedByAnotherProcess(AudioObjectID dev) {
     return NO;
 }
 
-// _halQueue only, 1 Hz. A Bluetooth mic is metered exactly while another process records it: the
-// headset is already in call mode then, so the IOProc costs nothing. When that process stops, the
-// meter stops on the next pass (call mode held at most ~1 s longer); when one starts, it attaches.
+// An INPUT-ONLY device (input streams, no output streams) that is running for some client, in any
+// process, coreaudiod included. On macOS 26 a recorder using Apple's hosted voice processing (Typeless
+// 2.8.3's dictation into AirPods, measured 2026-11-15: coreaudiod "Start_ActivateDSP … semantics =
+// airpods noise suppression studio", IO context on the AirPods input) is NOT listed as recording in the
+// per-process objects, so FCDeviceCapturedByAnotherProcess reads NO while the mic is in use. The
+// device's own IsRunningSomewhere still reads YES. Input-only is required: on a device that also plays,
+// music would read YES too, and joining then would force a headset into call mode, the one thing the
+// piggyback exists to avoid. AirPods expose input and output as separate devices (measured: input id
+// with 1 input stream and 0 output streams), so they qualify.
+static BOOL FCInputOnlyDeviceRunningSomewhere(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return NO;
+    AudioObjectPropertyAddress in = { kAudioDevicePropertyStreams, kAudioObjectPropertyScopeInput, kAudioObjectPropertyElementMain };
+    AudioObjectPropertyAddress out = { kAudioDevicePropertyStreams, kAudioObjectPropertyScopeOutput, kAudioObjectPropertyElementMain };
+    UInt32 isz = 0, osz = 0;
+    if (AudioObjectGetPropertyDataSize(dev, &in, 0, NULL, &isz) != noErr || isz == 0) return NO;
+    if (AudioObjectGetPropertyDataSize(dev, &out, 0, NULL, &osz) == noErr && osz > 0) return NO;
+    AudioObjectPropertyAddress ra = { kAudioDevicePropertyDeviceIsRunningSomewhere, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain };
+    UInt32 running = 0, rsz = sizeof(running);
+    return AudioObjectGetPropertyData(dev, &ra, 0, NULL, &rsz, &running) == noErr && running;
+}
+
+static const NSUInteger     kHostedProbeEvery  = 5;     // passes (s) between stop-and-look probes
+static const int64_t        kHostedProbeWaitMs = 300;   // after our stop, before the flag is trusted
+static const CFAbsoluteTime kHostedMaxJoin     = 600;   // hard cap on one hosted join
+static const CFAbsoluteTime kHostedQuiet       = 3;     // after the cap: stay off this long
+
+// _halQueue only, 1 Hz. A Bluetooth mic is metered exactly while someone else records it: the headset
+// is already in call mode then, so the IOProc costs nothing. Two ways to know:
+//   · a LISTED recorder (per-process objects): exact, and it excludes us, so the meter stops on the
+//     next pass after that recorder does;
+//   · a HOSTED recorder (input-only device running with nobody listed): our own IOProc keeps the device
+//     running too, so while joined we cannot read the flag directly. Every kHostedProbeEvery passes we
+//     stop our IOProc, wait kHostedProbeWaitMs, and read it: still running means someone else holds it,
+//     so we rejoin; otherwise we stay off. A join is capped at kHostedMaxJoin, then kHostedQuiet off
+//     whatever the flag says, so a flag that lags our own stop can never latch call mode on.
 - (void)syncBluetoothPiggyback {
-    if (_device == kAudioObjectUnknown || !_micAuthorized) return;
+    if (_device == kAudioObjectUnknown || !_micAuthorized || _hostedProbing) return;
     if (!FCDeviceIsBluetoothTransport(_device)) return;
-    BOOL others = FCDeviceCapturedByAnotherProcess(_device);
-    if (_meteringStarted && !others) {
+    BOOL listed = FCDeviceCapturedByAnotherProcess(_device);
+    CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+    if (!_meteringStarted) {
+        if (listed) {
+            _hostedJoin = NO;
+            [self startMetering];
+        } else if (now >= _hostedQuietUntil && FCInputOnlyDeviceRunningSomewhere(_device)) {
+            [self startMetering];
+            if (_meteringStarted) {
+                _hostedJoin = YES; _hostedSince = now; _hostedTick = 0;
+                FCMicLog(@"bluetooth piggyback: joined a hosted recorder (device running, no process listed)");
+            }
+        }
+        return;
+    }
+    if (listed) { _hostedJoin = NO; return; }       // a listed recorder is still there
+    if (!_hostedJoin) {                             // the listed recorder left
         FCMicLog(@"bluetooth piggyback: other recorder gone, stop metering");
         [self stopMetering];
-    } else if (!_meteringStarted && others) {
-        [self startMetering];
+        return;
     }
+    if (now - _hostedSince >= kHostedMaxJoin) {
+        FCMicLog(@"bluetooth piggyback: hosted join hit its %.0f s cap, staying off %.0f s", kHostedMaxJoin, kHostedQuiet);
+        [self stopMetering];
+        _hostedJoin = NO; _hostedQuietUntil = now + kHostedQuiet;
+        return;
+    }
+    if (++_hostedTick < kHostedProbeEvery) return;
+    _hostedTick = 0;
+    [self stopMetering];
+    _hostedProbing = YES;
+    __weak typeof(self) weak = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, kHostedProbeWaitMs * NSEC_PER_MSEC), _halQueue, ^{
+        typeof(self) me = weak; if (!me) return;
+        me->_hostedProbing = NO;
+        if (FCInputOnlyDeviceRunningSomewhere(me->_device)) {
+            CFAbsoluteTime since = me->_hostedSince;
+            [me startMetering];
+            if (me->_meteringStarted) { me->_hostedJoin = YES; me->_hostedSince = since; }
+        } else {
+            me->_hostedJoin = NO;
+            FCMicLog(@"bluetooth piggyback: hosted recorder gone, stop metering");
+        }
+    });
 }
 
 - (void)startMetering {
@@ -645,7 +722,7 @@ static BOOL FCDeviceCapturedByAnotherProcess(AudioObjectID dev) {
     // A Bluetooth mic is metered only while another process already records it (piggyback,
     // 2026-11-10); see -syncBluetoothPiggyback. Starting a capture ourselves would force the call mode.
     BOOL bluetooth = FCDeviceIsBluetoothTransport(_device);
-    if (bluetooth && !FCDeviceCapturedByAnotherProcess(_device)) {
+    if (bluetooth && !FCDeviceCapturedByAnotherProcess(_device) && !FCInputOnlyDeviceRunningSomewhere(_device)) {
         FCMicLog(@"metering skipped: bluetooth transport, no other recorder (HFP/SCO lock avoidance)");
         return;
     }

@@ -53,6 +53,8 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/core/LevelMeterIndicator.m \
     Sources/core/OutputLevelTap.m \
     Sources/core/DeviceDockIndicator.m \
+    Sources/core/PowerStatusIndicator.m \
+    Sources/core/PowerRailReaders.m \
     Sources/core/FCXDRBrightness.m \
     Sources/core/ClockChildWindowAttachment.m \
     Sources/core/ClockVisibilityToggle.m \

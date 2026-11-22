@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
             "timeout": 5
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/webfetch-github-guard.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/webfetch-github-guard.sh",
             "timeout": 5
           }
         ]
@@ -28,22 +28,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-repo-identity-guard.mjs",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/gh-repo-identity-guard.mjs",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-path-owner-guard.mjs",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pretooluse-path-owner-guard.mjs",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-no-anchors.mjs",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/gh-issue-no-anchors.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-stale-checkout-claim-guard.mjs",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pretooluse-stale-checkout-claim-guard.mjs",
             "timeout": 5
           }
         ]
@@ -55,17 +55,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-title-reminder.mjs",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/gh-issue-title-reminder.mjs",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-manual-pat-page-nudge.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/posttooluse-manual-pat-page-nudge.sh",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pr-linkage-and-label-reminder.mjs",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/posttooluse-pr-linkage-and-label-reminder.mjs",
             "timeout": 15
           }
         ]

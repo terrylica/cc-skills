@@ -9,7 +9,7 @@
 // flow through this registry.
 //
 // Order (bottom → top): clock · level meter (5) · audio I/O (10) · external status (15) ·
-// mic-mute (20) · VPN (30) · network (40) · brightness (50) · TTS speed (60).
+// mic-mute (20) · VPN (30) · power (35) · network (40) · brightness (50) · TTS speed (60).
 #import <Cocoa/Cocoa.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -19,6 +19,7 @@ static const NSInteger FCStackOrderAudio          = 10;
 static const NSInteger FCStackOrderExternalStatus = 15;
 static const NSInteger FCStackOrderMic            = 20;
 static const NSInteger FCStackOrderVPN            = 30;
+static const NSInteger FCStackOrderPower          = 35;   // battery + Bluetooth rail (2026-11-15)
 static const NSInteger FCStackOrderNetwork        = 40;
 static const NSInteger FCStackOrderBrightness     = 50;
 static const NSInteger FCStackOrderTTS            = 60;

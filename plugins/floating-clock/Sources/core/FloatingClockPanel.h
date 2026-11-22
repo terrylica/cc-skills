@@ -14,6 +14,7 @@
 @class FCBrightnessStatusIndicator; // 0-140% display brightness rail (2026-09-19)
 @class FCTTSRateStatusIndicator; // 1-3x text-to-speech playback-rate rail (2026-10-08)
 @class FCLevelMeterIndicator;    // live input/output level meters below the audio bar (2026-10-15)
+@class FCPowerStatusIndicator;   // battery + Bluetooth rail (2026-11-15)
 @class FCDeviceDockIndicator;    // watched-USB-device dock state + external job status rail (2026-10-15)
 @class FCSolarOutlinedTextView; // round-join outlined compact text (solar canvas, 2026-06-11)
 
@@ -49,6 +50,7 @@ NS_ASSUME_NONNULL_BEGIN
     // Level-meter strip (stack order 5) and device rail (order 15); see OverlayStack.h.
     FCLevelMeterIndicator *_levelMeterIndicator;
     FCDeviceDockIndicator *_deviceDockIndicator;
+    FCPowerStatusIndicator *_powerStatusIndicator;
 
     // Network picker bar — which service carries the default route.
     FCNetworkStatusIndicator *_networkStatusIndicator;

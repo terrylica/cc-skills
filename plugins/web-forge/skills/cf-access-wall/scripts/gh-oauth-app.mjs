@@ -11,6 +11,7 @@
 // never screenshotted — the reveal is DOM-extracted). client_id is public and logged.
 
 import { launchChrome, connect, assertIdentity, shot, purgeShots, sleep, vaultSet } from "../../../lib/browser-forge.mjs";
+import { pickField, readControls, selectorFor } from "./oauth-form.mjs";
 
 const arg = (n) => {
   const i = process.argv.indexOf(`--${n}`);
@@ -48,9 +49,20 @@ try {
   } else {
     await page.goto("https://github.com/settings/applications/new", { waitUntil: "domcontentloaded" });
     await sleep(1200);
-    await page.locator('input[name="oauth_application[name]"]').fill(NAME);
-    await page.locator('input[name="oauth_application[url]"]').fill(HOMEPAGE);
-    await page.locator('input[name="oauth_application[callback_url]"]').fill(CALLBACK);
+    // Fields by label, then by a rename-tolerant name pattern (oauth-form.mjs): GitHub renamed the callback
+    // field on 2026-11-16, and the exact name this used to fill matched nothing. Each value is read back
+    // before Register, so a field that silently took nothing stops the run instead of creating a broken app.
+    const controls = await page.evaluate(readControls);
+    for (const [key, value] of [["name", NAME], ["homepage", HOMEPAGE], ["callback", CALLBACK]]) {
+      const control = pickField(controls, key);
+      const field = page.locator(selectorFor(control));
+      const count = await field.count();
+      if (count !== 1) throw new Error(`${key}: ${count} elements match ${selectorFor(control)}; refusing to fill`);
+      await field.fill(value);
+      const readBack = await field.inputValue();
+      if (readBack !== value) throw new Error(`${key}: the field reads back "${readBack}", not the value filled; nothing submitted`);
+      console.log(`  ${key} → ${control.name} (matched by ${control.matchedBy})`);
+    }
     await shot(page, "oauth-form-filled");
     await page.getByRole("button", { name: /register application/i }).click();
     await sleep(2000);

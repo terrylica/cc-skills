@@ -17,7 +17,7 @@ Run diagnostics for everything this plugin owns on this machine. The Telegram bo
 PLUGIN="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander"
 
 echo "=== 1. Gmail CLI Binary + Lockfile ==="
-ls -la "$PLUGIN/scripts/gmail-cli/gmail" 2>/dev/null && echo "OK binary" || echo "MISSING — run: cd scripts/gmail-cli && bun install --frozen-lockfile && bun run build"
+ls -la "$PLUGIN/scripts/gmail-cli/gmail" 2>/dev/null && echo "OK binary" || echo "MISSING — run: cd scripts/gmail-cli && bun run build"
 ls "$PLUGIN/scripts/gmail-cli/bun.lock" >/dev/null 2>&1 && echo "OK lockfile" || echo "MISSING lockfile — the build is not reproducible"
 
 echo ""
@@ -48,7 +48,7 @@ echo "Not checkable from here. Send /status to the bot in Telegram; if it does n
 
 echo ""
 echo "=== 7. Retired local jobs (expected: none) ==="
-launchctl list | grep -F gmail-commander || echo "none loaded"
+{ launchctl list 2>/dev/null || systemctl --user list-units --all --no-legend 2>/dev/null; } | grep -F gmail-commander || echo "none loaded"  # launchd on macOS, systemd user units on Linux
 ls ~/Library/LaunchAgents 2>/dev/null | grep -F gmail-commander || echo "no plists"
 pgrep -fl "gmail-commander/scripts/bot.ts" || echo "no local bot process"
 ```

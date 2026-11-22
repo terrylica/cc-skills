@@ -90,6 +90,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowLevelMeters:) keyEquivalent:@""];
     [displayItems addObject:slm];
 
+    // 2026-11-15: battery + Bluetooth rail (PowerStatusIndicator). Backing key: PowerRailEnabled
+    // (registered NO; listing Bluetooth devices asks for the Bluetooth permission).
+    NSMenuItem *spr = [[NSMenuItem alloc] initWithTitle:@"Show Power Rail"
+                                                 action:@selector(toggleShowPowerRail:) keyEquivalent:@""];
+    [displayItems addObject:spr];
+
     // Network picker bar (NetworkStatusIndicator). Backing key:
     // NetworkBarEnabled (registered YES).
     NSMenuItem *snb = [[NSMenuItem alloc] initWithTitle:@"Show Network Bar"

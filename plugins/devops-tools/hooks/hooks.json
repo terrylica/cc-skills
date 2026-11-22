@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-firecrawl-research-reminder.ts",
+            "command": "bun \"${CLAUDE_PLUGIN_ROOT}\"/hooks/pretooluse-firecrawl-research-reminder.ts",
             "timeout": 3
           }
         ]
@@ -19,12 +19,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-1password-pattern-reminder.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/posttooluse-1password-pattern-reminder.sh",
             "timeout": 3
           },
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh",
             "timeout": 3
           }
         ]
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-1password-context-injection.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}\"/hooks/userpromptsubmit-1password-context-injection.sh",
             "timeout": 2
           }
         ]

@@ -32,6 +32,7 @@
 #import "test_brightness.h"              // 2026-09-19 brightness-rail arithmetic
 #import "test_tts_rate.h"                // 2026-10-08 TTS-rate rail arithmetic
 #import "test_level_meter.h"             // 2026-10-15 level meters + device rail model
+#import "test_power_rail.h"              // 2026-11-15 power rail (battery + Bluetooth) model
 #import "test_audio_hal_reader.h"        // 2026-10-21 HAL reads off the main thread (#37)
 #import "test_hotkey_spec.h"             // 2026-10-10 whole-clock hide hotkey spec
 
@@ -918,6 +919,13 @@ int main(void) {
         RUN_TEST(test_device_rail_status_parse);
         RUN_TEST(test_device_rail_segments);
         RUN_TEST(test_device_rail_steps_and_badge);
+        // Power rail (2026-11-15): battery parsing and fields, accessory parts, BT segments, tips.
+        RUN_TEST(test_power_battery_snapshot);
+        RUN_TEST(test_power_battery_states);
+        RUN_TEST(test_power_battery_segments_and_fields);
+        RUN_TEST(test_power_accessory_parts_and_merge);
+        RUN_TEST(test_power_bluetooth_segments);
+        RUN_TEST(test_power_chord_glyphs_and_registry);
         // Audio HAL reader (2026-10-21, #37): coalesced background reads, write-then-read order,
         // stale pre-write reads dropped, overdue clock, optimistic default.
         RUN_TEST(test_audio_hal_reader_coalesces_reads);

@@ -5,6 +5,7 @@
 #import "../core/AudioStatusIndicator.h"   // 2026-06-11: instant bar show/hide
 #import "../core/LevelMeterIndicator.h"   // 2026-10-15 level meters / device rail
 #import "../core/DeviceDockIndicator.h"   // 2026-10-15 level meters / device rail
+#import "../core/PowerStatusIndicator.h"  // battery + Bluetooth rail (2026-11-15)
 #import "../core/NetworkStatusIndicator.h" // network picker bar show/hide
 #import "../core/BrightnessStatusIndicator.h" // brightness rail show/hide
 #import "../core/TTSRateStatusIndicator.h"    // TTS-rate rail show/hide
@@ -312,6 +313,13 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"AudioBarEnabled"] forKey:@"AudioBarEnabled"];
     [_audioStatusIndicator refresh];   // instant show/hide (vs ≤1s tick lag)
+}
+
+// 2026-11-15: power rail (battery + Bluetooth) on/off; its refresh shows or hides it.
+- (void)toggleShowPowerRail:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"PowerRailEnabled"] forKey:@"PowerRailEnabled"];
+    [_powerStatusIndicator refresh];
 }
 
 // 2026-10-15: level meters on/off. The indicator's refresh shows/hides and starts/stops the tap.

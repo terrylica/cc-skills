@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/calendar-reminder-sync.ts",
+            "command": "bun \"${CLAUDE_PLUGIN_ROOT}\"/hooks/calendar-reminder-sync.ts",
             "timeout": 10
           }
         ]

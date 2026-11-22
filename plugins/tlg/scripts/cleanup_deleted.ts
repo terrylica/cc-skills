@@ -16,8 +16,8 @@
  */
 
 import process from "node:process";
-import bigInt from "big-integer";
-import { Api, type TelegramClient } from "telegram";
+import { bigInt } from "./vendor/telegram.js";
+import { Api, type TelegramClient } from "./vendor/telegram.js";
 import { connectAuthed, PROFILES } from "./tg-cli.ts";
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

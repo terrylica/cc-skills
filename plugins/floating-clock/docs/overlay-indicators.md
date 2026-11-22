@@ -1,10 +1,10 @@
 ← [Back to plugin CLAUDE.md](../CLAUDE.md)
 
-# Overlay indicators — network picker · audio I/O bar · level meters · device rail · mic-mute banner · VPN banner
+# Overlay indicators — network picker · power rail · audio I/O bar · level meters · device rail · mic-mute banner · VPN banner
 
 The clock carries a stack of overlay NSPanels pinned above it. This spoke is the SSoT for the audio bar saga (2026-06-11/12), the drag-welding architecture, and the generic VPN/state-file banner.
 
-Stack order, bottom to top (2026-10-15): clock → level meters → audio I/O → device rail → mic-mute → VPN → network → brightness ([brightness-rail.md](./brightness-rail.md)) → TTS speed (plugin CLAUDE.md § TTS speed rail). A hidden rail gives up its slot.
+Stack order, bottom to top (2026-11-15): clock → level meters → audio I/O → device rail → mic-mute → VPN → power → network → brightness ([brightness-rail.md](./brightness-rail.md)) → TTS speed (plugin CLAUDE.md § TTS speed rail). A hidden rail gives up its slot.
 
 **Stack registry (`OverlayStack`, 2026-10-15).** The original rails each hard-code their juniors and add one fixed 20 + 3 pt slot per visible junior. The two newer rails have their own heights and sit in the middle of the stack, so instead of teaching every rail about them, they register with `FCOverlayStack` under an order (level meters 5, device rail 15; the existing rails' orders are constants in `OverlayStack.h`), and every rail adds `-offsetBelowOrder:` for its own order: the summed height + gap of registered, showing rails below it. A registered rail that appears or disappears calls `-noteChanged`, which posts the width-consensus notification every rail already re-syncs on.
 
@@ -89,6 +89,58 @@ A device that drops and comes back within 10 s while its port stayed connected s
 | `DeviceRailDockPort`   | string | (auto)  | written by the rail: the port the device last used              |
 
 **Measured (Apple silicon laptop, 2026-10-15, 60 s CPU-time deltas after settling):** the clock ran at 1.3% CPU with the device rail on and the meters off, and 2.1% with both on while a USB microphone heard a quiet room. So the live meters cost about 0.8% while there is signal, and nothing once the room is below the floor. The device rail's own cost is inside measurement noise.
+
+## Power rail: battery and Bluetooth (`PowerStatusIndicator`, 2026-11-15)
+
+One rail, directly below the network rail (stack order 35): the Mac's battery on the left, Bluetooth on the right.
+
+```
+BAT 79% ⏸ -1.0W AC 60W ♥92% 236cy 30°  │ BT ● ⌃⌥⇧B  AirPods Pro L82 R80 C45 · Trackpad 64%
+```
+
+**Battery (BAT).** The percentage and a state glyph are always shown: `⚡` charging, `⏸` on AC but not charging below full (a charge limit or Optimized Battery Charging), `✓` full, `▾` on battery (amber at 20 % or less, red at 10 % or less, only while draining). Each of the other facts is its own item under the rail's right-click **Show on Bar**: time to full or empty, power in or out (voltage × current), adapter watts, health (full-charge capacity over design capacity), cycle count, temperature (amber from 40 °C, red from 45 °C). Whatever the bar hides is still in the hover tooltip and in **Details**. Sources: `IOPSCopyPowerSourcesInfo`, `IOPSCopyExternalPowerAdapterDetails` and the `AppleSmartBattery` registry entry, the chain Stats (exelban/stats, MIT) reads. On Apple Silicon the full-charge capacity is `AppleRawMaxCapacity` (`MaxCapacity` is a percentage there), falling back to `NominalChargeCapacity` and `BatteryData.NominalChargeCapacity` (newer macOS moved it, stats#3392). `Amperage` is a signed mA value the registry returns as an unsigned 64-bit number.
+
+**Bluetooth (BT).** The power dot (`●` on, `○ off`), then the shortcut tip, then each connected device and each paired device that reports a battery, by part: `L` `R` `C` for earbuds and their case, a plain `64%` otherwise.
+
+- **Click the dot or the tip:** Bluetooth on or off. The setter is IOBluetooth's private `IOBluetoothPreferenceSetControllerPowerState`, the one blueutil (MIT) and Bluesnooze use, followed by polling the getter for up to 10 s, as blueutil does. While it switches, the rail reads `◌ switching…`.
+- **Click a device name:** connect it (the existing `FCBluetoothPairedAudioDeviceConnector`, 8 s timeout) or disconnect it (`closeConnection`, only when it is connected: blueutil 2.14 found a disconnect sent to a device that is not connected can hang).
+- **Right-click:** the power item with its chord, every paired device with its levels (click to connect or disconnect), **Show on Bar**, **Details**, **Bluetooth Settings…**, **Hide Power Rail**.
+
+Device batteries come from three places, merged by name (`FCMergeBluetoothDevices`, unit-tested):
+
+1. **Accessory power sources**, the ones `pmset -g accps` lists, through `IOPSCopyPowerSourcesByType(4)` resolved with `dlsym` (declared in Apple's `IOPowerSourcesPrivate.h`). Measured 2026-11-15 on macOS 26: no entitlement needed, and an AirPods case is reported over Bluetooth LE even while the buds are not connected to this Mac.
+2. **The HID battery service**, `AppleDeviceManagementHIDEventService` `BatteryPercent` (Magic keyboard, mouse, trackpad), matched by class.
+3. **IOBluetooth's private `batteryPercentLeft/Right/Case/Single`**, guarded with `respondsToSelector:`.
+
+**Cost.** Nothing is read on every tick:
+
+| Read | When it runs |
+| --- | --- |
+| Battery and accessory batteries | Again on their IOPS change notifications (`IOPSNotificationCreateRunLoopSource`, `IOPSAccNotificationCreateRunLoopSource`), or every 10 s and 15 s respectively. |
+| Bluetooth power | Every 3 s. |
+| Paired devices | Every 15 s, and at once on an IOBluetooth connect or disconnect notification. |
+| HID batteries | Every 30 s. |
+
+The device list is the read that costs `bluetoothd` work: Stats issue #3623 measured about 20 XPC messages a second from a 1 s reader.
+
+**Measured cost (2026-11-15, M3 Max, macOS 26).** Taken the way [brightness-rail.md](./brightness-rail.md) § Cost prescribes: a CPU-time delta (`ps -o time=` sampled twice), here over 60 s windows, with the rail switched on and off in turn and 5 s to settle before each window. Bluetooth was on, nothing was connected, and the battery was held on AC.
+
+| Rail | Window 1 | Window 2 | Mean |
+| --- | --- | --- | --- |
+| On | 2.450 % | 2.350 % | 2.40 % |
+| Off | 2.333 % | 2.133 % | 2.23 % |
+
+The rail adds about 0.17 percentage points. That is the size of the noise between two windows in the same state (0.10 to 0.20 points), but it was higher in both pairs, so it is small rather than zero. Re-measure after any change to the read cadences above.
+
+**Shortcut and tip.** `floating-clock --bluetooth on|off|toggle` posts `<bundle id>.bluetooth.power` (userInfo `state`), and the running clock acts on it whether or not the rail is showing. The Bluetooth permission therefore stays with the clock, whatever runs the command; an unknown state prints the usage and exits 64. The tip is the chord of the hotkey whose command is `floating-clock … --bluetooth toggle`, read from the JSON file named by `PowerRailHotkeyRegistry`: `{"v":1,"hotkeys":[{"id","keys","run":[argv],"apps":[…]}]}`, re-read when its mtime changes. A hotkey daemon that publishes its registrations there makes the tip follow every re-bind. With no file the rail shows no tip.
+
+| default key               | type   | default    | meaning                                                                  |
+| ------------------------- | ------ | ---------- | ------------------------------------------------------------------------ |
+| `PowerRailEnabled`        | BOOL   | `NO`       | master on/off (menu: Show Power Rail; rail menu: Hide Power Rail)        |
+| `PowerRailBatteryFields`  | array  | all six    | optional battery fields on the bar: `time power adapter health cycles temp` |
+| `PowerRailHotkeyRegistry` | string | (none)     | path to the hotkey registry JSON the tip is read from; `~` expands       |
+
+Off by default in the public build, because listing Bluetooth devices asks for the Bluetooth permission. Code: `Sources/core/{PowerRailModel,PowerRailReaders,PowerStatusIndicator}.{h,m}`; tests: `tests/test_power_rail.m`.
 
 ## Network picker bar (`NetworkStatusIndicator`, 2026-09-06)
 

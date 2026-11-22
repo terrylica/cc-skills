@@ -14,6 +14,7 @@
 #import "core/VPNStatusIndicator.h"
 #import "core/LevelMeterIndicator.h"
 #import "core/DeviceDockIndicator.h"
+#import "core/PowerStatusIndicator.h"  // battery + Bluetooth rail (2026-11-15)
 #import "core/AudioStatusIndicator.h"
 #import "core/NetworkStatusIndicator.h"
 #import "core/BrightnessStatusIndicator.h"
@@ -146,6 +147,7 @@
         // 2026-10-15: live level meters under the audio bar. OFF in the public build: the output
         // half uses a Core Audio process tap, which asks for "System Audio Recording Only".
         @"LevelMeterEnabled": @NO,
+        @"PowerRailEnabled": @NO,   // listing Bluetooth devices asks for the Bluetooth permission
         @"LevelMeterOutputEnabled": @YES,
         // 2026-10-15: generic watched-USB-device rail; inert until a deployment configures it.
         @"DeviceRailEnabled": @NO,
@@ -315,6 +317,14 @@
     _deviceDockIndicator = [[FCDeviceDockIndicator alloc] initWithClockPanel:self];
     _deviceDockIndicator.audioIndicator = _audioStatusIndicator;
 
+    // 2026-11-15: power rail (battery + Bluetooth), stack order 35, directly below the network rail.
+    // Registers with FCOverlayStack, so the network, brightness and TTS rails above it move up on
+    // their own; it counts the unregistered audio, mic-mute and VPN slots below it itself.
+    _powerStatusIndicator = [[FCPowerStatusIndicator alloc] initWithClockPanel:self];
+    _powerStatusIndicator.audioIndicator = _audioStatusIndicator;
+    _powerStatusIndicator.micIndicator   = _micMuteIndicator;
+    _powerStatusIndicator.vpnIndicator   = _vpnStatusIndicator;
+
     // Network picker bar (top of the indicator stack). macOS resolves the
     // default route from the network SERVICE ORDER, which a newly attached
     // adapter can silently take over; this surfaces that and makes the choice
@@ -410,6 +420,8 @@ int main(int argc, const char * argv[]) {
         // `floating-clock --toggle|--show|--hide` drives the RUNNING instance
         // (distributed notification) and exits; it never starts a second clock.
         if (FCHandleVisibilityCommandLine(argc, argv)) return 0;
+        // `floating-clock --bluetooth on|off|toggle` asks the running instance to switch Bluetooth.
+        if (FCHandlePowerCommandLine(argc, argv)) return 0;
 
         NSApplication *app = [NSApplication sharedApplication];
         [app setActivationPolicy:NSApplicationActivationPolicyAccessory];

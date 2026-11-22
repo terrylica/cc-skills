@@ -40,7 +40,7 @@ wires their own 1Password item + Pushover account. See
 
    ```bash
    ROOT="$(cc-plugin-root pushover-commander)"
-   cd "$ROOT/skills/_lib" && bun install
+   cd "$ROOT" && bun install --frozen-lockfile   # Claude Code also does this itself on every plugin update
    ```
 
 3. **Send a test:**

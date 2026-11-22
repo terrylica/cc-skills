@@ -1,7 +1,6 @@
 # Draft-integrity guards
 
-> The three guards standing between a composed message and a Gmail draft, what each one is
-> **observed** to do, and how each was caught not doing it.
+> The six layers standing between a composed message and a Gmail draft, what each one is **observed** to do, and how each was caught not doing it.
 >
 > **Hub**: [gmail-commander CLAUDE.md](../CLAUDE.md)
 
@@ -28,10 +27,9 @@ Three for three. The pattern is not that these particular guards were unlucky; i
 is the one kind of code whose failure mode is silence, so "no complaints" is indistinguishable
 from "not running".
 
-## The three layers
+## The layers
 
-All three hang off `hooks/gmail-draft-guard.sh` and `hooks/gmail-mojibake-detector.sh`, wired as
-global `PreToolUse(Bash)` hooks in `hooks/hooks.json`.
+Layers 1 to 3 hang off `hooks/gmail-draft-guard.sh` and `hooks/gmail-mojibake-detector.sh`, wired as global `PreToolUse(Bash)` hooks in `hooks/hooks.json`. Layers 4 to 6 run inside `scripts/gmail-draft.ts` after the draft is uploaded, against what Gmail stored.
 
 ### Layer 1 — canonical-builder enforcement (2026-07-23)
 
@@ -88,6 +86,18 @@ Since 2026-10-30 it also checks attachments. With `--attach` the text parts sit 
 The Gmail `drafts.get` response nests the message: `{id, message: {payload: {headers: [...]}}}`.
 Reading `fetchedDraft.payload` yields `undefined`, the header scan finds nothing, and the check
 passes vacuously. It failed open on every draft it ever "verified".
+
+### Layer 5 — one draft per thread (2026-07-30)
+
+After creating (and, with `--replace`, deleting the superseded draft), `scripts/gmail-draft.ts` lists the drafts and refuses with exit 1 when the new draft's thread holds more than one. A delete that reports success against the wrong id, or an earlier revision nobody cleaned up, is caught by asking Gmail what is there now rather than trusting the two calls. It cannot see an earlier copy of a NEW message, which starts its own thread: that is Layer 6.
+
+### Layer 6 — no earlier version lingers (2026-11-21)
+
+After the read-back, `scripts/gmail-draft.ts` reads every draft in the account (`lingering-drafts.ts`, at most 500) and compares them with the new one **as Gmail stored it**. Same sender, a shared recipient and the same subject (Braille Tally cells, `Re:`, case and spacing ignored) is an earlier version: `--prune-superseded` deletes it and re-lists to prove it is gone; otherwise the run exits 3 naming it. Same sender and recipient with another subject is reported as `related`. `scripts/gmail-drafts-audit.ts --keep-file <manifest> [--prune]` is the sweep for a whole batch.
+
+Why: new messages start their own threads, so the per-thread invariant (Layer 5 in `gmail-draft.ts`) cannot see an earlier copy of one. A re-ranked batch left an outdated cover draft next to its replacement until a manual sweep found it.
+
+Proven both ways on 2026-11-21, live: the first version compared the From that was _asked for_ and found nothing, because Gmail rewrites a From that is not a send-as alias to the account's own address. Compared with the stored draft, three throwaway drafts whose subjects differed only in their tally gave exit 3 naming the earlier ones, and `--prune-superseded` deleted all of them and exited 0. The batch audit, run against a real manifest, kept the five drafts in play and flagged nothing among 18. The suite (`lingering-drafts.test.ts`) runs in the Layer 3 gate with the builder's own.
 
 ## Verification log
 
@@ -150,11 +160,11 @@ commits behind, and it re-introduced both defects verbatim.
 
 Three separate things had to be true for that to reach a client, and each is now closed:
 
-| what failed | why it was possible | closed by |
-| --- | --- | --- |
-| the fix was not where the code ran | nine commits unpushed, in one directory | pushed; the working checkout is synced |
-| the stale copy was invokable | the guard allowed any path ending `scripts/gmail-draft.ts` | the guard names the installed COPY, not just the filename |
-| the corruption passed verification | the read-back compared bodies after collapsing whitespace | see below |
+| what failed                        | why it was possible                                        | closed by                                                 |
+| ---------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------- |
+| the fix was not where the code ran | nine commits unpushed, in one directory                    | pushed; the working checkout is synced                    |
+| the stale copy was invokable       | the guard allowed any path ending `scripts/gmail-draft.ts` | the guard names the installed COPY, not just the filename |
+| the corruption passed verification | the read-back compared bodies after collapsing whitespace  | see below                                                 |
 
 **The verification failure is the one worth internalising.** The check said `matches: True`. It
 compared the staged body against the source after `" ".join(text.split())` — which collapses exactly

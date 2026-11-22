@@ -12,7 +12,7 @@ Priority-2 emergency notification with receipt polling, via the TS core `pushove
 ```bash
 env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" emergency \
   --title "Title" --message "what happened + the one action needed" \
-  [--retry 30] [--expire 300] [--sound piano] [--attach report.png] [--app main|test] [--no-wait]
+  [--retry 30] [--expire 300] [--sound piano] [--attach report.png] [--app main|test|<name>] [--no-wait]
 ```
 
 ## Behavior (verified on a physical device 2026-05-30)

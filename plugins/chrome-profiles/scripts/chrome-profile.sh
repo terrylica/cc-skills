@@ -9,6 +9,7 @@
 #   chrome-profile.sh extension-status                 # which profiles have the Playwright Extension
 #   chrome-profile.sh playwright-mcp <email>           # the MCP server command that `setup` registers
 #   chrome-profile.sh tabs list [--json] | close --id <tabId>…  # every tab of every profile, no dialog (chrome-tabs.ts)
+#   chrome-profile.sh saved-groups <email>     # saved "Playwright · …" tab groups left in that profile (saved-tab-groups.ts)
 #   chrome-profile.sh rotate-token <email>             # after an exposure: new extension token, stored, page closed
 #
 # macOS + Google Chrome. Doctrine and the reasons behind every rule: ../skills/browser-automation/.
@@ -208,6 +209,13 @@ case "$cmd" in
   tabs)
     exec bun "$TABS" "$@" ;;
 
+  saved-groups)
+    # Saved "Playwright · <client>" tab groups still held by this profile (left before playwright-mcp passed
+    # --no-tab-group). Counts only; exit 0 none, 1 some remain. Delete them in Chrome (SKILL.md § Tabs).
+    email="${1:-}"; [ -n "$email" ] || die "usage: saved-groups <email>"
+    dir=$(resolve "$email")
+    (cd "$(dirname "$SELF")" && exec bun --no-env-file --no-install --config=/dev/null ./saved-tab-groups.ts "$ROOT/$dir" </dev/null) ;;
+
   rotate-token)
     # After a token was exposed (a screenshot of the connect page, a log): make the extension generate a new one,
     # store it, close the page. The only click is the extension's own "Generate new token" button, pressed through
@@ -263,7 +271,15 @@ JXA
     fi
     if [ -n "$tok" ]; then export PLAYWRIGHT_MCP_EXTENSION_TOKEN="$tok"; fi
     unset tok
-    exec npx -y @playwright/mcp@latest --extension --profile-dir-name "$dir" \
+    # No tab group by default (measured 2026-11-17). The extension puts each connection's tabs in a group titled
+    # "Playwright · <client>"; when a run then closes the group's last tab, Chrome (131+) treats it as "close group" and
+    # SAVES the group to the bookmarks bar, synced to every device and never removed: one saved group per run (+1
+    # with the default launcher; none with --no-tab-group; about 100 had piled up across 10 profiles). The extension honours
+    # the flag (connectToTab: tabGroup !== false) since @playwright/mcp 0.0.85 / extension 0.5.0.
+    # CHROME_PROFILE_TAB_GROUP=1 keeps the group for a supervised session (it will then be saved when its tabs close).
+    group_flag=(--no-tab-group)
+    if [ "${CHROME_PROFILE_TAB_GROUP:-}" = "1" ]; then group_flag=(); fi
+    exec npx -y @playwright/mcp@latest --extension ${group_flag[@]+"${group_flag[@]}"} --profile-dir-name "$dir" \
       --executable-path "$(dirname "$(stable_self)")/chrome-connect-launch.sh" ;;
 
   setup)
@@ -510,6 +526,11 @@ EOF
           elif [ "$stored_h" = "$prof_h" ]; then ok "stored token matches the extension's current token (no connect page)"
           else bad "stored token is STALE: the extension will show its connect page and wait for a click — run: $(basename "$0") setup $email"; fi
         else warn "no extension token stored — run setup $email"; fi
+        # Saved tab groups left by runs before --no-tab-group (2026-11-17): invisible to `tabs list`.
+        sg_rc=0; sg=$(cd "$(dirname "$SELF")" && bun --no-env-file --no-install --config=/dev/null ./saved-tab-groups.ts "$ROOT/$dir" </dev/null 2>/dev/null) || sg_rc=$?
+        if [ "$sg_rc" -eq 0 ]; then ok "no saved 'Playwright · …' tab groups left in this profile"
+        elif [ "$sg_rc" -eq 1 ]; then warn "saved 'Playwright · …' tab groups left in this profile: $sg — delete them in Chrome (SKILL.md § Tabs)"
+        else warn "could not read this profile's saved tab groups (exit $sg_rc)"; fi
         # Look-alikes: other extensions with "Playwright" in the name are not the one the MCP server talks to.
         python3 - "$ROOT/$dir/Extensions" "$EXT_ID" <<'EOF' || true
 import glob, json, os, sys

@@ -8,6 +8,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
+> **Publishing standard:** every page this skill produces also carries the must-haves in `Skill(devops-tools:publishing-standard)`: a live "changed N ago" marker, the exact build time, version, commit and source, a link back to its index, one registry record and a place on the sitemap.
+
 ## When to use this skill
 
 The user wants to produce **static HTML pages** that combine three aesthetic DNAs:

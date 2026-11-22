@@ -10,6 +10,10 @@
 #                       [--surface terminal|chat]   start the agent in a terminal or as an Orca chat; default: the user's
 #                                                   Chat | CLI setting for the agent. A chat reports chat_session and
 #                                                   no terminal handle
+#                       [--setup-timeout SEC]       wait up to SEC (default 600) for the repo's setup script, which Orca
+#                                                   runs in its own Setup tab; on exit 0 the tab is closed, otherwise it
+#                                                   stays open with its output and a warning names the exit code
+#                       [--keep-setup-tab]          leave the Setup tab open even when the setup succeeded
 #   orca-spinoff remove --name NAME [--remote R] [--delete-remote-branch] [--force] [--dry-run]
 #   Every command also takes the Orca-native targeting flags:
 #     [--environment ID | --pairing-code CODE]   a paired remote Orca runtime (orca environment list); passed to
@@ -72,7 +76,12 @@ is_orca() {  # help text captured, not piped to grep -q: an early-exiting reader
 find_orca() {
   local c
   if [ -n "${ORCA_CLI:-}" ]; then is_orca "$ORCA_CLI" && { echo "$ORCA_CLI"; return 0; }; return 1; fi
-  for c in "$(command -v orca 2>/dev/null || true)" "$HOME/.config/orca/linux-orca-cli-shim/orca" \
+  # Same order as scripts/lib/orca-cli.sh: on Linux the CLI is named orca-ide (/opt/Orca/resources/bin/orca-ide,
+  # linked as ~/.local/bin/orca-ide), and a bare `orca` may be the GNOME screen reader (is_orca rejects it).
+  for c in "${ORCA_CLI_BIN_DIR:+$ORCA_CLI_BIN_DIR/orca}" "${ORCA_CLI_BIN_DIR:+$ORCA_CLI_BIN_DIR/orca-ide}" \
+           "$(command -v orca 2>/dev/null || true)" "$(command -v orca-ide 2>/dev/null || true)" \
+           "$HOME/.local/bin/orca-ide" /opt/Orca/resources/bin/orca-ide \
+           "$HOME/.config/orca/linux-orca-cli-shim/orca" \
            /Applications/Orca.app/Contents/Resources/bin/orca "$HOME/Applications/Orca.app/Contents/Resources/bin/orca"; do
     is_orca "$c" && { echo "$c"; return 0; }
   done
@@ -81,11 +90,11 @@ find_orca() {
 o() { "$ORCA" "$@" ${target[@]+"${target[@]}"}; }
 
 cmd=${1:-}; [ $# -gt 0 ] && shift
-case $cmd in create|remove) ;; -h|--help|help|'') sed -n '2,23p' "$0"; exit 0 ;; *) die "unknown command: $cmd (create|remove)" ;; esac
+case $cmd in create|remove) ;; -h|--help|help|'') sed -n '2,28p' "$0"; exit 0 ;; *) die "unknown command: $cmd (create|remove)" ;; esac
 
 name='' title='' display='' handoff='' issue='' comment='' prompt_file='' base='' remote='' agent=claude
 handoff_dir=docs/handoff staging_prefix=handoff/ parent='' activate=0 dry=0 del_remote=0 force=0
-host='' repo_id='' setup='' runtime_remote=0 surface=''
+host='' repo_id='' setup='' runtime_remote=0 surface='' setup_timeout=600 keep_setup=0
 links=() target=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -111,6 +120,8 @@ while [ $# -gt 0 ]; do
     --host) host=$2; shift 2 ;;
     --setup) setup=$2; shift 2 ;;
     --surface) [ $# -ge 2 ] || die "--surface needs a value: terminal or chat"; surface=$2; shift 2 ;;
+    --setup-timeout) [ $# -ge 2 ] || die "--setup-timeout needs a number of seconds"; setup_timeout=$2; shift 2 ;;
+    --keep-setup-tab) keep_setup=1; shift ;;
     --repo-id) repo_id=$2; shift 2 ;;
     *) die "unknown argument: $1" ;;
   esac
@@ -118,6 +129,7 @@ done
 [ -n "${ORCA_ENVIRONMENT:-}${ORCA_PAIRING_CODE:-}" ] && runtime_remote=1
 [ -n "$name" ] || die "--name is required"
 case $surface in ""|terminal|chat) ;; *) die "--surface must be terminal or chat: $surface" ;; esac
+[[ $setup_timeout =~ ^[0-9]+$ ]] || die "--setup-timeout must be a whole number of seconds: $setup_timeout"
 [[ $name =~ ^[a-z0-9][a-z0-9._-]*$ ]] || die "name must be lowercase [a-z0-9._-]: $name"
 command -v python3 >/dev/null || die "python3 not on PATH" 1
 if ! ORCA=$(find_orca); then
@@ -447,15 +459,90 @@ for l in ${links[@]+"${links[@]}"}; do
   [ -e "$wt_path/$l" ] || ln -s "$main/$l" "$wt_path/$l" || warn "could not link $l"
 done
 
+# 4b. the repo's setup script (orca.yaml scripts.setup, or the script in the repo's Orca settings). Measured on Orca
+# 1.4.255 (2026-11-16): Orca opens a shell tab of its own (paneTitle "Setup") a few seconds after `worktree create`
+# returns, types the script into it, and prints __ORCA_SETUP_COMPLETE__:<run id>:<exit status> when it ends; the shell
+# then stays open, so the tab stays beside the agent's for good. Orca keeps its run policy and its approval of the
+# script; this step only reads Orca's own marker and closes the tab on status 0. A failed or unfinished setup keeps
+# its tab, so its output stays readable, and is warned. A tab whose own process ended is read with `terminal wait`.
+setup_state=none setup_exit=null setup_tab=none setup_handle=''
+is_setup='(x.get("paneTitle") or x.get("title") or "").strip().lower() == "setup"'
+expect_setup=0
+if [ "$setup" != skip ]; then
+  # Orca's decision (automation-setup-decision.js): --setup run runs it; inherit runs it under run-by-default (the
+  # default policy). A script is then expected from Orca's repo settings, or from an orca.yaml in the new worktree.
+  IFS=$'\t' read -r run_policy local_script <<<"$(py '
+r = next(r for r in d["result"]["repos"] if r["id"] == sys.argv[1])
+h = r.get("hookSettings") or {}
+print("%s\t%d" % (h.get("setupRunPolicy") or "run-by-default", bool(((h.get("scripts") or {}).get("setup") or "").strip())))' \
+    "$repo_id" <<<"$repos")"
+  if [ "$setup" = run ] || [ "$run_policy" = run-by-default ]; then
+    # The worktree's own orca.yaml; for a worktree on another machine, the base commit's, read in this clone.
+    if [ "$elsewhere" = 1 ]; then yaml=$(git show "${base:-HEAD}:orca.yaml" 2>/dev/null || true)
+    elif [ -f "$wt_path/orca.yaml" ]; then yaml=$(cat "$wt_path/orca.yaml")
+    else yaml=''; fi
+    if [ "$local_script" = 1 ] || printf '%s\n' "$yaml" | grep -Eq '^[[:space:]]+setup[[:space:]]*:'; then
+      expect_setup=1
+    fi
+  fi
+fi
+if [ "$expect_setup" = 1 ]; then
+  setup_state=not_found
+  i=0
+  while [ $i -lt 15 ]; do
+    if tl=$(o terminal list --worktree "id:$wt_id" --json 2>/dev/null); then
+      setup_handle=$(py "
+s = [x for x in d['result']['terminals'] if $is_setup and x.get('handle') != sys.argv[1]]
+print(s[0]['handle'] if len(s) == 1 else '')" "$handle" <<<"$tl" 2>/dev/null) || setup_handle=''
+    fi
+    [ -z "$setup_handle" ] || break
+    i=$((i + 1)); sleep 2
+  done
+fi
+if [ -n "$setup_handle" ]; then
+  setup_state=running setup_tab=kept
+  t_end=$(( $(date +%s) + setup_timeout ))
+  while :; do
+    # The tail preview (no --cursor) holds the end of the output, where the marker is, however long the setup ran.
+    st=$(o terminal read --terminal "$setup_handle" --limit 400 --json 2>/dev/null | py '
+t = (d.get("result") or {}).get("terminal") or {}
+tail = t.get("tail") or []
+codes = [m.group(1) for line in (tail if isinstance(tail, list) else [tail])
+         for m in [re.search(r"__ORCA_SETUP_COMPLETE__:[^:\s]+:(\d+)\s*$", line)] if m]
+print(codes[-1] if codes else ("exited" if t.get("status") == "exited" else "running"))' 2>/dev/null) || st=running
+    case $st in
+      exited)
+        wout=$(o terminal wait --terminal "$setup_handle" --for exit --timeout-ms 5000 --json 2>/dev/null) || true
+        setup_exit=$(py '
+w = (d.get("result") or {}).get("wait") or {}
+print(w["exitCode"] if w.get("satisfied") and isinstance(w.get("exitCode"), int) else "null")' <<<"$wout" 2>/dev/null) || setup_exit=null
+        break ;;
+      running) [ "$(date +%s)" -lt "$t_end" ] || break; sleep 2 ;;
+      *) setup_exit=$st; break ;;
+    esac
+  done
+  case $setup_exit in
+    null) setup_state=unfinished
+          warn "the repo's setup script did not finish within ${setup_timeout} s (or its status could not be read); its Setup tab stays open: orca terminal read --terminal $setup_handle" ;;
+    0) setup_state=succeeded
+       if [ "$keep_setup" = 1 ]; then :
+       elif o terminal close --terminal "$setup_handle" --json >/dev/null 2>&1; then setup_tab=closed
+       else warn "the setup succeeded but its tab could not be closed (terminal $setup_handle)"; fi ;;
+    *) setup_state=failed
+       warn "the repo's setup script exited $setup_exit; its Setup tab stays open with the output (terminal $setup_handle)" ;;
+  esac
+elif [ "$setup_state" = not_found ]; then
+  warn "a setup script was expected, but no Setup tab appeared within 30 s"
+fi
+
 # 5. verify: exactly one agent tab (for a terminal launch), and the prompt's title reached it (bounded wait; no resend)
-# The agent's tab, plus a "Setup" tab when the repo defines a setup script and Orca runs it in a new tab
-# (settings.setupScriptLaunchMode = new-tab); --setup skip leaves the agent's tab alone.
+# The agent's tab, plus the Setup tab when step 4b kept it.
 n=null nsetup=null
 if [ "$launched" = chat ]; then
   :   # a chat tab is not a terminal: only a Setup tab may be listed, and the prompt is checked from the launch result
 elif tl=$(o terminal list --worktree "id:$wt_id" --json); then
-  read -r n nsetup <<<"$(py '
-t = d["result"]["terminals"]; print(len(t), sum(1 for x in t if (x.get("title") or "").strip().lower() == "setup"))' <<<"$tl")"
+  read -r n nsetup <<<"$(py "
+t = d['result']['terminals']; print(len(t), sum(1 for x in t if $is_setup))" <<<"$tl")"
   [ "$((n - nsetup))" = 1 ] || warn "$n terminals in $wt_path ($nsetup setup), expected the agent's tab plus at most a Setup tab"
 else
   warn "orca terminal list failed for $wt_id"
@@ -471,10 +558,12 @@ if [ "$launched" = chat ]; then
 elif [ -n "$handle" ] && [ "$runtime_remote" != 1 ]; then
   i=0
   while [ $i -lt 30 ]; do
+    # Compared without whitespace: the stream drops the spaces a full-screen agent draws by moving the cursor (Orca's
+    # `terminal read --help`; measured on Claude Code under Orca 1.4.255, 2026-11-16: the stream held "Probe2:Setuptab").
     if o terminal read --terminal "$handle" --cursor 0 --limit 2000 --json 2>/dev/null | py '
 t = d.get("result", {}).get("terminal", {}); tail = t.get("tail") or []
-want = (sys.argv[1].splitlines() or [""])[0][:30]
-sys.exit(0 if want in "\n".join(tail if isinstance(tail, list) else [tail]) else 1)' "$title"; then
+want = re.sub(r"\s+", "", (sys.argv[1].splitlines() or [""])[0][:30])
+sys.exit(0 if want in re.sub(r"\s+", "", "".join(tail if isinstance(tail, list) else [tail])) else 1)' "$title"; then
       seen=true; break
     fi
     i=$((i + 1)); sleep 3
@@ -490,4 +579,5 @@ elif [ "$seen" != true ]; then
 fi
 emit worktree "s:$wt_id" path "s:$wt_path" branch "s:$branch" surface "s:$launched" terminal "s:$handle" \
   chat_session "s:$chat_session" agent_handle "s:$agent_handle" prompt_outcome "s:$prompt_outcome" \
-  terminals "j:$n" setup_tabs "j:$nsetup" prompt_seen "j:$seen"
+  terminals "j:$n" setup_tabs "j:$nsetup" setup "s:$setup_state" setup_exit "j:$setup_exit" \
+  setup_tab "s:$setup_tab" prompt_seen "j:$seen"

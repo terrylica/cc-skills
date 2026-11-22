@@ -943,3 +943,41 @@ teardown() {
     typo=$(echo "$TEST_INPUT" | STATUSLINE_HIDE=nonsense,,x "$STATUSLINE" | grep -v ' UTC ')
     [ "$plain" = "$typo" ]
 }
+
+# A --fork-session restore that nobody types into never gets a transcript
+# (Claude Code writes the JSONL at the first new entry), so its id cannot be
+# resumed. The JSONL line must say so and name the parent id from the claude
+# process's argv. fake_claude stands in for that process: the statusline runs
+# as its child, so the walk up the ancestry reads these flags.
+fake_claude() {
+    local json=$1; shift
+    printf '#!/bin/bash\nprintf "%%s" "$J" | bash "$SL"\n' > "$BATS_TEST_TMPDIR/fake-claude"
+    J=$json SL=$STATUSLINE bash "$BATS_TEST_TMPDIR/fake-claude" "$@" | sed $'s/\x1b\\[[0-9;]*m//g' | grep 'JSONL ID'
+}
+UNSAVED_PARENT=11111111-2222-4333-8444-555555555555
+UNSAVED_FORK=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee
+
+@test "unsaved fork: JSONL line says not saved and names the parent to resume" {
+    local json="{\"session_id\":\"$UNSAVED_FORK\",\"transcript_path\":\"$BATS_TEST_TMPDIR/missing.jsonl\"}"
+    run fake_claude "$json" --dangerously-skip-permissions --resume "$UNSAVED_PARENT" --fork-session
+    [[ "$output" == *"$UNSAVED_FORK (not saved until the first message; resume $UNSAVED_PARENT)"* ]]
+    run fake_claude "$json" -r "$UNSAVED_PARENT" --fork-session
+    [[ "$output" == *"resume $UNSAVED_PARENT)"* ]]
+    run fake_claude "$json" --resume="$UNSAVED_PARENT" --fork-session
+    [[ "$output" == *"resume $UNSAVED_PARENT)"* ]]
+}
+
+@test "unsaved session that is not a fork: says not saved, names no parent" {
+    local json="{\"session_id\":\"$UNSAVED_FORK\",\"transcript_path\":\"$BATS_TEST_TMPDIR/missing.jsonl\"}"
+    run fake_claude "$json" --resume "$UNSAVED_PARENT"
+    [[ "$output" == *"$UNSAVED_FORK (not saved until the first message)"* ]]
+    [[ "$output" != *"resume "* ]]
+}
+
+@test "saved fork: no note once the transcript exists" {
+    : > "$BATS_TEST_TMPDIR/present.jsonl"
+    local json="{\"session_id\":\"$UNSAVED_FORK\",\"transcript_path\":\"$BATS_TEST_TMPDIR/present.jsonl\"}"
+    run fake_claude "$json" --resume "$UNSAVED_PARENT" --fork-session
+    [[ "$output" == *"$UNSAVED_FORK"* ]]
+    [[ "$output" != *"not saved"* ]]
+}

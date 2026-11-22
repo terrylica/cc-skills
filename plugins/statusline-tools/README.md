@@ -88,6 +88,8 @@ Lines, top to bottom. Each has a name for `STATUSLINE_HIDE` (below); a line whos
 | `cast`     | Asciinema cast UUID                                                   | `~/asciinemalogs cast: def45678-abcd-1234-5678-abcdef123456`              |
 | `cron`     | Active cron jobs, one line each                                       |                                                                           |
 
+Claude Code writes a session's transcript only when the session's first new entry is added, so until then its id cannot be resumed (`claude --resume <id>` answers "No conversation found"). While the transcript file is missing, the `session` line adds `(not saved until the first message)`. When the session is a `--fork-session` restore, such as the one an IDE runs to reopen a terminal tab, it also names the conversation it was forked from, read from the `claude` process's own arguments: `(not saved until the first message; resume <parent id>)`. That parent id is the one to resume.
+
 ### Hiding segments — `STATUSLINE_HIDE`
 
 Set a comma-separated list of the names above to leave them out, for example in `~/.claude/settings.json`:

@@ -4,6 +4,7 @@
 #import "MicMuteIndicator.h"     // mic-mute banner sync (user directive 2026-06-01)
 #import "LevelMeterIndicator.h"   // 2026-10-15 level meters / device rail
 #import "DeviceDockIndicator.h"   // 2026-10-15 level meters / device rail
+#import "PowerStatusIndicator.h"  // battery + Bluetooth rail (2026-11-15)
 #import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
 #import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
 #import "NetworkStatusIndicator.h" // network picker bar sync
@@ -80,6 +81,7 @@ static uint64_t nsUntilNextSecond(void) {
     [_deviceDockIndicator refresh];
     // In-process SCDynamicStore read only — never spawns a subprocess on
     // the tick (see NetworkStatusIndicator.h refresh-model note).
+    [_powerStatusIndicator refresh];
     [_networkStatusIndicator refresh];
     // Brightness rail: one dlsym'd DisplayServices call plus one NSScreen
     // property read, both in-process — comparable to the six CoreAudio reads

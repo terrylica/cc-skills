@@ -9,6 +9,8 @@ allowed-tools: Read, Bash, Grep, Write, Edit, Glob, AskUserQuestion
 
 Deploy static HTML files (Bokeh charts, dashboards, reports) to Cloudflare Workers with Static Assets, using 1Password for credential management.
 
+> **Publishing standard:** every page this skill produces also carries the must-haves in `Skill(devops-tools:publishing-standard)`: a live "changed N ago" marker, the exact build time, version, commit and source, a link back to its index, one registry record and a place on the sitemap.
+
 **Scope**: Static-only deployments on workers.dev. No dynamic Workers, no R2 object storage.
 
 **Prerequisite**: 1Password CLI (`brew install 1password-cli`) + Node.js (`npx wrangler`)

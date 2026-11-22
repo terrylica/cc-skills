@@ -13,6 +13,7 @@
 // No package imports at the top of this file, only `node:` builtins and siblings: importing it
 // must work on a checkout that ran nothing but the repo-root `bun install`. satori and
 // @resvg/resvg-js are loaded on first use by loadRenderer().
+import { resolve } from "node:path";
 import { readFileSync, writeFileSync, appendFileSync, statSync, existsSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { CFT_INSTALL_COMMAND, resolveChromeForTestingExecutable } from "./chrome_for_testing_resolver.ts";
@@ -23,6 +24,8 @@ const BG = "#0d1117";
 const FG = "#c9d1d9";
 const HEADING: Record<string, string> = { "#": "#3fb950", "!": "#d29922", ">": "#58a6ff", ".": "#5a636e" };
 const LIB_DIR = import.meta.dir;
+/** The plugin root holds package.json + bun.lock, so Claude Code installs these packages on every plugin update (#91). */
+const PLUGIN_ROOT = resolve(LIB_DIR, "..", "..");
 const LIMITS: Record<string, any> = JSON.parse(readFileSync(`${LIB_DIR}/pushover_api_limits.json`, "utf8"));
 const AUDIT_PATH = process.env.PUSHOVER_AUDIT_PATH ?? `${process.env.HOME}/.local/state/pushover/po-audit.jsonl`;
 
@@ -31,8 +34,22 @@ function creds(field: string): string {
   if (r.status !== 0) throw new Error(`resolve_pushover_secret failed for '${field}': ${r.stderr ?? ""}`);
   return r.stdout.trim();
 }
+/**
+ * The credential field that holds the token for `--app <app>`. `main` and `test` are the two built-in apps; any other
+ * name is a dedicated application whose token is stored as `api_token_<app>` (vault scope, 1Password label or
+ * Keychain account, whichever the resolver finds first), so a long-running sender gets its own app without a code
+ * change here. Names are lower-case letters, digits and underscores, so they cannot reach another field.
+ */
+export function tokenFieldFor(app: string): string {
+  if (app === "main") return "api_token_main";
+  if (app === "test") return "api_token_test";
+  if (!/^[a-z0-9_]{1,40}$/.test(app)) {
+    throw new Error(`--app '${app}': use main, test or a dedicated app name of lower-case letters, digits and underscores (token field api_token_<name>)`);
+  }
+  return `api_token_${app}`;
+}
 function tokenFor(app: string): string {
-  return app === "main" ? creds("api_token_main") : creds("api_token_test");
+  return creds(tokenFieldFor(app));
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -126,7 +143,7 @@ function div(style: Record<string, unknown>, children: unknown): SatoriNode {
 
 /**
  * satori + @resvg/resvg-js, loaded on first use. They are plugin-local packages
- * (skills/_lib/package.json, not the repo root) and only `render` and `loop-brief` need
+ * (the plugin root's package.json, not the repo root; Claude Code installs it on every plugin update, #91) and only `render` and `loop-brief` need
  * them. While they were imported at the top of this file, EVERY import of it failed with
  * "Cannot find module '@resvg/resvg-js'" unless `bun install` had been run inside
  * skills/_lib — `po send` and `po doctor` included, and so did the repo test that proves
@@ -141,7 +158,7 @@ async function loadRenderer() {
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `po render needs satori and @resvg/resvg-js, installed per plugin: cd "${LIB_DIR}" && bun install --frozen-lockfile (${reason})`,
+      `po render needs satori and @resvg/resvg-js, installed at the plugin root: cd "${PLUGIN_ROOT}" && bun install --frozen-lockfile (${reason})`,
       { cause: error },
     );
   }

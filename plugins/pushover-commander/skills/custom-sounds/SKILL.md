@@ -18,7 +18,7 @@ env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skill
 ## Notes (verified 2026-05-30)
 
 - Pushover **silently accepts invalid sound names** (no API error) — so always `resolve`/`has` before relying on a custom sound; a typo would just fall back to the user's default silently.
-- `piano` is a **custom** sound on this account; `pianobar` is built-in. Custom sounds are per application token, so pass `--app main|test` to query the right app.
+- `piano` is a **custom** sound on this account; `pianobar` is built-in. Custom sounds are per application token, so pass `--app main|test|<name>` to query the right app.
 
 ## Post-Execution Reflection
 

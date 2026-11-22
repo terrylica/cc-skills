@@ -26,6 +26,8 @@ set -euo pipefail
 #
 GMAIL_DRAFT_SCRIPTS_DIR="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts"
 GMAIL_DRAFT_TEST_FILE="${GMAIL_DRAFT_SCRIPTS_DIR}/gmail-draft.test.ts"
+# The builder imports lingering-drafts.ts (2026-11-21), so its suite gates the builder too.
+GMAIL_DRAFT_LINGERING_TEST_FILE="${GMAIL_DRAFT_SCRIPTS_DIR}/lingering-drafts.test.ts"
 GMAIL_DRAFT_TEST_CACHE="${HOME}/.claude/.cache/gmail-draft-builder-test.cache"  # JSON: { fingerprint, result }
 
 # Fingerprint EVERY input that can change the test outcome, not just the builder.
@@ -36,6 +38,16 @@ GMAIL_DRAFT_TEST_CACHE="${HOME}/.claude/.cache/gmail-draft-builder-test.cache"  
 # write. A gate that green-lights a builder whose tests are red is worse than no gate, because it
 # reports safety it never checked. The test file, the builder, and every sibling module the suite
 # imports are all inputs — so all of them are in the key.
+# SHA-256 of stdin, hex digest first. shasum (Perl) is on macOS and most Linux hosts; a minimal Linux image may have
+# only coreutils' sha256sum. Both print the digest as the first field, so the fingerprint is the same either way.
+function sha256_of_stdin() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256
+  else
+    sha256sum
+  fi
+}
+
 function compute_builder_test_input_fingerprint() {
   # Sorted for determinism; path+size+mtime per file. Any add/remove/edit changes the digest.
   find "$GMAIL_DRAFT_SCRIPTS_DIR" -type f -name '*.ts' 2>/dev/null \
@@ -44,7 +56,7 @@ function compute_builder_test_input_fingerprint() {
         # GNU first: GNU `stat -f` reports the filesystem, not the file, so on Linux the digest ignored edits
         stat -c '%n %s %Y' "$ts_file" 2>/dev/null || stat -f '%N %z %m' "$ts_file" 2>/dev/null || true
       done \
-    | shasum -a 256 | cut -d' ' -f1
+    | sha256_of_stdin | cut -d' ' -f1
 }
 
 function verify_builder_health() {
@@ -88,7 +100,7 @@ MSG
   local test_output
   local test_exit
   set +e
-  test_output=$(bun test "$GMAIL_DRAFT_TEST_FILE" 2>&1)
+  test_output=$(bun test "$GMAIL_DRAFT_TEST_FILE" "$GMAIL_DRAFT_LINGERING_TEST_FILE" 2>&1)
   test_exit=$?
   set -e
 
