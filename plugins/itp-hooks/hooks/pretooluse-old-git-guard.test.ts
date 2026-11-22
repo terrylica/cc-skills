@@ -191,7 +191,7 @@ const OLD_WITH_HOOKS_DIR = stubOldGitWithConfig("old-with-hooks", "hook.vocab.ev
 
 let sessionCounter = 0;
 
-async function runHook(command: string, pathDirs: string[], toolName = "Bash") {
+async function runHook(command: string, pathDirs: string[], toolName = "Bash", cwd?: string) {
   const proc = Bun.spawn([process.execPath, HOOK_PATH], {
     stdin: "pipe",
     stdout: "pipe",
@@ -199,7 +199,12 @@ async function runHook(command: string, pathDirs: string[], toolName = "Bash") {
     env: { ...process.env, PATH: [...pathDirs, "/bin"].join(":"), ITP_OLD_GIT_PROBE_TIMEOUT_MS: "20000" },
   });
   proc.stdin.write(
-    JSON.stringify({ tool_name: toolName, tool_input: { command }, session_id: `old-git-test-${process.pid}-${sessionCounter++}` }),
+    JSON.stringify({
+      tool_name: toolName,
+      tool_input: { command },
+      session_id: `old-git-test-${process.pid}-${sessionCounter++}`,
+      ...(cwd ? { cwd } : {}),
+    }),
   );
   await proc.stdin.end();
   const stdout = await new Response(proc.stdout).text();
@@ -222,6 +227,18 @@ describe("hook — real stdin/stdout", () => {
     expect((await runHook("git commit -m x", [OLD_NO_HOOKS_DIR])).decision).toBe("allow");
     expect((await runHook("git push", [OLD_NO_HOOKS_DIR])).decision).toBe("allow");
     expect((await runHook("git commit -m x", [OLD_WITH_HOOKS_DIR])).decision).toBe("deny");
+  });
+
+  it.each(["git -C other commit -m x", "git --git-dir=other/.git commit -m x", "cd other && git commit -m x", "GIT_DIR=o/.git git commit -m x"])(
+    "does not trust the cwd probe when git may run in another repository: %p",
+    async (cmd) => {
+      expect((await runHook(cmd, [OLD_NO_HOOKS_DIR])).decision).toBe("deny");
+    },
+  );
+
+  it("keeps the deny when the hook's cwd no longer exists (a removed worktree)", async () => {
+    const gone = join(scratch, "removed-worktree");
+    expect((await runHook("git commit -m x", [OLD_NO_HOOKS_DIR], "Bash", gone)).decision).toBe("deny");
   });
 
   it("allows plain git commit when the git on PATH is 2.56", async () => {

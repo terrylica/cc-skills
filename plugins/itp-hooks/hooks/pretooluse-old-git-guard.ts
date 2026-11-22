@@ -21,7 +21,7 @@
  * Escape: OLD-GIT-OK: <>=10-char reason>. Spoke: docs/old-git-guard.md.
  */
 
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -100,14 +100,21 @@ export function cachingGitResolver(sessionId: string, cwd?: string): GitResolver
     },
     // Not cached: it runs only for an old git about to fire hooks, and a hook added mid-session must count at once.
     // Read in the command's own directory, so a repository's config and includeIf sections are seen too.
+    // Unknown (undefined, which keeps the deny) when the probe cannot run: Bun.spawnSync throws for a cwd that no
+    // longer exists, such as a removed worktree, and that must not reach main()'s fail-open catch.
     configHooksDefined: (binaryPath) => {
-      const r = Bun.spawnSync([binaryPath, "config", "--get-regexp", CONFIG_HOOK_EVENT_KEY_REGEXP], {
-        stdout: "pipe",
-        stderr: "ignore",
-        timeout: VERSION_PROBE_TIMEOUT_MS,
-        ...(cwd ? { cwd } : {}),
-      });
-      return parseConfigHooksProbe(r.exitCode, r.stdout.toString());
+      if (cwd && !existsSync(cwd)) return undefined;
+      try {
+        const r = Bun.spawnSync([binaryPath, "config", "--get-regexp", CONFIG_HOOK_EVENT_KEY_REGEXP], {
+          stdout: "pipe",
+          stderr: "ignore",
+          timeout: VERSION_PROBE_TIMEOUT_MS,
+          ...(cwd ? { cwd } : {}),
+        });
+        return parseConfigHooksProbe(r.exitCode, r.stdout.toString());
+      } catch {
+        return undefined;
+      }
     },
   };
 }

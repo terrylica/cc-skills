@@ -55,6 +55,19 @@ export interface GitHookInvocation {
   readonly subcommand: string;
   /** Where the invocation sits: plain command, `bash -c` script, pueue task, heredoc. */
   readonly context: string;
+  /** True when a global option points git at another repository (`-C`, `--git-dir`, `--work-tree`). */
+  readonly retargeted?: boolean;
+}
+
+/** Global options that make git read another repository's config than the one in the working directory. */
+const RETARGETING_GLOBAL_OPTION = /^(?:-C|--git-dir|--work-tree)(?:=|$)/;
+
+/**
+ * True when the command may run git somewhere other than the hook's cwd, so a config probe there proves nothing:
+ * a `cd`/`pushd`, or GIT_DIR / GIT_WORK_TREE set for the command.
+ */
+export function commandMayChangeGitDirectory(command: string): boolean {
+  return /(?:^|[\s;&|(`])(?:cd|pushd)(?:\s|$)/.test(command) || /\bGIT_(?:DIR|WORK_TREE)=/.test(command);
 }
 
 /**
@@ -78,9 +91,12 @@ export function findHookFiringGitInvocations(command: string): GitHookInvocation
   walkShellInvocations(command, /\bgit\b/, ({ program, programWord, args, context }) => {
     if (program !== "git") return;
     if (context === "ssh remote command") return;
-    const sub = gitSubcommand(args.map((w) => w.value));
+    const values = args.map((w) => w.value);
+    const sub = gitSubcommand(values);
     if (sub === undefined || !HOOK_FIRING_SUBCOMMANDS.has(sub)) return;
-    found.push({ programAsWritten: programWord.value, subcommand: sub, context });
+    const globalOptions = values.slice(0, Math.max(0, values.indexOf(sub)));
+    const retargeted = globalOptions.some((a) => RETARGETING_GLOBAL_OPTION.test(a));
+    found.push({ programAsWritten: programWord.value, subcommand: sub, context, retargeted });
   });
   return found;
 }
@@ -139,7 +155,8 @@ export function parseConfigHooksProbe(exitCode: number | null, stdout: string): 
  * allowed: the guard fails open rather than blocking work on its own uncertainty. An old git is also
  * allowed when the config it would read defines no config-based hook, because then nothing is skipped:
  * Ubuntu 26.04 ships git 2.53, and a machine with no `hook.<name>.event` entries loses nothing by it.
- * When that cannot be learned, the old git still counts.
+ * When that cannot be learned, or the command may run git in another repository (`git -C`, `--git-dir`,
+ * `--work-tree`, a `cd`, GIT_DIR), the old git still counts.
  */
 export function findOldGitInvocations(command: string, resolver: GitResolver): OldGitFinding[] {
   const findings: OldGitFinding[] = [];
@@ -151,7 +168,9 @@ export function findOldGitInvocations(command: string, resolver: GitResolver): O
     if (!versionText) continue;
     const version = parseGitVersion(versionText);
     if (!version || !isBelowConfigHooksFloor(version)) continue;
-    if (resolver.configHooksDefined?.(path) === false) continue;
+    // The probe reads the hook's cwd, so it answers only for a git that runs there.
+    const probeApplies = !inv.retargeted && !commandMayChangeGitDirectory(command);
+    if (probeApplies && resolver.configHooksDefined?.(path) === false) continue;
     findings.push({ invocation: inv, resolved: { path, versionText: versionText.trim(), version }, explicitPath });
   }
   return findings;
