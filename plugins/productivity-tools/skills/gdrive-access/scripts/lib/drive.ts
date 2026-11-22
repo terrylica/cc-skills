@@ -9,7 +9,8 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { drive, type drive_v3 } from "@googleapis/drive";
+import { drive } from "../vendor/googleapis-drive.js";
+import type { drive_v3 } from "@googleapis/drive";
 import { getAuthClient } from "./auth.ts";
 import type {
 	DownloadOptions,

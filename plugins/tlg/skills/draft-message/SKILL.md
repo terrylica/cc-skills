@@ -14,6 +14,8 @@ Send a message to the user's **Saved Messages** so the user can review it, optio
 
 > **The draft carries a session footer (project policy).** The body posted to Saved Messages gets the provenance footer appended, so when the user copy-pastes it into the target chat the session reference travels with it — the intended behavior. Suppress with `--no-footer`, override the label with `--context`. See [send-message](../send-message/SKILL.md#session-reference-footer-automatic--project-policy).
 
+> **Links are made exact (automatic).** Each bare link in the draft gets an explicit link that ends where its URL ends, so it never swallows the Chinese text after it, and the command exits 1 if Telegram stored one that does. See [send-message](../send-message/SKILL.md#exact-links-automatic--no-link-may-swallow-chinese-text).
+
 ## When To Use Draft vs. Send
 
 | Situation                                                            | Use                                                  |

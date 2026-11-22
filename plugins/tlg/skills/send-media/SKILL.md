@@ -10,6 +10,8 @@ Send files, photos, videos, voice notes, and documents from your personal Telegr
 
 > **Caption carries a session footer (project policy).** A file send gets the same provenance footer as a text send appended to its caption (or used as the caption if none is given), for all recipients. Override the label with `--context`, suppress with `--no-footer`. See [send-message](../send-message/SKILL.md#session-reference-footer-automatic--project-policy); logic in `scripts/session-footer.ts`.
 
+> **Caption links are made exact (automatic).** Each bare link in a caption gets an explicit link that ends where its URL ends, so it never swallows the Chinese text after it, and the command exits 1 if Telegram stored one that does. See [send-message](../send-message/SKILL.md#exact-links-automatic--no-link-may-swallow-chinese-text).
+
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
 ## Preflight

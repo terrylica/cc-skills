@@ -54,6 +54,7 @@
 import { spawn } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { recordSubhookTiming, type SubhookVerdict } from "./lib/orchestrator-subhook-timing.ts";
 
 // Single config object centralizing all env-var reads. Adding a new
 // override = add a field here, not a scattered `process.env.X` call.
@@ -142,6 +143,13 @@ async function runSubHook(cfg: SubHookConfig, dir: string, payload: string): Pro
   });
 }
 
+/** One word for what a Stop subhook did, for the payload-free timing record. */
+function stopSubhookVerdict(result: SubHookResult): SubhookVerdict {
+  if (result.timedOut) return "timeout";
+  if (result.exitCode !== 0) return "error";
+  return parseJSONOrEmpty(result.stdout).decision === "block" ? "block" : "noop";
+}
+
 interface AggregatedOutput {
   decision?: "block";
   reason?: string;
@@ -193,9 +201,28 @@ async function main() {
   // Run subhooks in sequence (same as separate hook entries — Claude
   // Code ran them sequentially too, just at the hook-entry layer
   // instead of inside one process).
+  let sessionId: string | undefined;
+  try {
+    const parsed = JSON.parse(payload) as { session_id?: unknown };
+    if (typeof parsed.session_id === "string") sessionId = parsed.session_id;
+  } catch {
+    sessionId = undefined;
+  }
   const results: SubHookResult[] = [];
   for (const cfg of SUBHOOKS) {
-    results.push(await runSubHook(cfg, subhooksDir, payload));
+    const startedMs = performance.now();
+    const result = await runSubHook(cfg, subhooksDir, payload);
+    recordSubhookTiming({
+      orchestrator: "stop-orchestrator",
+      event: "Stop",
+      subhook: cfg.name,
+      sessionId,
+      elapsedMs: performance.now() - startedMs,
+      verdict: stopSubhookVerdict(result),
+      timedOut: result.timedOut,
+      errored: !result.timedOut && result.exitCode !== 0,
+    });
+    results.push(result);
   }
 
   // Aggregate.

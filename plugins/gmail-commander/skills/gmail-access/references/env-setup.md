@@ -4,8 +4,10 @@ How the Gmail CLI gets `GMAIL_OP_UUID` and the other variables it reads. Every c
 
 ## Prerequisites
 
-1. **1Password CLI installed**: `brew install 1password-cli`
-2. **1Password authenticated**: `op signin`, or `OP_SERVICE_ACCOUNT_TOKEN` exported for biometric-free access
+1. **1Password CLI installed**: `brew install 1password-cli` on macOS; on Linux, from 1Password's own package repository
+2. **1Password authenticated**: `op signin`, or `OP_SERVICE_ACCOUNT_TOKEN` exported for biometric-free access. Linux has no 1Password desktop app to sign `op` in, so there the service-account token is the way
+
+Neither is needed when the OAuth client comes from somewhere else; see [Without 1Password](#without-1password-for-example-on-linux).
 
 ## Step 1: Find Your 1Password UUID
 
@@ -54,6 +56,17 @@ On first run, the Gmail CLI will:
 
 After the initial OAuth, runs use the saved token (auto-refreshed when expired).
 
+On Linux the browser is opened with `xdg-open`, and only inside a graphical session (`DISPLAY` or `WAYLAND_DISPLAY` set). Over SSH there is no browser to open, so the CLI prints the consent URL and the callback port: forward that port from your own computer (`ssh -L <port>:localhost:<port> <host>`), open the URL there, and keep the session open until the CLI says the token is saved.
+
+## Without 1Password (for example on Linux)
+
+The CLI takes the OAuth client (`client_id`, `client_secret`) from the first of these that is set, and only then falls back to the cached copy and 1Password:
+
+1. `GMAIL_OAUTH_CLIENT_ID` and `GMAIL_OAUTH_CLIENT_SECRET`, both set (for example injected by your own secret store: `vault run <scope> -- gmail list -n 1`).
+2. `GMAIL_OAUTH_CLIENT_FILE`: the client JSON that Google Cloud Console downloads for a desktop OAuth client, or a bare `{"client_id": …, "client_secret": …}`.
+
+Neither is written to disk. `GMAIL_OP_UUID` is still required, because it names the account's token cache; any stable name for the account works when no 1Password item is involved.
+
 ## Multi-Account Use
 
 Create a separate 1Password item per Gmail account and pass the matching UUID per command. Tokens are stored separately at `~/.claude/tools/gmail-tokens/<uuid>.json`, so accounts do not conflict.
@@ -92,7 +105,10 @@ GMAIL_OP_UUID=<your-uuid> "$GMAIL_CLI" list -n 1  # prompts OAuth again
 
 ## Environment Variables Reference
 
-| Variable         | Required | Default    | Description                               |
-| ---------------- | -------- | ---------- | ----------------------------------------- |
-| `GMAIL_OP_UUID`  | Yes      | -          | 1Password item UUID for OAuth credentials |
-| `GMAIL_OP_VAULT` | No       | `Employee` | 1Password vault name                      |
+| Variable                    | Required | Default    | Description                                                                                               |
+| --------------------------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| `GMAIL_OP_UUID`             | Yes      | -          | 1Password item UUID for OAuth credentials; also names the token cache (any stable name without 1Password) |
+| `GMAIL_OP_VAULT`            | No       | `Employee` | 1Password vault name                                                                                      |
+| `GMAIL_OAUTH_CLIENT_ID`     | No       | -          | OAuth client ID; with `GMAIL_OAUTH_CLIENT_SECRET`, replaces the 1Password lookup                          |
+| `GMAIL_OAUTH_CLIENT_SECRET` | No       | -          | OAuth client secret; set together with `GMAIL_OAUTH_CLIENT_ID`                                            |
+| `GMAIL_OAUTH_CLIENT_FILE`   | No       | -          | Path to the OAuth client JSON from Google Cloud Console; replaces the 1Password lookup                    |

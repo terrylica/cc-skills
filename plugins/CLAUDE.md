@@ -73,17 +73,25 @@ bun scripts/validate-plugins.mjs --fix     # Show fix instructions
 bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 ```
 
+## Runtime packages
+
+Claude Code installs a plugin's npm/Bun packages on every install and update, but only from a `package.json` plus lockfile at the **plugin root** ([plugin loading reference](https://code.claude.com/docs/en/plugins/loading)). A package that lives anywhere else is never installed, so after the next update the CLI fails with "Cannot find package" (#91). Two supported layouts:
+
+- **Vendored (default for a CLI):** list the exact runtime exports in `TARGETS` in [`scripts/vendor-plugin-deps.ts`](/scripts/vendor-plugin-deps.ts), run it, and import from `./vendor/<name>.js` (types keep coming from the package via `import type`). It needs no install anywhere. `moon run repo:vendor-deps-check` keeps the bundles current.
+- **Plugin root:** for a package with a native addon (Bun cannot bundle `.node` files), put `package.json` and `bun.lock` (lockfileVersion 2 or lower, no `overrides` or `patchedDependencies`) at the plugin root, as `pushover-commander` does.
+
 ## Hooks in Plugins
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (40)
+## All Plugins (41)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
 - [agent-reach](./agent-reach/CLAUDE.md)
 - [arxiv-source-first](./arxiv-source-first/CLAUDE.md)
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
+- [braille-tally](./braille-tally/CLAUDE.md) — the Braille Tally ranking glyph (⡀…⣿), its CLI and the AskUserQuestion guard
 - [calcom-commander](./calcom-commander/CLAUDE.md)
 - [chrome-profiles](./chrome-profiles/CLAUDE.md)
 - [cli-anything](./cli-anything/CLAUDE.md)

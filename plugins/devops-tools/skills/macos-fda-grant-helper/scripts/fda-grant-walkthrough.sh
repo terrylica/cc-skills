@@ -32,6 +32,7 @@
 #   1 = usage error
 #   2 = binary not found or not executable
 #   3 = (--check only) binary does NOT have FDA
+#   4 = not macOS (Full Disk Access does not exist there)
 #
 
 set -euo pipefail
@@ -53,7 +54,7 @@ USAGE:
   fda-grant-walkthrough --check <binary-path>   Check grant state without opening UI
 
   Exit 0 = already granted; exit 3 = not granted (--check mode);
-  exit 2 = binary missing or not executable.
+  exit 2 = binary missing or not executable; exit 4 = not macOS.
 
 EXAMPLES:
   # Grant FDA to maccy-backup-runner
@@ -82,6 +83,12 @@ USAGE_EOF
             ;;
     esac
 done
+
+# Full Disk Access is macOS TCC; Linux has no equivalent grant. Say so instead of failing on the macOS-only tools below.
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "fda-grant-walkthrough: Full Disk Access is a macOS privacy grant; this host is $(uname -s), where file access is plain Unix permissions (nothing to grant)." >&2
+    exit 4
+fi
 
 [ -z "$BIN_PATH" ] && { echo "fda-grant-walkthrough: error — binary path required (--help for usage)" >&2; exit 1; }
 [ ! -e "$BIN_PATH" ] && { echo "fda-grant-walkthrough: error — does not exist: $BIN_PATH" >&2; exit 2; }

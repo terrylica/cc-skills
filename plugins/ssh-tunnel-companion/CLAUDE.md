@@ -8,7 +8,6 @@ System-wide SSH tunnel persistence for macOS. Keeps the ClickHouse tunnel to you
 
 **Fallback: Cloudflare Access SSH** — `ssh <host>-cf` via your own Access-protected SSH hostname through `cloudflared access ssh`, protected by GitHub SSO → ssh-operators group → short-lived SSH cert (4min validity, regenerated per connection via `Match host exec cloudflared access ssh-gen`).
 
-**Legacy paths (removed)**: mDNS (`<host>.local`, LAN-only, unreliable off-LAN); ZeroTier (removed 2026-04-06 due to macOS kernel-extension fragility).
 
 The launchd tunnel host alias in `~/.ssh/config` resolves to the Tailscale FQDN — launchd-managed SSH tunnels now traverse Tailscale, so they work from any network without wrapper scripts.
 

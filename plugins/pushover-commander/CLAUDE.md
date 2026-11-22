@@ -2,10 +2,7 @@
 
 Hub: [`../CLAUDE.md`](../CLAUDE.md) · Siblings: [gmail-commander](../gmail-commander/CLAUDE.md) · [calcom-commander](../calcom-commander/CLAUDE.md) · [devops-tools](../devops-tools/CLAUDE.md)
 
-The single home for all Pushover automation. Migrated + consolidated 2026-06-05
-from the orphaned private `~/.claude/po-plugin` (`po` suite) **plus** the
-`pushover-verbatim-notify` skill formerly in `devops-tools` — so any future
-Claude Code session finds every Pushover capability in one registered place.
+The single home for all Pushover automation in cc-skills: every Pushover capability is in this one registered plugin.
 
 ## Public-tool / private-config split (READ FIRST)
 
@@ -73,14 +70,14 @@ A second `Google Chrome.app` instance shares the bundle id `com.google.Chrome` w
 
 ### Importable modules
 
-Every CLI in `skills/_lib/` (`pushover_headless_web_control.ts`, `batch_create_pushover_apps.ts`, `pushover_core.ts`, `pushover_inbox.ts`) runs only under `if (import.meta.main)`. Before 2026-09-22 the web-control module called `main()` at import, so `batch_create_pushover_apps.ts` — which imports its `login`/`createApp`/`editApp`/`withDashboard` helpers — ran a second CLI as a side effect that parsed the batch's argv, logged in on its own, and could `process.exit()` the batch mid-run. Keep new modules guarded; `pushover_headless_web_control.test.ts` imports each one in a child process and fails if anything runs.
+Every CLI in `skills/_lib/` (`pushover_headless_web_control.ts`, `batch_create_pushover_apps.ts`, `pushover_core.ts`, `pushover_inbox.ts`) runs only under `if (import.meta.main)`. An unguarded `main()` would run as a side effect of importing the module (parse the importer's argv, log in, possibly `process.exit()`); keep new modules guarded: `pushover_headless_web_control.test.ts` imports each one in a child process and fails if anything runs.
 
 ## Conventions
 
 - All Pushover HTTPS + `op` calls run with `env -u HTTPS_PROXY -u HTTP_PROXY` (the
   sandbox MITM proxy 502s on api.pushover.net / 1Password).
-- `bun install --frozen-lockfile` in `skills/_lib/` provides Satori, @resvg/resvg-js and playwright-core; `node_modules/` is gitignored. Only `render`/`loop-brief` need Satori and resvg, and `pushover_core.ts` loads them on first use (`loadRenderer()`), so `send`, `emergency`, `sounds`, `quota`, `doctor` and any import of the module need no plugin-local package; a missing install fails `render` with the install command. The web-control needs playwright-core and, once, Chrome for Testing (see "Browser selection" above).
+- The plugin root's `package.json` + `bun.lock` provide Satori, @resvg/resvg-js and playwright-core. They live at the root because Claude Code installs a plugin's packages on every update only from there (#91); `@resvg/resvg-js` is a native addon, so it cannot be vendored into a bundle like the tlg/gmail/gdrive CLIs. By hand: `bun install --frozen-lockfile` at the plugin root; `node_modules/` is gitignored. Only `render`/`loop-brief` need Satori and resvg, and `pushover_core.ts` loads them on first use (`loadRenderer()`), so `send`, `emergency`, `sounds`, `quota`, `doctor` and any import of the module need no plugin-local package; a missing install fails `render` with the install command. The web-control needs playwright-core and, once, Chrome for Testing (see "Browser selection" above).
 - Tests: `bun test plugins/pushover-commander/skills/_lib/` from the repo root. They are also picked up by `moon run repo:test`, which runs every tracked `*.test.ts`. No test launches a browser or reaches the network.
-- 🔴 **Tests must pass on a checkout that ran ONLY the repo-root `bun install`.** `repo:test` installs nothing per plugin, and every branch is a fresh worktree, so a test that needs `skills/_lib/node_modules` turns the whole `repo:check` gate red on every new branch. Never import a plugin-local package at the top of a module a test imports: load it where it is used, as `loadRenderer()` does. A test proves `pushover_core.ts` imports against a copy of `_lib` with no packages at all. The web-control's `playwright-core` import resolves, on a root-only install, from the repo root's own `playwright-core` dependency; if that root dependency is ever dropped, its tests need the same treatment.
+- 🔴 **Tests must pass on a checkout that ran ONLY the repo-root `bun install`.** `repo:test` installs nothing per plugin, and every branch is a fresh worktree, so a test that needs the plugin's `node_modules` turns the whole `repo:check` gate red on every new branch. Never import a plugin-local package at the top of a module a test imports: load it where it is used, as `loadRenderer()` does. A test proves `pushover_core.ts` imports against a copy of `_lib` with no packages at all. The web-control's `playwright-core` import resolves, on a root-only install, from the repo root's own `playwright-core` dependency; if that root dependency is ever dropped, its tests need the same treatment.
 - State (audit JSONL) defaults to `~/.local/state/pushover/` (env `PUSHOVER_AUDIT_PATH`).
 - Never hardcode tokens; never commit the private config or the app-token cache.

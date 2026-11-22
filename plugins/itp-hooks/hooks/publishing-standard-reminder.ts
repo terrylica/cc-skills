@@ -26,6 +26,7 @@ import {
 } from "./lib/posttooluse-subhook-contract-iter93.ts";
 import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
+import { type ShellInvocation, walkShellInvocations } from "./lib/shell-command-invocation-walker.ts";
 
 export const ESCAPE_MARKER = "PUBLISHING-STANDARD-OK";
 
@@ -34,21 +35,58 @@ export const REMINDER =
   "marker with a heat dot, the exact build time, version, commit and source, a link back to its index, one record in " +
   "exactly one registry (published.v1), and the sitemap regenerated after the deploy is recorded.";
 
-const PUBLISH_PATTERNS: RegExp[] = [
-  /\bwrangler(?:@[\w.^~-]+)?\s+(?:pages\s+|versions\s+)?deploy\b/, // npx/bunx forms included
-  /\borca(?:-float)?\s+(?:.*\s)?artifacts\s+(?:share|update)\b/,
-  /\bnetlify\s+deploy\b/,
-  /\bvercel(?:@[\w.^~-]+)?\s+(?:deploy\b|--prod\b)/,
-  /\bfirebase\s+deploy\b/,
-  /\bsurge(?:@[\w.^~-]+)?\s+\S/,
-  /\bgh-pages(?:@[\w.^~-]+)?\s+-d\b/,
-];
+const RUNNERS = new Set(["npx", "bunx", "pnpx"]);
+const PROGRAMS = /wrangler|orca|netlify|vercel|firebase|surge|gh-pages/;
 
-/** A command that publishes pages (not a dry run or a help request). */
+/** The program an invocation really runs and its arguments, looking through npx/bunx/pnpx and pnpm/yarn dlx, with a
+ * trailing @version dropped (`wrangler@4` -> `wrangler`). */
+function resolved(inv: ShellInvocation): { prog: string; args: string[] } {
+  let prog = inv.program;
+  let args = inv.args.map((w) => w.value);
+  if (RUNNERS.has(prog) || ((prog === "pnpm" || prog === "yarn") && args[0] === "dlx")) {
+    if (args[0] === "dlx") args = args.slice(1);
+    const i = args.findIndex((t) => !t.startsWith("-"));
+    if (i < 0) return { prog: "", args: [] };
+    prog = args[i];
+    args = args.slice(i + 1);
+  }
+  return { prog: prog.replace(/(.)@[\w.^~-]+$/, "$1"), args };
+}
+
+function publishes(prog: string, args: string[]): boolean {
+  const pos = args.filter((t) => !t.startsWith("-"));
+  switch (prog) {
+    case "wrangler": {
+      const at = args.indexOf("deploy");
+      return at !== -1 && args.slice(0, at).filter((t) => !t.startsWith("-")).every((t) => t === "pages" || t === "versions");
+    }
+    case "orca":
+      return pos[0] === "artifacts" && (pos[1] === "share" || pos[1] === "update");
+    case "netlify":
+    case "firebase":
+      return pos[0] === "deploy";
+    case "vercel":
+      return pos[0] === "deploy" || args.includes("--prod");
+    case "surge":
+      return pos.length > 0;
+    case "gh-pages":
+      return args.includes("-d") || args.includes("--dist");
+    default:
+      return false;
+  }
+}
+
+/** A command that publishes pages: an invocation the shell would actually run (the shared walker, so `cat`, `grep`,
+ * quoted text or a heredoc that only MENTIONS a publish does not count), not a dry run or a help request. */
 export function isPublishCommand(cmd: string): boolean {
   if (!cmd || cmd.includes(ESCAPE_MARKER)) return false;
-  if (/--dry-run\b|\s-h\b|--help\b/.test(cmd)) return false;
-  return PUBLISH_PATTERNS.some((re) => re.test(cmd));
+  let found = false;
+  walkShellInvocations(cmd, PROGRAMS, (inv) => {
+    if (found) return;
+    const { prog, args } = resolved(inv);
+    if (publishes(prog, args) && !args.some((t) => t === "--dry-run" || t === "-h" || t === "--help")) found = true;
+  });
+  return found;
 }
 
 const PAGE_EXTENSIONS = [".html", ".htm", ".xhtml"];

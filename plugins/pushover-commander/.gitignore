@@ -1,4 +1,4 @@
-# TS core deps (regenerated via `bun install` in skills/_lib/)
+# TS core deps: package.json + bun.lock at the plugin root (Claude Code installs them on every plugin update)
 node_modules/
 *.bun-build
 .bun/

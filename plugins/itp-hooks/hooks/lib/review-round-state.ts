@@ -19,7 +19,16 @@ import { homedir } from "node:os";
 
 import type { RepoFacts, ReviewRoundArtifact } from "./review-round-artifact.ts";
 
-const GIT_TIMEOUT_MS = 3000;
+/**
+ * Budgets for a test run only: a test raises them through these variables so a loaded machine cannot turn a
+ * fast local stub into a timeout (#83). Production never sets them, so the defaults below are what runs.
+ */
+const budgetMs = (name: string, fallback: number): number => {
+  const v = Number(process.env[name]);
+  return Number.isFinite(v) && v > 0 ? v : fallback;
+};
+
+const GIT_TIMEOUT_MS = budgetMs("ITP_HOOKS_GIT_TIMEOUT_MS", 3000);
 /** Longer than the git budget: this one crosses the network, and a PreToolUse hook that hangs
  *  blocks the operator's terminal. Still well inside the hook's own 15s ceiling. */
 const GH_TIMEOUT_MS = 6000;
@@ -81,7 +90,7 @@ export function resolveHeadBranch(target: string, cwd: string): string | null {
  * would skip the guard (fail open); bounded at 2.5 s, a slow GitHub costs the precise measurement
  * and the gate still decides on the command's own directory, exactly as before this lookup existed.
  */
-const PR_LOOKUP_TIMEOUT_MS = 2500;
+const PR_LOOKUP_TIMEOUT_MS = budgetMs("ITP_HOOKS_PR_LOOKUP_TIMEOUT_MS", 2500);
 
 export interface PrRefs {
   readonly head: string;

@@ -18,10 +18,6 @@ And once the basics work, a sixth challenge often appears: with only 3 buttons, 
 
 1. **Tap-vs-double-tap discrimination** — two complementary techniques, both used by the live MacroKeyBot rule:
    - **Software discrimination** (Karabiner-side): coordinate two manipulators via `set_variable` + `to_delayed_action` sharing one `from` trigger. Single-tap target fires after a 200ms detection window expires; double-tap target fires on the second press (which cancels the pending single-tap). Used for top + middle on both transports (USB + BT) and bottom on USB. Each button needs its own variable name (`jieli_top_tap`, `jieli_middle_tap`, `jieli_bottom_tap`) to prevent cross-arming. Live examples:
-     - Middle button Shift+Return / Return (2026-04-23)
-     - Top button Fn / Cmd+V (2026-04-24)
-     - Bottom button initial down_arrow / Cmd+Delete (2026-05-02 morning)
-     - Bottom button current up_arrow / down_arrow (2026-05-02 afternoon)
    - **Firmware-decided keycode translation** (pad-firmware-side, no Karabiner discrimination): when the pad's firmware itself decides single-vs-double-tap and emits two different keycodes, Karabiner just translates each immediately — no variable, no delayed action. Used for the bottom button on BT only: pad firmware emits `equal_sign` for single tap, `Option+Z` for double tap; rule maps each to `up_arrow` / `down_arrow`. Discovered via Karabiner-EventViewer 2026-05-02. **Always check both transports of every button for firmware-side discrimination before assuming software discrimination is needed** — see [`04-anti-patterns.md`](./skills/configure-macro-keyboard/references/04-anti-patterns.md) → "Assuming the pad emits the same keycode on single-tap and double-tap on every transport".
 
    Both techniques + their anti-patterns (PTT-incompatibility, no-auto-repeat, firmware-discrimination assumption) are in [`03-patterns.md`](./skills/configure-macro-keyboard/references/03-patterns.md). Total: 12 manipulators in the live rule.
@@ -63,10 +59,6 @@ The device-specific config lives under `configure-macro-keyboard/references/`:
 | karabiner_cli         | bundled with Karabiner                   | Non-sudo audits of grabbed devices — avoids Touch-ID on TCC.db queries.             |
 | blueutil              | `brew install blueutil`                  | BT force-connect + info queries. Not required but strongly recommended.             |
 | Karabiner-EventViewer | bundled with Karabiner                   | Live HID event inspection.                                                          |
-
-## Link Conventions
-
-Skill-internal links use relative paths: `[X](./references/X.md)`. Cross-plugin links go through the marketplace root: `[itp](../../itp/CLAUDE.md)`. External links use full URLs.
 
 ## Upstream / Downstream
 

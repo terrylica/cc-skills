@@ -30,7 +30,7 @@ The deployment bundles this plugin's code at deploy time and ships the CLI binar
 - Importing `scripts/bot.ts` must never take the PID lock or start polling. `main()` is guarded by `import.meta.main` for exactly that reason: Telegram permits one `getUpdates` consumer per token, and a second poller makes both unreliable (the tenant pages on the resulting `409 Conflict`).
 - `scripts/lib/*` is imported through `bot.ts` (bot factory, commands, callbacks, state, audit, Gmail client, formatting, chunking, agent router, circuit breaker, triage). Keep every export behaviour-identical.
 - `scripts/lib/gmail-client.ts` shells out to the `gmail` binary. `GMAIL_CLI_BIN` points it at the shipped copy; without it the default is the marketplace path, which exists only on a workstation.
-- `scripts/gmail-cli/` is shipped as a directory. Build the binary from the committed lockfile (`bun install --frozen-lockfile && bun run build`) so every build resolves the same dependency tree.
+- `scripts/gmail-cli/` is shipped as a directory. Its one runtime package, `@googleapis/gmail`, is vendored in `vendor/googleapis-gmail.js` (built from the committed `bun.lock` by `scripts/vendor-plugin-deps.ts`, #91), so `bun cli.ts` and `bun run build` need no install.
 
 The scheduled digest does **not** use this plugin's code.
 
@@ -76,6 +76,8 @@ The CLI uses a **two-file** strategy so repeated calls never prompt:
 
 `client_id`/`client_secret` are fetched from 1Password **once** on first run and cached locally. Subsequent runs read only local files → no `op` subprocess → no TCC prompt.
 
+**Without 1Password** (a Linux host has no 1Password desktop app): set `GMAIL_OAUTH_CLIENT_ID` + `GMAIL_OAUTH_CLIENT_SECRET`, or `GMAIL_OAUTH_CLIENT_FILE`, from whatever secret store the machine has. They are read before the cache and never written to disk, and `GMAIL_OP_UUID` then only names the token cache. The consent page opens with `xdg-open` in a Linux graphical session; over SSH the CLI prints the URL and the `ssh -L` port forward instead. Source: `scripts/gmail-cli/lib/credential-source.ts`; doc: [env-setup.md](./skills/gmail-access/references/env-setup.md#without-1password-for-example-on-linux).
+
 To force a fresh 1Password lookup (e.g., after rotating OAuth app credentials):
 
 ```bash
@@ -88,19 +90,22 @@ When the refresh token expires, the CLI reports `invalid_grant`. Fix for the CLI
 
 ## Environment Variables
 
-| Variable                   | Read by                          | Required | Description                                                                |
-| -------------------------- | -------------------------------- | -------- | -------------------------------------------------------------------------- |
-| `GMAIL_OP_UUID`            | CLI, `lib/gmail-client.ts`       | Yes      | 1Password item UUID for OAuth credentials; also names the token cache file |
-| `GMAIL_OP_VAULT`           | CLI                              | No       | 1Password vault (default: `Employee`)                                      |
-| `OP_SERVICE_ACCOUNT_TOKEN` | `op` (first run only)            | No       | 1Password service account for biometric-free `op read`                     |
-| `TELEGRAM_BOT_TOKEN`       | `lib/bot-factory.ts`, formatting | Bot      | Telegram bot token                                                         |
-| `TELEGRAM_CHAT_ID`         | `lib/bot-factory.ts`, formatting | Bot      | The one authorized chat ID                                                 |
-| `HAIKU_MODEL`              | `lib/agent-router.ts`, commands  | Bot      | Claude model for triage and free-text routing                              |
-| `GMAIL_CLI_BIN`            | `lib/gmail-client.ts`            | No       | Path to the `gmail` binary (default: the marketplace path)                 |
-| `CLAUDE_BIN`               | agent router, commands           | No       | Explicit `claude` executable for the Agent SDK                             |
-| `AGENT_TIMEOUT_MS`         | `lib/agent-router.ts`            | No       | Per-query timeout for free-text routing                                    |
-| `AUDIT_DIR`                | `bot.ts`, `lib/audit.ts`         | No       | NDJSON audit log directory                                                 |
-| `BOT_STATE_FILE`           | `bot.ts`, `lib/state.ts`         | No       | Bot state file path                                                        |
+| Variable                    | Read by                          | Required | Description                                                                   |
+| --------------------------- | -------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `GMAIL_OP_UUID`             | CLI, `lib/gmail-client.ts`       | Yes      | 1Password item UUID for OAuth credentials; also names the token cache file    |
+| `GMAIL_OP_VAULT`            | CLI                              | No       | 1Password vault (default: `Employee`)                                         |
+| `OP_SERVICE_ACCOUNT_TOKEN`  | `op` (first run only)            | No       | 1Password service account for biometric-free `op read`                        |
+| `GMAIL_OAUTH_CLIENT_ID`     | CLI                              | No       | OAuth client ID; with `GMAIL_OAUTH_CLIENT_SECRET`, replaces 1Password (Linux) |
+| `GMAIL_OAUTH_CLIENT_SECRET` | CLI                              | No       | OAuth client secret; set together with `GMAIL_OAUTH_CLIENT_ID`                |
+| `GMAIL_OAUTH_CLIENT_FILE`   | CLI                              | No       | Client JSON from Google Cloud Console; replaces 1Password                     |
+| `TELEGRAM_BOT_TOKEN`        | `lib/bot-factory.ts`, formatting | Bot      | Telegram bot token                                                            |
+| `TELEGRAM_CHAT_ID`          | `lib/bot-factory.ts`, formatting | Bot      | The one authorized chat ID                                                    |
+| `HAIKU_MODEL`               | `lib/agent-router.ts`, commands  | Bot      | Claude model for triage and free-text routing                                 |
+| `GMAIL_CLI_BIN`             | `lib/gmail-client.ts`            | No       | Path to the `gmail` binary (default: the marketplace path)                    |
+| `CLAUDE_BIN`                | agent router, commands           | No       | Explicit `claude` executable for the Agent SDK                                |
+| `AGENT_TIMEOUT_MS`          | `lib/agent-router.ts`            | No       | Per-query timeout for free-text routing                                       |
+| `AUDIT_DIR`                 | `bot.ts`, `lib/audit.ts`         | No       | NDJSON audit log directory                                                    |
+| `BOT_STATE_FILE`            | `bot.ts`, `lib/state.ts`         | No       | Bot state file path                                                           |
 
 In the deployment these are injected from its own secret store at deploy time. None of them belongs in a workstation env file on the bot's behalf.
 
@@ -108,13 +113,13 @@ In the deployment these are injected from its own secret store at deploy time. N
 
 **Every Gmail draft create/replace goes through `scripts/gmail-draft.ts`** — enforced by the PreToolUse(Bash) hook `hooks/gmail-draft-guard.sh`, which BLOCKS ad-hoc drafts-API writes (escape hatch: prefix the command with `GMAIL_DRAFT_ADHOC_OK=1`; read-only GET fetches pass).
 
-→ **Four guards now stand between a composed message and a draft** (builder enforcement, mojibake detection, a builder test gate, and a post-write read-back). What each is _observed_ to do, how two of them were caught silently not working, and the both-directions checks to re-run after touching any of them: [`docs/draft-integrity-guards.md`](./docs/draft-integrity-guards.md).
+→ **Six layers now stand between a composed message and a draft** (builder enforcement, mojibake detection, a builder test gate, a post-write read-back, one draft per thread, and no earlier version lingering). What each is _observed_ to do, how two of them were caught silently not working, and the both-directions checks to re-run after touching any of them: [`docs/draft-integrity-guards.md`](./docs/draft-integrity-guards.md).
 
 **Why:** Gmail hard-folds ingested `text/plain` at about 72 columns, so ad-hoc drafts show mid-paragraph breaks. The builder sends `multipart/alternative` with a `text/html` part, so the draft reflows like one composed in Gmail.
 
 **Write emphasis in Markdown; it arrives as rich text.** In the body file, `**bold**`, `*italic*` or `_italic_`, and `` `code` `` become real bold, italic and code in the HTML part, and the plain-text part drops the markers. Identifiers stay literal (`snake_case_name`, `2*3*4`). Never hand-write HTML or leave asterisks for the recipient to read.
 
-**Quote people verbatim in `> ` blocks; they arrive in their own colour.** Every quotation in a draft is the other person's exact words, one `> ` block per passage, with the reply outside it. The HTML part renders each block as a coloured, left-barred `<blockquote>` (`QUOTE_BLOCK_STYLE`); the plain-text part keeps `> `. This is the house style for every reply: one quoted passage, then the answer to it. The convention, the command and its edge cases (multi-line sign-off, quoting only the sender's own text) are in [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "Replying to someone: the house style".
+**Quote people verbatim in `>` blocks; they arrive in their own colour.** Every quotation in a draft is the other person's exact words, one `>` block per passage, with the reply outside it. The HTML part renders each block as a coloured, left-barred `<blockquote>` (`QUOTE_BLOCK_STYLE`); the plain-text part keeps `>`. This is the house style for every reply: one quoted passage, then the answer to it. The convention, the command and its edge cases (multi-line sign-off, quoting only the sender's own text) are in [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "Replying to someone: the house style".
 
 ```bash
 bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \
@@ -124,8 +129,12 @@ bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts
   [--reply-to <messageId>]         # derives Subject/In-Reply-To/References/threadId
   [--to a@b] [--cc c@d] [--subject '…'] [--replace <staleDraftId>]
   [--attach <file>]...             # repeatable; each file's SHA-256 is verified after upload
-# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[{"filename","bytes","sha256"}]}
+  [--prune-superseded]             # delete earlier versions of this draft found in other threads
+# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[…],"pruned":[…],"superseded":[…],"related":[…],"lingeringCheck":"ok"}
+# exit: 0 clean · 1 failed · 3 earlier versions still linger · 4 the lingering check could not read the folder
 ```
+
+**No earlier version may linger (2026-11-21).** Every run compares the new draft with every other draft in the account (`scripts/lingering-drafts.ts`): the same sender, a shared recipient and the same subject, once Braille Tally cells and `Re:` are ignored, is an earlier version; another subject to the same people is reported as `related`. For a batch whose drafts in play are listed in a manifest, `scripts/gmail-drafts-audit.ts --account <tokenbase> --keep-file <manifest> [--prune]` flags everything else from the same sender to the same people. Procedure: [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "No earlier version may linger".
 
 ## Nothing here sends mail: send guard and the token directory
 
@@ -154,7 +163,7 @@ Gotcha the builder also absorbs: Gmail's `drafts.update` rejects with `400 Messa
 - **Hooks**: Use `$HOME`-based paths, never `$CLAUDE_PLUGIN_ROOT`
 - **Skills**: Follow Suite Pattern (Template F) with mandatory preflight
 - **CLI paths**: `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail`
-- **CLI build**: from the committed `scripts/gmail-cli/bun.lock` with `bun install --frozen-lockfile && bun run build`; the compiled binary itself is gitignored
+- **CLI build**: `bun run build` in `scripts/gmail-cli/` (no install: the dependency is vendored); the compiled binary itself is gitignored
 - **Sender alignment**: Auto-detect for replies, AskUserQuestion for new emails
 
 ## Skills

@@ -51,6 +51,7 @@ if ! grep -qE '\b(1password|1p|op item|op read|op vault|op list|op create|op edi
 fi
 
 # Inject the SCS doctrine. UserPromptSubmit honors stdout as additional context.
+# The storage ladder differs by OS: the login Keychain, Secure Enclave and iCloud Drive exist only on macOS.
 cat <<'CONTEXT_EOF'
 [SELF-CUSTODY SECRETS] Credential work detected. Default to the Self-Custody
 Secrets (SCS) doctrine — store secrets ONLY in operator-controlled stores,
@@ -63,6 +64,9 @@ one interface, keeps a machine-readable secrets/manifest.toml index for
 discovery, captures values via a hidden native prompt, and verifies encryption.
 Start with `vault doctor` / `vault spec`. Do NOT invent ad-hoc storage.
 
+CONTEXT_EOF
+if [[ "$(uname -s)" == "Darwin" ]]; then
+cat <<'CONTEXT_EOF'
 TIERED (which tier?): plain `-T /usr/bin/security` items are SILENTLY
 readable by any same-user process INCLUDING this agent — use them ONLY for narrow
 automation tokens (e.g. a scoped release PAT). For CROWN JEWELS (master/private/
@@ -103,6 +107,27 @@ Otherwise apply the SCS ladder directly (top-down):
 Naming for self-discovery: `<scope>-<service>` Keychain items + a descriptive
 `-j` comment. Keep an agnostic registry/runbook in the repo.
 
+CONTEXT_EOF
+else
+cat <<'CONTEXT_EOF'
+THIS HOST IS NOT macOS: there is no login Keychain, no `security` command, no
+Secure Enclave (Touch ID) and no iCloud Drive here, so the macOS ladder does
+not apply. Do NOT emulate it with ad-hoc files. Instead, in this order:
+
+1) The self-custody `vault` CLI above, if this machine has one, or the secret
+   broker your organisation runs for this host (ask the operator which).
+2) Versioned backup = SOPS + age, with the age identity in a file outside any
+   repository (chmod 600, SOPS_AGE_KEY_FILE=<path>), never committed. sops uses
+   Go RE2 (NO lookahead): keep _meta readable via `unencrypted_regex:
+   "^_meta$"` and always verify values show ENC[...].
+3) A service started by systemd gets its secret as a credential
+   (LoadCredential= / systemd-creds), not as an environment line in a unit file.
+4) On a host several people share, a secret is readable only by its owner:
+   chmod 600 under the owner's own home, never /tmp or a shared directory.
+
+CONTEXT_EOF
+fi
+cat <<'CONTEXT_EOF'
 1Password is LAST RESORT — company-shared secrets only, NEVER client-
 confidential (the company vault is admin-visible/recoverable). If you reach for
 `op`, first ask: can this live in the SCS ladder instead? If 1Password is

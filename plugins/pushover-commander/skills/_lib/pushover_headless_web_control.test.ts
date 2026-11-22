@@ -32,7 +32,7 @@
 import { afterAll, describe, expect, spyOn, test } from "bun:test";
 import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import {
   CFT_INSTALL_COMMAND,
   defaultPlaywrightCacheRoot,
@@ -389,7 +389,7 @@ describe("pushover_core.ts needs no plugin-local package until it renders", () =
       copy,
     );
     expect(stderr).toContain("po render needs satori and @resvg/resvg-js");
-    expect(stderr).toContain(`cd "${copy}" && bun install --frozen-lockfile`);
+    expect(stderr).toContain(`cd "${resolve(copy, "..", "..")}" && bun install --frozen-lockfile`);
     expect(stdout).toBe("");
     expect(code).toBe(1);
   });

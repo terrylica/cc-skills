@@ -18,6 +18,26 @@ const TIMEOUT_MS = 180_000; // a cold uv cache resolves numpy, pandas and scipy 
 
 let work = "";
 
+/**
+ * The toolchain autoupdate (07:23, 13:23, 19:23 local) can be installing a new uv when this runs; the proto shim then
+ * answers `missing_tool` for a few seconds (#83, 2026-11-12). Wait for it, bounded; skip with the reason only for that
+ * transient answer, so a uv that is genuinely broken still fails the suite.
+ */
+async function uvUnavailableReason(ceilingMs = 120_000): Promise<string | null> {
+  const t0 = Date.now();
+  for (;;) {
+    const p = Bun.spawnSync(["uv", "--version"], { stdout: "pipe", stderr: "pipe" });
+    if (p.exitCode === 0) return null;
+    const msg = `${p.stdout}${p.stderr}`;
+    const transient = /missing_tool|has not been installed/.test(msg);
+    if (!transient) throw new Error(`uv --version failed (exit ${p.exitCode}): ${msg.split("\n")[0]}`);
+    if (Date.now() - t0 > ceilingMs) return `uv still being installed after ${ceilingMs / 1000} s: ${msg.split("\n")[0]}`;
+    await Bun.sleep(2000);
+  }
+}
+const UV_SKIP = await uvUnavailableReason(Number(process.env.COMPUTE_METRICS_UV_WAIT_MS) || undefined);
+if (UV_SKIP) console.warn(`compute_metrics CLI tests skipped: ${UV_SKIP}`);
+
 function run(args: string[]): string {
   const proc = Bun.spawnSync([...UV_PYTHON, ...args], { cwd: SKILL_DIR, stdout: "pipe", stderr: "pipe" });
   if (proc.exitCode !== 0) {
@@ -35,28 +55,28 @@ function fold(name: string): string[] {
   return ["--predictions", join(work, `${name}_p.npy`), "--actuals", join(work, `${name}_a.npy`), "--timestamps", join(work, `${name}_t.npy`)];
 }
 
-beforeAll(() => {
-  work = mkdtempSync(join(tmpdir(), "compute-metrics-cli-"));
-  // Two folds. "normal": random predictions. "edge": constant predictions on strictly positive
-  // returns, so the model is collapsed (is_collapsed True), no day loses (sortino_ratio = inf,
-  // profit_factor = inf before its cap) and omega has no losses (NaN).
-  run([
-    "-c",
-    `import sys, numpy as np
+describe.skipIf(UV_SKIP !== null)("compute_metrics.py CLI writes strict JSON", () => {
+  beforeAll(() => {
+    work = mkdtempSync(join(tmpdir(), "compute-metrics-cli-"));
+    // Two folds. "normal": random predictions. "edge": constant predictions on strictly positive
+    // returns, so the model is collapsed (is_collapsed True), no day loses (sortino_ratio = inf,
+    // profit_factor = inf before its cap) and omega has no losses (NaN).
+    run([
+      "-c",
+      `import sys, numpy as np
 d = sys.argv[1]; n = 200; r = np.random.default_rng(0)
 ts = np.datetime64("2026-01-01T00") + np.arange(n) * np.timedelta64(3, "h")
 np.save(d + "/normal_p.npy", r.normal(size=n)); np.save(d + "/normal_a.npy", r.normal(size=n) * 0.01)
 np.save(d + "/edge_p.npy", np.full(n, 0.5)); np.save(d + "/edge_a.npy", np.abs(r.normal(size=n)) * 0.01 + 1e-4)
 for k in ("normal", "edge"): np.save(d + "/" + k + "_t.npy", ts)`,
-    work,
-  ]);
-}, TIMEOUT_MS);
+      work,
+    ]);
+  }, TIMEOUT_MS);
 
-afterAll(() => {
-  if (work) rmSync(work, { recursive: true, force: true });
-});
+  afterAll(() => {
+    if (work) rmSync(work, { recursive: true, force: true });
+  });
 
-describe("compute_metrics.py CLI writes strict JSON", () => {
   test("single fold to stdout", () => {
     const m = JSON.parse(cli(...fold("normal")));
     expect(typeof m.is_collapsed).toBe("boolean");

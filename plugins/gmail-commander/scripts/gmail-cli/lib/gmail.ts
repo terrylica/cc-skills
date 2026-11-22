@@ -16,7 +16,8 @@
 
 import { writeFile } from "node:fs/promises";
 
-import { gmail, type gmail_v1 } from "@googleapis/gmail";
+import { gmail } from "../vendor/googleapis-gmail.js";
+import type { gmail_v1 } from "@googleapis/gmail";
 import { getAuthClient } from "./auth.ts";
 import type { Attachment, Email, InlineImage, ListOptions, SearchOptions, ExportOptions } from "./types.ts";
 

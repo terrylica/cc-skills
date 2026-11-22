@@ -95,7 +95,7 @@ if [ "$rc" = "0" ] && [ -z "$out" ]; then pass "B3 non-write command ignored"; e
 
 echo "[C] BEHAVIORAL — gh-issue-title-reminder.mjs"
 # C1: issue create emits a block reminder (no account detection needed)
-IFS=$'\t' read -r rc out < <(run_in_repo node "$REMINDER" "git@github.com-alice:alice/widgets.git" \
+IFS=$'\t' read -r rc out < <(run_in_repo bun "$REMINDER" "git@github.com-alice:alice/widgets.git" \
   '{"tool_name":"Bash","tool_input":{"command":"gh issue create --repo alice/widgets --title hi"}}')
 if [ "$rc" = "0" ] && grep -q '"decision":"block"' <<<"$out"; then pass "C1 issue-create reminder fires"; else err "C1 expected block reminder, got rc=$rc out=$out"; fi
 

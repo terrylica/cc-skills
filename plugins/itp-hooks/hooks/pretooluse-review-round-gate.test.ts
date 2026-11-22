@@ -15,7 +15,7 @@
  * behaviour on failure (change nothing) is asserted here instead, which is the branch that matters.
  */
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -34,12 +34,20 @@ interface HookDecision {
   hookSpecificOutput: { permissionDecision: "allow" | "deny" | "ask"; permissionDecisionReason?: string };
 }
 
+// Each test runs ~15 git commands plus a bun hook process; bun's default 5 s per test is not enough under
+// the parallel pre-push gate (#83). Waiting is bounded by the work, so a passing run is no slower.
+setDefaultTimeout(60_000);
+
+/** The hook's git and gh budgets are raised for tests only: the stubs answer at once, but under load the
+ *  processes start slowly, and a timed-out lookup would turn into a false deny (#83). */
+const LOADED_MACHINE_BUDGETS = { ITP_HOOKS_GIT_TIMEOUT_MS: "30000", ITP_HOOKS_PR_LOOKUP_TIMEOUT_MS: "30000" };
+
 async function runHook(command: string, cwd: string, env?: Record<string, string>): Promise<HookDecision> {
   const proc = Bun.spawn(["bun", HOOK_PATH], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
-    env: env === undefined ? process.env : { ...process.env, ...env },
+    env: { ...process.env, ...LOADED_MACHINE_BUDGETS, ...env },
   });
   proc.stdin.write(JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd }));
   proc.stdin.end();
@@ -130,7 +138,7 @@ describe("gh pr ready --undo unmarks the branch it NAMES", () => {
     // These repos have no origin, so `gh pr view 999999` fails immediately and offline -- no
     // network, no auth, deterministic on a plane.
     const dir = twoMarkedBranches("unresolvable-number");
-    const decision = await runHook("gh pr ready --undo 999999", dir);
+    const decision = await runHook("gh pr ready --undo 999999", dir, fakeGh("", 1)); // hermetic: never the real gh
 
     expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
     expect(reviewableOn(dir, "alpha")).toBe(true);
@@ -346,6 +354,18 @@ describe("the gate measures the directory the COMMAND runs in (2026-10-17)", () 
     const env = fakeGh('{"headRefName":"feature","baseRefName":"main"}');
     const decision = await runHook("gh pr ready 7", main, env);
     expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("a PR lookup slower than the production budget: the test budget allows it, the default denies (#83)", async () => {
+    const { main } = reviewedBranchInAWorktree("ready-number-slow");
+    const env = fakeGh('{"headRefName":"feature","baseRefName":"main"}');
+    const slowGh = join(env.PATH.split(":")[0], "gh");
+    writeFileSync(slowGh, `#!/bin/sh\nsleep 3\nprintf '%s' '{"headRefName":"feature","baseRefName":"main"}'\n`);
+    // Raised budget (what every other test runs with): the 3 s answer arrives, the worktree is measured.
+    expect((await runHook("gh pr ready 7", main, env)).hookSpecificOutput.permissionDecision).toBe("allow");
+    // Production budget (2.5 s): the lookup times out and the session cwd (main) is measured, as designed.
+    const production = { ...env, ITP_HOOKS_PR_LOOKUP_TIMEOUT_MS: "" };
+    expect((await runHook("gh pr ready 7", main, production)).hookSpecificOutput.permissionDecision).toBe("deny");
   });
 
   test("control: a failed PR lookup changes nothing, so the session cwd (main) is measured and denied", async () => {

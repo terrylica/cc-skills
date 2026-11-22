@@ -78,6 +78,12 @@ describe("which commands publish pages", () => {
     "npm run build",
     `wrangler deploy ${ESCAPE_MARKER}`,
     "",
+    // mentions, not runs
+    "cat scripts/workers_deploy.sh",
+    "grep -n 'npx wrangler pages deploy' notes.md",
+    "git commit -m 'docs: run orca artifacts share to publish'",
+    "cat > notes.md <<'EOF'\nnetlify deploy --prod\nEOF",
+    "echo \"vercel --prod\"",
   ])("does not publish: %s", (cmd) => {
     expect(isPublishCommand(cmd)).toBe(false);
   });

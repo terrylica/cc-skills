@@ -21,39 +21,40 @@ Registration lives in `hooks/hooks.json`. Each row is one clause; the spoke is t
 
 Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "Write\|Edit orch." in the Matcher column means the hook runs as a subhook of that orchestrator rather than as its own process. "Bash orch." means the hook runs inside [`pretooluse-bash-guard-orchestrator.ts`](./docs/pretooluse-bash-guard-orchestrator.md) rather than as its own process.
 
-| Hook                                                  | Matcher                  | Purpose                                       | Spoke                                                              |
-| ----------------------------------------------------- | ------------------------ | --------------------------------------------- | ------------------------------------------------------------------ |
-| `pretooluse-version-guard.ts`                         | Write\|Edit orch.        | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                       |
-| `pretooluse-process-storm-guard.mjs`                  | Bash orch. + Write\|Edit | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                                 |
-| `pretooluse-cwd-deletion-guard.ts`                    | Bash orch.               | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                                  |
-| `pretooluse-git-worktree-guard.ts`                    | Bash orch.               | Enforces worktree-per-branch                  | [→](./docs/git-worktree-guard.md)                                  |
-| `pretooluse-vale-claude-md-guard.ts`                  | Write\|Edit orch.        | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                        |
-| `pretooluse-hoisted-deps-guard.ts`                    | Write\|Edit orch.        | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                                  |
-| `pretooluse-gpu-optimization-guard.ts`                | Write\|Edit orch.        | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                              |
-| `pretooluse-file-size-guard.ts`                       | Write\|Edit orch.        | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                                     |
-| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit              | Runs the 11 Write\|Edit subhooks in-process   | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
-| `pretooluse-native-binary-guard.ts`                   | Write\|Edit orch.        | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                                 |
-| `pretooluse-html-measure-guard.ts`                    | Write\|Edit orch. + Bash orch. | Denies HTML/CSS that fixes text width  | [→](./docs/html-measure-guard.md)                                  |
-| `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.        | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                                      |
-| `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.               | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                                |
-| `pretooluse-pueue-local-guard.ts`                     | Bash orch.               | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                                   |
-| `pretooluse-cargo-tty-guard.ts`                       | Bash (in pueue-wrap)     | Backgrounded cargo to PUEUE (via pueue-wrap)  | [→](./docs/cargo-tty-guard.md)                                     |
-| `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.        | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                             |
-| `pretooluse-bash-guard-orchestrator.ts`               | Bash                     | Runs the 28 Bash guards in one bun process    | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
-| `pretooluse-pueue-wrap-guard.ts`                      | Bash                     | Auto-wraps long-running commands (see #3)     | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
-| `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                 | Denies built-in WebFetch; no escape hatch     | `~/.claude/skills/web-fetch/SKILL.md`                              |
-| `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.               | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)                   |
-| `pretooluse-gmail-body-guard.ts`                      | Bash orch.               | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                                    |
-| `pretooluse-markdown-commit-hard-wrap-guard.ts`       | Bash orch.               | Blocks a `git commit` adding `.md` hard wraps | [→](./docs/markdown-hard-wrap-reminder.md)                         |
-| `pretooluse-secret-exposure-guard.ts`                 | Write\|Edit              | Hard-blocks live credentials in new content   | [→](./docs/secret-and-pii-exposure-guard.md)                       |
-| `pretooluse-headless-claude-p-guard.ts`               | Bash orch.               | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                                   |
-| `pretooluse-askuserquestion-line-terminator-guard.ts` | AskUserQuestion          | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md)        |
-| `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.               | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)                    |
-| `pretooluse-orca-worktree-agent-guard.ts`             | Bash orch.               | Blocks `orca worktree create` without `--agent` | [→](./docs/orca-worktree-agent-guard.md)                           |
-| `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                          |
-| `pretooluse-old-git-guard.ts`                         | Bash orch.               | Blocks hook-firing git below 2.54             | [→](./docs/old-git-guard.md)                                       |
-| `pretooluse-long-runtime-haiku-monitor-reminder.ts`   | Bash orch.               | Long run: start a `haiku` health monitor      | [→](./docs/long-runtime-haiku-monitor-reminder.md)                 |
-| `publishing-standard-reminder.ts`                     | Bash orch.               | Publish command: point at the standard        | [→](./docs/publishing-standard-reminder.md)                        |
+| Hook                                                  | Matcher                        | Purpose                                         | Spoke                                                              |
+| ----------------------------------------------------- | ------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------ |
+| `pretooluse-version-guard.ts`                         | Write\|Edit orch.              | Hardcoded-version blocker for markdown          | [→](./docs/version-guard.md)                                       |
+| `pretooluse-process-storm-guard.mjs`                  | Bash orch. + Write\|Edit       | Blocks fork-bomb patterns                       | [→](./docs/process-storm-guard.md)                                 |
+| `pretooluse-cwd-deletion-guard.ts`                    | Bash orch.                     | Blocks deleting the CWD                         | [→](./docs/cwd-deletion-guard.md)                                  |
+| `pretooluse-git-worktree-guard.ts`                    | Bash orch.                     | Enforces worktree-per-branch                    | [→](./docs/git-worktree-guard.md)                                  |
+| `pretooluse-vale-claude-md-guard.ts`                  | Write\|Edit orch.              | Rejects CLAUDE.md edits with vale findings      | [→](./docs/vale-terminology-enforcement.md)                        |
+| `pretooluse-hoisted-deps-guard.ts`                    | Write\|Edit orch.              | pyproject.toml hoisting/path-escape policy      | [→](./docs/hoisted-deps-guard.md)                                  |
+| `pretooluse-gpu-optimization-guard.ts`                | Write\|Edit orch.              | GPU optimization enforcement (6 checks)         | [→](./docs/gpu-optimization-guard.md)                              |
+| `pretooluse-file-size-guard.ts`                       | Write\|Edit orch.              | Per-extension file-size bloat prevention        | [→](./docs/file-size-guard.md)                                     |
+| `pretooluse-write-edit-orchestrator.ts`               | Write\|Edit                    | Runs the 11 Write\|Edit subhooks in-process     | [→](./docs/pretooluse-write-edit-orchestrator.md)                  |
+| `pretooluse-native-binary-guard.ts`                   | Write\|Edit orch.              | Launchd services must be native binaries        | [→](./docs/native-binary-guard.md)                                 |
+| `pretooluse-html-measure-guard.ts`                    | Write\|Edit orch. + Bash orch. | Denies HTML/CSS that fixes text width           | [→](./docs/html-measure-guard.md)                                  |
+| `pretooluse-pyi-stub-guard.ts`                        | Write\|Edit orch.              | Blocks top-level defs in Python `__init__`      | [→](./docs/pyi-stub-guard.md)                                      |
+| `pretooluse-uv-enforcement-guard.ts`                  | Bash orch.                     | Blocks non-UV Python package operations         | [→](./docs/uv-enforcement-guard.md)                                |
+| `pretooluse-pueue-local-guard.ts`                     | Bash orch.                     | Pueue commands must target the local daemon     | [→](./docs/pueue-local-guard.md)                                   |
+| `pretooluse-cargo-tty-guard.ts`                       | Bash (in pueue-wrap)           | Backgrounded cargo to PUEUE (via pueue-wrap)    | [→](./docs/cargo-tty-guard.md)                                     |
+| `pretooluse-skill-plugin-root-guard.ts`               | Write\|Edit orch.              | Skills must use `cc-plugin-root`                | [→](./docs/skill-plugin-root-guard.md)                             |
+| `pretooluse-bash-guard-orchestrator.ts`               | Bash                           | Runs the 29 Bash guards in one bun process      | [→](./docs/pretooluse-bash-guard-orchestrator.md)                  |
+| `pretooluse-pueue-wrap-guard.ts`                      | Bash                           | Auto-wraps long-running commands (see #3)       | [→](./docs/pretooluse-bash-guard-orchestrator.md#pueue-wrap-guard) |
+| `pretooluse-webfetch-fallback-guard.ts`               | WebFetch                       | Denies built-in WebFetch; no escape hatch       | `~/.claude/skills/web-fetch/SKILL.md`                              |
+| `pretooluse-release-notes-extensiveness-guard.ts`     | Bash orch.                     | Hard-blocks releases with thin notes            | [→](./docs/release-notes-extensiveness-guard.md)                   |
+| `pretooluse-gmail-body-guard.ts`                      | Bash orch.                     | Blocks bad-rendering `gmail draft` bodies       | [→](./docs/gmail-body-guard.md)                                    |
+| `pretooluse-markdown-commit-hard-wrap-guard.ts`       | Bash orch.                     | Blocks a `git commit` adding `.md` hard wraps   | [→](./docs/markdown-hard-wrap-reminder.md)                         |
+| `pretooluse-secret-exposure-guard.ts`                 | Write\|Edit                    | Hard-blocks live credentials in new content     | [→](./docs/secret-and-pii-exposure-guard.md)                       |
+| `pretooluse-headless-claude-p-guard.ts`               | Bash orch.                     | Blocks unworkable headless `claude -p` calls    | [→](./docs/headless-claude-p.md)                                   |
+| `pretooluse-askuserquestion-line-terminator-guard.ts` | AskUserQuestion                | Blocks newlines in option label/description     | [→](./docs/askuserquestion-option-line-terminator-guard.md)        |
+| `pretooluse-pkill-option-after-pattern-guard.ts`      | Bash orch.                     | Blocks pkill/pgrep options after the pattern    | [→](./docs/pkill-option-after-pattern-guard.md)                    |
+| `pretooluse-orca-worktree-agent-guard.ts`             | Bash orch.                     | Blocks `orca worktree create` without `--agent` | [→](./docs/orca-worktree-agent-guard.md)                           |
+| `pretooluse-broad-process-signal-guard.ts`            | Bash orch. + Write, Edit       | Blocks broad kill/pkill/killall (+ scripts)     | [→](./docs/broad-process-signal-guard.md)                          |
+| `pretooluse-old-git-guard.ts`                         | Bash orch.                     | Blocks hook-firing git below 2.54               | [→](./docs/old-git-guard.md)                                       |
+| `pretooluse-long-runtime-haiku-monitor-reminder.ts`   | Bash orch.                     | Long run: start a `haiku` health monitor        | [→](./docs/long-runtime-haiku-monitor-reminder.md)                 |
+| `publishing-standard-reminder.ts`                     | Bash orch.                     | Publish command: point at the standard          | [→](./docs/publishing-standard-reminder.md)                        |
+| `pretooluse-headless-browser-tier-reminder.ts`        | Bash orch. + MCP               | Heavy browser launch: use agent-browser tiers   | [→](./docs/headless-browser-tier-reminder.md)                      |
 
 ### PostToolUse
 
@@ -123,5 +124,6 @@ Set by Claude Code when a hook fires — hooks read them, users do not set them.
 ## References
 
 - [docs/spoke-index.md](./docs/spoke-index.md) — annotated index of all spokes in [`docs/`](./docs/)
+- [docs/hook-census.md](./docs/hook-census.md) — `scripts/hook-census.ts`: what the hooks are, what they blocked, what they cost; the orchestrators' sub-hook timing window
 - [lifecycle-reference.md](skills/hooks-development/references/lifecycle-reference.md) — hook lifecycle and best practices
 - [bootstrap-monorepo.md](../itp/skills/bootstrap-monorepo/references/bootstrap-monorepo.md) — monorepo scaffolding patterns

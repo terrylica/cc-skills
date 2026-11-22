@@ -81,6 +81,7 @@ import { classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator } from "./p
 import { classifyMarkdownHardWrapReminderForPostToolUseOrchestrator } from "./posttooluse-markdown-hard-wrap-reminder.ts";
 import { classifyLeakageTaxonomyForPostToolUseOrchestrator } from "./posttooluse-leakage-taxonomy-reminder.ts";
 import { classifyPublishingStandardReminderForPostToolUseOrchestrator } from "./publishing-standard-reminder.ts";
+import { recordSubhookTiming } from "./lib/orchestrator-subhook-timing.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -376,6 +377,18 @@ async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
   // not Claude-visible). Mirrors iter-66's stop-orchestrator stderr-routing
   // pattern for non-decision-block summaries.
   for (const result of subhookResults) {
+    recordSubhookTiming({
+      orchestrator: "posttooluse-write-edit-orchestrator",
+      event: "PostToolUse",
+      subhook: result.name,
+      toolName: parsedInput.tool_name,
+      toolUseId: parsedInput.tool_use_id,
+      sessionId: parsedInput.session_id,
+      elapsedMs: result.elapsedMs,
+      verdict: result.timedOut ? "timeout" : result.errored ? "error" : result.decision.kind === "noop" ? "noop" : "context",
+      timedOut: result.timedOut,
+      errored: result.errored,
+    });
     if (result.timedOut) {
       console.error(
         `[posttooluse-edit-time-orchestrator] subhook ${result.name} TIMED OUT after ${result.elapsedMs.toFixed(1)}ms (timeoutMs=${POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY.find((e) => e.name === result.name)?.timeoutMs}) — treating as noop (fail-open)`,

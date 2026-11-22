@@ -11,15 +11,33 @@
  *
  * A directory already named by the variable is kept, so the suite runners' own choice stands. Child
  * processes inherit the variable, which covers tests that spawn a hook with the parent's environment.
+ *
+ * The same holds for the orchestrators' sub-hook timing log (lib/orchestrator-subhook-timing.ts): while an
+ * operator's timing window is open, a test run would otherwise append fixture timings to the live
+ * ~/.claude/state/hook-census/ files, so ITP_HOOKS_HOOK_CENSUS_DIR points at a throwaway directory too.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HOOK_ERROR_LOG_DIR_ENV } from "./hook-error-tracker.ts";
 
+const HOOK_CENSUS_DIR_ENV = "ITP_HOOKS_HOOK_CENSUS_DIR";
+
 if (!process.env[HOOK_ERROR_LOG_DIR_ENV]) {
   const dir = mkdtempSync(join(tmpdir(), "itp-hooks-error-log-"));
   process.env[HOOK_ERROR_LOG_DIR_ENV] = dir;
+  process.on("exit", () => {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {
+      // A leftover temp directory is harmless; the operating system clears it.
+    }
+  });
+}
+
+if (!process.env[HOOK_CENSUS_DIR_ENV]) {
+  const dir = mkdtempSync(join(tmpdir(), "itp-hooks-hook-census-"));
+  process.env[HOOK_CENSUS_DIR_ENV] = dir;
   process.on("exit", () => {
     try {
       rmSync(dir, { recursive: true, force: true });

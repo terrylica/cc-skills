@@ -35,6 +35,7 @@ import {
   trackHookError,
   type PreToolUseInput,
 } from "./pretooluse-helpers.ts";
+import { recordSubhookTiming, type SubhookVerdict } from "./lib/orchestrator-subhook-timing.ts";
 import { main as reviewRoundGate } from "./pretooluse-review-round-gate.ts";
 import { main as reviewQuotaLimiter } from "./pretooluse-review-quota-limiter.ts";
 import { main as processStormGuard } from "./pretooluse-process-storm-guard.mjs";
@@ -63,6 +64,7 @@ import { main as pkillOptionAfterPatternGuard } from "./pretooluse-pkill-option-
 import { main as oldGitGuard } from "./pretooluse-old-git-guard.ts";
 import { main as longRuntimeHaikuMonitorReminder } from "./pretooluse-long-runtime-haiku-monitor-reminder.ts";
 import { main as publishingStandardReminder } from "./publishing-standard-reminder.ts";
+import { main as headlessBrowserTierReminder } from "./pretooluse-headless-browser-tier-reminder.ts";
 
 const LOG_PREFIX = "[pretooluse-bash-guard-orchestrator]";
 
@@ -106,6 +108,7 @@ export const BASH_GUARD_REGISTRY: readonly BashGuardEntry[] = [
   { name: "pretooluse-old-git-guard", main: oldGitGuard, timeoutMs: 4000, description: "Denies a hook-firing git command (commit, push, merge, pull, rebase, cherry-pick, revert, am; `git -C <dir>` and wrapper forms included) when the git that would run is older than 2.54, which includes an explicit /usr/bin/git on macOS (Apple's 2.50). Config-based hooks (hook.<name>.event in ~/.gitconfig) need git >= 2.54; an older git reads that config and silently runs none of them, so every gate defined there is skipped. A bare `git` is resolved on PATH; versions are cached per session keyed by path, mtime and size. Read-only git and ssh remote commands are never checked; no network. Fix named in the message: /opt/homebrew/bin/git, or Homebrew first on PATH. Escape OLD-GIT-OK: <>=10-char reason>. Fails open. Spoke: docs/old-git-guard.md." },
   { name: "pretooluse-long-runtime-haiku-monitor-reminder", main: longRuntimeHaikuMonitorReminder, timeoutMs: 4000, description: "Soft reminder (adds context, never denies): a Bash call that may run past 5 minutes (run_in_background, a timeout above 300000 ms, or a `pueue add` found by the shared shell walker; skipped inside subagents) should get intermittent health checks from a background monitor started with the Agent tool and the bare alias `model: \"haiku\"`, which resolves to the newest Haiku release; a dated or numbered id goes stale and is never written. Checks about every 4 minutes, ends with its report as its final answer only on stall, failure, overrun or completion, never kills. At most once per 20 minutes per session (stamp under os.tmpdir(), per user). Escape HAIKU-MONITOR-SKIP. Fails open. Spoke: docs/long-runtime-haiku-monitor-reminder.md." },
   { name: "publishing-standard-reminder", main: publishingStandardReminder, timeoutMs: 4000, description: "Soft reminder (adds context, never denies): before a command that publishes pages (wrangler deploy / pages deploy / versions deploy, orca artifacts share|update, netlify deploy, vercel deploy or --prod, firebase deploy, surge, gh-pages -d; not --dry-run or --help), a one-line pointer to Skill(devops-tools:publishing-standard), ONCE PER SESSION (gate publishing-standard-publish, separate from the HTML-write gate). Escape PUBLISHING-STANDARD-OK. Fails open. Spoke: docs/publishing-standard-reminder.md." },
+  { name: "pretooluse-headless-browser-tier-reminder", main: headlessBrowserTierReminder, timeoutMs: 4000, description: "Soft reminder (adds context, never denies): a Bash call that starts a heavy browser for work that needs no window (Playwright or Puppeteer launch, starting @playwright/mcp, playwright screenshot|pdf|open|codegen|cr, branded Chrome/Chromium --headless) is pointed at the operator's three tiers, all driven by agent-browser: Lightpanda for public pages, chrome-headless-shell for a login or a page Lightpanda cannot render, a Chrome profile copy only when the real profile is needed. Silent when the command already uses agent-browser, Lightpanda or chrome-headless-shell, names a real profile, only spells the words as text (each real invocation is classified via the shell walker), or runs in a subagent; classifies the first 16 KB; once per 20 minutes per session per kind. Escape HEADLESS-TIER-SKIP. Fails open. Spoke: docs/headless-browser-tier-reminder.md" },
 ];
 
 /**
@@ -158,6 +161,20 @@ async function settle(entry: BashGuardEntry, input: PreToolUseInput): Promise<Gu
   }
 }
 
+/** One word for what a guard returned, for the payload-free timing record (lib/orchestrator-subhook-timing.ts). */
+function guardOutcomeVerdict(outcome: GuardOutcome): SubhookVerdict {
+  if (outcome.kind === "timeout") return "timeout";
+  if (outcome.kind !== "ran") return "error";
+  let verdict: SubhookVerdict = "allow";
+  for (const response of outcome.responses) {
+    const hso = (response as { hookSpecificOutput?: HookSpecificOutput }).hookSpecificOutput ?? {};
+    if (hso.permissionDecision === "deny") return "deny";
+    if (hso.permissionDecision === "ask") verdict = "ask";
+    else if (hso.additionalContext && verdict === "allow") verdict = "context";
+  }
+  return verdict;
+}
+
 /** Run every guard against one input and fold their responses into a single decision. */
 export async function runBashGuards(
   input: PreToolUseInput,
@@ -172,7 +189,20 @@ export async function runBashGuards(
       result.skipped.push(entry.name);
       continue;
     }
+    const startedMs = performance.now();
     const outcome = await runOne(entry, input, Math.min(entry.timeoutMs, remaining));
+    recordSubhookTiming({
+      orchestrator: "pretooluse-bash-guard-orchestrator",
+      event: "PreToolUse",
+      subhook: entry.name,
+      toolName: input.tool_name,
+      toolUseId: input.tool_use_id,
+      sessionId: input.session_id,
+      elapsedMs: performance.now() - startedMs,
+      verdict: guardOutcomeVerdict(outcome),
+      timedOut: outcome.kind === "timeout",
+      errored: outcome.kind === "error",
+    });
     if (outcome.kind !== "ran") {
       const why = outcome.kind === "timeout" ? "timed out" : `threw: ${outcome.message}`;
       process.stderr.write(`${LOG_PREFIX} ${entry.name} ${why}; skipped (fail-open)\n`);

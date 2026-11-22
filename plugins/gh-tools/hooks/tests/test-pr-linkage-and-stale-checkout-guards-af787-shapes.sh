@@ -48,7 +48,7 @@ no() {
 # stderr is discarded and a non-zero exit is tolerated: what is under test is what the hook SAYS.
 feed() {
   local hook="$1" payload="$2" out
-  out="$(printf '%s' "$payload" | node "$hook" 2>/dev/null)" || true
+  out="$(printf '%s' "$payload" | bun "$hook" 2>/dev/null)" || true
   printf '%s' "$out"
 }
 
@@ -64,7 +64,7 @@ if [[ -x "$STALE" ]]; then ok "stale-checkout guard is executable"; else no "sta
 echo
 echo "== both hooks are registered in hooks.json, on the right event =="
 HOOKS_JSON="${HOOKS_DIR}/hooks.json"
-if node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$HOOKS_JSON"; then
+if bun -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$HOOKS_JSON"; then
   ok "hooks.json parses as JSON"
 else
   no "hooks.json parses as JSON"
@@ -72,7 +72,7 @@ fi
 # The JS below uses string concatenation rather than a template literal on purpose: a `${...}` inside
 # a single-quoted shell argument reads to shellcheck (SC2016) as a shell expansion that will not
 # expand, and it is right to say so — the two syntaxes are indistinguishable from outside.
-registered="$(node -e '
+registered="$(bun -e '
   const h = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).hooks;
   const cmds = (event) => (h[event] ?? []).flatMap((m) => (m.hooks ?? []).map((x) => x.command)).join(" ");
   const pre = cmds("PreToolUse").includes("pretooluse-stale-checkout-claim-guard.mjs");

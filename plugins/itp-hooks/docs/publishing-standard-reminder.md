@@ -14,6 +14,7 @@ Pages are built by many tools (a page builder, a static-site generator, a hand-w
 | --- | --- |
 | Before a Bash command that publishes: `wrangler deploy`, `wrangler pages deploy`, `wrangler versions deploy` (npx/bunx forms included), `orca artifacts share` or `update`, `netlify deploy`, `vercel deploy` or `vercel --prod`, `firebase deploy`, `surge <dir>`, `gh-pages -d` | yes, once per session |
 | The same with `--dry-run`, `--help` or `-h`, or containing `PUBLISHING-STANDARD-OK` | no |
+| A command that only mentions one: `cat` or `grep` of a deploy script, quoted text, a comment, a heredoc fed to anything but a shell (the shared shell-command walker decides what the shell would run) | no |
 | After a Write or Edit of a `.html`, `.htm` or `.xhtml` file | yes, once per session (its own gate) |
 | The same inside a temp scratch directory | no |
 | No session id, or one that is not a plain path component | no |
@@ -27,4 +28,4 @@ The two moments have separate gates, so a session that writes pages and later pu
 
 ## Tests
 
-`hooks/publishing-standard-reminder.test.ts`: the publish-command matcher (each host's command, dry runs, help, the escape), the HTML path filter, the session-id filter and the once-per-session gates, through the hook run as a process and through the classifier.
+`hooks/publishing-standard-reminder.test.ts`: the publish-command matcher (each host's command, dry runs, help, the escape, and commands that only mention a publish), the HTML path filter, the session-id filter and the once-per-session gates, through the hook run as a process and through the classifier.

@@ -6,15 +6,16 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 
 ## Orchestrators and lifecycle
 
-| Spoke                                                                              | Topic                                                                                               |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process                            |
-| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 28 guards in one process; pueue-wrap-guard and why it stays last |
-| [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks; memory-efficiency reminder     |
-| [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                                            |
-| [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook output: where each event's output goes and how summaries are routed                       |
-| [plan-mode-detection.md](./plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                                                |
-| [read-only-command-detection.md](./read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                                         |
+| Spoke                                                                              | Topic                                                                                                          |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [pretooluse-write-edit-orchestrator.md](./pretooluse-write-edit-orchestrator.md)   | PreToolUse Write\|Edit orchestrator: 11 blocking subhooks in one process                                       |
+| [pretooluse-bash-guard-orchestrator.md](./pretooluse-bash-guard-orchestrator.md)   | #111 PreToolUse:Bash orchestrator: 28 guards in one process; pueue-wrap-guard and why it stays last            |
+| [posttooluse-write-edit-orchestrator.md](./posttooluse-write-edit-orchestrator.md) | PostToolUse Write\|Edit orchestrator: 12 context-injecting subhooks; memory-efficiency reminder                |
+| [posttooluse-reminder.md](./posttooluse-reminder.md)                               | The standalone PostToolUse reminder hook                                                                       |
+| [stop-hooks.md](./stop-hooks.md)                                                   | Stop-hook output: where each event's output goes and how summaries are routed                                  |
+| [plan-mode-detection.md](./plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                                                           |
+| [read-only-command-detection.md](./read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                                                    |
+| [hook-census.md](./hook-census.md)                                                 | Inventory, outcomes and timing of every hook a session loads; the sub-hook timing window; standing-rules check |
 
 ## Guards — safety and destructive-action prevention
 
@@ -47,13 +48,14 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 
 ## Job orchestration and process discipline
 
-| Spoke                                                                              | Topic                                                                                                                                       |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| [pueue-reminder.md](./pueue-reminder.md)                                           | Pueue reminder detection patterns + exceptions                                                                                              |
-| [pueue-local-guard.md](./pueue-local-guard.md)                                     | Pueue commands must target the local daemon                                                                                                 |
-| [long-runtime-haiku-monitor-reminder.md](./long-runtime-haiku-monitor-reminder.md) | A run that may pass 5 minutes gets a background `haiku` health monitor (bare alias, so always the newest Haiku); hermetic + 32-mutant suite |
-| [publishing-standard-reminder.md](./publishing-standard-reminder.md) | Creating or publishing an HTML page points once per session at Skill(devops-tools:publishing-standard) (live age marker, provenance, index link, one registry, sitemap) |
-| [cargo-tty-guard.md](./cargo-tty-guard.md)                                         | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md))          |
+| Spoke                                                                              | Topic                                                                                                                                                                   |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [pueue-reminder.md](./pueue-reminder.md)                                           | Pueue reminder detection patterns + exceptions                                                                                                                          |
+| [pueue-local-guard.md](./pueue-local-guard.md)                                     | Pueue commands must target the local daemon                                                                                                                             |
+| [long-runtime-haiku-monitor-reminder.md](./long-runtime-haiku-monitor-reminder.md) | A run that may pass 5 minutes gets a background `haiku` health monitor (bare alias, so always the newest Haiku); hermetic + 32-mutant suite                             |
+| [publishing-standard-reminder.md](./publishing-standard-reminder.md)               | Creating or publishing an HTML page points once per session at Skill(devops-tools:publishing-standard) (live age marker, provenance, index link, one registry, sitemap) |
+| [headless-browser-tier-reminder.md](./headless-browser-tier-reminder.md)           | A heavy browser launch is pointed at agent-browser: Lightpanda, then chrome-headless-shell, then a profile copy; hermetic suite, 4 mutants killed                       |
+| [cargo-tty-guard.md](./cargo-tty-guard.md)                                         | Cargo TTY suspension prevention (full guide: [/docs/cargo-tty-suspension-prevention.md](/docs/cargo-tty-suspension-prevention.md))                                      |
 
 ## Linters, type checkers and correctness
 
@@ -74,10 +76,10 @@ Each spoke is the SSoT for its own subject. The hub carries only the hook invent
 | [markdown-table-guard.md](./markdown-table-guard.md)                                                 | GFM table structural guard: per-edit detector + Stop-hook prettier gate + manual sweep; why pipe-escaping isn't auto-fixable                                                                                                 |
 | [markdown-hard-wrap-reminder.md](./markdown-hard-wrap-reminder.md)                                   | The GFM surface split (a repo `.md` reflows, release/issue/PR bodies render `<br>`), why the reminder is net-new, the four hard-wrap boundaries and which guard owns each, and the badge-row false positive                  |
 | [release-notes-extensiveness-guard.md](./release-notes-extensiveness-guard.md)                       | Release-notes extensiveness hard-block: interception points, thresholds, fail-open rules, escape hatch; doctrine SSoT link                                                                                                   |
-| [html-measure-guard.md](./html-measure-guard.md) | **Text on an HTML page follows the window**: denies CSS that fixes where lines end (em/ch measures, page-width caps, pre whitespace on prose) at Write/Edit and at `orca artifacts share\|update` / `wrangler pages deploy` |
+| [html-measure-guard.md](./html-measure-guard.md)                                                     | **Text on an HTML page follows the window**: denies CSS that fixes where lines end (em/ch measures, page-width caps, pre whitespace on prose) at Write/Edit and at `orca artifacts share\|update` / `wrangler pages deploy`  |
 | [gmail-body-guard.md](./gmail-body-guard.md)                                                         | Gmail draft body guard: blocks a `gmail draft` with a hard-wrapped body or raw markdown; wrap + literal-markdown heuristics, shared libs, escape hatch, fail-open                                                            |
 | [askuserquestion-option-line-terminator-guard.md](./askuserquestion-option-line-terminator-guard.md) | AskUserQuestion option line-terminator guard: why a newline in an option `label`/`description` renders as U+FFFD, why `question`/`preview` are exempt, why it denies instead of repairing, and the condition for deleting it |
 | [readme-pypi-links.md](./readme-pypi-links.md)                                                       | PyPI badge/link consistency in READMEs                                                                                                                                                                                       |
 | [pushover-budget-reminder.md](./pushover-budget-reminder.md)                                         | Pushover official limits SSoT (re-verified 2026-06-11: ttl, per-account quota) + detection                                                                                                                                   |
 | [invented-fallback-reminder.md](./invented-fallback-reminder.md)                                     | Official-values nudge on net-new invented fallback display values (`Unknown`/`N/A`/`?`); Bash inline coverage, scratch exemption, escape hatch                                                                               |
-| [headless-claude-p.md](./headless-claude-p.md)                                                       | Headless `claude -p` doctrine and guard: `stream-json` needs `--verbose`, `CLAUDE_EFFORT=` is not an input, out-of-enum `--effort` is silently ignored, bare `-p` still reasons, at the resolved default                                         |
+| [headless-claude-p.md](./headless-claude-p.md)                                                       | Headless `claude -p` doctrine and guard: `stream-json` needs `--verbose`, `CLAUDE_EFFORT=` is not an input, out-of-enum `--effort` is silently ignored, bare `-p` still reasons, at the resolved default                     |

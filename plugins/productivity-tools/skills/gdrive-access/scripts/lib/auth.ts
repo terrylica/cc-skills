@@ -6,7 +6,7 @@
  */
 
 import { mkdir } from "node:fs/promises";
-import { auth } from "@googleapis/drive";
+import { auth } from "../vendor/googleapis-drive.js";
 import type { OAuthCredentials, SavedToken } from "./types.ts";
 import {
   getOpUuid,

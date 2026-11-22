@@ -32,6 +32,7 @@
  */
 
 import { mkdirSync, openSync, closeSync, constants, existsSync } from "node:fs";
+import { perUserTempPath } from "./per-user-temp-path.ts";
 import { join } from "node:path";
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -301,8 +302,7 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
  * O_EXCL create and never sees the reminder at all (found in review, 2026-10-17; el02 is shared).
  */
 export function perUserGateDirectory(base: string): string {
-  const uid = typeof process.getuid === "function" ? String(process.getuid()) : process.env.USER || "user";
-  return `${base}-${uid}`;
+  return perUserTempPath(base);
 }
 
 /**

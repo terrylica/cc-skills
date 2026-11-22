@@ -23,7 +23,7 @@ ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/
 **If BINARY_NOT_FOUND**: Build it first:
 
 ```bash
-cd ~/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/skills/gdrive-access/scripts && bun install && bun run build
+cd ~/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/skills/gdrive-access/scripts && bun run build
 ```
 
 ### Step 2: Check GDRIVE_OP_UUID Environment Variable

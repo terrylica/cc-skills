@@ -50,7 +50,7 @@ A sitemap shows every link it knows. Link it only from pages whose every possibl
 1. Build the pages from committed sources (refuse, or mark the page, when the working tree differs).
 2. Check the must-haves above on every page, and the index's legend.
 3. Deploy.
-4. Verify every page URL answers 200 (and, for pages behind a secret path, that the root and other paths answer 404).
+4. Verify every page URL answers 200 (and, for pages behind a secret path, that the root and other paths answer 404). To check how a page looks, take a screenshot with chrome-headless-shell (tier 2 of `Skill(chrome-profiles:browser-automation)`), not Lightpanda, which draws no CSS layout.
 5. Record the deployed links in the repository's registry (`published.v1`), commit and merge.
 6. Regenerate the sitemap.
 

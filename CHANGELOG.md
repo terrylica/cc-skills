@@ -1,3 +1,258 @@
+# [34.23.0](https://github.com/terrylica/cc-skills/compare/v34.22.2...v34.23.0) (2026-11-22)
+
+
+### Bug Fixes
+
+* **devops-tools:** Linux secrets ladder, GNU-first stat, FDA off macOS ([75bf070](https://github.com/terrylica/cc-skills/commit/75bf070685e8923d54ebd644d71b5ec494526fb9))
+
+The UserPromptSubmit credential hook injected the macOS storage ladder (login Keychain through `security`, Secure Enclave, iCloud Drive) into every session that mentioned credentials, including on Linux, where none of those exists and the advice sends an agent after commands that are not there. The shared head (the vault CLI) and tail (1Password last resort) are unchanged; the middle is now chosen by `uname -s`: macOS gets the same bytes as before (compared byte for byte), other systems get a Linux ladder (vault CLI or the host's broker, SOPS + age with SOPS_AGE_KEY_FILE, systemd credentials for services, owner-only files on a shared host).
+
+The dual-channel-watchexec example read mtimes with `stat -f %m FILE || stat -c %Y FILE`. GNU and uutils stat read -f as --file-system, print FILE's filesystem report to stdout, then fail, so that report landed in FILE_MTIME (measured on Ubuntu 26.04). The GNU form now runs first; BSD stat rejects -c and falls through.
+
+The macOS Full Disk Access helper now exits 4 with a message off macOS instead of failing on TCC.db, pbcopy and System Settings URLs.
+
+* **doc-tools:** terminal-print clipboard, preview and hints on Linux ([47d34f2](https://github.com/terrylica/cc-skills/commit/47d34f213d502db96074ef395bdc0ba3b19b8485))
+
+print-terminal.sh read the clipboard with pbpaste, opened the preview with `open` and suggested Homebrew packages. On Linux it now reads the clipboard with wl-paste, xclip or xsel inside a graphical session (and otherwise stops with a pointer to --file), opens the preview with xdg-open or says where the PDF is, and names apt packages in its preflight. macOS keeps pbpaste, open and the brew hints.
+
+* **gh-tools:** run the node-shebang hooks with bun (no node on Linux) ([fc5e763](https://github.com/terrylica/cc-skills/commit/fc5e763a892808edd89a7b9d86ef134b90516b93)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-no-anchors](https://github.com/terrylica/cc-skills/issues/issue-no-anchors) [#issue-title-reminder](https://github.com/terrylica/cc-skills/issues/issue-title-reminder) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **gmail-commander:** no Windows opener; SSH hint always shown off macOS ([b9aead2](https://github.com/terrylica/cc-skills/commit/b9aead27ef29d3e58032005285585da58279acfa))
+
+Review notes on the consent flow. `cmd /c start "" URL` would cut a Google consent URL at its first `&`, so Windows now gets no opener and the URL is printed whole. On Linux, xdg-open can start and still show nothing (no browser registered, a forwarded display), so the `ssh -L` forward is printed whenever the platform is not macOS, worded as "if no browser opened here".
+
+* **itp-hooks:** drop the Stop hook's fuser -k /dev/tty user-wide kill ([2164c9f](https://github.com/terrylica/cc-skills/commit/2164c9f2e9d98d83d48c1632121623e9cb58a3de))
+
+clearTTYReferences() in stop-subprocess-session-cleanup.ts ran `fuser -k /dev/tty` and `fuser -k /dev/tty.lock` on every Stop event, that is each time Claude finishes a turn. /dev/tty is the alias every process uses for its own controlling terminal, not a file this session owns. psmisc's fuser (Linux) documents `-k` as "Kill processes accessing the file. Unless changed with -SIGNAL, SIGKILL is sent", so the call SIGKILLed every process of the user with /dev/tty open (editors, pagers, ssh and sudo password prompts) in every terminal, not only the agent's own subtree. On a shared host where all of one person's IDE terminals run as a single Linux account, one agent finishing its turn could kill an editor in another terminal.
+
+On macOS the call was a silent no-op: Apple's /usr/bin/fuser is a Perl wrapper over lsof that accepts only -c, -f and -u, so `-k` fails option parsing and the hook still printed "TTY references cleared". /dev/tty.lock is not a standard path on either system.
+
+Removed rather than narrowed: the commit that added it (564592b7d) cites only the upstream TTY-suspension issues, which the pueue wrapping of backgrounded commands addresses, and no incident this step fixed. A process of this session that holds a TTY is already handled by cleanupOrphanedProcesses(), which stays inside the session's own subtree. The function is gone, its call is gone, a dated note in the file records why, and the header now says the hook runs on every Stop event rather than once at shutdown.
+
+New test stop-subprocess-session-cleanup.test.ts runs the real hook end to end with a `fuser` shim first on PATH. The shim records its argv and, on `-k`, kills only a stand-in that the test starts in its own pseudo-terminal (BSD or util-linux `script`) holding /dev/tty open, so even a regression cannot reach the real fuser. It asserts no fuser call, that the stand-in survives, and that no executable line names fuser or /dev/tty.lock. Against the unfixed hook it fails: the shim saw `-k /dev/tty` and the stand-in died.
+
+* **itp-hooks:** old-git guard allows old git when no config hook exists ([b1f7b9d](https://github.com/terrylica/cc-skills/commit/b1f7b9d4c91351c8f027beaf19451dfd18ce9ef6))
+
+The guard denied git commit, push, merge, pull, rebase, cherry-pick, revert and am whenever the git that would run was older than 2.54, the release that added config-based hooks (hook.&lt;name>.event). Ubuntu 26.04 ships git 2.53, so on a stock Linux host every commit was refused, although that host defines no config-based hook and an old git skips nothing there. The SessionStart check warned about the same non-problem in every session, and both named Homebrew as the fix.
+
+Now, only for a git below the floor, the guard asks that git `git config --get-regexp '^hook\..*\.event$'` in the command's own directory (the hook input's cwd, so repository config and includeIf count). Exit 1 with no output means none is defined and the command is allowed; a hook.&lt;name>.event line, or any other answer, keeps the deny. The SessionStart check uses the same probe. Both name the fix for the platform: Homebrew's git on macOS, a git >= 2.54 package (or removing the entries) elsewhere. A Mac whose ~/.gitconfig defines config-based hooks is refused exactly as before. The version cache moves to a per-user directory.
+
+Verified on Ubuntu 26.04 (git 2.53, no config hooks): git commit allowed and SessionStart silent; in a repository whose config defines hook.demo.event, denied with the Linux fix and warned at SessionStart.
+
+* **itp-hooks:** old-git probe keeps the deny when it cannot answer ([cce7e64](https://github.com/terrylica/cc-skills/commit/cce7e649708bee4c78c98c0c3601bfd06f35f262))
+
+Two gaps found in review of the config-hook probe. First, Bun.spawnSync throws for a cwd that no longer exists (a removed worktree), and that throw reached main()'s fail-open catch, so an old git was allowed where main denied it. The probe now returns "unknown" for a missing cwd or any spawn error, which keeps the deny. Second, the probe reads the hook's cwd, but `git -C dir`, `--git-dir`, `--work-tree`, a `cd`/`pushd` or GIT_DIR/GIT_WORK_TREE make git read another repository's config, where hooks may be defined. Those invocations now skip the probe and are judged by version alone, as before this branch.
+
+Verified on Ubuntu 26.04 with git 2.53: a removed cwd and `cd x && git commit` are denied; plain `git commit` with no config hooks is still allowed. New tests cover -C, --git-dir, cd, GIT_DIR and the removed cwd.
+
+* **itp-hooks:** one temp directory per user for slots, gates and caches ([c7d2ab4](https://github.com/terrylica/cc-skills/commit/c7d2ab4d012d5603f24f05740a1d08e3714d8169))
+
+On Linux os.tmpdir() is the shared /tmp, and the concurrency slots and the ty edit gate use a literal /tmp path on every OS. A fixed directory there is created by the first account that needs it, with that account's umask (0755), and no other account can write into it. On a host several people use, the second person's ty and tsc checks were skipped every time (slot acquisition returned null, which the guard reads as "busy"), the ty Stop check never saw its gate, and the hard-wrap reminder never saved its cache. Measured on Ubuntu 26.04: a 0755 directory owned by another account rejects the slot file.
+
+The slot directory, the ty edit gate's default directory and the hard-wrap cache now carry the uid, through one helper (lib/per-user-temp-path.ts) that the existing perUserGateDirectory now delegates to with the same `<base>-<uid>` form. On a one-person Mac the bound and the behaviour are unchanged; on a shared host the concurrency bound is per person, and the docs say the machine-wide memory ceiling belongs to the host (a systemd slice).
+
+* **orca-tools:** find orca-ide on Linux; closeout tests pass on bash 5 ([b8ed40c](https://github.com/terrylica/cc-skills/commit/b8ed40cae7b288e77fbb23fa8ef104139a0d2c47))
+
+orca-spinoff and orca-closeout carried their own Orca CLI finders without the Linux candidates the shared scripts/lib/orca-cli.sh already has: `orca-ide` on PATH, ~/.local/bin/orca-ide and /opt/Orca/resources/bin/orca-ide. On a Linux Orca install without the CLI shim they reported that Orca's CLI was not found. Both now try the same candidates in the shared order; macOS candidates are unchanged.
+
+On Linux, 17 of the 59 orca-closeout tests failed. The fake Bash-tool shells ended their `bash -c` list with the command under test, and bash 5.1 and newer exec the last command of such a list in place, so the shell and its shell-snapshots marker vanished from ps and the script reported process=unavailable. macOS /bin/bash is 3.2, which never does this. A real Bash-tool shell always runs `pwd -P` after the user's command, so the script itself was right; the fakes now end in `; exit $?`. One more test wrote its hang marker after the watcher had already run its first `orca worktree ps`, a race fast process start-up on Linux lost every time; the marker is now written first. 59 of 59 pass on Ubuntu 26.04 (bash 5.3).
+
+* **tlg:** links end where their URL ends, not in Chinese text ([b83d1dc](https://github.com/terrylica/cc-skills/commit/b83d1dccdc77afd5921d0c835f842a5868b0a505)), closes [openai/codex#55722](https://github.com/openai/codex/issues/55722) [NousResearch/hermes-agent#144736](https://github.com/NousResearch/hermes-agent/issues/144736) [earendil-works/pi#10933](https://github.com/earendil-works/pi/issues/10933) [egoist/mygo#980](https://github.com/egoist/mygo/issues/980) [eight04/linkify-plus-plus#78](https://github.com/eight04/linkify-plus-plus/issues/78)
+
+Telegram's server linkifies a bare URL up to the next whitespace. Measured on 2026-11-22 (Saved Messages, entities read back): "打开 github.com/login/device，用你自己的账号" was stored with a MessageEntityUrl over "github.com/login/device，用你自己的账号". An explicit &lt;a href> gave a TextUrl over exactly the URL and no other link entity.
+
+The new scripts/safe-links.ts has no dependencies. exactLinks(text, {html}) gives each bare link an explicit &lt;a href="https://…"> that ends at the first whitespace or non-ASCII character, which covers full-width and CJK punctuation, ideographs and emoji. Trailing ASCII punctuation is trimmed, and &lt;a>, &lt;code> and &lt;pre> are left alone. badLinks(message) checks what the server stored.
+
+The new scripts/link-entities.ts applies the same cut to GramJS entities, repairs stored messages, and converts read-back MessageEntityMentionName to InputMessageEntityMentionName so an edit keeps mentions.
+
+In tg-cli.ts, send, draft, send-file captions and edit now make links exact. Each sent message is read back, and the command exits 1 naming any link that covers more than its URL. The new command relink &lt;chat> &lt;ids> fixes messages already sent. A text with no bare link is sent exactly as before. Plain text keeps GramJS's markdown parse and gains exact TextUrl entities.
+
+
+
+### Features
+
+* **gmail-commander:** OAuth client from env or file; Linux consent flow ([14519c3](https://github.com/terrylica/cc-skills/commit/14519c37ae5575fdba608c7dc191b7037bcb720a))
+
+The Gmail CLI could get its OAuth client (client_id, client_secret) only from a 1Password item, and opened the consent page with macOS `open`. On Linux there is no 1Password desktop app (op works there only with a service-account token), and `open` is either missing, which made Bun.spawn throw, or Debian's openvt alias.
+
+The client source is now configurable, ahead of the existing cache and 1Password lookup: GMAIL_OAUTH_CLIENT_ID with GMAIL_OAUTH_CLIENT_SECRET (for example injected with `vault run <scope> -- gmail ...`), or GMAIL_OAUTH_CLIENT_FILE, the client JSON Google Cloud Console downloads. Neither is written to disk. With none of them set the behaviour is exactly as before. When op is missing or fails, the error names every source instead of only "1Password error". The consent page opens with `open` on macOS, with xdg-open in a Linux graphical session, and otherwise the CLI prints the URL with the `ssh -L <port>:localhost:<port>` forward that completes the callback from another computer.
+
+The draft guard's fingerprint falls back to coreutils sha256sum where Perl's shasum is absent, the job checks in the health and bot-process-control skills look at systemd user units on Linux as well as launchd, and the setup, env-setup and CLAUDE.md docs describe the Linux path. New pure module lib/credential-source.ts with tests.
+
+Verified on Ubuntu 26.04 with no op and no display: the missing-op error names the alternatives; with an explicit client or client file, the CLI prints the consent URL and the ssh -L hint and writes no client file.
+
+## [34.22.2](https://github.com/terrylica/cc-skills/compare/v34.22.1...v34.22.2) (2026-11-21)
+
+## [34.22.1](https://github.com/terrylica/cc-skills/compare/v34.22.0...v34.22.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **braille-tally:** no legend line required in AskUserQuestion ([98f32a8](https://github.com/terrylica/cc-skills/commit/98f32a8c04485937722d810d4afc9742309485e8))
+
+The operator asked for the legend line to be removed from every AskUserQuestion: "No need to be in the front of AskUserQuestion as preamble", while every option must still carry its tally. A question's options always use the default axes, Importance · Urgency · Simplicity, so the legend there only delays the actual question. Lists keep their legend once at the head.
+
+- hooks/askuserquestion-tally-guard.ts: the rule that the question text contain "Braille Tally" is removed; every option label must still start with a tally, in rank order; the deny message says the axes are always the default three and that no legend goes in the question
+- tests/tally.test.ts: a tallied, ranked question without a legend passes; the missing-legend case is gone
+- skills/braille-tally/SKILL.md: rules 2 and 5 and the guard section updated, with an evolution-log entry
+- README.md, CLAUDE.md, hooks/hooks.json, the ADR and the design spec say the same
+
+# [34.22.0](https://github.com/terrylica/cc-skills/compare/v34.21.0...v34.22.0) (2026-11-20)
+
+
+### Features
+
+* **braille-tally:** Braille Tally glyph, CLI, AskUserQuestion guard ([5f89cfb](https://github.com/terrylica/cc-skills/commit/5f89cfb3ce54b95c6db97ddb4931c0ec33aac1c8))
+
+The Braille Tally ranks an item on a few axes at once as one word-sized shape of Braille cells, one per axis, where level n of 8 is the cell with exactly n dots (⡀⣀⣠⣤⣴⣶⣾⣿). The default axes, in order, are Importance · Urgency · Simplicity, and items are ordered by Pareto front with urgency breaking ties, so the axes are never merged into one score. Braille cells were chosen after measuring the alternative: in a replica of Gmail's subject line the Unicode block characters ▁…█ come from three fonts (Hiragino Sans, Arial, Helvetica) and misalign by about 2.5 px, while one font draws every Braille pattern with one width and one bottom line.
+
+The plugin makes the tally a habit rather than a memory. A PreToolUse guard on AskUserQuestion denies a question until every option label starts with a tally, the question text carries the legend, and the options are in rank order; it fails open on anything unexpected and its escape token lives only in the skill.
+
+- skills/braille-tally/SKILL.md: the convention (axes, legend, relative levels, Pareto ranking, placement in lists, questions, plain text and HTML) and the measurements behind it
+- lib/tally.ts: the only implementation, dependency-free: tally, tallyWithLevels, levelsOf, leadingTally, legend, dominates, fronts, ranked, outOfRank, html
+- scripts/braille-tally.ts: CLI with tally, parse, legend, html (drawn from the Braille bit pattern, no font needed), rank (JSON lines in, ranked list out) and spec (machine-readable command set)
+- hooks/askuserquestion-tally-guard.ts: the AskUserQuestion guard, registered in hooks/hooks.json
+- tests/tally.test.ts: 17 tests, including cells checked from their code points, every drawn level checked against its Braille bits, and the guard run as a real hook process
+- docs/adr/2026-11-20-braille-tally.md and docs/design/2026-11-20-braille-tally/spec.md
+- marketplace.json entry, plugin lists, README table and install loop, and the documentation counts (41 plugins, 25 of 42 ADRs with a design spec)
+
+# [34.21.0](https://github.com/terrylica/cc-skills/compare/v34.20.0...v34.21.0) (2026-11-20)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** stop Chrome saving a "Playwright · <client>" tab group on every run ([677fa94](https://github.com/terrylica/cc-skills/commit/677fa9493cdc1435d1898c96afac6bcce1358de8)), closes [microsoft/playwright#43038](https://github.com/microsoft/playwright/issues/43038)
+
+The Playwright Extension puts each connection's tabs in a tab group, and mcp-drive (like any run that tidies up) then closes the group's last tab. Chrome 131+ treats that as "close group" and saves the group to the bookmarks bar, synced and never removed, so every run left one saved group behind: 185 had piled up across 13 profiles. The tab sweep could not see them, because AppleScript has no notion of tab groups.
+
+- chrome-profile.sh playwright-mcp now passes --no-tab-group (supported since @playwright/mcp 0.0.85; the extension honours it via connectToTab tabGroup !== false); CHROME_PROFILE_TAB_GROUP=1 restores the group for a supervised session
+- measured on 2026-11-17 by counting saved groups in the profile's sync store before and after one run: default launcher 51 → 52, PLAYWRIGHT_MCP_NO_TAB_GROUP=1 52 → 52, fixed launcher 52 → 52, CHROME_PROFILE_TAB_GROUP=1 52 → 53
+- the empty-array expansion is safe under macOS /bin/bash 3.2 with set -u (checked)
+- SKILL.md (Tabs section) and the plugin CLAUDE.md invariant record why closing tabs is not enough and how to delete groups saved before the fix (Chrome UI only; no API, no bulk delete, never edit Sync Data)
+
+* keep the prune green (README preset link, test fixture directory) ([e049b70](https://github.com/terrylica/cc-skills/commit/e049b706a13c1fdaec5ef67be3c046bbf9450ee0)), closes [#72](https://github.com/terrylica/cc-skills/issues/72)
+
+- productivity-tools README linked the deleted presets.json; it now points at references/preset-commands.md, which SKILL.md already names as the preset SSoT, and the 'presets.json not found' row is gone.
+- test-iter111 planted its fixture in plugins/agent-reach/scripts/, which no longer exists once sync-upstream.sh is deleted (git keeps no empty directories). The test now creates the directory when missing and removes it only if it created it.
+
+* **pushover-commander:** move its packages to the plugin root ([43fdda9](https://github.com/terrylica/cc-skills/commit/43fdda947da09e84f8401a7d73e50fb171c03ed1)), closes [#91](https://github.com/terrylica/cc-skills/issues/91)
+
+@resvg/resvg-js is a native addon, which Bun's bundler cannot inline, so this plugin uses the other supported layout: package.json and bun.lock at the plugin root, where Claude Code installs them on every plugin update. Reproduced Claude Code's documented procedure (only the two files, in a separate folder, --frozen-lockfile --ignore-scripts): 31 packages installed, and the native renderer loads and renders.
+
+The renderer's missing-package hint now names the plugin root; its test asserts that path. 44 tests pass.
+
+* **tests:** make the gate tests that failed under load deterministic ([30ef817](https://github.com/terrylica/cc-skills/commit/30ef8170e20c575ab62a91cda908f80e402f0344)), closes [#83](https://github.com/terrylica/cc-skills/issues/83)
+
+#83: 3 of 4 pre-push gate runs on 2026-11-12 failed under machine load, each from a timing or toolchain assumption in a test, not a code defect.
+
+- review-round gate: the PR lookup's 2.5 s budget (kept for production) timed out on a test's local `gh` stub under load, which turned into a false deny; bun's 5 s default per test ran out on tests doing ~15 git commands. Tests now raise the hook's git/gh budgets through ITP_HOOKS_GIT_TIMEOUT_MS / ITP_HOOKS_PR_LOOKUP_TIMEOUT_MS (production never sets them), set a 60 s default, and the `--undo 999999` test uses a stub instead of the real gh. New test: a 3 s stub lookup is allowed with the test budget and denied with the default, proving the seam both ways. 54 pass.
+- compute_metrics: the hourly toolchain autoupdate can be installing uv mid-run (proto answers missing_tool). The suite waits, bounded at 120 s, and skips with the reason only for that transient answer; any other uv failure still fails. Verified with fake uv binaries: the transient case skips, the broken case fails. 3 pass with a real uv.
+- orca-closeout: a fixed 15 s deadline and a fake agent that lived a fixed N seconds raced the watcher. Waits are now poll-until with generous ceilings (no slower when passing), a lingering agent lives until afterEach ends it (its sleep is killed, so nothing is orphaned), and every exit-code assertion carries the script's stderr, so the unexplained exit 2 seen on 2026-11-12 is diagnosable next time. 59 pass in 104 s at load 14-15; no sleep processes left behind.
+
+* **tlg,gmail,gdrive:** run plugin CLIs from vendored packages ([9ce5e07](https://github.com/terrylica/cc-skills/commit/9ce5e071abb50e686c51dbd0e7769dca05f59fbf))
+
+tg-cli.ts, cleanup_deleted.ts, gmail-cli and gdrive-access now import their one third-party package from vendor/&lt;name>.js (types still come from the package via `import type`, which Bun erases). Measured from a fresh copy with no node_modules and Bun's auto-install off (--no-install): every module graph resolves, tg-cli, gmail and gdrive run, and `bun run build` compiles the gmail and gdrive binaries.
+
+Bundles: telegram 1.3 MB (31 packages), googleapis-gmail 0.6 MB (40), googleapis-drive 0.65 MB (42), against 47, 59 and 42 MB of node_modules. cleanup_deleted.ts also used big-integer directly; it is bundled with telegram, so both share one copy.
+
+Docs: the setup, health, access and triage skills no longer say to install before building, and the plugin CLAUDE.md files say where the dependency lives.
+
+
+
+### Features
+
+* **chrome-profiles:** count leftover saved Playwright tab groups ([0c6988d](https://github.com/terrylica/cc-skills/commit/0c6988dd9fd5ae60143ee700f5e0e4b4ef1ff6d4))
+
+The groups Chrome saved before --no-tab-group (previous commit) are invisible to AppleScript, so nothing reported them. A byte grep of the profile's Sync Data is no measure either: it also counts deleted groups until LevelDB compaction (53 by grep against 33 live in one profile), which made the previous commit's totals too high.
+
+- saved-tab-groups.ts reads a private copy of "&lt;profile>/Sync Data/LevelDB" with the dependency-free reader in extension-token-from-profile.ts; the newest record per key decides, so deletions count; output is counts only (no URLs); exit 0 none, 1 some remain
+- chrome-profile.sh saved-groups &lt;email>, and a doctor &lt;email> line (ok when none, warn with the count otherwise)
+- SKILL.md: corrected totals (about 100 across 10 profiles, not 185 across 13) and the two deletion routes that worked on 2026-11-17, all profiles verified at 0 afterwards: pinned groups in the background (press each chip to reopen it, then one extension connection after ~30 s idle; the extension's startup cleanup ungroups open "Playwright…" groups, which deletes them), unpinned groups through ⋮ › Tab groups › Delete group in the foreground (the keyboard works where an accessibility press on a native submenu item does not)
+- four offline tests on synthetic records: tally by client, newest record wins, a deletion is not resurrected by input order, other keys and titles ignored
+
+* **itp-hooks:** remind agents to use the lightest headless browser tier ([af5a68b](https://github.com/terrylica/cc-skills/commit/af5a68b17fdb4942de58b84aaec7b662e860be1a)), closes [#69](https://github.com/terrylica/cc-skills/issues/69)
+
+A PreToolUse reminder (soft, never denies) for Bash commands and throwaway Playwright MCP calls that start a heavy browser for work that needs no window. It points at the three agent-browser tiers: Lightpanda for public pages, chrome-headless-shell for a login or a visual check, a profile copy only when the real profile is needed. The hook is classified per real invocation through the shared shell walker, and the standalone MCP entry never prints permissionDecision "allow".
+
+Rebuilt on current main as one commit (the branch was 8 days behind and conflicted only in registry rows). Since PR #101's publishing-standard-reminder now owns the publish moment, this hook no longer fires on publishes; its one missing piece of advice (check a page's look with a chrome-headless-shell screenshot, never Lightpanda) is step 4 of the publishing-standard skill instead.
+
+- chrome-profiles browser-automation: rung 2 is agent-browser by tier
+- itp-hooks: hook, 2 entry points, spoke, CLAUDE.md row, spoke index; Bash guard count corrected to 29
+- Tests: 124 pass (this hook, the orchestrator, publishing-standard)
+
+* **scripts:** vendor plugin CLI packages so no install is needed ([806388f](https://github.com/terrylica/cc-skills/commit/806388f6aba9fd946a190275c25d9ef2edc5088b)), closes [#91](https://github.com/terrylica/cc-skills/issues/91)
+
+Claude Code installs a plugin's packages only from a package.json and lockfile at the plugin root (code.claude.com/docs/en/plugins/loading, "Node.js package dependencies"). CLIs that keep theirs in a sub-folder
+
+# [34.20.0](https://github.com/terrylica/cc-skills/compare/v34.19.2...v34.20.0) (2026-11-16)
+
+
+### Features
+
+* **orca-tools:** close Orca's Setup tab once the setup succeeds ([2c2460b](https://github.com/terrylica/cc-skills/commit/2c2460b49d2ef40a6843ab7aa3e9ce051875a210))
+
+Orca runs a repository's setup script (orca.yaml scripts.setup, or the script in the repo's Orca settings) in a shell tab of its own, paneTitle "Setup", a few seconds after `orca worktree create` returns. It types `bash -lc '<runner>'; status=$?; printf '\n__ORCA_SETUP_COMPLETE__:<id>:%s\n' "$status"; exit "$status"` into that shell, so the exit ends only the inner bash and the tab stays beside the agent's for good. Users read it as a stray second tab (measured on Orca 1.4.255, el02, 2026-11-16; `terminal wait --for exit` never fires for it, and the create JSON carries no setup receipt).
+
+worktree-spinoff now waits up to 30 s for that tab when Orca's policy runs a setup (--setup run, or setupRunPolicy run-by-default with a script in orca.yaml or the repo settings), reads Orca's own completion marker from the tab's output, and closes the tab on status 0. A failed setup, or one still running at --setup-timeout (default 600 s), keeps its tab with its output and is warned; --keep-setup-tab keeps it on success too. Orca still decides whether and what to run (its policy, its approval of the script), so none of Orca's setup logic is copied. The JSON line gains setup, setup_exit and setup_tab.
+
+The prompt-title check now ignores whitespace: the accumulated stream drops the spaces a full-screen agent draws by cursor moves (orca terminal read --help), so a delivered prompt read as "Probe2:Setuptabclose" and was reported as prompt_seen false after a 90 s wait.
+
+SKILL.md: pass --surface chat only when the user asks for a chat in so many words (an agent read "its own session" as a chat on 2026-11-16); the Setup-tab mechanism and the whitespace pitfall are documented; CLAUDE.md records the two live cycles on el02.
+
+## [34.19.2](https://github.com/terrylica/cc-skills/compare/v34.19.1...v34.19.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* **web-forge:** find GitHub OAuth form fields by label, not exact name ([5769e08](https://github.com/terrylica/cc-skills/commit/5769e0853df2cd563ed45336875abd46240d8a39))
+
+GitHub's "New OAuth App" form replaced oauth_application[callback_url] with a "Redirect URI" list on 2026-11-16, so gh-oauth-app.mjs, which filled the callback by that exact name, could no longer fill the form.
+
+- oauth-form.mjs: readControls lists the form's controls in the page; pickField matches label first, then a rename-tolerant name pattern, and refuses zero or several matches; selectorFor escapes quotes
+- gh-oauth-app.mjs fills through it and reads each value back before Register; the callback goes to Redirect URI row 0
+- oauth-form.test.ts: both form shapes, fallback, refusal, selectors
+- dashboard-forge Vendor Quirks: dated note on the new form's controls
+- release notes 34.19.2
+
+## [34.19.1](https://github.com/terrylica/cc-skills/compare/v34.19.0...v34.19.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **itp-hooks:** hook-census ids never carry prompt or message text ([6f8f257](https://github.com/terrylica/cc-skills/commit/6f8f257f5d187fd1ea0b74af262877ce2c1f0020))
+
+Claude Code's hook `command` field holds a prompt hook's prompt (with the user's words substituted in) or a configured statusMessage, not only a command. 34.19.0 took the first word of it as the hook id, so the first 30-day report put prompt words, an address and a host name into timing.json and REPORT.md.
+
+- An id is now a script's file name, an executable found on PATH under exactly that spelling, or inline:&lt;hash>. Stop entries with promptText are timed under one id, prompt-hook.
+- The inventory records each handler's statusMessage id and the scan counts those records under the handler's script.
+- Untagged messages keep only their leading plain words.
+- The timing summary computed stats inside a sort comparator and copied the per-event array once per tool call: 30 days now take 24 s and about 650 MB instead of 41 s and 1.8 GB. New --gc-every flag.
+
+# [34.19.0](https://github.com/terrylica/cc-skills/compare/v34.18.2...v34.19.0) (2026-11-16)
+
+
+### Features
+
+* **itp-hooks:** hook-census measures hooks, outcomes and their cost ([6b47043](https://github.com/terrylica/cc-skills/commit/6b47043823168406d9138b7fdcafe2e4e3ec75a8))
+
+Nothing recorded what the hook system as a whole does: Claude Code writes a transcript record only for a hook that prints something, and the four orchestrators measured each sub-hook's time and threw it away. A session on this machine loads 130 hook registrations (60 from settings, 69 from 12 plugins, 1 module) and the orchestrators run 57 sub-hooks inside them, so a decision to add, merge or retire a guard had no baseline to be judged against.
+
+scripts/hook-census.ts (Bun, every tunable a flag, `spec` prints them as JSON): `inventory` lists every handler per event from the settings files, enabled plugins' hooks.json and module plugins, expands the four orchestrator registries by static parsing (a hook module runs on import, so it is never imported) and diffs two launchers; `outcomes` streams transcripts one file at a time (.jsonl and .jsonl.br, Brotli decoded in-process) and counts denies, asks, contexts, decision blocks, timeouts and errors per guard tag; `timing` gives p50/p95/max per hook, sub-hook and event, and overhead per session; `rules` validates a standing-rules TOML against the instruction files and the loaded hooks; `report` writes all of it with REPORT.md and a payload-free labels.toml; `window` opens or closes the timing window.
+
+hooks/lib/orchestrator-subhook-timing.ts: the four orchestrators now record each sub-hook's elapsed ms and verdict, from a fixed key list (never a command, path, content or prompt), only while ~/.claude/state/hook-census/timing-window.json holds a future `until`, so a window closes itself. Fail-open: an error in recording is swallowed and can never change a verdict. The Bash orchestrator gains the per-guard timing it never had. The bun test preload now points ITP_HOOKS_HOOK_CENSUS_DIR at a throwaway directory, so a test run cannot write into a live window.
+
+Measured on real data 2026-11-16: inventory totals match Claude Code's own "Registered 69 hooks from 54 plugins" debug line for the plugin share; deny counts for three guards match an independent rg count exactly inside the window (76, 34, 8); a 3-day scan read 206 files and 477k lines in 4.8 s at 195 MB peak RSS. A debug-log probe showed Claude Code's debug log times every hook but also records hook stdout, including a rewritten command, so the census reads debug logs when given them but the docs do not enable them by default.
+
+Tests: 17 census tests (every transcript record shape, a Brotli transcript, a two-launcher config root, the real orchestrator registries, the rules validator, an interpreter-set drift check against scripts/validate-plugins.mjs) and 10 timing tests (closed, expired, malformed and open windows, the key whitelist, fail-open). moon run repo:check green: unit suite 3257 pass, 0 fail. Spoke: plugins/itp-hooks/docs/hook-census.md.
+
+## [34.18.2](https://github.com/terrylica/cc-skills/compare/v34.18.1...v34.18.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* **itp-hooks:** publishing reminder counts only publishes that run ([12158be](https://github.com/terrylica/cc-skills/commit/12158be188bb3b8229671fa71efbc626e121c62b))
+
+isPublishCommand now uses the shared shell-command walker, as the sitemap hook does since 34.18.1: a command that only mentions a publish (cat or grep of a deploy script, quoted text, a heredoc fed to anything but a shell) no longer uses up the session's reminder. Programs are resolved through npx/bunx/pnpx and pnpm/yarn dlx with a trailing @version dropped. Tests: five mention cases; 34 pass. Notes: docs/release-notes/34.18.2.md.
+
 ## [34.18.1](https://github.com/terrylica/cc-skills/compare/v34.18.0...v34.18.1) (2026-11-16)
 
 

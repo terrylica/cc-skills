@@ -508,7 +508,11 @@ is_orca() {  # help text captured, not piped to grep -q: an early-exiting reader
 find_orca() {
   local c
   if [ -n "${ORCA_CLI:-}" ]; then is_orca "$ORCA_CLI" && { echo "$ORCA_CLI"; return 0; }; return 1; fi
-  for c in "${ORCA_CLI_BIN_DIR:+$ORCA_CLI_BIN_DIR/orca}" "$(command -v orca 2>/dev/null || true)" \
+  # Same order as scripts/lib/orca-cli.sh: on Linux the CLI is named orca-ide (/opt/Orca/resources/bin/orca-ide,
+  # linked as ~/.local/bin/orca-ide), and a bare `orca` may be the GNOME screen reader (is_orca rejects it).
+  for c in "${ORCA_CLI_BIN_DIR:+$ORCA_CLI_BIN_DIR/orca}" "${ORCA_CLI_BIN_DIR:+$ORCA_CLI_BIN_DIR/orca-ide}" \
+           "$(command -v orca 2>/dev/null || true)" "$(command -v orca-ide 2>/dev/null || true)" \
+           "$HOME/.local/bin/orca-ide" /opt/Orca/resources/bin/orca-ide \
            "$HOME/.config/orca/linux-orca-cli-shim/orca" /Applications/Orca.app/Contents/Resources/bin/orca \
            "$HOME/Applications/Orca.app/Contents/Resources/bin/orca"; do
     is_orca "$c" && { echo "$c"; return 0; }

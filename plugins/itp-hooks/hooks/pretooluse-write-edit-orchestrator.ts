@@ -117,6 +117,7 @@ import { classifyValeClaudeMdGuardForOrchestrator } from "./pretooluse-vale-clau
 import { classifyShellScriptSafetyGuardForOrchestrator } from "./pretooluse-shell-script-safety-guard.ts";
 import { classifySkillPluginRootGuardForOrchestrator } from "./pretooluse-skill-plugin-root-guard.ts";
 import { classifyHtmlMeasureGuardForOrchestrator } from "./pretooluse-html-measure-guard.ts";
+import { recordSubhookTiming } from "./lib/orchestrator-subhook-timing.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -388,6 +389,18 @@ export async function runEditTimeSubhookRegistry(
       entry,
       input,
     );
+    recordSubhookTiming({
+      orchestrator: "pretooluse-write-edit-orchestrator",
+      event: "PreToolUse",
+      subhook: entry.name,
+      toolName: input.tool_name,
+      toolUseId: input.tool_use_id,
+      sessionId: input.session_id,
+      elapsedMs: result.elapsedMs,
+      verdict: result.timedOut ? "timeout" : result.errored ? "error" : result.decision.kind,
+      timedOut: result.timedOut,
+      errored: result.errored,
+    });
 
     if (result.timedOut) {
       process.stderr.write(

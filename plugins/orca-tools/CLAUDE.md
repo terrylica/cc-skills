@@ -15,7 +15,7 @@
 
 - **One agent tab.** A spin-off is created with `orca worktree create --agent <id> --prompt …`. Never add the agent afterwards with `terminal create`: that leaves Orca's fallback shell as a second tab.
 - **Every `orca` call goes through `o()`.** It carries `--environment` / `--pairing-code`, so the same script targets this machine or a paired runtime. Keep new calls inside it.
-- **Find the IDE's CLI with `find_orca`.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so never call a bare `orca`. The shared copy is `scripts/lib/orca-cli.sh` (used by `orca-float`); `orca-spinoff` and `orca-closeout` still carry their own copies, to be moved onto it.
+- **Find the IDE's CLI with `find_orca`.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so never call a bare `orca`. The shared copy is `scripts/lib/orca-cli.sh` (used by `orca-float`); `orca-spinoff` and `orca-closeout` still carry their own copies, to be moved onto it; until then each copy keeps the shared candidate order, including Linux's `orca-ide`.
 - **Never trust `orca terminal wait` for an exit code.** It reported 0 for a command that exited 7. `orca-float` has the command write its own status file.
 - **No project or personal identity.** Nothing in the script or the skill names a repository, host, account or person. Machine-specific values (keys, aliases, paths) stay in the user's own configuration.
 - **Portable shell.** bash 3.2 (stock macOS) through current bash, BSD and GNU userland alike. No `realpath`, `readlink -f`, `sed -i` or `${var,,}`; Python handles paths and JSON. Shell values reach Python only as argv.
@@ -39,6 +39,8 @@ The script was verified on 2026-10-13:
 | macOS, after the review fixes                        | `/bin/bash` 3.2.57 | `bash -n`, and `create` / `remove` dry runs against a registered repo.                                                                                                                       |
 
 The `--environment` and `--host` paths follow Orca's documented flags but were not exercised end to end; no runtimes were paired at the time.
+
+**The Setup tab close (2026-11-16, el02, Ubuntu, Orca 1.4.255 `.deb`, bash 5.3).** Two create/remove cycles in a real repository whose `orca.yaml` has a setup script and whose Orca policy is `run-by-default`. The first, with the earlier `terminal wait --for exit` design, showed that the Setup tab is an interactive shell that stays open after the script (`setup: unknown`, `setup_tabs: 1`, the tab still `running` with `__ORCA_SETUP_COMPLETE__:<id>:0` in its output) and that `worktree create` returns no setup receipt. The second, with the marker design: `setup: succeeded`, `setup_exit: 0`, `setup_tab: closed`, one terminal left (the agent's); `remove` left no worktree or branch. The same run showed the prompt's title in the stream only without its spaces, which the title check now allows for.
 
 ### session-closeout (2026-10-14)
 
