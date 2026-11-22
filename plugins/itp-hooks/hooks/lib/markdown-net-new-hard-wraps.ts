@@ -28,6 +28,7 @@ import { dirname, join } from "node:path";
 import { computeJoinedWithNextLineMask } from "./gfm-unwrap.ts";
 import { detectHardWraps, type WrapIssue } from "./hard-wrap-detector.ts";
 import { hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent } from "./escape-hatch-marker-detection-iter107.ts";
+import { perUserTempPath } from "./per-user-temp-path.ts";
 
 export type { WrapIssue } from "./hard-wrap-detector.ts";
 
@@ -220,7 +221,8 @@ export function contentHash(text: string): string {
 
 function cachePath(sessionId: string): string {
   const safe = sessionId.replace(/[^A-Za-z0-9_-]/g, "") || "no-session";
-  return join(tmpdir(), "itp-hooks-md-hard-wrap", `${safe}.json`);
+  // Per user: on Linux tmpdir() is the shared /tmp, where another account's directory is not writable.
+  return join(perUserTempPath(join(tmpdir(), "itp-hooks-md-hard-wrap")), `${safe}.json`);
 }
 
 export function loadSeenMarkdownContent(sessionId: string): Record<string, string> {

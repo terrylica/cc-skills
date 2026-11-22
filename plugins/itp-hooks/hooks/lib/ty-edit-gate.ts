@@ -14,9 +14,13 @@
  */
 
 import { join } from "node:path";
+import { perUserTempPath } from "./per-user-temp-path.ts";
 
-/** Default location. `CLAUDE_TY_EDIT_GATE_DIR` overrides it so tests never touch the live directory. */
-export const DEFAULT_TY_EDIT_GATE_DIRECTORY = "/tmp/.claude-ty-edits";
+/**
+ * Default location, one per user (`/tmp/.claude-ty-edits-<uid>`): a shared directory created by one account is not
+ * writable by the next. `CLAUDE_TY_EDIT_GATE_DIR` overrides it so tests never touch the live directory.
+ */
+export const DEFAULT_TY_EDIT_GATE_DIRECTORY = perUserTempPath("/tmp/.claude-ty-edits");
 
 export function resolveTyEditGateDirectory(): string {
   return process.env.CLAUDE_TY_EDIT_GATE_DIR || DEFAULT_TY_EDIT_GATE_DIRECTORY;
