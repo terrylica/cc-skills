@@ -75,6 +75,16 @@ via Claude Code | session <uuid> | <context> | <timestamp>
 
 SSoT for the logic: `scripts/session-footer.ts` (unit tests in `scripts/session-footer.test.ts`).
 
+## Exact links (automatic) — no link may swallow Chinese text
+
+Telegram's server linkifies a bare URL greedily, up to the next whitespace. Measured on 2026-11-22 (sent to Saved Messages, entities read back): `打开 github.com/login/device，用你自己的账号` was stored with a `MessageEntityUrl` over `github.com/login/device，用你自己的账号`, so the full-width comma and the Chinese after it became part of the link (the `https://` form did the same). A space before the comma gave the exact link; an explicit `<a href="https://github.com/login/device">github.com/login/device</a>` gave a `TextUrl` over exactly the URL and no other link; `<code>…</code>` gave a code span, not a link.
+
+So `send`, `draft`, `send-file` captions and `edit` give every bare link an explicit, exact link before sending (`scripts/safe-links.ts`): a link ends at the first whitespace or non-ASCII character (every full-width and CJK punctuation mark, every ideograph, emoji) and loses trailing ASCII punctuation (`.,;:!?'"` and an unbalanced `)`/`]`). With `--html` each one becomes `<a href="https://…">visible</a>`; plain text keeps its own parse and gains an exact link entity. Text inside `<a>`, `<code>` and `<pre>` is left alone. Each sent message is then read back, and the command **exits 1 naming the link** if Telegram stored one that covers more than its URL. Fix already-sent messages with `relink <chat> <ids>`, which re-edits only their link entities (the text is unchanged, and mentions survive: read-back `MessageEntityMentionName` entities are sent as `InputMessageEntityMentionName`, without which the edit drops them).
+
+You need not add spaces around links. A URL that really contains ideographs is not supported: send it percent-encoded. Other code imports the same functions from `"$(cc-plugin-root tlg)/scripts/safe-links.ts"`: `exactLinks(text, { html })` before sending and `badLinks(message)` on the read-back message.
+
+The same greedy cut is a known bug class: [openai/codex#55722](https://github.com/openai/codex/issues/55722), [NousResearch/hermes-agent#144736](https://github.com/NousResearch/hermes-agent/issues/144736), [earendil-works/pi#10933](https://github.com/earendil-works/pi/issues/10933), [egoist/mygo#980](https://github.com/egoist/mygo/issues/980), [eight04/linkify-plus-plus#78](https://github.com/eight04/linkify-plus-plus/issues/78).
+
 ## Usage: tg-cli.ts (when session is valid)
 
 > **When in doubt, USE `--html`.** If your message contains ANY of: `<b>`, `<i>`, `<code>`, `<pre>`, `<a href>`, bold headers, inline code, or markdown-style `**bold**` / `` `code` ``, you MUST either pass `--html` (and translate markdown → HTML tags first) or strip the decoration. Sending Telegram-style markdown without `--html` renders the asterisks and backticks literally to the recipient. For multi-section messages with headers, separators, and code spans — **always** use `--html`.
@@ -102,6 +112,9 @@ bun "$SCRIPT" -p personal send @username "Hello"
 
 # Edit a message by ID
 bun "$SCRIPT" edit -1003958083153 12345 "<b>Updated text</b>"
+
+# Make the links of sent messages exact (text unchanged; see "Exact links")
+bun "$SCRIPT" relink "$CHAT_ID" 12345,12346
 
 # Delete a message by ID
 bun "$SCRIPT" delete -1003958083153 12345
@@ -217,6 +230,7 @@ To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_me
 | `Cannot find any entity`  | Bad username/ID         | Verify with `dialogs` command or use `find-user` to resolve |
 | `message cannot be empty` | Empty string passed     | Provide message text                                        |
 | `Session expired`         | Session no longer valid | Run `/tlg:setup` to re-authenticate non-interactively       |
+| `Telegram stored a link that covers more than its URL` | The server linked more than the URL (exit 1, message already sent) | Run `relink <chat> <id>`; if it persists, report the text, it is a gap in `safe-links.ts` |
 
 ## Post-Execution Reflection
 

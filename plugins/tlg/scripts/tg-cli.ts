@@ -34,6 +34,8 @@ import { Logger, LogLevel } from "./vendor/telegram.js";
 import { StringSession } from "./vendor/telegram.js";
 import { OP_SA_TOKEN_UNCONFIGURED_HINT, resolveOpSaToken } from "./op-sa-token.ts";
 import { applyFooter } from "./session-footer.ts";
+import { badLinks, describeBadLinks, exactLinks } from "./safe-links.ts";
+import { editableEntities, inputUserFromPeer, relinkedEntities, withExactLinkEntities } from "./link-entities.ts";
 
 // ── Enums ─────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ enum Command {
   SendFile = "send-file",
   Forward = "forward",
   Edit = "edit",
+  Relink = "relink",
   Delete = "delete",
   Pin = "pin",
   Read = "read",
@@ -328,6 +331,62 @@ function withFooter(message: string, flags: Flags): string {
   });
 }
 
+/** Text, parse mode and entities for one outgoing message, as sendMessage/sendFile/editMessage take them. */
+export interface Outgoing {
+  readonly message: string;
+  readonly parseMode?: string;
+  readonly formattingEntities?: Api.TypeMessageEntity[];
+}
+
+/**
+ * Make every bare link in an outgoing text exact (safe-links.ts): Telegram's server would
+ * otherwise extend a link over the full-width punctuation and CJK text after it. HTML gets an
+ * explicit <a href> per link; plain text keeps the client's own parse (GramJS markdown) and gains
+ * one exact TextUrl entity per link. A text with no bare link is returned unchanged.
+ */
+export function exactOutgoing(client: TelegramClient, text: string, mode: string | undefined): Outgoing {
+  if (mode === "html") {
+    return { message: exactLinks(text, { html: true }), parseMode: "html" };
+  }
+  const parser: any = (client as any).parseMode;
+  const [raw, entities]: [string, Api.TypeMessageEntity[]] = parser ? parser.parse(text) : [text, []];
+  const formattingEntities = withExactLinkEntities(raw, entities);
+  return formattingEntities === undefined
+    ? { message: text, ...(mode ? { parseMode: mode } : {}) }
+    : { message: raw, formattingEntities };
+}
+
+/**
+ * Read the messages back and describe every stored link that covers more than its URL
+ * (badLinks in safe-links.ts), or return undefined when every link is exact.
+ */
+export async function linkProblems(client: TelegramClient, peer: unknown, ids: readonly number[]): Promise<string | undefined> {
+  const back: any[] = await client.getMessages(peer as any, { ids: [...ids] });
+  const lines: string[] = [];
+  for (const msg of back) {
+    const bad = msg ? badLinks(msg) : [];
+    if (bad.length > 0) {
+      lines.push(`message ${msg.id}:\n${describeBadLinks(bad)}`);
+    }
+  }
+  return lines.length > 0 ? lines.join("\n") : undefined;
+}
+
+/** The handler's result, failed (exit 1) with the bad links on stderr when Telegram stored any. */
+async function checkedResult(
+  client: TelegramClient,
+  peer: unknown,
+  ids: readonly number[],
+  result: RunResult,
+): Promise<RunResult> {
+  const problems = await linkProblems(client, peer, ids);
+  if (problems === undefined) {
+    return result;
+  }
+  process.stderr.write(`Error: Telegram stored a link that covers more than its URL; fix it with \`relink\`.\n${problems}\n`);
+  return { ...result, exitCode: ExitCode.Failure };
+}
+
 function entityLabel(entity: any, fallback: string): string {
   return (
     entity?.title ||
@@ -464,19 +523,18 @@ async function handleSend({ profile, pos, flags }: Ctx): Promise<RunResult> {
     for (let i = 0; i < chunks.length; i += 1) {
       const body = annotatePart(chunks[i] ?? "", i + 1, chunks.length, mode);
       const sent: any = await client.sendMessage(recipient as any, {
-        message: body,
-        parseMode: mode as any,
+        ...(exactOutgoing(client, body, mode) as any),
         ...(replyTo !== undefined ? { replyTo } : {}),
       });
       ids.push(Number(sent.id));
     }
     const replyNote = replyTo ? ` reply_to=${replyTo}` : "";
-    return {
+    return await checkedResult(client, recipient, ids, {
       text:
         chunks.length === 1
           ? `[${profile}] Sent to ${recipient}${replyNote}: id=${ids[0]}`
           : `[${profile}] Sent to ${recipient}${replyNote} in ${chunks.length} parts: ids=[${ids.join(", ")}]`,
-    };
+    });
   } finally {
     await client.disconnect();
   }
@@ -495,18 +553,21 @@ async function handleDraft({ profile, pos, flags }: Ctx): Promise<RunResult> {
       // entity not resolvable; keep raw label
     }
     const me: any = await client.getMe();
-    await client.sendMessage(me.id, { message: `<b>Draft → ${label}</b>`, parseMode: "html" as any });
+    const header: any = await client.sendMessage(me.id, {
+      ...(exactOutgoing(client, `<b>Draft → ${label}</b>`, "html") as any),
+    });
+    const ids: number[] = [Number(header.id)];
     const chunks = splitLongMessage(withFooter(message, flags), mode);
     for (let i = 0; i < chunks.length; i += 1) {
-      await client.sendMessage(me.id, {
-        message: annotatePart(chunks[i] ?? "", i + 1, chunks.length, mode),
-        parseMode: mode as any,
+      const sent: any = await client.sendMessage(me.id, {
+        ...(exactOutgoing(client, annotatePart(chunks[i] ?? "", i + 1, chunks.length, mode), mode) as any),
       });
+      ids.push(Number(sent.id));
     }
     const partsNote = chunks.length > 1 ? ` in ${chunks.length} parts` : "";
-    return {
+    return await checkedResult(client, me.id, ids, {
       text: `[${profile}] Draft for '${label}' saved to Saved Messages${partsNote} (${message.length} chars). Open Saved Messages → copy → paste into the target chat.`,
-    };
+    });
   } finally {
     await client.disconnect();
   }
@@ -525,14 +586,17 @@ async function handleSendFile({ profile, pos, flags }: Ctx): Promise<RunResult> 
     const caption = flags.has("--no-footer")
       ? flags.get("--caption")
       : withFooter(flags.get("--caption") ?? "", flags).replace(/^\n+/, "");
-    await client.sendFile(recipient as any, {
+    const out = caption ? exactOutgoing(client, caption, undefined) : undefined;
+    const sent: any = await client.sendFile(recipient as any, {
       file,
-      ...(caption ? { caption } : {}),
+      ...(out ? { caption: out.message, ...(out.formattingEntities ? { formattingEntities: out.formattingEntities } : {}) } : {}),
       voiceNote: flags.has("--voice"),
       videoNote: flags.has("--video-note"),
       forceDocument: flags.has("--document"),
     });
-    return { text: `[${profile}] Sent file to ${recipient}: ${basename(file)}` };
+    return await checkedResult(client, recipient, [Number(sent.id)], {
+      text: `[${profile}] Sent file to ${recipient}: ${basename(file)}`,
+    });
   } finally {
     await client.disconnect();
   }
@@ -557,8 +621,51 @@ async function handleEdit({ profile, pos, flags }: Ctx): Promise<RunResult> {
   const newText = requirePos(pos, 2, "new_text");
   const client = await connectAuthed(profile);
   try {
-    await client.editMessage(chat as any, { message: msgId, text: newText, parseMode: htmlParseMode(flags) as any });
-    return { text: `[${profile}] Edited message ${msgId} in ${chat}` };
+    const out = exactOutgoing(client, newText, htmlParseMode(flags));
+    await client.editMessage(chat as any, {
+      message: msgId,
+      text: out.message,
+      ...(out.parseMode ? { parseMode: out.parseMode as any } : {}),
+      ...(out.formattingEntities ? { formattingEntities: out.formattingEntities } : {}),
+    });
+    return await checkedResult(client, chat, [msgId], { text: `[${profile}] Edited message ${msgId} in ${chat}` });
+  } finally {
+    await client.disconnect();
+  }
+}
+
+/** Re-edit sent messages so each link covers exactly its URL; the text and other entities stay. */
+async function handleRelink({ profile, pos }: Ctx): Promise<RunResult> {
+  const chat = parseEntity(requirePos(pos, 0, "chat"));
+  const ids = requirePos(pos, 1, "message_ids").split(",").map((x) => Number(x.trim()));
+  const client = await connectAuthed(profile);
+  try {
+    const msgs: any[] = await client.getMessages(chat as any, { ids });
+    const lines: string[] = [];
+    for (let i = 0; i < ids.length; i += 1) {
+      const msg = msgs[i];
+      if (!msg) {
+        lines.push(`${ids[i]}: not found`);
+        continue;
+      }
+      const { entities, changed } = relinkedEntities(msg);
+      if (!changed) {
+        lines.push(`${msg.id}: links already exact`);
+        continue;
+      }
+      // Read-back mentions must go out as InputMessageEntityMentionName, or the edit drops them.
+      const sendable = await editableEntities(entities, async (userId) =>
+        inputUserFromPeer(await client.getInputEntity(userId as any)),
+      );
+      await client.editMessage(chat as any, {
+        message: msg.id,
+        text: msg.message ?? "",
+        formattingEntities: sendable,
+        linkPreview: msg.media instanceof Api.MessageMediaWebPage,
+      });
+      lines.push(`${msg.id}: relinked`);
+    }
+    return await checkedResult(client, chat, ids, { text: `[${profile}] relink ${chat}\n${lines.join("\n")}` });
   } finally {
     await client.disconnect();
   }
@@ -1075,6 +1182,7 @@ const HANDLERS: Record<Command, (ctx: Ctx) => Promise<RunResult>> = {
   [Command.SendFile]: handleSendFile,
   [Command.Forward]: handleForward,
   [Command.Edit]: handleEdit,
+  [Command.Relink]: handleRelink,
   [Command.Delete]: handleDelete,
   [Command.Pin]: handlePin,
   [Command.Read]: handleRead,
@@ -1103,6 +1211,7 @@ Profiles: ${Object.keys(PROFILES).join(", ")} (default: ${DEFAULT_PROFILE})
 Messaging:   send <to> <text> [--html] [--reply-to ID] | draft <to> <text> [--html]
              send-file <to> <path> [-c CAP] [--voice|--video-note|--document]
              forward <from> <ids> <to> | edit <chat> <id> <text> [--html]
+             relink <chat> <ids>   (make every link in sent messages cover exactly its URL)
              delete <chat> <ids> [--self-only] | pin <chat> [id] [--unpin] [--silent]
 Reading:     read <chat> [-n N] [--preview C] | search <q> [--chat C] [--from U] [-n N]
              mark-read <chat> | dialogs | whoami | find-user <q>
