@@ -1,7 +1,6 @@
 # Draft-integrity guards
 
-> The three guards standing between a composed message and a Gmail draft, what each one is
-> **observed** to do, and how each was caught not doing it.
+> The six layers standing between a composed message and a Gmail draft, what each one is **observed** to do, and how each was caught not doing it.
 >
 > **Hub**: [gmail-commander CLAUDE.md](../CLAUDE.md)
 
@@ -28,10 +27,9 @@ Three for three. The pattern is not that these particular guards were unlucky; i
 is the one kind of code whose failure mode is silence, so "no complaints" is indistinguishable
 from "not running".
 
-## The three layers
+## The layers
 
-All three hang off `hooks/gmail-draft-guard.sh` and `hooks/gmail-mojibake-detector.sh`, wired as
-global `PreToolUse(Bash)` hooks in `hooks/hooks.json`.
+Layers 1 to 3 hang off `hooks/gmail-draft-guard.sh` and `hooks/gmail-mojibake-detector.sh`, wired as global `PreToolUse(Bash)` hooks in `hooks/hooks.json`. Layers 4 to 6 run inside `scripts/gmail-draft.ts` after the draft is uploaded, against what Gmail stored.
 
 ### Layer 1 — canonical-builder enforcement (2026-07-23)
 
@@ -88,6 +86,10 @@ Since 2026-10-30 it also checks attachments. With `--attach` the text parts sit 
 The Gmail `drafts.get` response nests the message: `{id, message: {payload: {headers: [...]}}}`.
 Reading `fetchedDraft.payload` yields `undefined`, the header scan finds nothing, and the check
 passes vacuously. It failed open on every draft it ever "verified".
+
+### Layer 5 — one draft per thread (2026-07-30)
+
+After creating (and, with `--replace`, deleting the superseded draft), `scripts/gmail-draft.ts` lists the drafts and refuses with exit 1 when the new draft's thread holds more than one. A delete that reports success against the wrong id, or an earlier revision nobody cleaned up, is caught by asking Gmail what is there now rather than trusting the two calls. It cannot see an earlier copy of a NEW message, which starts its own thread: that is Layer 6.
 
 ### Layer 6 — no earlier version lingers (2026-11-21)
 
