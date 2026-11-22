@@ -12,6 +12,8 @@
  * A repository's existing content legitimately contains its owner's handle and home paths. Scanning
  * whole files reported four "hard" matches on 2026-09-20 that were already public and that the push
  * did not introduce. A gate that fires on material it cannot affect is a gate people learn to skip.
+ * The lines are those the push's own commits add, each commit read as its own diff (see
+ * `pushedAddedLines`), so content the remote already has is never re-reported.
  *
  * ── Why severity depends on repository visibility ─────────────────────────────────────────────
  *
@@ -291,6 +293,71 @@ export function readVisibility(gitDir: string): Visibility {
   }
 }
 
+/**
+ * The remote this branch pushes to: its configured upstream remote, else `origin`. `null` when the
+ * repository has neither, so there is no published history to measure the push against.
+ */
+export function pushRemote(cwd: string): string | null {
+  const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
+  const git = (args: string[]) => spawnSync("git", args, { cwd, encoding: "utf8" }).stdout?.trim() ?? "";
+  const remotes = git(["remote"]).split("\n").filter(Boolean);
+  const branch = git(["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  const configured = branch ? git(["config", `branch.${branch}.remote`]) : "";
+  if (remotes.includes(configured)) return configured;
+  return remotes.includes("origin") ? "origin" : null;
+}
+
+/**
+ * Every line the commits a push of HEAD would publish add, each commit read as its own diff.
+ *
+ * What a push publishes is the commits the remote does not have yet: `HEAD --not --remotes=<remote>`.
+ * The earlier tree diff against `@{u}` measured something else, and failed three ways:
+ * - With `origin/main` as the upstream, every change main made after the branch point came back
+ *   reversed, so a file main had DELETED read as added and was reported (2026-11-19).
+ * - After merging main into a branch, the whole of main's new content read as added, though
+ *   the remote already published it (2026-11-22, #104).
+ * - A value added in one commit and removed in a later one netted out to nothing and passed,
+ *   though the earlier commit still carried it to the remote.
+ *
+ * Merges are read as dense combined diffs (`--cc`): a line counts only when it is new against
+ * EVERY parent (all `+` columns), i.e. written while resolving the merge. Lines either parent
+ * already had are that parent's content: published, or scanned as their own commit in this range.
+ *
+ * `null` when the push cannot be measured (no remote, or git failed); the caller allows.
+ */
+export function pushedAddedLines(cwd: string): string[] | null {
+  const remote = pushRemote(cwd);
+  if (!remote) return null;
+  const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
+  const log = spawnSync(
+    "git",
+    ["log", "-p", "--cc", "-U0", "--format=", "--no-color", "--no-ext-diff", "HEAD", "--not", `--remotes=${remote}`],
+    { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  if (log.status !== 0 || typeof log.stdout !== "string") return null;
+  return addedLinesOfPatchLog(log.stdout);
+}
+
+/** The added lines of `git log -p --cc` output: plain diffs and dense combined diffs alike. */
+export function addedLinesOfPatchLog(patch: string): string[] {
+  const out: string[] = [];
+  let columns = 0; // 0 = in a file header, where `+++ b/path` is not content
+  for (const line of patch.split("\n")) {
+    if (line.startsWith("diff ")) {
+      columns = 0;
+      continue;
+    }
+    const hunk = /^(@{2,}) /.exec(line);
+    if (hunk) {
+      columns = hunk[1].length - 1; // `@@` one parent, `@@@` two, …
+      continue;
+    }
+    if (columns === 0 || line.length < columns) continue;
+    if (/^\++$/.test(line.slice(0, columns))) out.push(line.slice(columns));
+  }
+  return out;
+}
+
 export async function main(): Promise<void> {
   const input = await parseStdinOrAllow("PII-PUSH-GATE");
   if (!input) return;
@@ -322,33 +389,13 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Resolve what the push would actually send. With no upstream there is nothing to diff
-  // against, and guessing a base would scan the wrong commits — so allow and stay quiet.
-  const upstream = spawnSync(
-    "git",
-    ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
-    { encoding: "utf8" },
-  ).stdout?.trim();
-  if (!upstream) {
+  const added = pushedAddedLines(process.cwd());
+  if (added === null) {
     allow();
     return;
   }
 
-  const diff = spawnSync("git", ["diff", "-U0", `${upstream}..HEAD`], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (diff.status !== 0 || typeof diff.stdout !== "string") {
-    allow();
-    return;
-  }
-
-  const added = diff.stdout
-    .split("\n")
-    .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
-    .map((l) => l.slice(1));
-
-  // An empty diff against a real upstream means there is nothing to publish. Reporting
+  // No added lines in the commits the remote lacks means there is nothing to publish. Reporting
   // "clean" from an empty input is how a broken extraction stays green for a whole session,
   // so distinguish it explicitly rather than letting zero findings imply zero risk.
   if (added.length === 0) {
