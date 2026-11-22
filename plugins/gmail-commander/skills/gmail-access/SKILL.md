@@ -104,7 +104,7 @@ command -v op && echo "OP_CLI_INSTALLED" || echo "OP_CLI_MISSING"
 
 **If OP_CLI_MISSING**: Stop and inform user:
 
-> 1Password CLI is required. Install with: `brew install 1password-cli`
+> 1Password CLI is required for this setup flow. Install with `brew install 1password-cli` on macOS, or from 1Password's package repository on Linux (where `op` needs `OP_SERVICE_ACCOUNT_TOKEN`, because there is no desktop app to sign it in). Without 1Password, supply the OAuth client through `GMAIL_OAUTH_CLIENT_ID` + `GMAIL_OAUTH_CLIENT_SECRET` or `GMAIL_OAUTH_CLIENT_FILE` instead: [env-setup.md § Without 1Password](./references/env-setup.md#without-1password-for-example-on-linux).
 
 ### Setup Step 2: Discover Gmail OAuth Items in 1Password
 

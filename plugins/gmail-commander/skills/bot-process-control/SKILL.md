@@ -31,7 +31,7 @@ The laptop launchd jobs `com.example.gmail-commander-bot` and `com.example.gmail
 
 ```bash
 echo "=== Local gmail-commander launchd jobs (expected: none) ==="
-launchctl list | grep -F gmail-commander || echo "none"
+{ launchctl list 2>/dev/null || systemctl --user list-units --all --no-legend 2>/dev/null; } | grep -F gmail-commander || echo "none"  # launchd on macOS, systemd user units on Linux
 
 echo ""
 echo "=== Local gmail-commander plists (expected: none) ==="

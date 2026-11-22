@@ -18,10 +18,12 @@ The interactive Telegram bot and the scheduled digest run unattended in a **priv
 ## Prerequisites Check
 
 ```bash
-command -v op && echo "OK 1Password CLI" || echo "MISSING: brew install 1password-cli"
-command -v proto && echo "OK proto" || echo "MISSING: brew install proto"
+command -v op && echo "OK 1Password CLI" || echo "MISSING: 1Password CLI (macOS: brew install 1password-cli; Linux: 1Password's package repository)"
+command -v proto && echo "OK proto" || echo "MISSING: proto (https://moonrepo.dev/docs/proto/install)"
 command -v bun && echo "OK bun" || echo "MISSING: proto install bun"
 ```
+
+On Linux there is no 1Password desktop app, so `op` works only with `OP_SERVICE_ACCOUNT_TOKEN`. Without 1Password at all, skip Phase 1's item discovery and supply the OAuth client through `GMAIL_OAUTH_CLIENT_ID` + `GMAIL_OAUTH_CLIENT_SECRET` or `GMAIL_OAUTH_CLIENT_FILE`, with `GMAIL_OP_UUID` set to any stable name for the account: [env-setup.md § Without 1Password](../gmail-access/references/env-setup.md#without-1password-for-example-on-linux).
 
 ## Phase 1: Gmail OAuth Setup
 
@@ -68,10 +70,10 @@ The first run opens a browser for Google OAuth consent. Sign in with the account
 
 ## Success Criteria
 
-1. `GMAIL_OP_UUID` resolves to a 1Password item UUID (in the shell or on the command line)
+1. `GMAIL_OP_UUID` resolves to a 1Password item UUID (in the shell or on the command line), or, without 1Password, names the account while `GMAIL_OAUTH_CLIENT_*` supplies the client
 2. `scripts/gmail-cli/gmail` exists (built with `bun run build`, which needs no install: `@googleapis/gmail` is vendored in `vendor/`)
 3. `gmail list -n 1` returns a message from the intended mailbox
-4. No `gmail-commander` launchd job exists locally (`launchctl list | grep -F gmail-commander` prints nothing)
+4. No `gmail-commander` background job exists locally: on macOS `launchctl list | grep -F gmail-commander` prints nothing; on Linux `systemctl --user list-units --all | grep -F gmail-commander` prints nothing
 
 ## No OAuth Credentials?
 

@@ -15,7 +15,7 @@
 
 - **One agent tab.** A spin-off is created with `orca worktree create --agent <id> --prompt …`. Never add the agent afterwards with `terminal create`: that leaves Orca's fallback shell as a second tab.
 - **Every `orca` call goes through `o()`.** It carries `--environment` / `--pairing-code`, so the same script targets this machine or a paired runtime. Keep new calls inside it.
-- **Find the IDE's CLI with `find_orca`.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so never call a bare `orca`. The shared copy is `scripts/lib/orca-cli.sh` (used by `orca-float`); `orca-spinoff` and `orca-closeout` still carry their own copies, to be moved onto it.
+- **Find the IDE's CLI with `find_orca`.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader, so never call a bare `orca`. The shared copy is `scripts/lib/orca-cli.sh` (used by `orca-float`); `orca-spinoff` and `orca-closeout` still carry their own copies, to be moved onto it; until then each copy keeps the shared candidate order, including Linux's `orca-ide`.
 - **Never trust `orca terminal wait` for an exit code.** It reported 0 for a command that exited 7. `orca-float` has the command write its own status file.
 - **No project or personal identity.** Nothing in the script or the skill names a repository, host, account or person. Machine-specific values (keys, aliases, paths) stay in the user's own configuration.
 - **Portable shell.** bash 3.2 (stock macOS) through current bash, BSD and GNU userland alike. No `realpath`, `readlink -f`, `sed -i` or `${var,,}`; Python handles paths and JSON. Shell values reach Python only as argv.

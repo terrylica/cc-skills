@@ -95,8 +95,13 @@ done
 preflight_check() {
     local missing=()
 
-    command -v pandoc &>/dev/null || missing+=("pandoc (brew install pandoc)")
-    command -v xelatex &>/dev/null || missing+=("xelatex (brew install --cask mactex)")
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        command -v pandoc &>/dev/null || missing+=("pandoc (brew install pandoc)")
+        command -v xelatex &>/dev/null || missing+=("xelatex (brew install --cask mactex)")
+    else
+        command -v pandoc &>/dev/null || missing+=("pandoc (your package manager, e.g. apt install pandoc)")
+        command -v xelatex &>/dev/null || missing+=("xelatex (e.g. apt install texlive-xetex)")
+    fi
 
     if ! lpstat -p &>/dev/null; then
         missing+=("printer (none configured)")
@@ -113,6 +118,34 @@ preflight_check() {
 
 preflight_check
 
+# Clipboard and preview differ by OS: pbpaste/open on macOS; wl-paste, xclip or xsel and xdg-open in a Linux
+# graphical session. Without them (an SSH session) the clipboard path stops with a pointer to --file, and the
+# preview is skipped.
+read_clipboard() {
+    if command -v pbpaste >/dev/null 2>&1; then
+        pbpaste
+    elif [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-paste >/dev/null 2>&1; then
+        wl-paste --no-newline
+    elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+        xclip -o -selection clipboard
+    elif [[ -n "${DISPLAY:-}" ]] && command -v xsel >/dev/null 2>&1; then
+        xsel --clipboard --output
+    else
+        echo "❌ No clipboard tool here (pbpaste, wl-paste, xclip or xsel in a graphical session). Use --file FILE." >&2
+        return 1
+    fi
+}
+
+open_preview() {
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        open "$1"
+    elif { [[ -n "${DISPLAY:-}" ]] || [[ -n "${WAYLAND_DISPLAY:-}" ]]; } && command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$1" >/dev/null 2>&1 &
+    else
+        echo "   (no graphical session: open $1 yourself to preview it)"
+    fi
+}
+
 # 1. Get input
 if [[ -n "$INPUT_FILE" ]]; then
     if [[ ! -f "$INPUT_FILE" ]]; then
@@ -122,7 +155,7 @@ if [[ -n "$INPUT_FILE" ]]; then
     content=$(cat "$INPUT_FILE")
     echo "📋 Reading from file: $INPUT_FILE"
 else
-    content=$(pbpaste)
+    content=$(read_clipboard)
     echo "📋 Reading from clipboard"
 fi
 
@@ -168,7 +201,7 @@ echo "📄 PDF generated: $OUTPUT_PDF"
 
 # 6. Preview (unless --no-preview)
 if [[ -z "$NO_PREVIEW" ]]; then
-    open "$OUTPUT_PDF"
+    open_preview "$OUTPUT_PDF"
     echo ""
     echo "👀 Preview opened. Press Enter to print, or Ctrl+C to cancel."
     read -r

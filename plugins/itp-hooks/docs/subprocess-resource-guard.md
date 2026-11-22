@@ -54,6 +54,8 @@ Ordered by leverage, because they are not interchangeable.
 
 The incident _required_ four simultaneous processes, so this is the only layer that helps when each process looks individually plausible but the fleet does not. `O_EXCL` slot files under `/tmp` (cleared on boot), reclaimed by holder liveness (`kill(pid,0)`) with an age backstop for pid reuse.
 
+**Per user, not per machine, on a shared host.** The slot directory is `/tmp/.claude-subprocess-concurrency-slots-<tool>-<uid>`. A single shared directory is created by the first account with its umask (0755), so on a Linux host several people use, every other account failed to create a slot file and had every guarded check skipped, silently. On a one-person Mac this is the same bound as before; on a shared host the bound is two per person, and the machine-wide memory ceiling belongs to the host itself (for example a systemd slice with `MemoryMax=`).
+
 **Non-blocking by design.** A busy slot **skips** the check rather than queueing — this runs inside a PostToolUse hook (and on Stop-hook exit), so waiting would put the user's edit behind another session's subprocess, and a type check is advisory. Failing open by doing _less_ is the only safe direction.
 
 ### 2. RSS watchdog — SIGKILL above 1500 MB

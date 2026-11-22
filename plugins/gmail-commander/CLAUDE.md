@@ -76,6 +76,8 @@ The CLI uses a **two-file** strategy so repeated calls never prompt:
 
 `client_id`/`client_secret` are fetched from 1Password **once** on first run and cached locally. Subsequent runs read only local files → no `op` subprocess → no TCC prompt.
 
+**Without 1Password** (a Linux host has no 1Password desktop app): set `GMAIL_OAUTH_CLIENT_ID` + `GMAIL_OAUTH_CLIENT_SECRET`, or `GMAIL_OAUTH_CLIENT_FILE`, from whatever secret store the machine has. They are read before the cache and never written to disk, and `GMAIL_OP_UUID` then only names the token cache. The consent page opens with `xdg-open` in a Linux graphical session; over SSH the CLI prints the URL and the `ssh -L` port forward instead. Source: `scripts/gmail-cli/lib/credential-source.ts`; doc: [env-setup.md](./skills/gmail-access/references/env-setup.md#without-1password-for-example-on-linux).
+
 To force a fresh 1Password lookup (e.g., after rotating OAuth app credentials):
 
 ```bash
@@ -88,19 +90,22 @@ When the refresh token expires, the CLI reports `invalid_grant`. Fix for the CLI
 
 ## Environment Variables
 
-| Variable                   | Read by                          | Required | Description                                                                |
-| -------------------------- | -------------------------------- | -------- | -------------------------------------------------------------------------- |
-| `GMAIL_OP_UUID`            | CLI, `lib/gmail-client.ts`       | Yes      | 1Password item UUID for OAuth credentials; also names the token cache file |
-| `GMAIL_OP_VAULT`           | CLI                              | No       | 1Password vault (default: `Employee`)                                      |
-| `OP_SERVICE_ACCOUNT_TOKEN` | `op` (first run only)            | No       | 1Password service account for biometric-free `op read`                     |
-| `TELEGRAM_BOT_TOKEN`       | `lib/bot-factory.ts`, formatting | Bot      | Telegram bot token                                                         |
-| `TELEGRAM_CHAT_ID`         | `lib/bot-factory.ts`, formatting | Bot      | The one authorized chat ID                                                 |
-| `HAIKU_MODEL`              | `lib/agent-router.ts`, commands  | Bot      | Claude model for triage and free-text routing                              |
-| `GMAIL_CLI_BIN`            | `lib/gmail-client.ts`            | No       | Path to the `gmail` binary (default: the marketplace path)                 |
-| `CLAUDE_BIN`               | agent router, commands           | No       | Explicit `claude` executable for the Agent SDK                             |
-| `AGENT_TIMEOUT_MS`         | `lib/agent-router.ts`            | No       | Per-query timeout for free-text routing                                    |
-| `AUDIT_DIR`                | `bot.ts`, `lib/audit.ts`         | No       | NDJSON audit log directory                                                 |
-| `BOT_STATE_FILE`           | `bot.ts`, `lib/state.ts`         | No       | Bot state file path                                                        |
+| Variable                    | Read by                          | Required | Description                                                                   |
+| --------------------------- | -------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `GMAIL_OP_UUID`             | CLI, `lib/gmail-client.ts`       | Yes      | 1Password item UUID for OAuth credentials; also names the token cache file    |
+| `GMAIL_OP_VAULT`            | CLI                              | No       | 1Password vault (default: `Employee`)                                         |
+| `OP_SERVICE_ACCOUNT_TOKEN`  | `op` (first run only)            | No       | 1Password service account for biometric-free `op read`                        |
+| `GMAIL_OAUTH_CLIENT_ID`     | CLI                              | No       | OAuth client ID; with `GMAIL_OAUTH_CLIENT_SECRET`, replaces 1Password (Linux) |
+| `GMAIL_OAUTH_CLIENT_SECRET` | CLI                              | No       | OAuth client secret; set together with `GMAIL_OAUTH_CLIENT_ID`                |
+| `GMAIL_OAUTH_CLIENT_FILE`   | CLI                              | No       | Client JSON from Google Cloud Console; replaces 1Password                     |
+| `TELEGRAM_BOT_TOKEN`        | `lib/bot-factory.ts`, formatting | Bot      | Telegram bot token                                                            |
+| `TELEGRAM_CHAT_ID`          | `lib/bot-factory.ts`, formatting | Bot      | The one authorized chat ID                                                    |
+| `HAIKU_MODEL`               | `lib/agent-router.ts`, commands  | Bot      | Claude model for triage and free-text routing                                 |
+| `GMAIL_CLI_BIN`             | `lib/gmail-client.ts`            | No       | Path to the `gmail` binary (default: the marketplace path)                    |
+| `CLAUDE_BIN`                | agent router, commands           | No       | Explicit `claude` executable for the Agent SDK                                |
+| `AGENT_TIMEOUT_MS`          | `lib/agent-router.ts`            | No       | Per-query timeout for free-text routing                                       |
+| `AUDIT_DIR`                 | `bot.ts`, `lib/audit.ts`         | No       | NDJSON audit log directory                                                    |
+| `BOT_STATE_FILE`            | `bot.ts`, `lib/state.ts`         | No       | Bot state file path                                                           |
 
 In the deployment these are injected from its own secret store at deploy time. None of them belongs in a workstation env file on the bot's behalf.
 
