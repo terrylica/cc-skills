@@ -1,3 +1,85 @@
+# [34.23.0](https://github.com/terrylica/cc-skills/compare/v34.22.2...v34.23.0) (2026-11-22)
+
+
+### Bug Fixes
+
+* **devops-tools:** Linux secrets ladder, GNU-first stat, FDA off macOS ([75bf070](https://github.com/terrylica/cc-skills/commit/75bf070685e8923d54ebd644d71b5ec494526fb9))
+
+The UserPromptSubmit credential hook injected the macOS storage ladder (login Keychain through `security`, Secure Enclave, iCloud Drive) into every session that mentioned credentials, including on Linux, where none of those exists and the advice sends an agent after commands that are not there. The shared head (the vault CLI) and tail (1Password last resort) are unchanged; the middle is now chosen by `uname -s`: macOS gets the same bytes as before (compared byte for byte), other systems get a Linux ladder (vault CLI or the host's broker, SOPS + age with SOPS_AGE_KEY_FILE, systemd credentials for services, owner-only files on a shared host).
+
+The dual-channel-watchexec example read mtimes with `stat -f %m FILE || stat -c %Y FILE`. GNU and uutils stat read -f as --file-system, print FILE's filesystem report to stdout, then fail, so that report landed in FILE_MTIME (measured on Ubuntu 26.04). The GNU form now runs first; BSD stat rejects -c and falls through.
+
+The macOS Full Disk Access helper now exits 4 with a message off macOS instead of failing on TCC.db, pbcopy and System Settings URLs.
+
+* **doc-tools:** terminal-print clipboard, preview and hints on Linux ([47d34f2](https://github.com/terrylica/cc-skills/commit/47d34f213d502db96074ef395bdc0ba3b19b8485))
+
+print-terminal.sh read the clipboard with pbpaste, opened the preview with `open` and suggested Homebrew packages. On Linux it now reads the clipboard with wl-paste, xclip or xsel inside a graphical session (and otherwise stops with a pointer to --file), opens the preview with xdg-open or says where the PDF is, and names apt packages in its preflight. macOS keeps pbpaste, open and the brew hints.
+
+* **gh-tools:** run the node-shebang hooks with bun (no node on Linux) ([fc5e763](https://github.com/terrylica/cc-skills/commit/fc5e763a892808edd89a7b9d86ef134b90516b93)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#issue-no-anchors](https://github.com/terrylica/cc-skills/issues/issue-no-anchors) [#issue-title-reminder](https://github.com/terrylica/cc-skills/issues/issue-title-reminder) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **gmail-commander:** no Windows opener; SSH hint always shown off macOS ([b9aead2](https://github.com/terrylica/cc-skills/commit/b9aead27ef29d3e58032005285585da58279acfa))
+
+Review notes on the consent flow. `cmd /c start "" URL` would cut a Google consent URL at its first `&`, so Windows now gets no opener and the URL is printed whole. On Linux, xdg-open can start and still show nothing (no browser registered, a forwarded display), so the `ssh -L` forward is printed whenever the platform is not macOS, worded as "if no browser opened here".
+
+* **itp-hooks:** drop the Stop hook's fuser -k /dev/tty user-wide kill ([2164c9f](https://github.com/terrylica/cc-skills/commit/2164c9f2e9d98d83d48c1632121623e9cb58a3de))
+
+clearTTYReferences() in stop-subprocess-session-cleanup.ts ran `fuser -k /dev/tty` and `fuser -k /dev/tty.lock` on every Stop event, that is each time Claude finishes a turn. /dev/tty is the alias every process uses for its own controlling terminal, not a file this session owns. psmisc's fuser (Linux) documents `-k` as "Kill processes accessing the file. Unless changed with -SIGNAL, SIGKILL is sent", so the call SIGKILLed every process of the user with /dev/tty open (editors, pagers, ssh and sudo password prompts) in every terminal, not only the agent's own subtree. On a shared host where all of one person's IDE terminals run as a single Linux account, one agent finishing its turn could kill an editor in another terminal.
+
+On macOS the call was a silent no-op: Apple's /usr/bin/fuser is a Perl wrapper over lsof that accepts only -c, -f and -u, so `-k` fails option parsing and the hook still printed "TTY references cleared". /dev/tty.lock is not a standard path on either system.
+
+Removed rather than narrowed: the commit that added it (564592b7d) cites only the upstream TTY-suspension issues, which the pueue wrapping of backgrounded commands addresses, and no incident this step fixed. A process of this session that holds a TTY is already handled by cleanupOrphanedProcesses(), which stays inside the session's own subtree. The function is gone, its call is gone, a dated note in the file records why, and the header now says the hook runs on every Stop event rather than once at shutdown.
+
+New test stop-subprocess-session-cleanup.test.ts runs the real hook end to end with a `fuser` shim first on PATH. The shim records its argv and, on `-k`, kills only a stand-in that the test starts in its own pseudo-terminal (BSD or util-linux `script`) holding /dev/tty open, so even a regression cannot reach the real fuser. It asserts no fuser call, that the stand-in survives, and that no executable line names fuser or /dev/tty.lock. Against the unfixed hook it fails: the shim saw `-k /dev/tty` and the stand-in died.
+
+* **itp-hooks:** old-git guard allows old git when no config hook exists ([b1f7b9d](https://github.com/terrylica/cc-skills/commit/b1f7b9d4c91351c8f027beaf19451dfd18ce9ef6))
+
+The guard denied git commit, push, merge, pull, rebase, cherry-pick, revert and am whenever the git that would run was older than 2.54, the release that added config-based hooks (hook.&lt;name>.event). Ubuntu 26.04 ships git 2.53, so on a stock Linux host every commit was refused, although that host defines no config-based hook and an old git skips nothing there. The SessionStart check warned about the same non-problem in every session, and both named Homebrew as the fix.
+
+Now, only for a git below the floor, the guard asks that git `git config --get-regexp '^hook\..*\.event$'` in the command's own directory (the hook input's cwd, so repository config and includeIf count). Exit 1 with no output means none is defined and the command is allowed; a hook.&lt;name>.event line, or any other answer, keeps the deny. The SessionStart check uses the same probe. Both name the fix for the platform: Homebrew's git on macOS, a git >= 2.54 package (or removing the entries) elsewhere. A Mac whose ~/.gitconfig defines config-based hooks is refused exactly as before. The version cache moves to a per-user directory.
+
+Verified on Ubuntu 26.04 (git 2.53, no config hooks): git commit allowed and SessionStart silent; in a repository whose config defines hook.demo.event, denied with the Linux fix and warned at SessionStart.
+
+* **itp-hooks:** old-git probe keeps the deny when it cannot answer ([cce7e64](https://github.com/terrylica/cc-skills/commit/cce7e649708bee4c78c98c0c3601bfd06f35f262))
+
+Two gaps found in review of the config-hook probe. First, Bun.spawnSync throws for a cwd that no longer exists (a removed worktree), and that throw reached main()'s fail-open catch, so an old git was allowed where main denied it. The probe now returns "unknown" for a missing cwd or any spawn error, which keeps the deny. Second, the probe reads the hook's cwd, but `git -C dir`, `--git-dir`, `--work-tree`, a `cd`/`pushd` or GIT_DIR/GIT_WORK_TREE make git read another repository's config, where hooks may be defined. Those invocations now skip the probe and are judged by version alone, as before this branch.
+
+Verified on Ubuntu 26.04 with git 2.53: a removed cwd and `cd x && git commit` are denied; plain `git commit` with no config hooks is still allowed. New tests cover -C, --git-dir, cd, GIT_DIR and the removed cwd.
+
+* **itp-hooks:** one temp directory per user for slots, gates and caches ([c7d2ab4](https://github.com/terrylica/cc-skills/commit/c7d2ab4d012d5603f24f05740a1d08e3714d8169))
+
+On Linux os.tmpdir() is the shared /tmp, and the concurrency slots and the ty edit gate use a literal /tmp path on every OS. A fixed directory there is created by the first account that needs it, with that account's umask (0755), and no other account can write into it. On a host several people use, the second person's ty and tsc checks were skipped every time (slot acquisition returned null, which the guard reads as "busy"), the ty Stop check never saw its gate, and the hard-wrap reminder never saved its cache. Measured on Ubuntu 26.04: a 0755 directory owned by another account rejects the slot file.
+
+The slot directory, the ty edit gate's default directory and the hard-wrap cache now carry the uid, through one helper (lib/per-user-temp-path.ts) that the existing perUserGateDirectory now delegates to with the same `<base>-<uid>` form. On a one-person Mac the bound and the behaviour are unchanged; on a shared host the concurrency bound is per person, and the docs say the machine-wide memory ceiling belongs to the host (a systemd slice).
+
+* **orca-tools:** find orca-ide on Linux; closeout tests pass on bash 5 ([b8ed40c](https://github.com/terrylica/cc-skills/commit/b8ed40cae7b288e77fbb23fa8ef104139a0d2c47))
+
+orca-spinoff and orca-closeout carried their own Orca CLI finders without the Linux candidates the shared scripts/lib/orca-cli.sh already has: `orca-ide` on PATH, ~/.local/bin/orca-ide and /opt/Orca/resources/bin/orca-ide. On a Linux Orca install without the CLI shim they reported that Orca's CLI was not found. Both now try the same candidates in the shared order; macOS candidates are unchanged.
+
+On Linux, 17 of the 59 orca-closeout tests failed. The fake Bash-tool shells ended their `bash -c` list with the command under test, and bash 5.1 and newer exec the last command of such a list in place, so the shell and its shell-snapshots marker vanished from ps and the script reported process=unavailable. macOS /bin/bash is 3.2, which never does this. A real Bash-tool shell always runs `pwd -P` after the user's command, so the script itself was right; the fakes now end in `; exit $?`. One more test wrote its hang marker after the watcher had already run its first `orca worktree ps`, a race fast process start-up on Linux lost every time; the marker is now written first. 59 of 59 pass on Ubuntu 26.04 (bash 5.3).
+
+* **tlg:** links end where their URL ends, not in Chinese text ([b83d1dc](https://github.com/terrylica/cc-skills/commit/b83d1dccdc77afd5921d0c835f842a5868b0a505)), closes [openai/codex#55722](https://github.com/openai/codex/issues/55722) [NousResearch/hermes-agent#144736](https://github.com/NousResearch/hermes-agent/issues/144736) [earendil-works/pi#10933](https://github.com/earendil-works/pi/issues/10933) [egoist/mygo#980](https://github.com/egoist/mygo/issues/980) [eight04/linkify-plus-plus#78](https://github.com/eight04/linkify-plus-plus/issues/78)
+
+Telegram's server linkifies a bare URL up to the next whitespace. Measured on 2026-11-22 (Saved Messages, entities read back): "打开 github.com/login/device，用你自己的账号" was stored with a MessageEntityUrl over "github.com/login/device，用你自己的账号". An explicit &lt;a href> gave a TextUrl over exactly the URL and no other link entity.
+
+The new scripts/safe-links.ts has no dependencies. exactLinks(text, {html}) gives each bare link an explicit &lt;a href="https://…"> that ends at the first whitespace or non-ASCII character, which covers full-width and CJK punctuation, ideographs and emoji. Trailing ASCII punctuation is trimmed, and &lt;a>, &lt;code> and &lt;pre> are left alone. badLinks(message) checks what the server stored.
+
+The new scripts/link-entities.ts applies the same cut to GramJS entities, repairs stored messages, and converts read-back MessageEntityMentionName to InputMessageEntityMentionName so an edit keeps mentions.
+
+In tg-cli.ts, send, draft, send-file captions and edit now make links exact. Each sent message is read back, and the command exits 1 naming any link that covers more than its URL. The new command relink &lt;chat> &lt;ids> fixes messages already sent. A text with no bare link is sent exactly as before. Plain text keeps GramJS's markdown parse and gains exact TextUrl entities.
+
+
+
+### Features
+
+* **gmail-commander:** OAuth client from env or file; Linux consent flow ([14519c3](https://github.com/terrylica/cc-skills/commit/14519c37ae5575fdba608c7dc191b7037bcb720a))
+
+The Gmail CLI could get its OAuth client (client_id, client_secret) only from a 1Password item, and opened the consent page with macOS `open`. On Linux there is no 1Password desktop app (op works there only with a service-account token), and `open` is either missing, which made Bun.spawn throw, or Debian's openvt alias.
+
+The client source is now configurable, ahead of the existing cache and 1Password lookup: GMAIL_OAUTH_CLIENT_ID with GMAIL_OAUTH_CLIENT_SECRET (for example injected with `vault run <scope> -- gmail ...`), or GMAIL_OAUTH_CLIENT_FILE, the client JSON Google Cloud Console downloads. Neither is written to disk. With none of them set the behaviour is exactly as before. When op is missing or fails, the error names every source instead of only "1Password error". The consent page opens with `open` on macOS, with xdg-open in a Linux graphical session, and otherwise the CLI prints the URL with the `ssh -L <port>:localhost:<port>` forward that completes the callback from another computer.
+
+The draft guard's fingerprint falls back to coreutils sha256sum where Perl's shasum is absent, the job checks in the health and bot-process-control skills look at systemd user units on Linux as well as launchd, and the setup, env-setup and CLAUDE.md docs describe the Linux path. New pure module lib/credential-source.ts with tests.
+
+Verified on Ubuntu 26.04 with no op and no display: the missing-op error names the alternatives; with an explicit client or client file, the CLI prints the consent URL and the ssh -L hint and writes no client file.
+
 ## [34.22.2](https://github.com/terrylica/cc-skills/compare/v34.22.1...v34.22.2) (2026-11-21)
 
 ## [34.22.1](https://github.com/terrylica/cc-skills/compare/v34.22.0...v34.22.1) (2026-11-20)
