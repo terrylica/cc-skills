@@ -81,7 +81,8 @@ export function browserOpenCommand(
   which: (cmd: string) => string | null | undefined,
 ): string[] | undefined {
   if (platform === "darwin") return ["open", url];
-  if (platform === "win32") return ["cmd", "/c", "start", "", url];
+  // Not Windows: `cmd /c start` would cut a consent URL at its first `&`.
+  if (platform !== "linux" && !platform.endsWith("bsd")) return undefined;
   if (!env.DISPLAY && !env.WAYLAND_DISPLAY) return undefined;
   const opener = which("xdg-open");
   return opener ? [opener, url] : undefined;
@@ -90,7 +91,7 @@ export function browserOpenCommand(
 /** How to finish consent from another machine when this one cannot show a browser (an SSH session). */
 export function remoteConsentHint(port: number): string {
   return (
-    `No browser can be opened here. Open the URL above on your own computer after forwarding the callback port: ` +
+    `If no browser opened here (an SSH session), open the URL above on your own computer after forwarding the callback port: ` +
     `ssh -L ${port}:localhost:${port} <this-host>, then keep that session open until the CLI says the token is saved.`
   );
 }

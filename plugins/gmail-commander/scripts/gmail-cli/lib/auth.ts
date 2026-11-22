@@ -307,7 +307,9 @@ export async function getAuthClient(): Promise<OAuth2Client> {
   }
   console.error(opened ? "Opening browser for authorization..." : "Authorize in a browser:");
   console.error(`If browser doesn't open, visit: ${authUrl}\n`);
-  if (!opened) console.error(`${remoteConsentHint(port)}\n`);
+  // Off macOS, xdg-open can start and still show nothing (no browser registered, a forwarded X display), so the way
+  // to finish from another computer is always printed there.
+  if (!opened || process.platform !== "darwin") console.error(`${remoteConsentHint(port)}\n`);
 
   const code = await waitForAuthCode(port);
 

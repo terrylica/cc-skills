@@ -47,6 +47,9 @@ describe("browserOpenCommand", () => {
     expect(browserOpenCommand("u", "linux", {}, which)).toBeUndefined();
     expect(browserOpenCommand("u", "linux", { DISPLAY: ":0" }, () => null)).toBeUndefined();
   });
+  test("Windows gets no opener, so the URL is printed whole", () => {
+    expect(browserOpenCommand("u", "win32", {}, which)).toBeUndefined();
+  });
 });
 
 describe("hints", () => {
