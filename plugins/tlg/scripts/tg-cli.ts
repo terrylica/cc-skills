@@ -33,6 +33,7 @@ import { Api, TelegramClient } from "./vendor/telegram.js";
 import { Logger, LogLevel } from "./vendor/telegram.js";
 import { StringSession } from "./vendor/telegram.js";
 import { OP_SA_TOKEN_UNCONFIGURED_HINT, resolveOpSaToken } from "./op-sa-token.ts";
+import { unknownProfileMessage } from "./profile-hint.ts";
 import { applyFooter } from "./session-footer.ts";
 import { badLinks, describeBadLinks, exactLinks } from "./safe-links.ts";
 import { editableEntities, inputUserFromPeer, relinkedEntities, withExactLinkEntities } from "./link-entities.ts";
@@ -157,9 +158,7 @@ function opGet(itemId: string, field: string, reveal = false): string {
 function itemForProfile(profile: string): string {
   const itemId = process.env[EnvVar.OpUuid] ?? PROFILES[profile];
   if (!itemId) {
-    throw new UsageError(
-      `unknown profile '${profile}'. Available: ${Object.keys(PROFILES).join(", ")}`,
-    );
+    throw new UsageError(unknownProfileMessage(profile, Object.keys(PROFILES)));
   }
   return itemId;
 }

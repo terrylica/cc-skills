@@ -37,6 +37,17 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 - `bun` available, and deps installed once: `cd "$(dirname "$SCRIPT")" && bun install`
 - 1Password CLI (`op`) signed in; the item above present in the `Claude Automation` vault.
 
+### On Linux, or any host without the 1Password desktop app
+
+`op` reaches 1Password there only with a service-account token, so pick one of:
+
+- **A service-account token:** export `OP_SERVICE_ACCOUNT_TOKEN`, or set `OP_SA_TOKEN_CMD` to a command that prints it, or `OP_SA_TOKEN_FILE` to a chmod-600 file holding it. The token goes into `op`'s environment, never its argv.
+- **No 1Password for the API id and hash:** set `TELEGRAM_API_ID` and `TELEGRAM_API_HASH`. That is enough for every command on an account that is already signed in; `send-code` and `sign-in` still read the phone number from the 1Password item.
+
+On a shared host each person has their own profile file (`~/.config/cc-skills/tlg-profiles.json`, below) and their own session (`~/.local/share/gramjs/<profile>.session`, chmod 600); never copy another user's. A fresh user without the profile file gets `unknown profile 'default'` with these same options in the message.
+
+The footer's time zone is the machine's: set `TZ` on a host kept on UTC if messages should show local time.
+
 ## Auth is non-interactive (3 steps)
 
 The Bash tool has no stdin, so the CLI never prompts. Authentication is split into `send-code` (requests the code) and `sign-in` (submits it). Get the code from the user with **AskUserQuestion** between the two steps.
