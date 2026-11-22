@@ -34,7 +34,7 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 ## Prerequisites
 
-- `bun` available, and deps installed once: `cd "$(dirname "$SCRIPT")" && bun install`
+- `bun` available. Nothing to install: `telegram` (GramJS) is vendored in `scripts/vendor/`.
 - 1Password CLI (`op`) signed in; the item above present in the `Claude Automation` vault.
 
 ## Auth is non-interactive (3 steps)

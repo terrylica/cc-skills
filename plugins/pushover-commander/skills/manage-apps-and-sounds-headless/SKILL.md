@@ -7,7 +7,7 @@ description: Control the pushover.net web dashboard headlessly for things the HT
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
-Headless dashboard automation via `pushover_headless_web_control.ts` (function/enum-driven Bun TypeScript — run directly, no build; needs `bun install` in `skills/_lib/` for `playwright-core`). pushover.net login is a plain email/password form (**no anti-bot / CAPTCHA / 2FA** — verified 2026-05-30), so plain Playwright + Chrome for Testing works.
+Headless dashboard automation via `pushover_headless_web_control.ts` (function/enum-driven Bun TypeScript — run directly, no build; needs `playwright-core` from the plugin root's `package.json`, which Claude Code installs on every plugin update; by hand: `cd "$(cc-plugin-root pushover-commander)" && bun install --frozen-lockfile`). pushover.net login is a plain email/password form (**no anti-bot / CAPTCHA / 2FA** — verified 2026-05-30), so plain Playwright + Chrome for Testing works.
 
 ```bash
 export PO_EMAIL="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" login_email)"

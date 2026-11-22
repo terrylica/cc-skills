@@ -114,7 +114,7 @@ Fetched from 1Password at runtime via `op item get`. Each profile maps to a diff
 MTProto client library is **GramJS** (`telegram` on npm):
 
 - **Canonical**: <https://github.com/gram-js/gramjs> · docs <https://gram.js.org>
-- Installed as a local dep in `scripts/` (`bun install`); the old Telethon/`uv` toolchain was retired in the 2026-06 TypeScript port.
+- Vendored, not installed: `scripts/vendor/telegram.js` is bundled from `scripts/bun.lock` by `scripts/vendor-plugin-deps.ts` (`moon run repo:vendor-deps` rebuilds it after a lockfile change).
 
 ## History
 
