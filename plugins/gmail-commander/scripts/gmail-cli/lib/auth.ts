@@ -1,7 +1,8 @@
 /**
  * OAuth2 authentication for Gmail API
  *
- * Retrieves credentials from 1Password using UUID from environment.
+ * Retrieves the OAuth client from GMAIL_OAUTH_CLIENT_ID/SECRET or GMAIL_OAUTH_CLIENT_FILE when set, else from the
+ * 1Password item named by GMAIL_OP_UUID (see credential-source.ts).
  * Tokens stored at ~/.claude/tools/gmail-tokens/<uuid>.json
  */
 
@@ -9,6 +10,15 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { auth } from "../vendor/googleapis-gmail.js";
 import type { OAuthCredentials, SavedToken } from "./types.ts";
+import {
+  browserOpenCommand,
+  clientFromEnv,
+  clientFromJsonText,
+  ENV_CLIENT_FILE,
+  noOnePasswordHint,
+  type OAuthClient,
+  remoteConsentHint,
+} from "./credential-source.ts";
 import {
   getOpUuid,
   getOpVault,
@@ -96,39 +106,66 @@ async function saveAppCredentials(clientId: string, clientSecret: string): Promi
   Bun.spawn(["chmod", "600", path]);
 }
 
+function installedCredentials(client: OAuthClient): OAuthCredentials {
+  return {
+    installed: {
+      client_id: client.client_id,
+      client_secret: client.client_secret,
+      redirect_uris: ["http://localhost"],
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+    },
+  };
+}
+
+/** The client named explicitly in the environment (variables, then file), or null when neither is set. */
+async function explicitClient(): Promise<OAuthClient | null> {
+  const fromEnv = clientFromEnv(process.env);
+  if (fromEnv.kind === "error") throw new Error(fromEnv.reason);
+  if (fromEnv.kind === "client") return fromEnv.client;
+  const path = process.env[ENV_CLIENT_FILE]?.trim();
+  if (!path) return null;
+  const file = Bun.file(path);
+  if (!(await file.exists())) throw new Error(`${ENV_CLIENT_FILE} ${path} does not exist`);
+  const fromFile = clientFromJsonText(await file.text(), path);
+  if (fromFile.kind === "error") throw new Error(fromFile.reason);
+  return fromFile.kind === "client" ? fromFile.client : null;
+}
+
 /**
- * Retrieve OAuth credentials — cached app credentials first, 1Password fallback
+ * Retrieve OAuth credentials: an explicitly configured client first (GMAIL_OAUTH_CLIENT_ID/SECRET, then
+ * GMAIL_OAUTH_CLIENT_FILE; never cached), then the cached app credentials, then 1Password (cached for next time).
+ * With none of the explicit variables set, this is exactly the earlier cache-then-1Password behaviour.
  */
 export async function getCredentialsFrom1Password(): Promise<OAuthCredentials> {
+  const explicit = await explicitClient();
+  if (explicit) return installedCredentials(explicit);
+
   // Try cached app credentials first (avoids 1Password call at runtime)
   const cached = await loadAppCredentials();
-  if (cached) {
-    return {
-      installed: {
-        client_id: cached.client_id,
-        client_secret: cached.client_secret,
-        redirect_uris: ["http://localhost"],
-        auth_uri: "https://accounts.google.com/o/oauth2/auth",
-        token_uri: "https://oauth2.googleapis.com/token",
-      },
-    };
-  }
+  if (cached) return installedCredentials(cached);
 
   // Fallback: fetch from 1Password and cache
   const uuid = getOpUuid();
   const vault = getOpVault();
 
-  const proc = Bun.spawn(["op", "item", "get", uuid, "--vault", vault, "--format", "json"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  let proc: ReturnType<typeof Bun.spawn>;
+  try {
+    proc = Bun.spawn(["op", "item", "get", uuid, "--vault", vault, "--format", "json"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+  } catch {
+    // Bun.spawn throws when `op` is not on PATH.
+    throw new Error(`the 1Password CLI (op) is not installed. ${noOnePasswordHint()}`);
+  }
 
-  const output = await new Response(proc.stdout).text();
+  const output = await new Response(proc.stdout as ReadableStream).text();
   const exitCode = await proc.exited;
 
   if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    throw new Error(`1Password error: ${stderr}`);
+    const stderr = await new Response(proc.stderr as ReadableStream).text();
+    throw new Error(`1Password error: ${stderr.trim()}\n  ${noOnePasswordHint()}`);
   }
 
   const item = JSON.parse(output);
@@ -258,10 +295,19 @@ export async function getAuthClient(): Promise<OAuth2Client> {
     scope: [...SCOPES],
   });
 
-  console.error("Opening browser for authorization...");
+  const opener = browserOpenCommand(authUrl, process.platform, process.env, (c) => Bun.which(c));
+  let opened = false;
+  if (opener) {
+    try {
+      Bun.spawn(opener, { stdout: "ignore", stderr: "ignore" });
+      opened = true;
+    } catch {
+      // No opener after all; the URL below is the way in.
+    }
+  }
+  console.error(opened ? "Opening browser for authorization..." : "Authorize in a browser:");
   console.error(`If browser doesn't open, visit: ${authUrl}\n`);
-
-  Bun.spawn(["open", authUrl]);
+  if (!opened) console.error(`${remoteConsentHint(port)}\n`);
 
   const code = await waitForAuthCode(port);
 

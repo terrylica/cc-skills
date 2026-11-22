@@ -106,6 +106,13 @@ Run: /gmail-commander:setup
    GMAIL_OP_UUID=<your-uuid> gmail list -n 1
    export GMAIL_OP_UUID=<your-uuid>
 
+━━━ NO 1PASSWORD ON THIS MACHINE? (e.g. Linux) ━━━━━━━━━━━━━━━━━
+
+GMAIL_OP_UUID only names the account's token cache, so any stable name
+works. Supply the OAuth client from your own secret store instead:
+   GMAIL_OAUTH_CLIENT_ID + GMAIL_OAUTH_CLIENT_SECRET   (both)
+   GMAIL_OAUTH_CLIENT_FILE=<client JSON from Google Cloud Console>
+
 ━━━ NEED OAUTH CREDENTIALS? ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 See: ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/

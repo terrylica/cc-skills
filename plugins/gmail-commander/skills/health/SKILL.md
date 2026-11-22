@@ -48,7 +48,7 @@ echo "Not checkable from here. Send /status to the bot in Telegram; if it does n
 
 echo ""
 echo "=== 7. Retired local jobs (expected: none) ==="
-launchctl list | grep -F gmail-commander || echo "none loaded"
+{ launchctl list 2>/dev/null || systemctl --user list-units --all --no-legend 2>/dev/null; } | grep -F gmail-commander || echo "none loaded"  # launchd on macOS, systemd user units on Linux
 ls ~/Library/LaunchAgents 2>/dev/null | grep -F gmail-commander || echo "no plists"
 pgrep -fl "gmail-commander/scripts/bot.ts" || echo "no local bot process"
 ```
