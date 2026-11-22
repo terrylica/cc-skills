@@ -19,8 +19,10 @@ import {
   findHookFiringGitInvocations,
   findOldGitInvocations,
   gitSubcommand,
+  parseConfigHooksProbe,
   parseGitVersion,
 } from "./lib/old-git-detector.ts";
+import { oldGitFix } from "./pretooluse-old-git-guard.ts";
 
 // The stdin/stdout tests spawn the hook, which spawns a stub git. Under a loaded machine (2026-11-01, full suite)
 // the hook's 2 s version probe timed out, the guard failed open and "deny" came back "allow"; the test passed alone.
@@ -125,6 +127,28 @@ describe("findOldGitInvocations", () => {
   });
 });
 
+describe("config-based hooks decide whether an old git matters", () => {
+  it("parses the git config probe: none, some, unknown", () => {
+    expect(parseConfigHooksProbe(1, "")).toBe(false);
+    expect(parseConfigHooksProbe(0, "hook.vocab.event pre-commit\n")).toBe(true);
+    expect(parseConfigHooksProbe(0, "HOOK.Vocab.EVENT pre-commit\n")).toBe(true);
+    expect(parseConfigHooksProbe(0, "git version 2.50.1\n")).toBeUndefined();
+    expect(parseConfigHooksProbe(128, "")).toBeUndefined();
+    expect(parseConfigHooksProbe(null, "")).toBeUndefined();
+  });
+  it("an old git with no config-based hook is allowed; unknown still counts", () => {
+    const base = stubResolver("/usr/bin/git", { "/usr/bin/git": OLD });
+    expect(findOldGitInvocations("git commit -m x", { ...base, configHooksDefined: () => false })).toEqual([]);
+    expect(findOldGitInvocations("git commit -m x", { ...base, configHooksDefined: () => true }).length).toBe(1);
+    expect(findOldGitInvocations("git commit -m x", { ...base, configHooksDefined: () => undefined }).length).toBe(1);
+  });
+  it("names Homebrew on macOS and a newer git package elsewhere", () => {
+    expect(oldGitFix("2.54", "darwin")).toContain("/opt/homebrew/bin/git");
+    expect(oldGitFix("2.54", "linux")).not.toContain("homebrew");
+    expect(oldGitFix("2.54", "linux")).toContain("install git >= 2.54");
+  });
+});
+
 describe("parseGitVersion", () => {
   it("parses Apple and Homebrew forms", () => {
     expect(parseGitVersion(OLD)).toEqual([2, 50]);
@@ -152,6 +176,19 @@ function stubGitDir(name: string, versionLine: string): string {
 const OLD_DIR = stubGitDir("old", OLD);
 const NEW_DIR = stubGitDir("new", NEW);
 
+/** An old git that answers `git config --get-regexp` as a real one does: exit 1 with no key, or the key it holds. */
+function stubOldGitWithConfig(name: string, hookLine: string | undefined): string {
+  const dir = join(scratch, name);
+  mkdirSync(dir, { recursive: true });
+  const bin = join(dir, "git");
+  const config = hookLine === undefined ? "exit 1" : `echo '${hookLine}'; exit 0`;
+  writeFileSync(bin, `#!/bin/sh\nif [ "$1" = config ]; then ${config}; fi\necho '${OLD}'\n`);
+  chmodSync(bin, 0o755);
+  return dir;
+}
+const OLD_NO_HOOKS_DIR = stubOldGitWithConfig("old-no-hooks", undefined);
+const OLD_WITH_HOOKS_DIR = stubOldGitWithConfig("old-with-hooks", "hook.vocab.event pre-commit");
+
 let sessionCounter = 0;
 
 async function runHook(command: string, pathDirs: string[], toolName = "Bash") {
@@ -177,8 +214,14 @@ describe("hook — real stdin/stdout", () => {
     expect(r.decision).toBe("deny");
     expect(r.reason).toContain("[OLD-GIT GUARD]");
     expect(r.reason).toContain("git >= 2.54");
-    expect(r.reason).toContain("/opt/homebrew/bin/git");
+    expect(r.reason).toContain(oldGitFix("2.54"));
     expect(r.reason).toContain("named explicitly");
+  });
+
+  it("allows an old git when its config defines no config-based hook, and blocks it when one is defined", async () => {
+    expect((await runHook("git commit -m x", [OLD_NO_HOOKS_DIR])).decision).toBe("allow");
+    expect((await runHook("git push", [OLD_NO_HOOKS_DIR])).decision).toBe("allow");
+    expect((await runHook("git commit -m x", [OLD_WITH_HOOKS_DIR])).decision).toBe("deny");
   });
 
   it("allows plain git commit when the git on PATH is 2.56", async () => {
@@ -242,7 +285,11 @@ describe("sessionstart-git-version-check.sh", () => {
   it("warns when the git first on PATH is below the floor", () => {
     const out = runSessionStart([OLD_DIR]);
     expect(out).toContain("older than 2.54");
-    expect(out).toContain("/opt/homebrew/bin/git");
+    expect(out).toContain(process.platform === "darwin" ? "/opt/homebrew/bin/git" : "Install git >= 2.54");
+  });
+  it("is silent for an old git whose config defines no config-based hook, and warns when one is defined", () => {
+    expect(runSessionStart([OLD_NO_HOOKS_DIR])).toBe("");
+    expect(runSessionStart([OLD_WITH_HOOKS_DIR])).toContain("older than 2.54");
   });
   it("is silent when the git first on PATH is new enough", () => {
     expect(runSessionStart([NEW_DIR])).toBe("");

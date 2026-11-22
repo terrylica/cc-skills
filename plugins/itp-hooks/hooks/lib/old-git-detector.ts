@@ -114,11 +114,32 @@ export interface GitResolver {
   whichGit(): string | undefined;
   /** `<binary> --version` output, or undefined when the probe fails. */
   versionOf(binaryPath: string): string | undefined;
+  /**
+   * Whether the effective git config defines any config-based hook (`hook.<name>.event`): true, false, or undefined
+   * when that cannot be learned. Optional; a resolver without it counts every config as defining hooks.
+   */
+  configHooksDefined?(binaryPath: string): boolean | undefined;
+}
+
+/** `git config --get-regexp` pattern for config-based hook events. git prints section and key in lower case. */
+export const CONFIG_HOOK_EVENT_KEY_REGEXP = "^hook\\..*\\.event$";
+
+/**
+ * Reads `git config --get-regexp CONFIG_HOOK_EVENT_KEY_REGEXP`: exit 1 with no output means none is defined, exit 0
+ * with a `hook.<name>.event` line means at least one is, and anything else is unknown.
+ */
+export function parseConfigHooksProbe(exitCode: number | null, stdout: string): boolean | undefined {
+  if (exitCode === 1 && stdout.trim() === "") return false;
+  if (exitCode === 0 && /^hook\..+\.event\s/im.test(stdout)) return true;
+  return undefined;
 }
 
 /**
  * Hook-firing invocations whose git is below the floor. A git whose version cannot be learned is
- * allowed: the guard fails open rather than blocking work on its own uncertainty.
+ * allowed: the guard fails open rather than blocking work on its own uncertainty. An old git is also
+ * allowed when the config it would read defines no config-based hook, because then nothing is skipped:
+ * Ubuntu 26.04 ships git 2.53, and a machine with no `hook.<name>.event` entries loses nothing by it.
+ * When that cannot be learned, the old git still counts.
  */
 export function findOldGitInvocations(command: string, resolver: GitResolver): OldGitFinding[] {
   const findings: OldGitFinding[] = [];
@@ -130,6 +151,7 @@ export function findOldGitInvocations(command: string, resolver: GitResolver): O
     if (!versionText) continue;
     const version = parseGitVersion(versionText);
     if (!version || !isBelowConfigHooksFloor(version)) continue;
+    if (resolver.configHooksDefined?.(path) === false) continue;
     findings.push({ invocation: inv, resolved: { path, versionText: versionText.trim(), version }, explicitPath });
   }
   return findings;

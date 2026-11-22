@@ -6,7 +6,9 @@
  * also `git -C <dir> …`) when the git that would run is older than 2.54, including an explicit
  * `/usr/bin/git` on macOS, which is Apple's 2.50. Config-based hooks (`hook.<name>.event` in
  * ~/.gitconfig) need Git >= 2.54; an older git reads that config and silently runs none of them,
- * so every hook defined there is skipped without a word.
+ * so every hook defined there is skipped without a word. When the config defines no such hook
+ * (`git config --get-regexp` finds none, read in the command's directory), nothing is skipped and
+ * the command is allowed: Ubuntu 26.04's git is 2.53.
  *
  * Which git: an explicit path is probed as written; a bare `git` is resolved on this hook's PATH,
  * which is inherited from the same environment as the Bash tool. Versions are cached per session in
@@ -27,11 +29,14 @@ import {
   hasFileWideEscapeHatchMarkerInContent,
 } from "./lib/escape-hatch-marker-detection-iter107.ts";
 import {
+  CONFIG_HOOK_EVENT_KEY_REGEXP,
   GIT_CONFIG_HOOKS_MIN_VERSION,
   type GitResolver,
   type OldGitFinding,
   findOldGitInvocations,
+  parseConfigHooksProbe,
 } from "./lib/old-git-detector.ts";
+import { perUserTempPath } from "./lib/per-user-temp-path.ts";
 import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 const HOOK_NAME = "pretooluse-old-git-guard";
@@ -50,9 +55,10 @@ const OLD_GIT_ESCAPE_HATCH: Pick<
 
 type VersionCache = Record<string, string>;
 
-/** Resolver that probes real binaries, caching each version per session. */
-export function cachingGitResolver(sessionId: string): GitResolver {
-  const dir = join(tmpdir(), "itp-hooks-old-git-guard");
+/** Resolver that probes real binaries, caching each version per session. `cwd` is where the command runs. */
+export function cachingGitResolver(sessionId: string, cwd?: string): GitResolver {
+  // Per user: on Linux tmpdir() is the shared /tmp, where another account's directory is not writable.
+  const dir = perUserTempPath(join(tmpdir(), "itp-hooks-old-git-guard"));
   const file = join(dir, `${sessionId.replace(/[^A-Za-z0-9_-]/g, "_") || "no-session"}.json`);
   let cache: VersionCache | undefined;
   const load = (): VersionCache => {
@@ -92,7 +98,29 @@ export function cachingGitResolver(sessionId: string): GitResolver {
       }
       return text;
     },
+    // Not cached: it runs only for an old git about to fire hooks, and a hook added mid-session must count at once.
+    // Read in the command's own directory, so a repository's config and includeIf sections are seen too.
+    configHooksDefined: (binaryPath) => {
+      const r = Bun.spawnSync([binaryPath, "config", "--get-regexp", CONFIG_HOOK_EVENT_KEY_REGEXP], {
+        stdout: "pipe",
+        stderr: "ignore",
+        timeout: VERSION_PROBE_TIMEOUT_MS,
+        ...(cwd ? { cwd } : {}),
+      });
+      return parseConfigHooksProbe(r.exitCode, r.stdout.toString());
+    },
   };
+}
+
+/** The remedy for this platform: Homebrew's git on macOS, a newer git package on Linux. */
+export function oldGitFix(floor: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform === "darwin") {
+    return (
+      "Fix: run the same command with /opt/homebrew/bin/git, or put Homebrew first on PATH " +
+      '(export PATH="/opt/homebrew/bin:$PATH") and use plain `git`.'
+    );
+  }
+  return `Fix: install git >= ${floor} and make it the first git on PATH, or remove the hook.<name>.event entries this machine cannot run.`;
 }
 
 export function explainOldGitFindings(findings: readonly OldGitFinding[]): string {
@@ -109,9 +137,7 @@ export function explainOldGitFindings(findings: readonly OldGitFinding[]): strin
   }
   lines.push(
     `A git older than ${floor} reads the hook.<name>.event entries and silently runs none of them, so the commit, push or rebase would bypass every gate defined there.`,
-    "Fix: run the same command with /opt/homebrew/bin/git, or put Homebrew first on PATH " +
-      '(export PATH="/opt/homebrew/bin:$PATH") and use plain `git`. On Linux, install git >= ' +
-      `${floor} and make it the first git on PATH.`,
+    oldGitFix(floor),
     "Spoke: plugins/itp-hooks/docs/old-git-guard.md\n" +
       "Override (only when no hook gate applies to this repository) with OLD-GIT-OK: <>=10-character reason>",
   );
@@ -138,7 +164,8 @@ export async function main(): Promise<void> {
     return;
   }
 
-  const findings = findOldGitInvocations(command, cachingGitResolver(input.session_id ?? ""));
+  const cwd = typeof input.cwd === "string" && input.cwd ? input.cwd : undefined;
+  const findings = findOldGitInvocations(command, cachingGitResolver(input.session_id ?? "", cwd));
   if (findings.length === 0) {
     allow();
     return;
