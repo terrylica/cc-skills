@@ -149,13 +149,17 @@ function runAsAgent(
   const res = join(dir, "agent-run");
   for (const f of [`${res}.out`, `${res}.err`, `${res}.rc`]) rmSync(f, { force: true });
   writeFileSync(argFile, args.map((a) => `${a}\n`).join(""));
+  // Each fake Bash-tool shell ends in `; exit $?`, never in the command itself: bash 5.1 and newer exec the last command of
+  // a `bash -c` list in place, so the shell (and the shell-snapshots marker the script looks for) would vanish from ps.
+  // macOS /bin/bash is 3.2, which never does; the /bin/bash of every current Linux is 5.x. A real Bash-tool shell always
+  // runs a command after the user's (it records the working directory), so it is never exec'd away.
   // With `linger` (any truthy value), the fake agent stays alive afterwards (as a real session does) until afterEach
   // kills it, so the watcher can keep checking it; the result is read from files the agent writes before it lingers.
   writeFileSync(
     fake,
     `#!${BASH}
 ${opts.background ? `${BASH} -c ': shell-snapshots/snapshot-test; sleep ${opts.background}; true' &\nsleep 0.3` : ""}
-${BASH} -c ': shell-snapshots/snapshot-test; args=(); while IFS= read -r a; do args+=("$a"); done < "$1"; ${BASH} "$2" "\${args[@]}"' x '${argFile}' '${script}' >'${res}.out' 2>'${res}.err'
+${BASH} -c ': shell-snapshots/snapshot-test; args=(); while IFS= read -r a; do args+=("$a"); done < "$1"; ${BASH} "$2" "\${args[@]}"; exit $?' x '${argFile}' '${script}' >'${res}.out' 2>'${res}.err'
 echo $? >'${res}.rc'
 ${opts.linger ? `sleep 600 >/dev/null 2>&1 & echo $! >'${dir}/agent-sleep.pid'; wait` : ""}
 exit 0
@@ -548,7 +552,7 @@ describe("--close", () => {
     writeFileSync(
       fake,
       `#!${BASH}
-${BASH} -c ': shell-snapshots/snapshot-test; ${BASH} "$1" --close --min-wait 0' x '${SCRIPT}'
+${BASH} -c ': shell-snapshots/snapshot-test; ${BASH} "$1" --close --min-wait 0; exit $?' x '${SCRIPT}'
 ${BASH} -c ': shell-snapshots/snapshot-test; sleep 6; true' &
 wait
 sleep 6
@@ -577,9 +581,11 @@ describe("every subprocess call has a timeout; a timeout is never read as settle
   });
   test("a hung `orca worktree ps` in the watcher keeps the tab open until --settle-timeout", async () => {
     const orca = stubOrca(TAB);
+    // Hung before the run, not after it: the watcher can reach its first `worktree ps` before runAsAgent returns, and
+    // then it settles and closes the tab (seen on Linux, where process start-up is fast). Only the watcher calls it.
+    hang("worktree", "ps");
     const r = runAsAgent(["--close", "--min-wait", "0", "--settle-timeout", "3"], { env: { ...orcaEnv(orca), ...FAST }, linger: 12 });
     expect({ code: r.code, err: r.err }).toMatchObject({ code: 0 });
-    hang("worktree", "ps");
     expect(await until(() => closerLog().includes("gave up"), 15000)).toBe(true);
     expect(closerLog()).toContain("orca_rows unreadable");
     expect(orcaCalls()).not.toContain("terminal close");
