@@ -66,7 +66,7 @@ The goal is that a later `nx init` is **mechanical**, not a restructuring. Encod
 1. **One project per directory, explicitly registered** in `.moon/workspace.yml` `projects:` (no glob soup). Nx and moon both model an explicit project graph.
 2. **Uniform task vocabulary across every project**: `lint`, `fmt`, `test`, `build`, `check` (composite). Affected pipelines and future Nx target-defaults depend on this uniformity.
 3. **Root `package.json` declares Bun workspaces** (`"workspaces": ["packages/*", "apps/*"]`) — Nx detects projects from workspaces; Bun installs from it today.
-4. **Tags on every project** (`tags: ['lang:rust', 'layer:engine']` in `moon.yml`) — maps 1:1 to Nx tags for dependency-boundary rules later.
+4. **Tags on every project** (`tags: ['lang/rust', 'layer/engine']` in `moon.yml`) — maps 1:1 to Nx tags for dependency-boundary rules later. moon 2.x accepts only letters, digits, `-`, `/`, `_` and `.` in a tag, so write `lang/rust`, never `lang:rust` (moon 2.6.5 refuses the file: `Invalid identifier format`).
 5. **Declared outputs** for every generating task (`outputs: [...]`) — both orchestrators cache on declared outputs.
 6. **No orchestrator-specific logic inside scripts.** A task's `script:` must run standalone from the repo root. The orchestrator is swappable; the scripts are the truth.
 7. **Generated code lives in committed, clearly-marked dirs** (`gen/`, `generated/`) with drift-check tasks (regenerate-to-temp, byte-diff) — identical pattern under Nx.
@@ -261,7 +261,7 @@ vcs:
 # yaml-language-server: $schema=https://moonrepo.dev/schemas/project.json
 layer: "application"
 language: "typescript"
-tags: ["lang:ts", "layer:control-plane"]
+tags: ["lang/ts", "layer/control-plane"]
 
 tasks:
   lint:
@@ -281,7 +281,7 @@ tasks:
 ```yaml
 layer: "library"
 language: "rust"
-tags: ["lang:rust", "layer:engine"]
+tags: ["lang/rust", "layer/engine"]
 
 tasks:
   fmt:
@@ -299,7 +299,7 @@ tasks:
 ```yaml
 layer: "library"
 language: "python"
-tags: ["lang:python", "layer:library"]
+tags: ["lang/python", "layer/library"]
 
 tasks:
   sync:
@@ -327,9 +327,11 @@ Notes that save hours:
 {
   "$schema": "https://biomejs.dev/schemas/<version>/schema.json",
   "formatter": { "enabled": true },
-  "linter": { "enabled": true, "rules": { "recommended": true } }
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } }
 }
 ```
+
+Biome 2.6 deprecated `"recommended": true`, and `biome migrate` rewrites it as `"preset": "none"`, which switches every rule off without an error: set `"preset": "recommended"` yourself (measured 2026-11-22, Biome 2.6.8).
 
 ### .gitignore (git tracking discipline)
 
