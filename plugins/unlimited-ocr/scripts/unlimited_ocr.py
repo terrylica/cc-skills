@@ -881,9 +881,16 @@ class UnlimitedOcrRunner:
                 ngram_window=128,
                 save_results=False,
                 # infer() only returns the decoded text in eval mode; without this it
-                # streams tokens, falls off the end with save_results=False, and the
-                # caller stringifies None into the literal text "None".
+                # streams tokens, falls off the end with save_results=False, and returns None.
                 eval_mode=True,
+            )
+        if result is None:
+            # Stringifying None wrote the literal text "None" as every page's transcription,
+            # silently (#115). If upstream infer() stops returning text again, stop here instead:
+            # a non-zero exit is what the batch parser records as a failed file.
+            raise RuntimeError(
+                "model.infer() returned None instead of text; upstream infer() returns the "
+                "transcription only with eval_mode=True (modeling_unlimitedocr.py)"
             )
         return decode_byte_level_bpe_surface_form(result if isinstance(result, str) else str(result))
 
