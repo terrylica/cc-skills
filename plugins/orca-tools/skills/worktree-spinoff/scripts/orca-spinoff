@@ -355,9 +355,18 @@ if [ -n "$doc" ]; then
   if [ "$runtime_remote" = 1 ]; then
     # The ref must exist in the target runtime's clone, under its own remote name; Orca's ref search shows it.
     start=${target_remote:-$remote}/$staging
-    o repo search-refs --repo "id:$repo_id" --query "$staging" --limit 50 --json | py '
-sys.exit(0 if sys.argv[1] in (d.get("result") or {}).get("refs", []) else 1)' "$start" ||
-      die "the target runtime's clone has no ref $start (it has not fetched the pushed staging branch): run git fetch in that clone, then retry" 1
+    # Orca fetches the runtime's clone on its own schedule, so the ref can arrive seconds after the push: ask again for
+    # up to SPINOFF_REF_WAIT seconds (default 60) before giving up (measured 2026-11-23: one immediate check lost the
+    # race twice against a clone that was fetching every 3 s).
+    ref_wait=${SPINOFF_REF_WAIT:-60} ref_found=0 ref_waited=0
+    while :; do
+      if o repo search-refs --repo "id:$repo_id" --query "$staging" --limit 50 --json | py '
+sys.exit(0 if sys.argv[1] in (d.get("result") or {}).get("refs", []) else 1)' "$start"; then ref_found=1; break; fi
+      [ "$ref_waited" -lt "$ref_wait" ] || break
+      sleep 3; ref_waited=$((ref_waited + 3))
+    done
+    [ "$ref_found" = 1 ] ||
+      die "the target runtime's clone has no ref $start after ${ref_wait}s (it has not fetched the pushed staging branch): run git fetch in that clone, then retry" 1
   else
     git fetch -q "$remote"
     start=$remote/$staging
