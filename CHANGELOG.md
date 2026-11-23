@@ -1,3 +1,12 @@
+## [34.23.3](https://github.com/terrylica/cc-skills/compare/v34.23.2...v34.23.3) (2026-11-23)
+
+
+### Bug Fixes
+
+* **orca-tools:** worktree-spinoff waits up to a minute for a paired runtime's clone to fetch the staged handoff ([#133](https://github.com/terrylica/cc-skills/issues/133)) ([42a10c2](https://github.com/terrylica/cc-skills/commit/42a10c2bb8036127f49c1070372ff8ac4c850b34))
+
+One immediate orca repo search-refs check lost the race against a clone that fetched every 3 s (twice, 2026-11-23). Ask again every 3 s for up to SPINOFF_REF_WAIT seconds (default 60); the pitfall is recorded in the skill.
+
 ## [34.23.2](https://github.com/terrylica/cc-skills/compare/v34.23.1...v34.23.2) (2026-11-23)
 
 ## [34.23.1](https://github.com/terrylica/cc-skills/compare/v34.23.0...v34.23.1) (2026-11-22)
