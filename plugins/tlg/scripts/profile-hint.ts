@@ -3,7 +3,9 @@
  * Linux host, say) the profile file does not exist yet, so the list of profiles is empty and the bare
  * "unknown profile" message gave no way forward. Name the file, its shape and the two ways around it.
  */
-export const PROFILES_FILE = "~/.config/cc-skills/tlg-profiles.json";
+/** The profile file, relative to the user's home; `loadProfiles()` in tg-cli.ts reads exactly this path. */
+export const PROFILES_RELATIVE_PATH = ".config/cc-skills/tlg-profiles.json";
+export const PROFILES_FILE = `~/${PROFILES_RELATIVE_PATH}`;
 
 export function unknownProfileMessage(profile: string, available: readonly string[]): string {
   const known = available.length > 0 ? `Available: ${available.join(", ")}.` : `No profiles are configured for this user.`;
