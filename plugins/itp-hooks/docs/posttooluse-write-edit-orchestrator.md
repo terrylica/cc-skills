@@ -10,20 +10,20 @@
 
 The registry is `POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orchestrator source; it is the source of truth for this table. It holds 12 subhooks, all run concurrently:
 
-| #   | Subhook                       | Reports, after a Write/Edit…                                                                        | Timeout  | Spoke                                                                |
-| --- | ----------------------------- | --------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------- |
-| 1   | `leakage-taxonomy-reminder`   | the temporal-leakage taxonomy card, once per session, when new text adjudicates leakage             | 2000 ms  | `~/.claude/leakage-taxonomy-CLAUDE.md`                               |
-| 2   | `ty-type-check`               | `ty` type errors in an edited `.py`/`.pyi`                                                          | 5000 ms  | [ty-type-checker.md](./ty-type-checker.md)                           |
-| 3   | `tsc-type-check`              | project-scoped `tsc` errors in an edited `.ts`/`.tsx`                                               | 5000 ms  | [tsc-type-check.md](./tsc-type-check.md)                             |
-| 4   | `oxlint-check`                | oxlint correctness and suspicious findings in JS/TS                                                 | 5000 ms  | [js-ts-lint.md](./js-ts-lint.md)                                     |
-| 5   | `biome-lint`                  | biome findings that complement oxlint in JS/TS                                                      | 5000 ms  | [js-ts-lint.md](./js-ts-lint.md)                                     |
-| 6   | `vale-claude-md`              | vale terminology findings in an edited `CLAUDE.md` (informational)                                  | 12000 ms | [vale-terminology-enforcement.md](./vale-terminology-enforcement.md) |
-| 7   | `memory-efficiency-reminder`  | a memory-efficiency reminder, once per session, on the first eligible code-file edit                | 1000 ms  | [below](#memory-efficiency-reminder)                                 |
-| 8   | `ssot-principles`             | SSoT / dependency-injection anti-patterns found with ast-grep, once per session                     | 3000 ms  | [ssot-principles.md](./ssot-principles.md)                           |
-| 9   | `claude-md-size-budget`       | a hub-and-spoke refactor reminder when a `CLAUDE.md` reaches 36,000 characters (90% of 40,000)      | 2000 ms  | this page (escape `CLAUDE-MD-SIZE-OK`)                               |
-| 10  | `python-preference-nudge`     | a language-preference reminder on a `.py` edit not allowed by an ancestor `python-allowlist.toml`   | 2000 ms  | [python-preference-nudge.md](./python-preference-nudge.md)           |
-| 11  | `typescript-upgrade-reminder` | a TypeScript 7 upgrade reminder, once per session, on the first TS / `package.json` / tsconfig edit | 2000 ms  | `Skill(typescript-7)`                                                |
-| 12  | `markdown-hard-wrap-reminder` | hard-wrapped prose that the edit added to a `.md` file                                              | 2000 ms  | [markdown-hard-wrap-reminder.md](./markdown-hard-wrap-reminder.md)   |
+| #   | Subhook                       | Reports, after a Write/Edit…                                                                         | Timeout  | Spoke                                                                |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------- |
+| 1   | `leakage-taxonomy-reminder`   | the temporal-leakage taxonomy card, once per session, when new text adjudicates leakage              | 2000 ms  | `~/.claude/leakage-taxonomy-CLAUDE.md`                               |
+| 2   | `ty-type-check`               | `ty` type errors in an edited `.py`/`.pyi`                                                           | 5000 ms  | [ty-type-checker.md](./ty-type-checker.md)                           |
+| 3   | `tsc-type-check`              | project-scoped `tsc` errors in an edited `.ts`/`.tsx`                                                | 5000 ms  | [tsc-type-check.md](./tsc-type-check.md)                             |
+| 4   | `oxlint-check`                | oxlint correctness and suspicious findings in JS/TS                                                  | 5000 ms  | [js-ts-lint.md](./js-ts-lint.md)                                     |
+| 5   | `biome-lint`                  | biome findings that complement oxlint in JS/TS                                                       | 5000 ms  | [js-ts-lint.md](./js-ts-lint.md)                                     |
+| 6   | `vale-claude-md`              | vale terminology findings in an edited `CLAUDE.md` (informational)                                   | 12000 ms | [vale-terminology-enforcement.md](./vale-terminology-enforcement.md) |
+| 7   | `memory-efficiency-reminder`  | a memory-efficiency reminder, once per session, on the first code-file edit with data-path evidence  | 1000 ms  | [below](#memory-efficiency-reminder)                                 |
+| 8   | `ssot-principles`             | SSoT / dependency-injection anti-patterns found with ast-grep, once per session, only with a finding | 3000 ms  | [ssot-principles.md](./ssot-principles.md)                           |
+| 9   | `claude-md-size-budget`       | a hub-and-spoke refactor reminder when a `CLAUDE.md` reaches 36,000 characters (90% of 40,000)       | 2000 ms  | this page (escape `CLAUDE-MD-SIZE-OK`)                               |
+| 10  | `python-preference-nudge`     | a language-preference reminder on a `.py` edit not allowed by an ancestor `python-allowlist.toml`    | 2000 ms  | [python-preference-nudge.md](./python-preference-nudge.md)           |
+| 11  | `typescript-upgrade-reminder` | a TypeScript 7 upgrade reminder, once per session, on the first TS / `package.json` / tsconfig edit  | 2000 ms  | `Skill(typescript-7)`                                                |
+| 12  | `markdown-hard-wrap-reminder` | hard-wrapped prose that the edit added to a `.md` file                                               | 2000 ms  | [markdown-hard-wrap-reminder.md](./markdown-hard-wrap-reminder.md)   |
 
 ## Run semantics
 
@@ -35,7 +35,7 @@ The registry is `POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orc
 
 ## Memory-efficiency reminder
 
-[`posttooluse-memory-efficiency-reminder.ts`](../hooks/posttooluse-memory-efficiency-reminder.ts) (subhook 7) shows a static memory-efficiency reminder once per session, on the first eligible code-file Write/Edit. It spawns no subprocess; the only work is the gate-file claim. Run standalone through its `import.meta.main` guard, it must keep emitting the `{"decision": "block", "reason": …}` JSON: a PostToolUse hook that prints plain text lands only in the transcript.
+[`posttooluse-memory-efficiency-reminder.ts`](../hooks/posttooluse-memory-efficiency-reminder.ts) (subhook 7) shows a static memory-efficiency reminder once per session, on the first Write/Edit of a code file that shows data-path evidence. It spawns no subprocess; the work is one bounded read of the edited file and the gate-file claim. Until 2026-11-15 it fired on the first code file of any kind, including a 35-line Cloudflare Worker redirect (operator report); the card is about data paths, so it now needs evidence of one. Run standalone through its `import.meta.main` guard, it must keep emitting the `{"decision": "block", "reason": …}` JSON: a PostToolUse hook that prints plain text lands only in the transcript.
 
 The message is a four-row table plus a line of anti-patterns:
 
@@ -49,9 +49,10 @@ It fires when all of these hold:
 
 - the tool is `Write` or `Edit`, and the extension is one of `.py .rs .ts .tsx .js .go .java .kt .rb .cpp .c .h .zig`;
 - the path is not a test file (contains `test_`, `tests/`, `__tests__/`, `_test.`, `_spec.`, `.test.` or `.spec.`) and not a throwaway file in a temp directory;
-- it is the first such edit in the session: the gate is an atomic `O_EXCL` file at `/tmp/.claude-memory-efficiency-reminder/<session-id>.reminded`, claimed through `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`.
+- the first 256 KiB of the file after the edit (else the tool input's text) matches one of `DATA_PATH_EVIDENCE_SIGNALS`: a dataframe, array or columnar library (polars, pandas, numpy, pyarrow, duckdb, datafusion, ndarray, gonum …), Apache Arrow, Parquet, ClickHouse, a `DataFrame`/`LazyFrame`/`RecordBatch` type, a numeric typed array (`Float64Array` …), a numeric vector or slice (`Vec<f64>`, `[]float64`, `std::vector<double>`), `mmap`/`memcpy`/`memoryview`/`struct.unpack`, `malloc`/`calloc`/`realloc`, a `torch`/`jax`/`tensorflow` import, or a bulk `csv` reader or writer. `Uint8Array`, `ArrayBuffer`, `Vec<u8>` and the bare word "arrow" are deliberately not evidence: they appear in ordinary service code;
+- it is the first such edit in the session: the gate is an atomic `O_EXCL` file at `/tmp/.claude-memory-efficiency-reminder-<uid>/<session-id>.reminded`, claimed through `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`.
 
-There is no escape hatch; the reminder fires at most once per session, so there is nothing to suppress per file. The classifier is `classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator`, exported to the orchestrator as `classifyMemoryEfficiencyReminderForPostToolUseOrchestrator`.
+The gate is claimed only after the evidence matches, so an ordinary code edit never spends the session's single reminder. The message ends with a line naming the file and the matched signal, so a misfire can be traced to its pattern. There is no escape hatch; the reminder fires at most once per session, so there is nothing to suppress per file. Tests: `hooks/posttooluse-memory-efficiency-reminder.test.ts`. The classifier is `classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator`, exported to the orchestrator as `classifyMemoryEfficiencyReminderForPostToolUseOrchestrator`.
 
 ## Contract
 

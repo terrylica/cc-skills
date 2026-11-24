@@ -42,16 +42,38 @@
  *      helper which uses O_CREAT|O_EXCL for race-safety.
  *
  * Why this hook is well-suited to the orchestrator path:
- *   - Once-per-session work → most invocations are sub-ms gate-claim noop
- *   - No subprocess spawn (purely static reminder text) → no timeout risk
- *   - Overlaps with ALL existing inlined classifiers via extension union
- *     (.py with ty + ssot; .ts with tsc+oxlint+biome+ssot; .rs/.go/.java/
- *     .kt/.rb with ssot) — the orchestrator's Promise.all wins
+ *   - No subprocess: one bounded read of the file's head (up to 256 KiB) and
+ *     linear-time regexes until the card fires, then a sub-ms gate check
+ *   - Its patterns use [ \t], never \s, at line starts: \s also matches
+ *     newlines, which made one pattern quadratic in runs of blank lines
+ *     (52 s on 256 KiB of them; PR #104 review)
  *
- * Gate: fires once per session via atomic O_EXCL gate-file (shared helper).
+ * ─── 2026-11-15: fires on data-path code only ─────────────────────────────
+ *
+ * Until 2026-11-15 the card fired on the first code file of the session,
+ * whatever the code did: a 35-line Cloudflare Worker that redirects requests
+ * got the zero-copy / Arrow / pd.concat table (operator report, 2026-11-15).
+ * The card's own header says "When writing data-path code", so it now
+ * fires only when the edited file shows data-path evidence
+ * (`detectDataPathEvidenceInSourceText`: a dataframe/array/columnar library,
+ * Arrow, Parquet, ClickHouse, numeric typed arrays or vectors, memory maps,
+ * memcpy/malloc, binary unpacking, tensors, bulk CSV). The evidence is read
+ * from the head of the post-edit file on disk (an Edit's `new_string` rarely
+ * carries the imports), falling back to the tool input's text.
+ *
+ * Precision and the once-per-session gate are one axis: the card fires at
+ * most once, so a false positive also spends the session's only shot before
+ * the real data-path file is written. The gate is therefore claimed only
+ * AFTER evidence is found, never on an ordinary code edit.
+ *
+ * Gate: fires once per session via atomic O_EXCL gate-file (shared helper),
+ *       claimed only after data-path evidence is found.
  * Scope: .py, .rs, .ts, .tsx, .js, .go, .java, .kt, .rb, .cpp, .c, .h, .zig
- * Skips: test files (pattern-matched).
+ * Skips: test files (pattern-matched), temp-dir scratch files, and any file
+ *        with no data-path evidence.
  */
+
+import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 
 import type {
   PostToolUseInput,
@@ -62,7 +84,10 @@ import {
   buildPostToolUseAdditionalContextDecision,
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
 } from "./lib/posttooluse-subhook-contract-iter93.ts";
-import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
+import {
+  isOncePerSessionGenericReminderGateFileAlreadyClaimed,
+  tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName,
+} from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 // Iter-124: don't let a throwaway temp-file edit consume the once-per-session
 // reminder gate — skip temp dirs so the first REAL code edit still gets it.
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temp-dir-edit-path-detection-iter124.ts";
@@ -91,6 +116,45 @@ const CODE_FILE_EXTENSIONS_ELIGIBLE_FOR_MEMORY_EFFICIENCY_REMINDER = new Set([
 
 const TEST_FILE_PATH_PATTERN_EXCLUDED_FROM_MEMORY_EFFICIENCY_REMINDER =
   /(?:^|\/)(?:test_|tests\/|__tests__\/|_test\.|_spec\.|\.test\.|\.spec\.)/;
+
+/** Bytes of the post-edit file probed for data-path evidence (imports sit at the top). */
+const DATA_PATH_EVIDENCE_FILE_HEAD_PROBE_BYTES = 256 * 1024;
+
+/**
+ * Data-path evidence, one named signal per entry; the first match wins and its
+ * name is quoted in the reminder so a misfire can be traced to its pattern.
+ *
+ * Deliberately NOT evidence (each would fire on ordinary service code, which is
+ * the misfire this list exists to stop): `Uint8Array` and `ArrayBuffer` (every
+ * Worker that hashes or encodes text), `ReadableStream`, `Vec<u8>`, bare `[]byte`,
+ * `JSON.parse`, `fetch`, and the word "arrow" alone ("arrow function").
+ */
+export const DATA_PATH_EVIDENCE_SIGNALS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
+  {
+    name: "dataframe, array or columnar library",
+    pattern:
+      /\b(?:polars|pandas|numpy|pyarrow|duckdb|datafusion|ndarray|xarray|dask|numba|cupy|h5py|zarr|vaex|modin|gonum|danfojs|arquero|hyparquet)\b/,
+  },
+  { name: "Apache Arrow", pattern: /apache[-./]arrow\b|\barrow(?:2|_[a-z]+)?::|\bred-arrow\b/ },
+  { name: "Parquet", pattern: /\bparquet\b/i },
+  { name: "ClickHouse", pattern: /\bclickhouse\b/i },
+  { name: "frame or record-batch type", pattern: /\b(?:DataFrame|LazyFrame|RecordBatch)\b/ },
+  {
+    name: "numeric typed array",
+    pattern: /\b(?:Float16|Float32|Float64|Int16|Int32|Uint16|Uint32|BigInt64|BigUint64)Array\b|\bSharedArrayBuffer\b/,
+  },
+  {
+    name: "numeric vector or slice",
+    pattern: /\bVec<(?:f32|f64|i32|i64|u32|u64)>|&\[(?:f32|f64)\]|\[\](?:float32|float64)\b|std::vector<(?:float|double|u?int(?:32|64)_t)>/,
+  },
+  {
+    name: "memory map, raw copy or binary unpacking",
+    pattern: /\b(?:memoryview|mmap|memmap2?|memcpy|ByteBuffer|bytemuck)\b|\bstruct\.(?:iter_)?unpack\b/,
+  },
+  { name: "manual allocation", pattern: /\b(?:malloc|calloc|realloc)\s*\(|\bstd\.mem\.Allocator\b/ },
+  { name: "tensor library", pattern: /^[ \t]*(?:import|from)[ \t]+(?:torch|jax|tensorflow)\b/m },
+  { name: "bulk CSV reader or writer", pattern: /\bcsv\.(?:reader|DictReader|writer|DictWriter)\b/ },
+];
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Reminder message (preserved verbatim from pre-iter-98 standalone hook)
@@ -133,6 +197,44 @@ function isTestFilePathExcludedFromMemoryEfficiencyReminder(filePath: string): b
   return TEST_FILE_PATH_PATTERN_EXCLUDED_FROM_MEMORY_EFFICIENCY_REMINDER.test(filePath);
 }
 
+/** The name of the first data-path signal found in `text`, or null when there is none. */
+export function detectDataPathEvidenceInSourceText(text: string): string | null {
+  for (const signal of DATA_PATH_EVIDENCE_SIGNALS) {
+    if (signal.pattern.test(text)) return signal.name;
+  }
+  return null;
+}
+
+/** The first DATA_PATH_EVIDENCE_FILE_HEAD_PROBE_BYTES of a file, or null when it cannot be read. */
+function readFileHeadForDataPathEvidence(filePath: string): string | null {
+  let fd: number | undefined;
+  try {
+    fd = openSync(filePath, "r");
+    // Sized to the file (capped), not a fixed 256 KiB zero-filled buffer per probe.
+    const buffer = Buffer.allocUnsafe(Math.min(fstatSync(fd).size, DATA_PATH_EVIDENCE_FILE_HEAD_PROBE_BYTES));
+    const bytesRead = readSync(fd, buffer, 0, buffer.length, 0);
+    return buffer.subarray(0, bytesRead).toString("utf8");
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+}
+
+/**
+ * The text to probe: the post-edit file on disk (PostToolUse runs after the
+ * write, and an Edit's new_string rarely carries the imports), else the text
+ * in the tool input.
+ */
+function resolveEditedSourceTextForDataPathEvidence(input: PostToolUseInput, filePath: string): string {
+  const onDisk = readFileHeadForDataPathEvidence(filePath);
+  if (onDisk !== null) return onDisk;
+  const toolInput = input.tool_input ?? {};
+  if (typeof toolInput.content === "string") return toolInput.content;
+  if (typeof toolInput.new_string === "string") return toolInput.new_string;
+  return "";
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 //  Pure classifier (orchestrator-imported)
 // ══════════════════════════════════════════════════════════════════════════
@@ -142,19 +244,17 @@ function isTestFilePathExcludedFromMemoryEfficiencyReminder(filePath: string): b
  * relevance.
  *
  *   - Returns `additional_context` ONCE PER SESSION on the first eligible
- *     code-file edit (gated atomically via shared O_EXCL helper).
- *   - All subsequent edits in the same session return `noop` (gate already
- *     claimed). The orchestrator's Promise.all parallelism is unaffected —
- *     the gate check + early-return is a sub-millisecond mkdirSync +
- *     openSync(... O_EXCL) round-trip.
+ *     code-file edit whose file shows data-path evidence (gated atomically
+ *     via shared O_EXCL helper, claimed only after the evidence is found).
+ *   - Code edits without evidence return `noop` and leave the gate unclaimed.
+ *     The probe is one bounded head read of the edited file (≤256 KiB) plus a
+ *     handful of regex tests; no subprocess.
+ *   - All edits after the reminder fired return `noop` (gate already claimed).
  *   - Skips test files (test fixtures legitimately use memory-inefficient
  *     patterns for clarity).
  *
- * Iter-98 invariant: the returned `additional_context.message` is the
- * EXACT pre-iter-98 console.log text — semantic continuity preserved
- * (Claude sees the same reminder string it would have seen if the
- * pre-iter-98 console.log path actually worked, which it didn't because
- * Claude Code's PostToolUse schema silently drops non-JSON stdout).
+ * The message is the pre-iter-98 card text plus one line naming the file
+ * and the signal that matched, so a misfire can be traced to its pattern.
  */
 export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator(
   input: PostToolUseInput,
@@ -185,7 +285,23 @@ export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessio
     }
 
     const sessionId =
-      input.session_id || process.env.CLAUDE_SESSION_ID || String(process.ppid);
+      input.session_id || process.env.CLAUDE_SESSION_ID || String(process.ppid); // SSoT-OK: hook-runtime session id, not app config
+    if (
+      isOncePerSessionGenericReminderGateFileAlreadyClaimed(
+        MEMORY_EFFICIENCY_REMINDER_NAME_FOR_ONCE_PER_SESSION_GATE_FILE_NAMESPACE,
+        sessionId,
+      )
+    ) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
+
+    // Evidence BEFORE the claim: an ordinary code edit must not spend the
+    // session's single reminder (2026-11-15 misfire on a redirect Worker).
+    const dataPathEvidence = detectDataPathEvidenceInSourceText(
+      resolveEditedSourceTextForDataPathEvidence(input, filePath),
+    );
+    if (dataPathEvidence === null) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
     if (
       !tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName(
         MEMORY_EFFICIENCY_REMINDER_NAME_FOR_ONCE_PER_SESSION_GATE_FILE_NAMESPACE,
@@ -196,7 +312,7 @@ export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessio
     }
 
     return buildPostToolUseAdditionalContextDecision(
-      MEMORY_EFFICIENCY_BEST_PRACTICES_STATIC_REMINDER_MESSAGE,
+      `${MEMORY_EFFICIENCY_BEST_PRACTICES_STATIC_REMINDER_MESSAGE}\n\nShown because ${filePath} contains data-path code (${dataPathEvidence}).`,
     );
   } catch {
     return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;

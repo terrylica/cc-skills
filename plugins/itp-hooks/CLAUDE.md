@@ -71,8 +71,8 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | `posttooluse-terminology-sync.ts`                 | Write\|Edit       | CLAUDE.md → GLOSSARY.md sync + dupe detection | [→](./docs/vale-terminology-enforcement.md)                                   |
 | `posttooluse-readme-pypi-links.ts`                | Write\|Edit       | PyPI badge/link consistency in READMEs        | [→](./docs/readme-pypi-links.md)                                              |
 | `posttooluse-markdown-table-guard.ts`             | Write\|Edit       | Per-edit GFM table structural guard           | [→](./docs/markdown-table-guard.md)                                           |
-| `posttooluse-ssot-principles.ts`                  | PostToolUse orch. | SSoT/DI reminder with ast-grep detection      | [→](./docs/ssot-principles.md)                                                |
-| `posttooluse-memory-efficiency-reminder.ts`       | PostToolUse orch. | Once-per-session memory-efficiency reminder   | [→](./docs/posttooluse-write-edit-orchestrator.md#memory-efficiency-reminder) |
+| `posttooluse-ssot-principles.ts`                  | PostToolUse orch. | SSoT/DI reminder when ast-grep finds one      | [→](./docs/ssot-principles.md)                                                |
+| `posttooluse-memory-efficiency-reminder.ts`       | PostToolUse orch. | Memory-efficiency reminder on data-path code  | [→](./docs/posttooluse-write-edit-orchestrator.md#memory-efficiency-reminder) |
 | `posttooluse-ty-type-check.ts`                    | PostToolUse orch. | ty type check on .py/.pyi edits               | [→](./docs/ty-type-checker.md)                                                |
 | `posttooluse-write-edit-orchestrator.ts`          | Write\|Edit       | PostToolUse multi-aggregation orchestrator    | [→](./docs/posttooluse-write-edit-orchestrator.md)                            |
 | `posttooluse-tsc-type-check.ts`                   | PostToolUse orch. | tsc project-scoped check on .ts/.tsx edits    | [→](./docs/tsc-type-check.md)                                                 |

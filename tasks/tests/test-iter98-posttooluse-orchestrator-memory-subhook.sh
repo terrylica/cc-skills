@@ -162,14 +162,18 @@ TEMP_E2E_DIR=$(mktemp -d "$REPO_ROOT/tmp/iter98-e2e.XXXXXX")
 TEMP_PY_FILE="$TEMP_E2E_DIR/sample.py"
 TEMP_PAYLOAD_FILE="$TEMP_E2E_DIR/payload.json"
 trap 'rm -rf "$TEMP_E2E_DIR"' EXIT
+# Data-path code (polars) so memory-efficiency has evidence to fire on (since
+# 2026-11-15 it stays silent on code without data-path signals), plus a direct
+# env read so ssot-principles has an ast-grep finding to fire on.
 cat > "$TEMP_PY_FILE" <<'PY'
 import os
+import polars as pl
 def get_mode():
     return os.environ.get("MODE", "default")
 PY
 UNIQUE_SESSION_ID="iter98-e2e-$(date +%s%N)"
 cat > "$TEMP_PAYLOAD_FILE" <<JSON
-{"tool_name":"Write","session_id":"$UNIQUE_SESSION_ID","tool_input":{"file_path":"$TEMP_PY_FILE","content":"import os\ndef get_mode():\n    return os.environ.get('MODE', 'default')\n"}}
+{"tool_name":"Write","session_id":"$UNIQUE_SESSION_ID","tool_input":{"file_path":"$TEMP_PY_FILE","content":"import os\nimport polars as pl\ndef get_mode():\n    return os.environ.get('MODE', 'default')\n"}}
 JSON
 set +e
 case10_stdout=$(bun "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH" < "$TEMP_PAYLOAD_FILE" 2>/dev/null)

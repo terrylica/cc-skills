@@ -2,16 +2,17 @@
 
 > Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Hook: [`posttooluse-ssot-principles.ts`](../hooks/posttooluse-ssot-principles.ts), subhook `ssot-principles` of the [PostToolUse Write/Edit orchestrator](./posttooluse-write-edit-orchestrator.md) (orchestrator timeout 3000 ms).
 
-The hook reminds Claude of SSoT/DI best practices on the first code edit per session, with ast-grep AST-based detection of anti-patterns in the edited file.
+The hook reminds Claude of SSoT/DI best practices, once per session, on the first code edit in which ast-grep finds an anti-pattern, and lists the findings under the principles. A file that scans clean gets nothing: until 2026-11-15 the card fired on the first code file of the session even with no finding, including a clean Cloudflare Worker redirect (operator report).
 
 ## How It Works
 
-1. Triggers on Write/Edit of code files (`.py`, `.ts`, `.tsx`, `.js`, `.jsx`, `.rs`, `.go`, `.java`, `.kt`, `.rb`)
+1. Triggers on Write/Edit of code files in the languages the rules cover: `.py`, `.ts`, `.mts`, `.cts`, `.rs`, `.go` (ast-grep's `typescript` language does not cover `.tsx`, `.js` or `.jsx`; add an extension only together with rules that can match it)
 2. Skips test files (paths matching `/test_`, `/tests/`, `_test.`, `_spec.`, `.test.`, `.spec.`, `/conftest.py`, `/__tests__/`) and throwaway files in temp directories
 3. Skips the whole check when the new content contains an `SSoT-OK` comment
-4. Gates once per session via an atomic `O_EXCL` gate file at `/tmp/.claude-ssot-principles-reminder/<session-id>.reminded` (shared helper `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`)
-5. Runs ast-grep with the rules in `hooks/ast-grep-ssot/` against the edited file on disk
-6. Outputs the SSoT principles plus any detected anti-patterns as additional context, truncated below Claude Code's 10,000-character hook-output limit
+4. Runs ast-grep with the rules in `hooks/ast-grep-ssot/` against the edited file on disk (about 10 ms) and drops findings on a line marked `SSoT-OK`
+5. Stops when nothing is left: no card, and the session's gate stays unclaimed for the first file with a real finding
+6. Gates once per session via an atomic `O_EXCL` gate file at `/tmp/.claude-ssot-principles-reminder-<uid>/<session-id>.reminded` (shared helper `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`)
+7. Outputs the SSoT principles plus the detected anti-patterns as additional context, truncated below Claude Code's 10,000-character hook-output limit
 
 ## ast-grep Rules (9 rules, 4 languages)
 
@@ -30,7 +31,7 @@ Add a `# SSoT-OK` (or `// SSoT-OK`) comment. Anywhere in the new content it supp
 
 ## Code
 
-The classifier is `classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePerSessionForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifySsotPrinciplesForPostToolUseOrchestrator`. The file also runs standalone through its `import.meta.main` guard.
+The classifier is `classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePerSessionForPostToolUseOrchestrator`, exported to the orchestrator under the alias `classifySsotPrinciplesForPostToolUseOrchestrator`. The file also runs standalone through its `import.meta.main` guard. Tests: `hooks/posttooluse-ssot-principles.test.ts`.
 
 ## GitHub Issue
 
