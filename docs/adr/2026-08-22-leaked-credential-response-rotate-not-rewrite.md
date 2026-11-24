@@ -4,7 +4,7 @@
 
 - **Status**: Accepted
 - **Date**: 2026-08-22
-- **Context**: [#89](https://github.com/terrylica/cc-skills/issues/89) — a third-party LLM API key was committed in `plugins/devops-tools/skills/claude-code-proxy-patterns/references/launchd-configuration.md` and reported by an external scanner.
+- **Context**: [commit 2b513ca1e](https://github.com/terrylica/cc-skills/commit/2b513ca1ebc126a854edf3d64e0fd23fbdbd6dcb) — a third-party LLM API key was committed in `plugins/devops-tools/skills/claude-code-proxy-patterns/references/launchd-configuration.md` and reported by an external scanner.
 
 ## Decision
 

@@ -17,7 +17,7 @@ model_version: Deep Research mode
 tools: []
 claude_code_uuid: <session-id>
 claude_code_project_path: "~/.claude/projects/-Users-<you>-eon-cc-skills/<session-id>"
-github_issue_url: https://github.com/terrylica/cc-skills/issues/70
+archived_in_commit: https://github.com/terrylica/cc-skills/commit/48d4b77c7818df7775071e8beaed0f39057dcbb9
 ---
 
 [About Gemini Opens in a new window](https://gemini.google/about/?utm_source=gemini&utm_medium=web&utm_campaign=gemini_zero_state_link_to_marketing_microsite) [Gemini App Opens in a new window](https://gemini.google.com/app/download) [Subscriptions Opens in a new window](https://one.google.com/ai) [For Business Opens in a new window](https://workspace.google.com/solutions/ai/?utm_source=geminiforbusiness&utm_medium=et&utm_campaign=gemini-page-crosslink&utm_term=-&utm_content=forbusiness-2025Q3)

@@ -119,4 +119,4 @@ We deliberately chose a **lighter-weight** approach than full eval-driven loops.
 - **Academic**: AutoSkill (ECNU-ICALK, Feb 2026), ArXiv 2602.20867v1 (security analysis)
 - **Industry**: Deloitte Tech Trends 2026, MindStudio Blog (Karpathy AutoResearch applied to Claude Code)
 - **Open Source**: [OpenClaw self-evolving-skill](https://github.com/openclaw/skills), [AutoResearchClaw](https://github.com/aiming-lab/AutoResearchClaw)
-- **GitHub Issues**: [#67](https://github.com/terrylica/cc-skills/issues/67), [#68](https://github.com/terrylica/cc-skills/issues/68), [#69](https://github.com/terrylica/cc-skills/issues/69), [#70](https://github.com/terrylica/cc-skills/issues/70)
+- **Research commits**: [commit c0a86e992](https://github.com/terrylica/cc-skills/commit/c0a86e992024164513198261882181fc6f9a71a6), [commit 879495202](https://github.com/terrylica/cc-skills/commit/87949520254b4c0299937396baa60ed98d871e2d), [commit dbc402638](https://github.com/terrylica/cc-skills/commit/dbc4026382d6ae9de3121b6840076644ae6dcd35), [commit 48d4b77c7](https://github.com/terrylica/cc-skills/commit/48d4b77c7818df7775071e8beaed0f39057dcbb9)

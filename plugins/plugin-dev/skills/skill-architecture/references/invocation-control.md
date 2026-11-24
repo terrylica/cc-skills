@@ -75,7 +75,7 @@ The cc-skills marketplace originally used a separate `commands/` directory along
 
 Now, `skills/<name>/SKILL.md` is the single source of truth. The `sync-commands-to-settings.sh` script reads from `skills/` directly.
 
-See [migration issue](https://github.com/terrylica/cc-skills/issues/26) for full context.
+See the [migration commit](https://github.com/terrylica/cc-skills/commit/f63794d5602ac1d59ab14a668f4001950d51ea03) for full context.
 
 ---
 

@@ -63,7 +63,7 @@
  * and ad-hoc audits. Standalone path uses the SAME classifier function as
  * the orchestrator path — only the I/O wrapper differs.
  *
- * GitHub Issue: https://github.com/terrylica/cc-skills/issues/28
+ * Introduced in: https://github.com/terrylica/cc-skills/commit/2dad10e734de6347576ee0f464a2fc0772e3f2ed
  */
 
 import { existsSync } from "node:fs";
