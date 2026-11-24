@@ -98,8 +98,40 @@ These were measured in Chrome on macOS in a replica of Gmail's subject line, pla
 - **One font draws every Braille pattern** (Apple Braille on macOS). All eight levels have one width (9.6 px at 14 px) and one bottom line, and the gap between cells is built into the font, so a tally is evenly spaced by construction.
 - **Limits:**
   - Dotted columns are fainter than solid bars, and odd levels look like a small stair.
-  - Typed Braille needs a font with Braille Patterns, and some apps fall back badly ([BossTerm #407](https://github.com/kshivang/BossTerm/issues/407)). The drawn HTML form and the levels in text do not depend on one.
-  - Measured on macOS only.
+  - Typed Braille needs a font with Braille Patterns, and some apps fall back badly ([BossTerm #407](https://github.com/kshivang/BossTerm/issues/407)); in bold text Chrome on macOS draws hollow rings (see "Reading tallies on macOS Chrome" below). The drawn HTML form and the levels in text do not depend on one.
+  - Measured on macOS; the bold fallback also on Windows.
+
+## Reading tallies on macOS Chrome
+
+**Symptom:** in Chrome on macOS, a tally in **bold** text shows every cell as a full grid of eight rings, filled where a dot is raised and hollow where it is not. The levels are hard to tell apart. GitHub's issue list is the common case: titles there are semibold (600), while the title inside an issue is regular (400) and looks right.
+
+**Cause:** most interface fonts have no Braille glyphs, so the system's fallback draws them. macOS ships five faces in the family "Apple Braille", all registered at weight 400: Regular (PostScript name `AppleBraille`), Outline 6 Dot, Outline 8 Dot, Pinpoint 6 Dot and Pinpoint 8 Dot. The Outline faces draw a hollow ring at every unraised position, by design. A regular-weight request matches Regular; a heavier request matches no face exactly, and Chromium picks an Outline face. The same fallback swap has been reported in other Skia-based apps ([BossTerm #407](https://github.com/kshivang/BossTerm/issues/407), [#409](https://github.com/kshivang/BossTerm/pull/409)).
+
+**Measured** (2026-11-23, the same test page with GitHub's font stack at each weight):
+
+| Browser | Weight 400 | Weight 500, 600, 700 |
+| --- | --- | --- |
+| Chromium on macOS (Chrome headless shell) | raised dots only | full grid with hollow rings |
+| WebKit 27.2 on macOS (Safari's engine) | raised dots only | raised dots only |
+| Chrome 157 and Edge 158 on Windows (Segoe UI Symbol) | raised dots only | raised dots only |
+
+**Fix, for a page you control or a user stylesheet** (tested in both macOS engines): alias the Regular face by its PostScript name across every weight, for the Braille block only, and put the alias first in the font stack.
+
+```css
+@font-face {
+  font-family: "Braille Solid";
+  src: local("AppleBraille");   /* PostScript name of the Regular face */
+  font-weight: 100 900;
+  unicode-range: U+2800-28FF;
+}
+body { font-family: "Braille Solid", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+```
+
+- Use the PostScript name. `local("Apple Braille")` is also the family name, and WebKit then picked an Outline face, which broke Safari.
+- Do not name `"Apple Braille"` in `font-family` instead. It was Chromium's 2023 workaround in [issue 40275082](https://issues.chromium.org/issues/40275082), closed Won't Fix, and it now selects an Outline face in both macOS engines, at weight 400 as well as 600 (re-measured in Chromium 149 and WebKit 27.2: hollow rings in both at 400 and 600; the `local("AppleBraille")` alias is solid in both at 600).
+- Where the face is absent (Windows, Linux) the rule matches nothing and the normal fallback applies.
+- A title's own text cannot carry this; only the page's CSS, a user stylesheet or an extension can.
+- The drawn HTML form (`braille-tally html`) uses no font and is unaffected.
 
 ## Evolution log
 
@@ -114,6 +146,8 @@ These were measured in Chrome on macOS in a replica of Gmail's subject line, pla
 - **2026-11-20 (b) — no legend in AskUserQuestion.** _Trigger_: the operator: the legend line "should be removed from all AskUserQuestion … No need to be in the front of AskUserQuestion as preamble". _Fix_: the guard no longer requires "Braille Tally" in the question text; AskUserQuestion always uses the default axes; lists keep their legend. _Evidence_: a test that a tallied, ranked question without a legend passes.
 
 - **2026-11-23 — GitHub issue titles.** _Trigger_: the operator: "make it a convention for all GitHub issue titles to start with a Braille Tally … like the convention for AskUserQuestion", enforced by a hook, agnostic and universal, the glyph alone in the title. _Fix_: `hooks/issue-title-tally-guard.ts` and rule 5's issue-title line. _Evidence_: 26 tests in `tests/issue-title.test.ts` (every `--title` form, `gh api` REST and GraphQL, shell scripts and edits, MCP tools, variables, the escape, the hook process), 12 of them from one review round by a different vendor's model (false blocks: `echo gh …`, heredoc text, a `--body` that looks like a flag, `-F title=@-`, GraphQL expansions and `\u` escapes, other mutations' titles, other MCP servers; false passes: `--repo` first, `$( … )`, `$'…'`, GraphQL variables, partial edits). gh-tools' title reminder now names the tally too.
+
+- **2026-11-23 (b) — hollow rings in bold on macOS Chrome.** _Trigger_: a screenshot of a GitHub issue list where every tally showed full grids of rings; inside each issue the same tallies looked right. _Finding_: the bold list title makes Chromium's fallback pick an Apple Braille Outline face; WebKit and Windows browsers do not. _Fix_: the section "Reading tallies on macOS Chrome", with the CSS alias. _Evidence_: renders of one test page in Chromium and WebKit on macOS and in Chrome and Edge on Windows, at weights 400 to 700, with and without the alias; the font files' names and weight classes.
 
 ## Post-Execution Reflection
 
