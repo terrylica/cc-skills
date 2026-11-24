@@ -1,3 +1,16 @@
+# [34.24.0](https://github.com/terrylica/cc-skills/compare/v34.23.3...v34.24.0) (2026-11-24)
+
+
+### Features
+
+* **braille-tally:** issue titles start with a Braille Tally, enforced ([#134](https://github.com/terrylica/cc-skills/issues/134)) ([01f4591](https://github.com/terrylica/cc-skills/commit/01f4591e81f99843ecb136b59302a63fecfbe864)), closes [#issue-title-reminder](https://github.com/terrylica/cc-skills/issues/issue-title-reminder)
+
+Every GitHub issue title an agent writes now starts with a Braille Tally, the same convention the AskUserQuestion guard already holds for option labels: a reader scanning an issue list sees at a glance how each issue was assessed, on Importance · Urgency · Simplicity, in the same shape everywhere. The title is the tally, one space, then the text, the glyph alone, for example "⣿⣶⣴ Fix the login timeout". A new PreToolUse guard enforces it before the issue is created or retitled, and gh-tools' existing title reminder now says the same.
+
+- New hooks/issue-title-tally-guard.ts in braille-tally: reads literal titles from gh issue create/new/edit (every --title form, after --repo, inside $( ... ), backticks and heredocs fed to a shell), gh api REST on repos/OWNER/REPO/issues[/N] with a title field, gh api graphql createIssue/updateIssue (literal or through the variable's field), shell scripts being written or edited (judged by the titles the change adds) and GitHub MCP issue tools.
+- Denies with the exact fix, never repairs, fails open, makes no network calls; a title from a variable is allowed and a known prefix is still checked; the plugin's one escape token, never in the deny message.
+- 26 tests in tests/issue-title.test.ts, 12 of them from a review round by a different vendor's model (false blocks such as echo gh ..., heredoc text, a body that looks like a flag; false passes such as $( ... ) and partial script edits). A 1 MB script is checked in about 50 ms.
+
 ## [34.23.3](https://github.com/terrylica/cc-skills/compare/v34.23.2...v34.23.3) (2026-11-23)
 
 
