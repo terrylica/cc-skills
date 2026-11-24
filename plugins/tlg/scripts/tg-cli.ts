@@ -33,6 +33,7 @@ import { Api, TelegramClient } from "./vendor/telegram.js";
 import { Logger, LogLevel } from "./vendor/telegram.js";
 import { StringSession } from "./vendor/telegram.js";
 import { OP_SA_TOKEN_UNCONFIGURED_HINT, resolveOpSaToken } from "./op-sa-token.ts";
+import { PROFILES_RELATIVE_PATH, unknownProfileMessage } from "./profile-hint.ts";
 import { applyFooter } from "./session-footer.ts";
 import { badLinks, describeBadLinks, exactLinks } from "./safe-links.ts";
 import { editableEntities, inputUserFromPeer, relinkedEntities, withExactLinkEntities } from "./link-entities.ts";
@@ -88,7 +89,7 @@ enum EnvVar {
  */
 function loadProfiles(): { profiles: Record<string, string>; defaultProfile: string } {
   try {
-    const raw = JSON.parse(readFileSync(join(homedir(), ".config/cc-skills/tlg-profiles.json"), "utf8"));
+    const raw = JSON.parse(readFileSync(join(homedir(), PROFILES_RELATIVE_PATH), "utf8"));
     const profiles: Record<string, string> = raw.profiles ?? {};
     return { profiles, defaultProfile: raw.default ?? Object.keys(profiles)[0] ?? "default" };
   } catch {
@@ -157,9 +158,7 @@ function opGet(itemId: string, field: string, reveal = false): string {
 function itemForProfile(profile: string): string {
   const itemId = process.env[EnvVar.OpUuid] ?? PROFILES[profile];
   if (!itemId) {
-    throw new UsageError(
-      `unknown profile '${profile}'. Available: ${Object.keys(PROFILES).join(", ")}`,
-    );
+    throw new UsageError(unknownProfileMessage(profile, Object.keys(PROFILES)));
   }
   return itemId;
 }

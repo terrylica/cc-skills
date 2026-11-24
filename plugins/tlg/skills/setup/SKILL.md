@@ -37,6 +37,18 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 - `bun` available. Nothing to install: `telegram` (GramJS) is vendored in `scripts/vendor/`.
 - 1Password CLI (`op`) signed in; the item above present in the `Claude Automation` vault.
 
+### On Linux, or any host without the 1Password desktop app
+
+There `op` needs a service-account token or a manual sign-in, so pick one of:
+
+- **A service-account token:** export `OP_SERVICE_ACCOUNT_TOKEN`, or set `OP_SA_TOKEN_CMD` to a command that prints it, or `OP_SA_TOKEN_FILE` to a chmod-600 file holding it. The token goes into `op`'s environment, never its argv.
+- **A manual sign-in:** `op account add` once, then `eval "$(op signin)"` in the shell that runs tlg; tlg hands `op` its environment, so the session reaches it. 1Password warns that on some platforms any process of the same user can then use the account ([sign in manually](https://developer.1password.com/docs/cli/sign-in-manually/)), so on a shared host prefer the token.
+- **No 1Password for the API id and hash:** set `TELEGRAM_API_ID` and `TELEGRAM_API_HASH`. That is enough for every command on an account that is already signed in; `send-code` and `sign-in` still read the phone number from the 1Password item.
+
+On a shared host each person has their own profile file (`~/.config/cc-skills/tlg-profiles.json`, below) and their own session (`~/.local/share/gramjs/<profile>.session`, chmod 600); never copy another user's. A fresh user without the profile file gets `unknown profile 'default'` with these same options in the message.
+
+The footer's time zone is the machine's: set `TZ` on a host kept on UTC if messages should show local time.
+
 ## Auth is non-interactive (3 steps)
 
 The Bash tool has no stdin, so the CLI never prompts. Authentication is split into `send-code` (requests the code) and `sign-in` (submits it). Get the code from the user with **AskUserQuestion** between the two steps.
