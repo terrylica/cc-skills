@@ -1,5 +1,5 @@
 {
-  "description": "Braille Tally: every AskUserQuestion option carries a tally, in rank order (no legend in the question)",
+  "description": "Braille Tally: every AskUserQuestion option carries a tally, in rank order (no legend in the question); every GitHub issue title an agent writes starts with a tally",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,6 +8,16 @@
           {
             "type": "command",
             "command": "bun \"${CLAUDE_PLUGIN_ROOT}\"/hooks/askuserquestion-tally-guard.ts",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|mcp__.*github.*__.*(create_issue|update_issue|issue_write)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"${CLAUDE_PLUGIN_ROOT}\"/hooks/issue-title-tally-guard.ts",
             "timeout": 5
           }
         ]

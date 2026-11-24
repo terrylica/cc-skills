@@ -26,6 +26,7 @@ Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to 
 | Skill `braille-tally`       | The convention: axes, legend, Pareto ranking, where tallies go, the measurements behind it                                                                                 |
 | `scripts/braille-tally.ts`  | `tally`, `parse`, `legend`, `html` (drawn, no font needed, for email and web pages), `rank` (Pareto fronts) and `spec`                                                     |
 | `lib/tally.ts`              | The same functions to import, with no dependencies                                                                                                                         |
+| Hook: issue-title guard     | Blocks creating or retitling a GitHub issue (`gh issue create/edit`, `gh api`, a shell script that does either, GitHub MCP tools) when the title does not start with a tally and one space. The glyph alone: `⣿⣶⣴ Fix the login timeout`. A reader scanning the issue list sees how each issue was assessed |
 | Hook: AskUserQuestion guard | Blocks a question in two cases: an option label that doesn't start with a tally, or options out of rank. The question itself needs no legend: its axes are always the default three. It says exactly what to fix |
 
 ## Adopt it
@@ -39,10 +40,10 @@ Braille Tally: Importance · Urgency · Simplicity, each column ⡀ (lowest) to 
 
    It needs [Bun](https://bun.sh) on the PATH.
 
-2. Add one line to your own `CLAUDE.md` (user-level or project-level), so every session uses it on lists too, not only in AskUserQuestion:
+2. Add one line to your own `CLAUDE.md` (user-level or project-level), so every session uses it on lists too, not only in AskUserQuestion and issue titles:
 
    ```markdown
-   - **Braille Tally on everything a person reads that ranks items** (open items, options, asks, tasks): each item starts with its tally, Importance · Urgency · Simplicity, levels ⡀…⣿, with the legend once per list → `Skill(braille-tally:braille-tally)`.
+   - **Braille Tally on everything a person reads that ranks items** (open items, options, asks, tasks): each item starts with its tally, Importance · Urgency · Simplicity, levels ⡀…⣿, with the legend once per list; every GitHub issue title starts with its tally → `Skill(braille-tally:braille-tally)`.
    ```
 
 3. Optional: in HTML (emails, web pages), draw tallies with `bun scripts/braille-tally.ts html 2 8 8 --levels`, so they render without a Braille font.

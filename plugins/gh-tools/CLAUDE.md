@@ -50,6 +50,8 @@ The `gh-issue-title-reminder.mjs` hook enforces the **Title Evolution** pattern:
 
 GitHub allows **256 characters** for issue titles. Maximize this limit to create informative, searchable titles that reflect the full context of the issue.
 
+Every title starts with its **Braille Tally** (`⣿⣶⣴ Fix the login timeout`): the reminder says so, and the `braille-tally` plugin's issue-title guard enforces it before the issue is created or retitled.
+
 ### When It Triggers
 
 | Command Pattern                  | Triggers?              |

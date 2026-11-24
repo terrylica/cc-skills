@@ -91,7 +91,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [agent-reach](./agent-reach/CLAUDE.md)
 - [arxiv-source-first](./arxiv-source-first/CLAUDE.md)
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
-- [braille-tally](./braille-tally/CLAUDE.md) — the Braille Tally ranking glyph (⡀…⣿), its CLI and the AskUserQuestion guard
+- [braille-tally](./braille-tally/CLAUDE.md) — the Braille Tally ranking glyph (⡀…⣿), its CLI, the AskUserQuestion guard and the GitHub issue-title guard
 - [calcom-commander](./calcom-commander/CLAUDE.md)
 - [chrome-profiles](./chrome-profiles/CLAUDE.md)
 - [cli-anything](./cli-anything/CLAUDE.md)

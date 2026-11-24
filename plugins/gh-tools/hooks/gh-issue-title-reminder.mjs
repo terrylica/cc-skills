@@ -70,6 +70,7 @@ if (isIssueCreate) {
 Title Optimization Reminder:
    GitHub allows 256 characters for issue titles.
    Maximize this limit to create informative, searchable titles.
+   Start it with its Braille Tally, one cell per axis (Importance · Urgency · Simplicity), e.g. "⣿⣶⣴ Fix the login timeout" (braille-tally plugin).
 
    Check current length: gh issue view <number> --json title --jq '.title | length'`;
   console.log(JSON.stringify({ decision: "block", reason: template }));
@@ -152,10 +153,11 @@ Consider updating the title to:
    - Reflect new findings from this comment
    - Maximize the 256-character limit
    - Capture the full journey/context of the issue
+   - Keep its leading Braille Tally current (⣿⣶⣴ …, braille-tally plugin)
 
 Commands:
   gh issue view ${issueNumber} --json title --jq '.title | length'
-  gh issue edit ${issueNumber} --title "..."`;
+  gh issue edit ${issueNumber} --title "⣿⣶⣴ ..."`;
 console.log(JSON.stringify({ decision: "block", reason: template }));
 
 process.exit(0);
