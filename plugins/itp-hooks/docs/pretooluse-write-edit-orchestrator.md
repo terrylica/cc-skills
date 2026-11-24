@@ -10,7 +10,7 @@ Any tool name other than `Write` or `Edit` is allowed before the registry runs.
 
 ## Subhook registry
 
-The registry is `PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orchestrator source; it is the source of truth for this table. It holds 11 subhooks, run serially in this order (lightest first):
+The registry is `PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY` in the orchestrator source; it is the source of truth for this table. Its subhooks run serially in this order (lightest first):
 
 | #   | Subhook                     | Blocks a Write/Edit that…                                                                  | Timeout  | Spoke                                                                |
 | --- | --------------------------- | ------------------------------------------------------------------------------------------ | -------- | -------------------------------------------------------------------- |
