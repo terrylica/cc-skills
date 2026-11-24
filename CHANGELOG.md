@@ -1,3 +1,17 @@
+## [34.25.3](https://github.com/terrylica/cc-skills/compare/v34.25.2...v34.25.3) (2026-11-24)
+
+
+### Bug Fixes
+
+* **productivity-tools:** download single-photo Amazon Photos shares ([8a5ff11](https://github.com/terrylica/cc-skills/commit/8a5ff117007cf402074a9aaa77ed62afcc6cfcae))
+
+A share link made with "Share" on one photo has the same /photos/share/&lt;id> shape as an album link, but the share's root child is the photo itself rather than an album folder. The downloader treated that child as an album, listed its (empty) children and reported total=0, so a single-photo link silently produced nothing. It now detects a FILE child and downloads that node directly, with the same size check and manifest.
+
+- download-album.ts: when the root's first child has kind FILE, select it as the only item instead of listing its children; the log line reads file=&lt;id> rather than album=&lt;id>.
+- Album shares are unchanged: a FOLDER child is still listed with the image/video filter.
+- SKILL.md gains a gotcha entry describing single-photo shares and the old total=0 symptom.
+- Measured on two single-photo shares: each now downloads 1/1 verified (previously 0/0).
+
 ## [34.25.2](https://github.com/terrylica/cc-skills/compare/v34.25.1...v34.25.2) (2026-11-24)
 
 ## [34.25.1](https://github.com/terrylica/cc-skills/compare/v34.25.0...v34.25.1) (2026-11-24)
