@@ -880,6 +880,10 @@ class UnlimitedOcrRunner:
                 no_repeat_ngram_size=35,
                 ngram_window=128,
                 save_results=False,
+                # infer() only returns the decoded text in eval mode; without this it
+                # streams tokens, falls off the end with save_results=False, and the
+                # caller stringifies None into the literal text "None".
+                eval_mode=True,
             )
         return decode_byte_level_bpe_surface_form(result if isinstance(result, str) else str(result))
 

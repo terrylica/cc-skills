@@ -43,6 +43,7 @@ from unlimited_ocr import (
     _select_page_indices,
     collect_input_images,
     convert_html_tables_to_pipe_markdown,
+    UnlimitedOcrRunner,
 )
 
 
@@ -1032,6 +1033,37 @@ class TestConvertHtmlTablesToPipeMarkdown:
         assert "| Text |" in result
         assert "<div>" not in result
         assert "<span>" not in result
+
+
+class TestCudaInferEvalMode:
+    """The CUDA path must call model.infer(eval_mode=True).
+
+    infer() returns the decoded text only in eval mode; with save_results=False it
+    otherwise streams tokens, falls off the end, and returns None — which the caller
+    stringifies into the literal text "None" for every image.
+    """
+
+    def test_cuda_transcribe_passes_eval_mode(self):
+        runner = UnlimitedOcrRunner(backend="cuda", model_identifier="dummy")
+
+        recorded = {}
+
+        class _StubModel:
+            def infer(self, _tokenizer, **kwargs):
+                recorded.update(kwargs)
+                return "page text"
+
+        runner._load = lambda: (_StubModel(), object(), None)
+        result = runner.transcribe_image(
+            Path("page.png"),
+            "document-parsing",
+            max_tokens=16,
+            repetition_penalty=1.0,
+        )
+
+        assert result == "page text"
+        assert recorded.get("eval_mode") is True
+        assert recorded.get("save_results") is False
 
 
 if __name__ == "__main__":
