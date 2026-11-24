@@ -72,6 +72,7 @@ bash "$BUNDLE/make-bundle.sh" --src "$ALBUM_OUT" --zip --zip-cap-mib 25
 
 ## Key facts and gotchas
 
+- **A share link can hold a single photo, not an album.** "Share" on one item gives the same `/photos/share/<id>` URL, but the root's child is the photo itself (`kind: FILE`) rather than an album folder, and listing its children returns nothing. The script detects this and downloads that one node (log line `file=<id>` instead of `album=<id>`); before 2026-11-24 it reported `total=0` for such links.
 - **The album may hold more than you think.** A "~40 photo" album can list 100+ asset nodes once you count Live-Photo stills and videos. The default `ALBUM_INCLUDE=image` keeps just still images; widen it if you want videos.
 - **`contentRedirection?download=true` returns the original**, not a thumbnail. The album-listing `tempLink`s can be downsized (the app requests `lowResThumbnail=true`); always pull originals via `contentRedirection`.
 - **Run the JSON calls in-page.** Calling `/drive/v1/` from plain `curl` fails — the share auth rides on the browser context. The script uses `page.evaluate` (JSON) + `context.request` (binaries), both inside the loaded album context.

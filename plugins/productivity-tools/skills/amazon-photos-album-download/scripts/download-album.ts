@@ -74,19 +74,25 @@ const common = `shareId=${SHARE_ID}&resourceVersion=V2&ContentType=JSON`;
 log(`shareId=${SHARE_ID} origin=${ORIGIN}`);
 
 const rootId = (await api(`/drive/v1/shares/${SHARE_ID}?${common}`)).nodeInfo.id;
-const albumId = (
+const first = (
   await api(`/drive/v1/nodes/${rootId}/children?asset=ALL&limit=1&searchOnFamily=true&tempLink=true&${common}&offset=0`)
-).data[0].id;
-log(`root=${rootId} album=${albumId}`);
+).data[0];
+const albumId: string = first.id;
+// A share of ONE photo ("Share" on a single item) has the photo itself as the root's child, not an album
+// folder; listing its children returns nothing (measured 2026-11-24), so download that node directly.
+const singleFile = String(first?.kind ?? "").toUpperCase().startsWith("FILE");
+log(`root=${rootId} ${singleFile ? "file" : "album"}=${albumId}`);
 
 const filters = encodeURIComponent(
   "kind:(FILE* OR FOLDER*) AND contentProperties.contentType:(image* OR video*) AND status:(AVAILABLE*)",
 );
-const all = (
-  await api(
-    `/drive/v1/nodes/${albumId}/children?asset=ALL&filters=${filters}&limit=200&searchOnFamily=true&tempLink=true&${common}&offset=0`,
-  )
-).data as any[];
+const all = singleFile
+  ? [first]
+  : ((
+      await api(
+        `/drive/v1/nodes/${albumId}/children?asset=ALL&filters=${filters}&limit=200&searchOnFamily=true&tempLink=true&${common}&offset=0`,
+      )
+    ).data as any[]);
 const items = all.filter((n) => wanted(String(n?.contentProperties?.contentType ?? "")));
 log(`total=${all.length} selected=${items.length} (include=${INCLUDE})`);
 
