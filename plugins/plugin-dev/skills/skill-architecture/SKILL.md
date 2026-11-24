@@ -119,7 +119,7 @@ plugins/<plugin>/
         └── SKILL.md   <- single canonical file (context AND user-invocable)
 ```
 
-`skills/<name>/SKILL.md` is the **single source of truth**. The separate `commands/` layer was eliminated -- it required maintaining two identical files per skill and caused `Skill()` invocations to return "Unknown skill". See [migration issue](https://github.com/terrylica/cc-skills/issues/26) for full context.
+`skills/<name>/SKILL.md` is the **single source of truth**. The separate `commands/` layer was eliminated -- it required maintaining two identical files per skill and caused `Skill()` invocations to return "Unknown skill". See the [migration commit](https://github.com/terrylica/cc-skills/commit/f63794d5602ac1d59ab14a668f4001950d51ea03) for full context.
 
 ### How Skills Become Slash Commands
 

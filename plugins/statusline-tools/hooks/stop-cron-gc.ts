@@ -18,7 +18,7 @@
  * Instead, we use JSONL mtime freshness for ALL entries — if the parent
  * session is alive, its JSONL is fresh and entries survive.
  *
- * Issue: https://github.com/terrylica/cc-skills/issues/75
+ * Introduced in: https://github.com/terrylica/cc-skills/commit/8cd6d7df955e03ad47e94a8cabbc2c185abdfea4
  * Pattern: Consul anti-entropy sync adapted for local JSON registry.
  *   - Layer 1: Render-time GC in custom-statusline.sh (every ~10s)
  *   - Layer 2: This Stop hook (on session exit)            ← YOU ARE HERE

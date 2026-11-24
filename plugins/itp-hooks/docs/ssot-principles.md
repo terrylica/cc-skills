@@ -35,4 +35,4 @@ The classifier is `classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePer
 
 ## GitHub Issue
 
-[#28](https://github.com/terrylica/cc-skills/issues/28)
+[commit 2dad10e73](https://github.com/terrylica/cc-skills/commit/2dad10e734de6347576ee0f464a2fc0772e3f2ed)

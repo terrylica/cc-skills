@@ -1,6 +1,6 @@
 # PreToolUse:Bash guard orchestrator
 
-> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Issue: [#111](https://github.com/terrylica/cc-skills/issues/111).
+> Spoke of [itp-hooks CLAUDE.md](../CLAUDE.md). Introduced in [commit 8e9b4b079](https://github.com/terrylica/cc-skills/commit/8e9b4b079a906f5fd4a4d0c9500a054f2eeec4b3).
 
 `hooks/pretooluse-bash-guard-orchestrator.ts` runs the plugin's Bash guards in one bun process; `BASH_GUARD_REGISTRY` in that file is the list. Before it, every Bash tool call started 26 bun processes from this plugin alone, one per guard, and every one of them was unconditional.
 
@@ -67,7 +67,7 @@ Every guard here matches its regex against the whole command string, so it sees 
 
 > Because the `if` filter is best-effort, use the [permission system](https://code.claude.com/docs/en/permissions) rather than a hook to enforce a hard allow or deny.
 
-The full table is on [#111](https://github.com/terrylica/cc-skills/issues/111).
+The full table is in the message of [commit 8e9b4b079](https://github.com/terrylica/cc-skills/commit/8e9b4b079a906f5fd4a4d0c9500a054f2eeec4b3).
 
 ## Adding a Bash guard
 

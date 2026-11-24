@@ -118,7 +118,7 @@ Timeouts are in **seconds**. Upstream: "Seconds before canceling. … Defaults: 
 | 15    | 15s      | Git operations    |
 | 30    | 30s      | Network calls     |
 
-This table said **milliseconds** until 2026-09-04, and that single line is how dozens of hook entries across the marketplace came to be written three digits too large: a `5000` meant as five seconds parks a _blocking_ hook for 83 minutes, and one Stop hook was left at 30000 — eight hours twenty. `scripts/hooks.schema.json` now caps the field at 600, so the wrong unit fails validation instead of shipping. See issue [#109](https://github.com/terrylica/cc-skills/issues/109).
+This table said **milliseconds** until 2026-09-04, and that single line is how dozens of hook entries across the marketplace came to be written three digits too large: a `5000` meant as five seconds parks a _blocking_ hook for 83 minutes, and one Stop hook was left at 30000 — eight hours twenty. `scripts/hooks.schema.json` now caps the field at 600, so the wrong unit fails validation instead of shipping. See [commit a7980cdec](https://github.com/terrylica/cc-skills/commit/a7980cdec216d1c0e6093567819a89c71bc2632f).
 
 **Common mistake**: writing `15000` when you mean fifteen seconds. That is four hours ten minutes, and on a blocking hook it is indistinguishable from a hang. `15` is the correct value.
 
