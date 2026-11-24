@@ -2,6 +2,14 @@
 
 Reverse chronological - newest on top.
 
+## 2026-11-23 — Slow regrowth: sum recent writes by directory; Chrome code-sign clones; worktrees are real files
+
+**Trigger**: Nine days after a clean that reached 246 GB free, the Mac was back at 119 GB. The "sudden loss" sweep (files over 1-2 GB) found only one 22 GB download and a sparse OrbStack image, and a recent-writes `find` over the whole volume stalled for many minutes inside `com.google.Chrome.code_sign_clone`, where `du` reported 3.5 TB: 2,487 leaked per-launch clones of Chrome's bundle, made in bursts of about one per second by automation. The skill also said per-user Aerials free ~0 GB, which was wrong once the system store had been emptied, and its "fully pushed" test flagged squash-merged branches.
+
+**Fix**: Phase 3 gained "Slow loss over days" (a by-directory sum of recent writes with the clone forest and OrbStack pruned) and "Chrome code-sign clones" (what they cost, how to spot the live one, the cleanup recipe, the upstream fix). The worktree and Aerials Troubleshooting rows now carry the macOS measurements and their exceptions, and two new rows cover `brew cleanup` exiting 1 on a root-owned keg and scans stalling in the clone forest.
+
+**Evidence**: Measured with `df`, in order: 9 merged agent worktrees +46.8 GB (of ~48 GB by `du`); Homebrew +5.1, go-build +5.6, sccache +4.0, `uv cache clean` +7.9 (of 18.4 GiB removed), a truncated 1.1 GB app log +1.0; 2,483 Chrome clones spanning 4 replaced versions +4.0 GB; 21 of 22 per-user Aerials +9.7 GB; two Downloads video releases +25.0 GB. Total 118.5 → 227.6 GB free. A live venv still imported polars and numpy afterwards, and the running Chrome kept spawning helpers.
+
 ## 2026-11-13 — `uv cache prune` reports removed files, not freed space
 
 **Trigger**: A routine prune printed `Removed N files (X GiB)`, but `df` showed only a small fraction of that freed. The removed entries still shared their blocks with live `.venv`s, so the space stayed allocated. The Quick Wins row promised 5-40 GB.
