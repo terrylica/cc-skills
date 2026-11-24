@@ -84,7 +84,7 @@ Claude Code installs a plugin's npm/Bun packages on every install and update, bu
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (41)
+## All Plugins (42)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
@@ -124,6 +124,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [quant-research](./quant-research/CLAUDE.md)
 - [rust-tools](./rust-tools/CLAUDE.md)
 - [ssh-tunnel-companion](./ssh-tunnel-companion/CLAUDE.md)
+- [staff-onboarding](./staff-onboarding/CLAUDE.md) — organisation-agnostic Google Workspace staff onboarding: one generic skill, a profile per organisation, a lessons log that becomes PRs
 - [statusline-tools](./statusline-tools/CLAUDE.md)
 - [tlg](./tlg/CLAUDE.md)
 - [unlimited-ocr](./unlimited-ocr/CLAUDE.md)
