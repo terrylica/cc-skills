@@ -54,4 +54,5 @@ The tally carries only levels, never personal data, so it is safe anywhere.
 
 - Dotted columns are fainter than solid bars.
 - Typed Braille needs a font with Braille Patterns; most systems have one, but check yours. The drawn HTML form and the levels in text don't need one.
-- Measured on macOS. Reports from other systems are welcome.
+- In **bold** text, Chrome on macOS falls back to an outline Braille face that draws a hollow ring at every unraised dot, so GitHub's semibold issue list shows full grids of rings. Safari and Windows browsers are unaffected. A CSS alias for the page or a user stylesheet fixes it: see "Reading tallies on macOS Chrome" in the skill.
+- Measured on macOS, and the bold fallback also on Windows. Reports from other systems are welcome.
