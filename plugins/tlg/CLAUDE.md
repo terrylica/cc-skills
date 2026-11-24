@@ -115,7 +115,3 @@ MTProto client library is **GramJS** (`telegram` on npm):
 
 - **Canonical**: <https://github.com/gram-js/gramjs> · docs <https://gram.js.org>
 - Vendored, not installed: `scripts/vendor/telegram.js` is bundled from `scripts/bun.lock` by `scripts/vendor-plugin-deps.ts` (`moon run repo:vendor-deps` rebuilds it after a lockfile change).
-
-## History
-
-The 2026-06-22 migration note and the 2026-03-17 validation results: [docs/history.md](./docs/history.md).
