@@ -374,7 +374,7 @@ REGROWTH_EOF
 
 Measured 2026-11-23: free space went from 246 GB to 119 GB in 9 days, and the largest file written in that time was a 22 GB download. The grouped sum found the real piles: agent git worktrees (~48 GB), Downloads (25 GB), caches regrown since the last clean (~33 GB by `du`) and a re-downloaded Aerial set (9.6 GB). OrbStack's `data.img.raw` shows up in an `ls`-based scan as ~1 TB, but it is sparse (10 GB by `du`), so prune it or size it with `du`.
 
-### Chrome code-sign clones: 1.4 GB per launch, TB by `du`
+### Chrome code-sign clones: one per launch, TB by `du`
 
 Each launch of Google Chrome makes an APFS clone of its bundle (~700 files) at `$(dirname "$(getconf DARWIN_USER_TEMP_DIR)")/X/com.google.Chrome.code_sign_clone/code_sign_clone.XXXXXX/`. Chrome removes it on a clean exit; when automation launches and kills Chrome in quick succession, the clones are left behind. Measured 2026-11-23: 2,487 clones in 17 days, made in bursts of about one per second, 820 in one day. `du` reported 3.5 TB on a 926 GB disk.
 
@@ -387,9 +387,9 @@ Each launch of Google Chrome makes an APFS clone of its bundle (~700 files) at `
 set -euo pipefail
 X="$(dirname "$(getconf DARWIN_USER_TEMP_DIR)")/X/com.google.Chrome.code_sign_clone"
 ls "$X" | wc -l                                        # how many
-for c in "$X"/*; do ls "$c/Google Chrome.app.bundle/Contents/Frameworks/Google Chrome Framework.framework/Versions" \
-  2>/dev/null | grep -v Current | tr '\n' ' '; echo; done | sort | uniq -c   # by version: only replaced ones cost space
-ps -axo pid,lstart,command | grep '/MacOS/Google Chrome' | grep -v -e Helper -e grep   # browser start time(s)
+for c in "$X"/*; do { ls "$c/Google Chrome.app.bundle/Contents/Frameworks/Google Chrome Framework.framework/Versions" \
+  2>/dev/null | grep -v Current | tr '\n' ' '; } || true; echo; done | sort | uniq -c   # by version: only replaced ones cost space
+ps -axo pid,lstart,command | grep '/MacOS/Google Chrome' | grep -v -e Helper -e grep || true   # browser start time(s)
 # keep: clones born at each browser's start (find "$X" -maxdepth 1 -newerBt '<start-5s>' ! -newerBt '<start+10s>'),
 #       any clone lsof shows open, and any clone younger than 10 minutes; rm -rf the rest one by one
 CHROME_CLONES_EOF
