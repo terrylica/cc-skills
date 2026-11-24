@@ -128,6 +128,7 @@ body { font-family: "Braille Solid", -apple-system, BlinkMacSystemFont, "Segoe U
 ```
 
 - Use the PostScript name. `local("Apple Braille")` is also the family name, and WebKit then picked an Outline face, which broke Safari.
+- Do not name `"Apple Braille"` in `font-family` instead. It was Chromium's 2023 workaround in [issue 40275082](https://issues.chromium.org/issues/40275082), closed Won't Fix, and it now selects an Outline face in both macOS engines, at weight 400 as well as 600 (re-measured in Chromium 149 and WebKit 27.2: hollow rings in both at 400 and 600; the `local("AppleBraille")` alias is solid in both at 600).
 - Where the face is absent (Windows, Linux) the rule matches nothing and the normal fallback applies.
 - A title's own text cannot carry this; only the page's CSS, a user stylesheet or an extension can.
 - The drawn HTML form (`braille-tally html`) uses no font and is unaffected.
