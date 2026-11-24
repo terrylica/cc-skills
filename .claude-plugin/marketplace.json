@@ -1013,7 +1013,7 @@
     },
     {
       "name": "braille-tally",
-      "description": "The Braille Tally: rank items on Importance · Urgency · Simplicity as one shape of Braille cells (level n = n dots, ⡀…⣿), evenly spaced even in plain text; a CLI to print, draw and Pareto-rank tallies, and a guard that makes every AskUserQuestion option carry one",
+      "description": "The Braille Tally: rank items on Importance · Urgency · Simplicity as one shape of Braille cells (level n = n dots, ⡀…⣿), evenly spaced even in plain text; a CLI to print, draw and Pareto-rank tallies, and guards that make every AskUserQuestion option and every GitHub issue title carry one",
       "version": "34.23.3",
       "source": "./plugins/braille-tally",
       "category": "productivity",
@@ -1027,6 +1027,7 @@
         "prioritization",
         "pareto",
         "askuserquestion",
+        "github-issues",
         "braille",
         "sparkline"
       ],

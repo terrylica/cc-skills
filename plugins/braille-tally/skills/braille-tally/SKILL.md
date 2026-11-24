@@ -1,6 +1,6 @@
 ---
 name: braille-tally
-description: The Braille Tally — rank anything a person will read on a few axes at once, as one word-sized shape of Braille cells (⣿⣶⣴), one cell per axis, where level n of 8 is a cell with n dots. Default axes, in order, Importance · Urgency · Simplicity. Use it on every list of outstanding items, decisions, options, asks, tasks or recommendations that a human reads — and on every AskUserQuestion option, where a guard requires it. Prints, reads, draws (HTML, no font needed) and ranks tallies (Pareto fronts, no weights). TRIGGERS - braille tally, tally, rank these, prioritise, priority list, outstanding items, open items, what is waiting, options to choose from, AskUserQuestion, importance urgency simplicity, ranking glyph.
+description: The Braille Tally — rank anything a person will read on a few axes at once, as one word-sized shape of Braille cells (⣿⣶⣴), one cell per axis, where level n of 8 is a cell with n dots. Default axes, in order, Importance · Urgency · Simplicity. Use it on every list of outstanding items, decisions, options, asks, tasks or recommendations that a human reads — and on every AskUserQuestion option and every GitHub issue title, where guards require it. Prints, reads, draws (HTML, no font needed) and ranks tallies (Pareto fronts, no weights). TRIGGERS - braille tally, tally, rank these, prioritise, priority list, outstanding items, open items, what is waiting, options to choose from, AskUserQuestion, GitHub issue title, gh issue create, importance urgency simplicity, ranking glyph.
 allowed-tools: Bash, Read
 ---
 
@@ -34,6 +34,7 @@ Example: `⣿⣶⣴` is very important, fairly urgent, and moderately simple. `�
 5. **Where it goes:**
    - **Lists a person reads** (open items, asks, tasks, findings, recommendations, plans, digests): each item starts with its tally.
    - **AskUserQuestion:** each option label starts with its tally and one space, always on the default axes, with no legend line in the question (operator, 2026-11-20: no preamble). Options are in rank order, so the first option is the recommended one and is in front 1. A guard in this plugin enforces both.
+   - **GitHub issue titles:** each title starts with its tally and one space, the glyph alone, on the default axes: `⣿⣶⣴ Fix the login timeout`. No levels in digits and no numbering in a title: a title is short, and the issue list is where people scan it. Retitle when the assessment changes. A guard in this plugin enforces it.
    - **Plain text that may be read without the shape** (an email's plain part, a screen reader): add the levels after the tally, `⣀⣿⣿ (2·8·8)`.
    - **HTML** (email bodies, web pages): draw it with `html`, which needs no Braille font, and keep the levels in small text beside it.
 6. **Not for secrets or identity:** a tally carries only levels, so it is safe in any public place.
@@ -66,6 +67,29 @@ It fails open on anything unexpected.
 
 **Escape:** put `BRAILLE-TALLY-EXEMPT` anywhere in the question, only when its options genuinely cannot be ranked. The token is named here and in the hook, and deliberately not in the deny message.
 
+## The issue-title guard
+
+`hooks/issue-title-tally-guard.ts` (PreToolUse, matcher `Bash|Write|Edit` and GitHub MCP issue tools) denies the call, with the exact fix, when an issue title it can read does not start with a tally and one space, puts digit levels or a number after the tally, or uses Braille cells that are not tally levels. **Why:** a reader scanning an issue list sees at a glance how each issue was assessed, in the same shape as the options of a question.
+
+It reads literal titles only:
+
+- `gh issue create|new|edit` with `--title`, `--title=`, `-t`, `-tVALUE`;
+- `gh api` on `repos/OWNER/REPO/issues[/N]` with a `title=` field (`-f`, `-F`, `--field`, `--raw-field`), unless the method is GET;
+- `gh api graphql` with a `createIssue` or `updateIssue` mutation (a literal `title: "…"` or a `title=` field);
+- the same commands inside a shell script being written (`.sh`, `.bash`, `.zsh`, or a shell shebang), so a script run later is covered;
+- GitHub MCP tools named `…create_issue`, `…update_issue` or `…issue_write`, by their `title` argument.
+
+A title built from a variable (`--title "$T"`) is not known before it runs and is allowed; a known prefix (`--title "Bug: $T"`) is still checked. `gh issue edit` without `--title` is not checked. It fails open on anything unexpected and makes no network calls.
+
+```bash
+gh issue create --title "⣿⣶⣴ Fix the login timeout" --body "…"     # allowed
+gh issue create --title "Fix the login timeout"                    # denied: no tally
+gh issue create --title "⣿⣶⣴ (8·6·5) Fix the login timeout"        # denied: the glyph alone
+gh issue edit 12 --title "⣤⣠⣿ Rename the config flag"               # allowed: retitle when the assessment changes
+```
+
+**Escape:** the same token as the AskUserQuestion guard, anywhere in the tool input (a trailing shell comment works), only for a title that must match something exactly, such as a template a bot reads.
+
 ## Why Braille cells
 
 These were measured in Chrome on macOS in a replica of Gmail's subject line, plain text in Google Sans with the system's fallbacks:
@@ -88,6 +112,8 @@ These were measured in Chrome on macOS in a replica of Gmail's subject line, pla
 
   _Evidence_: the measurements above; 17 tests in `tests/tally.test.ts`, including one that checks every drawn level against its Braille code point.
 - **2026-11-20 (b) — no legend in AskUserQuestion.** _Trigger_: the operator: the legend line "should be removed from all AskUserQuestion … No need to be in the front of AskUserQuestion as preamble". _Fix_: the guard no longer requires "Braille Tally" in the question text; AskUserQuestion always uses the default axes; lists keep their legend. _Evidence_: a test that a tallied, ranked question without a legend passes.
+
+- **2026-11-23 — GitHub issue titles.** _Trigger_: the operator: "make it a convention for all GitHub issue titles to start with a Braille Tally … like the convention for AskUserQuestion", enforced by a hook, agnostic and universal, the glyph alone in the title. _Fix_: `hooks/issue-title-tally-guard.ts` and rule 5's issue-title line. _Evidence_: 14 tests in `tests/issue-title.test.ts` (every `--title` form, `gh api` REST and GraphQL, shell scripts, MCP tools, variables, the escape, the hook process).
 
 ## Post-Execution Reflection
 
