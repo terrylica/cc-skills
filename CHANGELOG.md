@@ -1,3 +1,97 @@
+# [34.25.0](https://github.com/terrylica/cc-skills/compare/v34.24.1...v34.25.0) (2026-11-24)
+
+
+### Bug Fixes
+
+* **itp-hooks:** fire memory and SSoT reminders only on evidence ([d16edd1](https://github.com/terrylica/cc-skills/commit/d16edd195e99b4d8c9b05a074ace110d89b0f929))
+
+Both once-per-session cards fired on the first code file of any session, whatever it contained. The operator saw both on a 35-line Cloudflare Worker that only redirects requests (2026-11-15): the memory-efficiency card's own header says "When writing data-path code" but never checked for any, and the SSoT card ran ast-grep, got [] and showed the principles anyway.
+
+- memory-efficiency-reminder fires only when the post-edit file head (256 KiB) matches DATA_PATH_EVIDENCE_SIGNALS: dataframe/array/columnar libraries, Arrow, Parquet, ClickHouse, numeric typed arrays or vectors, mmap/memcpy/struct.unpack, malloc, tensor imports, bulk csv. Uint8Array, ArrayBuffer, Vec&lt;u8> and bare "arrow" are deliberately not evidence. The message names the file and the matched signal.
+- ssot-principles fires only when ast-grep reports at least one finding, and scans only the extensions its rules cover (.py .ts .mts .cts .rs .go); .js/.tsx/.java/.kt/.rb have no rules, so they are no longer scanned.
+- Both claim the once-per-session gate only after evidence, so an ordinary edit never spends the session's single card. A new read-only isOncePerSessionGenericReminderGateFileAlreadyClaimed check keeps edits after the card fired a sub-millisecond noop.
+- New colocated tests (40) pin both gates, with the reporting Worker as a verbatim negative fixture; the iter-98 e2e fixture gains a polars import so it still exercises both subhooks.
+
+* **itp-hooks:** keep the memory card's evidence check linear ([ad49703](https://github.com/terrylica/cc-skills/commit/ad49703e3898a879eb40178118714cd3ad3ecfed)), closes [#104](https://github.com/terrylica/cc-skills/issues/104)
+* **itp-hooks:** memory card needs an import, not a library's name ([f5cb7ab](https://github.com/terrylica/cc-skills/commit/f5cb7ab4ebea3fa8316a2d617feb41656b75e6ec)), closes [#104](https://github.com/terrylica/cc-skills/issues/104)
+* **staff-onboarding:** contradictions a fresh-session dry run found ([71cdabf](https://github.com/terrylica/cc-skills/commit/71cdabf86bbaa75c440eb23c4c06385ea95adae1))
+
+One flow per chat with the bot's service as its only listener (no per-token turn-taking); a running flow's own watcher is the only watcher in that chat; remote support (step 16) comes before contacts (step 17), ids unchanged; secret messages go without the footer; the notifications step names no particular chat app; lessons are read and written with profile:lessons.list and profile:lessons.add, now required contract keys; placeholders {name}, {first_name}, {job_id}, {text} and {lesson} are defined, and a template carries its credential wrapper and is the dry run where one exists.
+
+* **staff-onboarding:** migration dates, description length, review nits ([af93527](https://github.com/terrylica/cc-skills/commit/af93527d47f73267b2730619b9931ea0100b7694))
+
+Independent review of PR #81:
+
+- Copying old mail: the rule "on or before the day before the oldest Gmail message" could silently skip mail around the switch, because the tool's dates count from midnight GMT. The first run now leaves the upper bound unset; Google says the tool does not duplicate mail already in the account (both sentences quoted with their URLs).
+- `neverSpam` is GAM's keyword, not a Gmail API field; reworded to "never send it to Spam (remove the SPAM label)".
+- The skill description was 1,133 characters; the Agent Skills spec allows 1,024. Now 940.
+- The contract test also checks the version in the example profile's header comment, which CLAUDE.md requires to be bumped.
+- Neutral examples: utc_offset -05:00 (the example profile's value), roles "sales" and "support".
+
+Tests: 4 pass.
+
+* **staff-onboarding:** second dry run: IMAP, office hours, aliases ([2bc2711](https://github.com/terrylica/cc-skills/commit/2bc2711f0c6e32054d6cb8ef00d0bdc285a9d3f6))
+
+A second fresh-session dry run (unresolved keys 0, confusing items 19 to 14) found: IMAP keeps mail on the server, so only POP into a .pst means the server holds little; watching only in office hours is a MUST, checked with profile:chat.watch_check; send-as adds the alias with profile:admin.alias_add first; the bot's own spec is read before starting; a tool that reads its own credentials needs no wrapper; the lessons contract says which id covers 2-Step Verification.
+
+* **tlg:** a fresh user's unknown-profile error says how to set up ([b242517](https://github.com/terrylica/cc-skills/commit/b242517ca0b60e0f962eb420925023b1e22c094e))
+
+On a host without the profile file (a new account on a shared Linux machine), `whoami` and every other command failed with "unknown profile 'default'. Available:" and an empty list, which gave no way forward. The error now names ~/.config/cc-skills/tlg-profiles.json and its shape, TELETHON_OP_UUID for one run, and TELEGRAM_API_ID with TELEGRAM_API_HASH to skip 1Password, and says each user keeps their own profile file and session. Built in profile-hint.ts, with tests.
+
+The setup skill gains a section for Linux or any host without the 1Password desktop app: op there needs a service-account token (OP_SERVICE_ACCOUNT_TOKEN, OP_SA_TOKEN_CMD or OP_SA_TOKEN_FILE), or TELEGRAM_API_ID and TELEGRAM_API_HASH skip 1Password for an account already signed in (send-code and sign-in still read the phone from the item); one profile file and one chmod-600 session per person; the footer uses the machine's time zone, so set TZ on a host kept on UTC.
+
+* **tlg:** name the manual op sign-in; one constant for the profile path ([a00a675](https://github.com/terrylica/cc-skills/commit/a00a675996dc2a2dfc66cc36c5ca37658128c53c))
+
+Review of #123: 1Password documents a manual sign-in that needs no desktop app, and tlg hands op its environment, so an eval "$(op signin)" session works as well as a service-account token. The setup skill now names both, quoting 1Password's warning that prefers the token on a shared host. loadProfiles() builds its path from PROFILES_RELATIVE_PATH, the constant the unknown-profile message names, and a test runs tg-cli against a temporary home to prove the two agree (it fails when tg-cli reads any other path).
+
+* **unlimited-ocr:** a None from model.infer fails the page ([99654de](https://github.com/terrylica/cc-skills/commit/99654defa5d5a631affc8c8f6c6582bc66118c74))
+
+Follow-up to #116. The CUDA path stringified any non-text result, so the None that infer() returns without eval_mode became the literal transcription "None" for every page (#115). eval_mode=True fixes the cause; this makes the symptom loud if upstream ever stops returning text again: transcribe_image raises RuntimeError naming eval_mode, the CLI exits non-zero, and the batch parser records the file as failed. A new test returns None from a stub model and fails when the check is removed.
+
+* **unlimited-ocr:** pass eval_mode=True to model.infer on the CUDA path ([02af7ea](https://github.com/terrylica/cc-skills/commit/02af7ea4db7525e791817103b67d820788a85908))
+
+infer() only returns the decoded text in eval mode. Without it the model streams tokens and, with save_results=False, falls off the end returning None; str(None) then made every image transcribe as the literal text "None" on CUDA backends.
+
+Pins the contract with a deterministic regression test that records the infer() kwargs through a stub model.
+
+
+
+### Features
+
+* **staff-onboarding:** a passkey from the PC when the Gmail app fails ([fe4badf](https://github.com/terrylica/cc-skills/commit/fe4badfe0fdbd0fb485bbc5a41b226e17c1ede52))
+
+A real onboarding: adding the account in the Gmail app failed. Step 7 now offers the PC route (Security › Passkeys › Use another device; the phone scans a QR code, no app) before the enforcement date on Google's page, and where Add account hides in an app with several accounts.
+
+* **staff-onboarding:** confirm a file is saved before its command ([1cf40c2](https://github.com/terrylica/cc-skills/commit/1cf40c2bf81c1184d1da61f1c764382964abe719))
+
+A person's own request (2026-11-13), now a MUST in the conversation rules: send the file, say where to save it, wait for "saved: yes", then send the command or key line. Step 7: with 2-Step Verification enforced and a passkey present, the page shows a can't-be-turned-off banner and no Turn on button. Step 8: the listed codes are the first-sign-in set; Get new codes is still needed. Step 17: delete the key message and any pasted console output once the key is spent.
+
+* **staff-onboarding:** live lessons; expect the Windows passkey box ([d2bbcd0](https://github.com/terrylica/cc-skills/commit/d2bbcd0550da0d603899715fbf47e97be9eab6d0))
+
+Step 7: on a PC without Windows Hello, Windows first shows that a passkey cannot be created on this device, with a Use another device button; say so beforehand (confirmed in a real onboarding). Lessons item 5: open sessions read the skill once from their own branch, so a lesson reaches them only by a live channel (the organisation's feed and turn hook, else a message to each), and such a lesson wins over the session's copy.
+
+* **staff-onboarding:** organisation-agnostic Google Workspace staff onboarding skill ([fe4eb89](https://github.com/terrylica/cc-skills/commit/fe4eb892ea2622b47e30834880f8027f3ee78bdc))
+
+One generic skill, google-workspace-staff-onboarding: the onboarding steps that are the same in every Google Workspace organisation, each with a stable id. It reads every value that differs from the organisation's own onboarding/profile.toml (profile contract v1, fictional example on example.com), and it improves itself through the organisation's name-free lessons log. Each lesson becomes a proposed PR: generic ones against this skill, organisation ones against that organisation's overlay. Never applied automatically (lessons contract v1).
+
+The first generic lessons are already in the steps: sign in in a browser, not the new Outlook; Google's "Don't get locked out" page; the forced password change varies between runs; the reply watcher must show attachments.
+
+Registered in marketplace.json, README, plugins/CLAUDE.md and the root count (41 plugins).
+
+* **staff-onboarding:** step 18 proves notifications on every device ([4c01014](https://github.com/terrylica/cc-skills/commit/4c01014f9bffebc0e4f4e2eb2a867e35669cc9d8))
+
+A person got no chat notification at all, mentions included, because the operating system's notification switch was off; another PC did not start the chat app after a restart. New step 18 [notifications]: check the chain from source to screen layer by layer (delivered, built right, app running and starting with the computer, OS switch for the user that runs the app, the app's own settings), a three-post test, done = a confirmed pop-up on each device; until then every group message for the person mentions or replies to them. Step id added to the lessons contract; later steps renumbered.
+
+* **staff-onboarding:** watch only in office hours ([4a0b6eb](https://github.com/terrylica/cc-skills/commit/4a0b6ebda44fc02e4595152393da90afe4134dc3))
+
+A generic conversation rule: reply watchers and anything that re-arms them run only inside profile:chat.watch_hours, stop by process id at day end, read the newest messages before re-arming, and ask the administrator when the profile sets no hours. Profile contract and the Acme example gain chat.watch_hours.
+
+
+
+### Performance Improvements
+
+* **itp-hooks:** size the data-path probe buffer to the file ([8ce83e1](https://github.com/terrylica/cc-skills/commit/8ce83e167e80456fb765426bbedc1da6af4f4af9))
+
 ## [34.24.1](https://github.com/terrylica/cc-skills/compare/v34.24.0...v34.24.1) (2026-11-24)
 
 # [34.24.0](https://github.com/terrylica/cc-skills/compare/v34.23.3...v34.24.0) (2026-11-24)
