@@ -1065,6 +1065,23 @@ class TestCudaInferEvalMode:
         assert recorded.get("eval_mode") is True
         assert recorded.get("save_results") is False
 
+    def test_cuda_transcribe_refuses_a_missing_result(self):
+        """A None from infer() must fail the page, never become the text "None"."""
+        runner = UnlimitedOcrRunner(backend="cuda", model_identifier="dummy")
+
+        class _SilentModel:
+            def infer(self, _tokenizer, **_kwargs):
+                return None
+
+        runner._load = lambda: (_SilentModel(), object(), None)
+        with pytest.raises(RuntimeError, match="eval_mode=True"):
+            runner.transcribe_image(
+                Path("page.png"),
+                "document-parsing",
+                max_tokens=16,
+                repetition_penalty=1.0,
+            )
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
