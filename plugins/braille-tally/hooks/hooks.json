@@ -13,7 +13,7 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|mcp__.*__.*(create_issue|update_issue|issue_write)",
+        "matcher": "Bash|Write|Edit|mcp__.*github.*__.*(create_issue|update_issue|issue_write)",
         "hooks": [
           {
             "type": "command",

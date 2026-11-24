@@ -73,13 +73,13 @@ It fails open on anything unexpected.
 
 It reads literal titles only:
 
-- `gh issue create|new|edit` with `--title`, `--title=`, `-t`, `-tVALUE`;
+- `gh issue create|new|edit` with `--title`, `--title=`, `-t`, `-tVALUE` (also after `--repo`, inside `$( … )` or backticks, and in a heredoc fed to a shell; an `echo gh …` or a heredoc written to a file is text, not a command);
 - `gh api` on `repos/OWNER/REPO/issues[/N]` with a `title=` field (`-f`, `-F`, `--field`, `--raw-field`), unless the method is GET;
-- `gh api graphql` with a `createIssue` or `updateIssue` mutation (a literal `title: "…"` or a `title=` field);
-- the same commands inside a shell script being written (`.sh`, `.bash`, `.zsh`, or a shell shebang), so a script run later is covered;
-- GitHub MCP tools named `…create_issue`, `…update_issue` or `…issue_write`, by their `title` argument.
+- `gh api graphql` with a `createIssue` or `updateIssue` mutation: its literal `title: "…"`, or the field that supplies the variable it names;
+- the same commands inside a shell script being written or edited (`.sh`, `.bash`, `.zsh`, or a shell shebang), judged by the titles the change adds, so a script run later is covered and titles already in the file are left alone;
+- GitHub MCP tools (a server name containing `github`) named `…create_issue`, `…update_issue` or `…issue_write`, by their `title` argument.
 
-A title built from a variable (`--title "$T"`) is not known before it runs and is allowed; a known prefix (`--title "Bug: $T"`) is still checked. `gh issue edit` without `--title` is not checked. It fails open on anything unexpected and makes no network calls.
+A title built from a variable (`--title "$T"`) is not known before it runs and is allowed; a known prefix (`--title "Bug: $T"`) is still checked. `gh issue edit` without `--title` is not checked, nor is a JSON body sent with `gh api --input` (a known limit). It fails open on anything unexpected and makes no network calls.
 
 ```bash
 gh issue create --title "⣿⣶⣴ Fix the login timeout" --body "…"     # allowed
@@ -113,7 +113,7 @@ These were measured in Chrome on macOS in a replica of Gmail's subject line, pla
   _Evidence_: the measurements above; 17 tests in `tests/tally.test.ts`, including one that checks every drawn level against its Braille code point.
 - **2026-11-20 (b) — no legend in AskUserQuestion.** _Trigger_: the operator: the legend line "should be removed from all AskUserQuestion … No need to be in the front of AskUserQuestion as preamble". _Fix_: the guard no longer requires "Braille Tally" in the question text; AskUserQuestion always uses the default axes; lists keep their legend. _Evidence_: a test that a tallied, ranked question without a legend passes.
 
-- **2026-11-23 — GitHub issue titles.** _Trigger_: the operator: "make it a convention for all GitHub issue titles to start with a Braille Tally … like the convention for AskUserQuestion", enforced by a hook, agnostic and universal, the glyph alone in the title. _Fix_: `hooks/issue-title-tally-guard.ts` and rule 5's issue-title line. _Evidence_: 14 tests in `tests/issue-title.test.ts` (every `--title` form, `gh api` REST and GraphQL, shell scripts, MCP tools, variables, the escape, the hook process).
+- **2026-11-23 — GitHub issue titles.** _Trigger_: the operator: "make it a convention for all GitHub issue titles to start with a Braille Tally … like the convention for AskUserQuestion", enforced by a hook, agnostic and universal, the glyph alone in the title. _Fix_: `hooks/issue-title-tally-guard.ts` and rule 5's issue-title line. _Evidence_: 26 tests in `tests/issue-title.test.ts` (every `--title` form, `gh api` REST and GraphQL, shell scripts and edits, MCP tools, variables, the escape, the hook process), 12 of them from one review round by a different vendor's model (false blocks: `echo gh …`, heredoc text, a `--body` that looks like a flag, `-F title=@-`, GraphQL expansions and `\u` escapes, other mutations' titles, other MCP servers; false passes: `--repo` first, `$( … )`, `$'…'`, GraphQL variables, partial edits). gh-tools' title reminder now names the tally too.
 
 ## Post-Execution Reflection
 

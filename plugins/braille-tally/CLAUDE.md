@@ -21,7 +21,7 @@
 | -------------------------------- | ---------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `askuserquestion-tally-guard.ts` | PreToolUse | AskUserQuestion | Deny until every option label starts with a tally and the options are in rank order (no legend in the question); escape token `BRAILLE-TALLY-EXEMPT` (never in the deny message) |
 
-| `issue-title-tally-guard.ts`     | PreToolUse | `Bash\|Write\|Edit\|mcp__.*__.*(create_issue\|update_issue\|issue_write)` | Deny until every literal issue title (`gh issue create/edit`, `gh api` REST or GraphQL, a shell script being written, GitHub MCP tools) starts with a tally and one space, the glyph alone; same escape token, never in the deny message |
+| `issue-title-tally-guard.ts`     | PreToolUse | `Bash\|Write\|Edit\|mcp__.*github.*__.*(create_issue\|update_issue\|issue_write)` | Deny until every literal issue title (`gh issue create/edit`, `gh api` REST or GraphQL, a shell script being written, GitHub MCP tools) starts with a tally and one space, the glyph alone; same escape token, never in the deny message |
 
 `hooks/hooks.json` is the only registration.
 
