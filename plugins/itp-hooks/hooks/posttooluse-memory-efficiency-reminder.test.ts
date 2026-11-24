@@ -18,7 +18,7 @@
  */
 
 import { afterAll, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { perUserGateDirectory } from "./lib/posttooluse-subhook-async-helpers-iter95.ts";
 import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-iter93.ts";
@@ -112,6 +112,16 @@ describe("detectDataPathEvidenceInSourceText", () => {
     ["buf = malloc(n * sizeof(double));", "manual allocation"],
     ["import torch", "tensor library"],
     ["for row in csv.DictReader(fh):", "bulk CSV reader or writer"],
+    // PR #104 review, item 3: data-path code the list missed.
+    ["from scipy import stats", "dataframe, array or columnar library"],
+    ["from sklearn.linear_model import Ridge", "dataframe, array or columnar library"],
+    ['import pl from "nodejs-polars";', "dataframe, array or columnar library"],
+    ['const duckdb = require("duckdb");', "dataframe, array or columnar library"],
+    ['import { DuckDBInstance } from "@duckdb/node-api";', "dataframe, array or columnar library"],
+    ['import "gonum.org/v1/gonum/mat"', "dataframe, array or columnar library"],
+    ['import * as tf from "@tensorflow/tfjs";', "tensor library"],
+    ['import "encoding/csv"', "bulk CSV reader or writer"],
+    ["let mut rdr = csv::Reader::from_path(p)?;", "bulk CSV reader or writer"],
   ];
   for (const [text, signal] of positives) {
     it(`finds ${signal} in: ${text}`, () => {
@@ -129,6 +139,11 @@ describe("detectDataPathEvidenceInSourceText", () => {
     "def get_mode():\n    return os.environ.get('MODE', 'default')",
     "fn main() { println!(\"hello\"); }",
     "# we used to import torch here, now gone",
+    // PR #104 review, item 2: a library's name in prose is not an import.
+    "# No pandas here, just config",
+    "// polars would be overkill for a lookup table",
+    'const label = "numpy-style docstrings";',
+    '"""Mirrors the pandas API without importing it."""',
   ];
   for (const text of negatives) {
     it(`finds nothing in: ${text.split("\n")[0].slice(0, 70)}`, () => {
@@ -192,6 +207,34 @@ describe("classifier", () => {
     const decision = await classify(writeFixture("test_load.py", POLARS_SCRIPT, freshSessionId()));
     expect(decision.kind).toBe("noop");
   });
+
+  // PR #104 review, item 5: branches with no test.
+  it("falls back to the tool input when the file is gone from disk", async () => {
+    const file_path = join(FIXTURE_DIR, "deleted.py");
+    const decision = await classify({
+      tool_name: "Write",
+      session_id: freshSessionId(),
+      tool_input: { file_path, content: POLARS_SCRIPT },
+    } as PostToolUseInput);
+    expect(decision.kind).toBe("additional_context");
+  });
+
+  it("falls back to the tool input when the file cannot be read", async () => {
+    const input = writeFixture("unreadable.py", POLARS_SCRIPT, freshSessionId());
+    chmodSync(String(input.tool_input?.file_path), 0o000);
+    try {
+      expect((await classify(input)).kind).toBe("additional_context");
+    } finally {
+      chmodSync(String(input.tool_input?.file_path), 0o644);
+    }
+  });
+
+  for (const ext of [".mts", ".cts", ".mjs", ".cjs", ".jsx"]) {
+    it(`treats ${ext} as code`, async () => {
+      const decision = await classify(writeFixture(`load${ext}`, 'import pl from "nodejs-polars";\n', freshSessionId()));
+      expect(decision.kind).toBe("additional_context");
+    });
+  }
 
   it("ignores extensions outside the code set", async () => {
     const decision = await classify(writeFixture("notes.md", "import polars as pl\n", freshSessionId()));

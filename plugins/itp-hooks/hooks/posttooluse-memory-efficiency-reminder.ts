@@ -103,7 +103,12 @@ const CODE_FILE_EXTENSIONS_ELIGIBLE_FOR_MEMORY_EFFICIENCY_REMINDER = new Set([
   ".rs",
   ".ts",
   ".tsx",
+  ".mts",
+  ".cts",
   ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
   ".go",
   ".java",
   ".kt",
@@ -128,13 +133,24 @@ const DATA_PATH_EVIDENCE_FILE_HEAD_PROBE_BYTES = 256 * 1024;
  * the misfire this list exists to stop): `Uint8Array` and `ArrayBuffer` (every
  * Worker that hashes or encodes text), `ReadableStream`, `Vec<u8>`, bare `[]byte`,
  * `JSON.parse`, `fetch`, and the word "arrow" alone ("arrow function").
+ *
+ * Library names count only in an import, never as a bare word: "No pandas here"
+ * in a comment or a string spent the session's card (PR #104 review, item 2).
  */
+const DATA_PATH_LIBRARY_NAMES =
+  "polars|pandas|numpy|pyarrow|duckdb|datafusion|ndarray|xarray|dask|numba|cupy|h5py|zarr|vaex|modin|danfojs|arquero|hyparquet|scipy|sklearn";
+const DATA_PATH_LIBRARY_IMPORT = new RegExp(
+  [
+    String.raw`^[ \t]*(?:import|from)[ \t]+(?:${DATA_PATH_LIBRARY_NAMES})\b`, // Python: import numpy / from scipy import …
+    String.raw`(?:\bfrom|\bimport|\brequire\(|\bimport\()[ \t]*["'](?:@?(?:${DATA_PATH_LIBRARY_NAMES})\b|(?:@[\w.-]+\/)?nodejs-(?:${DATA_PATH_LIBRARY_NAMES})\b)`, // JS/TS specifiers
+    String.raw`^[ \t]*(?:pub[ \t]+)?use[ \t]+(?:${DATA_PATH_LIBRARY_NAMES})::|\bextern[ \t]+crate[ \t]+(?:${DATA_PATH_LIBRARY_NAMES})\b`, // Rust
+    String.raw`["']gonum\.org\/`, // Go import path
+  ].join("|"),
+  "m",
+);
+
 export const DATA_PATH_EVIDENCE_SIGNALS: ReadonlyArray<{ name: string; pattern: RegExp }> = [
-  {
-    name: "dataframe, array or columnar library",
-    pattern:
-      /\b(?:polars|pandas|numpy|pyarrow|duckdb|datafusion|ndarray|xarray|dask|numba|cupy|h5py|zarr|vaex|modin|gonum|danfojs|arquero|hyparquet)\b/,
-  },
+  { name: "dataframe, array or columnar library", pattern: DATA_PATH_LIBRARY_IMPORT },
   { name: "Apache Arrow", pattern: /apache[-./]arrow\b|\barrow(?:2|_[a-z]+)?::|\bred-arrow\b/ },
   { name: "Parquet", pattern: /\bparquet\b/i },
   { name: "ClickHouse", pattern: /\bclickhouse\b/i },
@@ -152,8 +168,15 @@ export const DATA_PATH_EVIDENCE_SIGNALS: ReadonlyArray<{ name: string; pattern: 
     pattern: /\b(?:memoryview|mmap|memmap2?|memcpy|ByteBuffer|bytemuck)\b|\bstruct\.(?:iter_)?unpack\b/,
   },
   { name: "manual allocation", pattern: /\b(?:malloc|calloc|realloc)\s*\(|\bstd\.mem\.Allocator\b/ },
-  { name: "tensor library", pattern: /^[ \t]*(?:import|from)[ \t]+(?:torch|jax|tensorflow)\b/m },
-  { name: "bulk CSV reader or writer", pattern: /\bcsv\.(?:reader|DictReader|writer|DictWriter)\b/ },
+  {
+    name: "tensor library",
+    pattern: /^[ \t]*(?:import|from)[ \t]+(?:torch|jax|tensorflow)\b|["']@tensorflow\/tfjs(?:-node|-core)?["']/m,
+  },
+  {
+    name: "bulk CSV reader or writer",
+    // Python csv module, Go's encoding/csv, Rust's csv crate.
+    pattern: /\bcsv\.(?:reader|DictReader|writer|DictWriter)\b|["']encoding\/csv["']|\bcsv::(?:Reader|Writer)(?:Builder)?\b/,
+  },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════
