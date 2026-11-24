@@ -1,6 +1,6 @@
 # Link Validation Hook Test - Meta-Prompt
 
-**Version**: 8.1.8+ **Purpose**: Test lychee-stop-hook in non-marketplace repositories
+**Purpose**: Test lychee-stop-hook in non-marketplace repositories, end to end in a live session
 
 Copy this prompt to Claude Code when working in a **non-marketplace repo** (e.g., `~/code/research-repo`):
 

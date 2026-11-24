@@ -21,7 +21,9 @@ Each skill is also its slash command (`/statusline-tools:<skill>`).
 | `stop-cron-gc.ts`     | Stop                                 | Prunes stale cron entries on session exit |
 | `lychee-stop-hook.sh` | Stop (installed via manage-hooks.sh) | Link validation on session exit           |
 
-`scripts/manage-hooks.sh` here is the **last surviving** settings.json installer in the repo. Issue #127 deleted the four others (`itp`, `dotfiles-tools`, `gh-tools`, `productivity-tools`) because each injected a hook its own plugin's `hooks.json` already ships, which fires that hook twice per event. This one is legitimate for exactly one reason: `lychee-stop-hook.sh` is **deliberately absent** from `hooks/hooks.json`, so link validation is opt-in and the injection is its only registration. Keep it that way: moving `lychee-stop-hook.sh` into `hooks.json` without also deleting the installer recreates the duplicate-registration bug. The install/uninstall path is covered by `tests/test_stop_hook.bats`.
+`scripts/manage-hooks.sh` here is the **last surviving** settings.json installer in the repo. Commit 4935f1a0e (2026-09-06) deleted the four others (`itp`, `dotfiles-tools`, `gh-tools`, `productivity-tools`) because each injected a hook its own plugin's `hooks.json` already ships, which fires that hook twice per event. This one is legitimate for exactly one reason: `lychee-stop-hook.sh` is **deliberately absent** from `hooks/hooks.json`, so link validation is opt-in and the injection is its only registration. Keep it that way: moving `lychee-stop-hook.sh` into `hooks.json` without also deleting the installer recreates the duplicate-registration bug. The install/uninstall path is covered by `tests/test_stop_hook.bats`.
+
+`tests/test_stop_hook.bats` checks the hook's mechanics. Whether a live session actually sees the violations and offers fixes can only be checked by hand: [docs/LINK-VALIDATION-TEST-PROMPT.md](./docs/LINK-VALIDATION-TEST-PROMPT.md) is the prompt for that check.
 
 ## Status Line Indicators
 
