@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # validate-e2e.sh - End-to-end integration validation
-# ADR: /docs/adr/2026-01-02-session-chronicle-s3-sharing.md
 
 set -euo pipefail
 
@@ -12,11 +11,8 @@ echo ""
 VALIDATIONS=(
   "validate-prerequisites.sh"
   "validate-brotli.sh"
-  "validate-credential-access.sh"
-  "validate-s3-upload.sh"
   "validate-extract-chain.sh"
   "validate-commit-format.sh"
-  "validate-cross-references.sh"
 )
 
 PASSED=0

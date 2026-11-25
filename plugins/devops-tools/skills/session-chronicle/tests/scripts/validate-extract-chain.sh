@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # validate-extract-chain.sh - Script modification check
-# ADR: /docs/adr/2026-01-02-session-chronicle-s3-sharing.md
 
 set -euo pipefail
 
@@ -43,14 +42,6 @@ else
   else
     echo "? File extension: Could not detect extension"
   fi
-fi
-
-# Check for ADR reference
-if grep -q "2026-01-02-session-chronicle-s3-sharing" "$EXTRACT_SCRIPT"; then
-  echo "✓ ADR reference: Found in script"
-else
-  echo "✗ ADR reference: Missing"
-  exit 1
 fi
 
 echo ""

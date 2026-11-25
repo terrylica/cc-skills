@@ -108,24 +108,12 @@ if ! command -v brotli &>/dev/null; then
   MISSING=1
 fi
 
-# Check for aws (required for S3 upload)
-if ! command -v aws &>/dev/null; then
-  echo "ERROR: aws CLI not installed (brew install awscli)" >&2
-  MISSING=1
-fi
-
-# Check for op (required for 1Password credential injection)
-if ! command -v op &>/dev/null; then
-  echo "ERROR: 1Password CLI not installed (brew install 1password-cli)" >&2
-  MISSING=1
-fi
-
 if [[ $MISSING -eq 1 ]]; then
   echo "" >&2
   echo "PREFLIGHT FAILED: Missing required tools. Install them and retry." >&2
   exit 1
 fi
 
-echo "✓ All required tools available: jq, brotli, aws, op"
+echo "✓ All required tools available: jq, brotli"
 TOOLS_EOF
 ```

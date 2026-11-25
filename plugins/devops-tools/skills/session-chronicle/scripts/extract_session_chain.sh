@@ -4,7 +4,6 @@
 #
 # Archives ALL sessions in the UUID chain, not just a fixed window.
 # Each session is compressed individually with a manifest.
-# ADR: /docs/adr/2026-01-02-session-chronicle-s3-sharing.md (Brotli compression)
 
 set -euo pipefail
 
