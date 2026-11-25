@@ -20,6 +20,10 @@
  *     [--prune-superseded]                    # delete every earlier version this draft repeats (see LINGERING)
  *     [--html /path/to/body.html]             # AUTHORED html part (see AUTHORED HTML below)
  *     [--attach /path/to/file]...             # repeatable; file attachments (see ATTACHMENTS below)
+ *     [--github-repo OWNER/REPO]              # bare #N links to this repo; its links read #N (see GITHUB LINKS)
+ *     [--github-reader LOGIN]...              # repeatable; GitHub login of everyone who will open the links
+ *     [--github-access-ok '<reason>']         # make the draft although a reader cannot open a private repo
+ *     [--no-github-access-note]               # never add the access paragraph
  *
  * REPLYING TO SOMEONE (the house style): quote each passage you answer VERBATIM in its own `> `
  * block and answer it underneath. The HTML part renders every such block as a styled quotation
@@ -61,6 +65,29 @@
  * way to put a file on a styled draft was Gmail's web compose, which also rewrote the plain part.
  * Without --attach the message is byte-for-byte what it was before.
  *
+ * GITHUB LINKS (2026-11-25; code in `github-links.ts`). Most issue links we send are in PRIVATE
+ * repositories, and GitHub answers a reader without access with a plain 404, not "request access",
+ * so a link that cannot open looks like a broken email. Three behaviours, all before any Gmail call:
+ *   1. References become short text links on the raw body, so both parts agree: a bare
+ *      `https://github.com/OWNER/REPO/issues/N` (or /pull/N) → `[#N](URL)` when OWNER/REPO is
+ *      --github-repo, else `[OWNER/REPO#N](URL)`; `OWNER/REPO#N` in prose → a link; a bare `#N` →
+ *      a link ONLY with --github-repo. Untouched: `>` quotations, code spans and ``` fences, existing
+ *      named links, and anything that is part of a longer token (`abc#12`, `#12a`, `#fff`). The plain
+ *      part reads `#N (URL)`. Skipped with --html (the authored part is verbatim).
+ *   2. Every repository the body links to (any github.com/OWNER/REPO address, quotations included)
+ *      is looked up with `gh` (bounded, killed by PID on timeout): visibility, then for a private or
+ *      internal one each --github-reader's permission (read is enough to comment and review) and the
+ *      pending invitations. Each reader is can-comment, invited-pending, invitation-expired (7-day lapse; refused), no-access or unknown. The run
+ *      REFUSES (exit 1, nothing uploaded) when a private repo is linked and no --github-reader was
+ *      given, or a reader has no access or could not be verified; --github-access-ok '<reason>'
+ *      proceeds knowingly. invited-pending is warned about, not refused. gh missing or signed out:
+ *      everything `unknown`, a warning, no refusal, and the access note is added to be safe.
+ *   3. When a private (or unknown) repo is linked and no paragraph already mentions access or an
+ *      invitation together with GitHub/links/issues (see hasGithubAccessRemark), GITHUB_ACCESS_NOTE
+ *      is added before the provenance footer (`Parked by…` / `via Claude Code…`) and any sign-off.
+ *      With a pending invitation the remark must mention the invitation. --no-github-access-note
+ *      suppresses it; with --html a missing remark is a refusal, since the html cannot be edited.
+ *
  * LINGERING DRAFTS (2026-11-21): after the draft is verified, every other draft in the account is
  * read and compared with it (`lingering-drafts.ts`). A draft from the same sender to a shared
  * recipient with the same subject (Braille Tally cells, "Re:" and case ignored) is an earlier
@@ -71,13 +98,16 @@
  * an earlier copy of one; this check is what does.
  *
  * OUTPUT: one JSON line {draftId, threadId, account, replaced, attachments, pruned, superseded,
- * related} — machine-readable per CLI-first doctrine.
+ * related, lingeringCheck, githubAccess: {repos: {"owner/repo": {visibility, readers: {login: status},
+ * notes}}, privateRepos, accessOk}, accessNote: present|appended|suppressed|not-needed} —
+ * machine-readable per CLI-first doctrine.
  * EXIT: 0 done and clean · 1 failed (nothing to rely on) · 3 draft made and verified, but earlier
  * versions still linger (listed in `superseded`) · 4 draft made and verified, but the lingering
  * check could not read the Drafts folder.
  */
 
 import { describe as describeDraft, findLingering, listDraftMeta } from "./lingering-drafts.ts";
+import { GITHUB_LOGIN, GITHUB_REPO_SLUG, prepareGithubLinks } from "./github-links.ts";
 
 interface Args {
   account: string;
@@ -97,10 +127,18 @@ interface Args {
   html?: string | undefined;
   /** Every `--attach` value, in the order given. Empty when the flag is absent. */
   attach: string[];
+  /** `--github-repo OWNER/REPO`: the repository a bare `#N` refers to, and whose links read `#N`. */
+  githubRepo?: string | undefined;
+  /** Every `--github-reader LOGIN`: the people who will open the GitHub links. */
+  githubReaders: string[];
+  /** `--github-access-ok '<reason>'`: make the draft although a reader may not open a private repo's links. */
+  githubAccessOk?: string | undefined;
+  /** `--no-github-access-note`: never add the access paragraph. */
+  noGithubAccessNote: boolean;
 }
 
 export const USAGE =
-  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--prune-superseded] [--html <file.html>] [--attach <file>]...";
+  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--prune-superseded] [--html <file.html>] [--attach <file>]... [--github-repo <owner/repo>] [--github-reader <login>]... [--github-access-ok '<reason>'] [--no-github-access-note]";
 
 /** Parse the command line. Throws with USAGE when a required flag is missing (main prints it and exits 1). */
 export function parseArgs(argv: string[] = process.argv): Args {
@@ -112,13 +150,25 @@ export function parseArgs(argv: string[] = process.argv): Args {
   const body = get("body");
   const from = get("from");
   if (!account || !body || !from) throw new Error(USAGE);
-  const attach = argv.flatMap((a, i) => {
-    if (a !== "--attach") return [];
-    const path = argv[i + 1];
-    if (!path || path.startsWith("--")) throw new Error(`--attach needs a file path\n${USAGE}`);
-    return [path];
-  });
-  return { account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"), pruneSuperseded: argv.includes("--prune-superseded"), html: get("html"), attach };
+  const repeated = (flag: string, what: string): string[] =>
+    argv.flatMap((a, i) => {
+      if (a !== `--${flag}`) return [];
+      const value = argv[i + 1];
+      if (!value || value.startsWith("--")) throw new Error(`--${flag} needs ${what}\n${USAGE}`);
+      return [value];
+    });
+  const attach = repeated("attach", "a file path");
+  const githubReaders = [...new Set(repeated("github-reader", "a GitHub login"))];
+  const badLogin = githubReaders.find((l) => !GITHUB_LOGIN.test(l));
+  if (badLogin !== undefined) throw new Error(`--github-reader ${JSON.stringify(badLogin)} is not a GitHub login\n${USAGE}`);
+  const githubRepo = repeated("github-repo", "OWNER/REPO").at(-1);
+  if (githubRepo !== undefined && !GITHUB_REPO_SLUG.test(githubRepo)) throw new Error(`--github-repo ${JSON.stringify(githubRepo)} is not OWNER/REPO\n${USAGE}`);
+  const githubAccessOk = repeated("github-access-ok", "a reason").at(-1);
+  return {
+    account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"),
+    pruneSuperseded: argv.includes("--prune-superseded"), html: get("html"), attach,
+    githubRepo, githubReaders, githubAccessOk, noGithubAccessNote: argv.includes("--no-github-access-note"),
+  };
 }
 
 // ── attachments ──
@@ -136,7 +186,7 @@ export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 /**
  * Guess a MIME type from the file extension; anything unknown is `application/octet-stream`, which
  * Gmail shows as a plain download. The same table as `gmail-cli/lib/gmail-drafts.ts`, copied rather
- * than imported because this script deliberately imports no package (only its sibling `lingering-drafts.ts`, which has none): it must run with bare `bun` on a
+ * than imported because this script deliberately imports no package (only its siblings `lingering-drafts.ts` and `github-links.ts`, which have none): it must run with bare `bun` on a
  * machine where the CLI's node_modules are missing (plugin updates delete them).
  */
 export function guessMimeType(filename: string): string {
@@ -204,8 +254,9 @@ export async function loadAttachments(paths: string[]): Promise<Attachment[]> {
  * run BEFORE any token or network call, so a refused --html costs nothing and is testable offline.
  * Throws `REFUSED --html …` naming every problem when the authored part may not be uploaded.
  */
-export async function loadDraftParts(args: Pick<Args, "body" | "html">): Promise<{ plain: string; html: string; authoredHtml?: string }> {
-  const blocks = splitBodyIntoBlocks(await Bun.file(args.body).text());
+export async function loadDraftParts(args: Pick<Args, "body" | "html">, bodyText?: string): Promise<{ plain: string; html: string; authoredHtml?: string }> {
+  // bodyText: the body after the GitHub step (prepareGithubLinks); the file is read when it is absent.
+  const blocks = splitBodyIntoBlocks(bodyText ?? (await Bun.file(args.body).text()));
   const plain = blocksToPlainText(blocks);
   if (args.html === undefined) return { plain, html: blocksToHtml(blocks) };
   const authoredHtml = await Bun.file(args.html).text();
@@ -1168,9 +1219,20 @@ if (import.meta.main) {
   let args: Args;
   let parts: Awaited<ReturnType<typeof loadDraftParts>>;
   let attachments: Attachment[];
+  let github: Awaited<ReturnType<typeof prepareGithubLinks>>;
   try {
     args = parseArgs();
-    parts = await loadDraftParts(args);
+    // GitHub step first: links, reader access (gh only) and the access note, before any Gmail call.
+    github = await prepareGithubLinks(await Bun.file(args.body).text(), {
+      githubRepo: args.githubRepo,
+      readers: args.githubReaders,
+      accessOk: args.githubAccessOk,
+      noAccessNote: args.noGithubAccessNote,
+      authoredHtml: args.html === undefined ? undefined : await Bun.file(args.html).text(),
+    });
+    for (const w of github.warnings) console.error(w);
+    if (github.refusal) throw new Error(github.refusal);
+    parts = await loadDraftParts(args, github.body);
     attachments = await loadAttachments(args.attach);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
@@ -1355,6 +1417,8 @@ if (import.meta.main) {
     superseded: superseded.map(brief),
     related: related.map(brief),
     lingeringCheck: lingeringError ? `failed: ${lingeringError}` : "ok",
+    githubAccess: github.githubAccess,
+    accessNote: github.accessNote,
   };
   console.log(JSON.stringify(out));
   process.exit(exitCode);

@@ -306,10 +306,22 @@ bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/script
   --reply-to <messageId> \
   --to 'Alex Roe <alex@example.com>' \
   --attach ./signed-agreement.pdf \
+  --github-repo acme/handbook --github-reader jdoe \
   --replace <superseded draftId>
 ```
 
 `--attach` is repeatable and optional; `--to`, `--cc` and `--subject` are inherited from `--reply-to` when omitted; `--replace` deletes the draft this one supersedes, only after the new one has passed verification. Before it prints its one JSON line the builder proves, against what Gmail actually stored: the Subject round-trips, the HTML part exists (byte-identical when `--html` is used) with no forced mid-sentence line breaks, every attachment's SHA-256 equals the file sent, and the thread holds exactly one draft (exit 1 naming the others when it does not; delete the superseded ones before sending). The output lists each attachment with its byte count and SHA-256.
+
+### GitHub issue links: numbered, linked, and only to people who can open them (since 2026-11-25)
+
+Most issues we link to are in **private** repositories, and GitHub shows a plain 404 page, not "request access", to anyone without access. So, wherever rich text is allowed (every `gmail-draft.ts` draft without `--html`):
+
+- **Write issue numbers, let the builder link them.** A bare `https://github.com/OWNER/REPO/issues/N` (or `/pull/N`) becomes a link reading `#N` when OWNER/REPO is `--github-repo`, else `OWNER/REPO#N`; `OWNER/REPO#N` in prose becomes a link; a bare `#N` becomes a link only with `--github-repo OWNER/REPO`. The plain part reads `#N (URL)`. Quotations, code spans, existing named links and tokens such as `abc#12`, `#12a` or `#fff` are left alone.
+- **Always pass `--github-reader <login>` for each person who will open the links** (recipients and anyone they forward to). For every private repository linked, the builder checks each reader with `gh`, before any Gmail call: `can-comment` (read access or more, which is enough to comment and review), `invited-pending` (reported; they must accept first), `invitation-expired` (refused: GitHub invitations last 7 days, and the refusal prints the delete-and-re-invite commands), `no-access` or `unknown`.
+- **Never send an issue link to someone who cannot open it.** A private link with no `--github-reader`, or a reader who has no access or cannot be verified, is refused (exit 1, the invite command printed). Invite them (`gh api -X PUT repos/OWNER/REPO/collaborators/LOGIN -f permission=pull`) and re-run; `--github-access-ok '<reason>'` proceeds knowingly. When `gh` is missing or signed out the result is `unknown` and the draft is made with a warning.
+- **The email says the links need access.** Unless a paragraph already mentions access or an invitation together with GitHub, links or issues, a standard paragraph (`GITHUB_ACCESS_NOTE`) is added before the provenance footer and sign-off; `--no-github-access-note` suppresses it. With `--html`, references are not rewritten and a missing remark is refused.
+
+The JSON line carries `githubAccess` (`repos` → `{visibility, readers: {login: status}, notes}`, `privateRepos`, `accessOk`) and `accessNote` (`present`, `appended`, `suppressed` or `not-needed`).
 
 ### No earlier version may linger (every run, since 2026-11-21)
 

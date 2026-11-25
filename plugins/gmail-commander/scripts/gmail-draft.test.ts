@@ -906,3 +906,40 @@ describe("--attach: files travel with a styled reply", () => {
     expect(flattenMimeParts(undefined)).toEqual([]);
   });
 });
+
+describe("GitHub flags: --github-repo, --github-reader, --github-access-ok, --no-github-access-note", () => {
+  const base = ["bun", "gmail-draft.ts", "--account", "t", "--body", "b.md", "--from", "x"];
+
+  test("defaults: no repo, no readers, no escape, note on", () => {
+    const a = parseArgs(base);
+    expect(a.githubRepo).toBeUndefined();
+    expect(a.githubReaders).toEqual([]);
+    expect(a.githubAccessOk).toBeUndefined();
+    expect(a.noGithubAccessNote).toBe(false);
+  });
+
+  test("every flag is read; --github-reader repeats and is deduplicated", () => {
+    const a = parseArgs([
+      ...base, "--github-repo", "acme/handbook", "--github-reader", "jdoe", "--github-reader", "asmith", "--github-reader", "jdoe",
+      "--github-access-ok", "invited by phone", "--no-github-access-note",
+    ]);
+    expect(a.githubRepo).toBe("acme/handbook");
+    expect(a.githubReaders).toEqual(["jdoe", "asmith"]);
+    expect(a.githubAccessOk).toBe("invited by phone");
+    expect(a.noGithubAccessNote).toBe(true);
+  });
+
+  test("a malformed repo or login, or a bare flag, is refused before anything runs", () => {
+    expect(() => parseArgs([...base, "--github-repo", "handbook"])).toThrow(/not OWNER\/REPO/);
+    expect(() => parseArgs([...base, "--github-reader", "j doe"])).toThrow(/not a GitHub login/);
+    expect(() => parseArgs([...base, "--github-reader", "-jdoe"])).toThrow(/not a GitHub login/);
+    expect(() => parseArgs([...base, "--github-reader"])).toThrow(/needs a GitHub login/);
+    expect(() => parseArgs([...base, "--github-access-ok", "--no-github-access-note"])).toThrow(/needs a reason/);
+  });
+
+  test("loadDraftParts renders the body the GitHub step produced, not the file", async () => {
+    const parts = await loadDraftParts({ body: "/nonexistent/never-read.md", html: undefined }, "Fixed in [#12](https://github.com/acme/handbook/issues/12).\n");
+    expect(parts.plain).toBe("Fixed in #12 (https://github.com/acme/handbook/issues/12).\n");
+    expect(parts.html).toContain('<a href="https://github.com/acme/handbook/issues/12">#12</a>');
+  });
+});

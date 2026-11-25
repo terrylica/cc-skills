@@ -130,9 +130,14 @@ bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts
   [--to a@b] [--cc c@d] [--subject '…'] [--replace <staleDraftId>]
   [--attach <file>]...             # repeatable; each file's SHA-256 is verified after upload
   [--prune-superseded]             # delete earlier versions of this draft found in other threads
-# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[…],"pruned":[…],"superseded":[…],"related":[…],"lingeringCheck":"ok"}
+  [--github-repo owner/repo]       # bare #N links to this repo; its links read #N
+  [--github-reader <login>]...     # everyone who will open GitHub links; private repos are checked with gh
+  [--github-access-ok '<reason>'] [--no-github-access-note]
+# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[…],"pruned":[…],"superseded":[…],"related":[…],"lingeringCheck":"ok","githubAccess":{…},"accessNote":"…"}
 # exit: 0 clean · 1 failed · 3 earlier versions still linger · 4 the lingering check could not read the folder
 ```
+
+**GitHub issue links (2026-11-25).** Issue references become short links (`#12`, `acme/handbook#12`), every private repository linked is checked with `gh` for each `--github-reader` (the run refuses when one cannot open it), and the email gets a note that the links need access. Logic in `scripts/github-links.ts`; the rules: [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "GitHub issue links".
 
 **No earlier version may linger (2026-11-21).** Every run compares the new draft with every other draft in the account (`scripts/lingering-drafts.ts`): the same sender, a shared recipient and the same subject, once Braille Tally cells and `Re:` are ignored, is an earlier version; another subject to the same people is reported as `related`. For a batch whose drafts in play are listed in a manifest, `scripts/gmail-drafts-audit.ts --account <tokenbase> --keep-file <manifest> [--prune]` flags everything else from the same sender to the same people. Procedure: [`skills/gmail-access/SKILL.md`](./skills/gmail-access/SKILL.md) § "No earlier version may linger".
 
