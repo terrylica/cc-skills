@@ -1,8 +1,6 @@
 # Session Chronicle Tests
 
-Validation scripts and fixtures for session-chronicle S3 artifact sharing.
-
-**ADR**: [Session Chronicle S3 Sharing](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)
+Validation scripts and fixtures for session-chronicle's local archiving and commit-message output. Everything runs on this machine; nothing is uploaded.
 
 ## Running Validations
 
@@ -18,25 +16,19 @@ Run individual validations:
 ```bash
 bash tests/scripts/validate-prerequisites.sh
 bash tests/scripts/validate-brotli.sh
-bash tests/scripts/validate-credential-access.sh
-bash tests/scripts/validate-s3-upload.sh
 bash tests/scripts/validate-extract-chain.sh
 bash tests/scripts/validate-commit-format.sh
-bash tests/scripts/validate-cross-references.sh
 ```
 
 ## Validation Scripts
 
-| Script                          | Purpose                          |
-| ------------------------------- | -------------------------------- |
-| `validate-prerequisites.sh`     | Tool installation check          |
-| `validate-brotli.sh`            | Compression round-trip test      |
-| `validate-credential-access.sh` | 1Password access verification    |
-| `validate-s3-upload.sh`         | S3 connectivity test             |
-| `validate-extract-chain.sh`     | Script modification check        |
-| `validate-commit-format.sh`     | Commit message format validation |
-| `validate-cross-references.sh`  | Cross-reference integrity check  |
-| `validate-e2e.sh`               | Master validation runner         |
+| Script                      | Purpose                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| `validate-prerequisites.sh` | Tool installation check (brotli, jq)                           |
+| `validate-brotli.sh`        | Compression round-trip test                                    |
+| `validate-extract-chain.sh` | extract_session_chain.sh writes `.jsonl.br` archives           |
+| `validate-commit-format.sh` | generate_commit_message.sh output, including partial manifests |
+| `validate-e2e.sh`           | Runs all of the above                                          |
 
 ## Test Fixtures
 
@@ -49,21 +41,7 @@ bash tests/scripts/validate-cross-references.sh
 ## Prerequisites
 
 ```bash
-brew install brotli awscli 1password-cli jq
-op signin
-```
-
-## Validation Execution Order
-
-```
-1. validate-prerequisites.sh      → Tool installation check
-2. validate-brotli.sh             → Compression round-trip
-3. validate-credential-access.sh  → 1Password access
-4. validate-s3-upload.sh          → AWS connectivity
-5. validate-extract-chain.sh      → Script modification check
-6. validate-commit-format.sh      → Output format check
-7. validate-cross-references.sh   → Cross-reference integrity
-8. validate-e2e.sh                → Full integration
+brew install brotli jq
 ```
 
 ## Use Cases
@@ -71,4 +49,3 @@ op signin
 - **Regression testing**: Re-run after any changes to session-chronicle
 - **Onboarding**: New contributors can verify their setup
 - **CI-local validation**: Manual pre-push checks
-- **Documentation**: Scripts serve as executable documentation

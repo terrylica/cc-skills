@@ -23,7 +23,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **ml-failfast-validation**        | POC validation patterns for ML experiments (10-check framework)                      |
 | **mlflow-python**                 | Log backtest metrics, query experiments, QuantStats integration                      |
 | **session-recovery**              | Troubleshoot Claude Code session issues and HOME variable problems                   |
-| **session-chronicle**             | Session provenance tracking with S3 artifact sharing for team access                 |
+| **session-chronicle**             | Session provenance tracking, local Brotli archives and a transcript sanitizer          |
 | **dual-channel-watchexec**        | Send notifications to Telegram + Pushover on process events                          |
 | **python-logging-best-practices** | Unified Python logging with loguru, platformdirs, RotatingFileHandler                |
 | **disk-hygiene**                  | macOS disk cleanup, cache pruning, stale file detection, Downloads triage            |
@@ -109,9 +109,8 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Trace UUID chains across auto-compacted sessions
 - Capture provenance for research findings and ADR decisions
 - Brotli compression for efficient artifact storage
-- S3 artifact sharing with 1Password credential injection
-- Embedded retrieval commands in git commit messages
-- [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)
+- Structured provenance in git commit messages
+- A field-aware sanitizer for sharing session transcripts safely
 
 ### Dual-Channel Watchexec
 
@@ -186,8 +185,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 - Doppler CLI (`brew install dopplerhq/cli/doppler`)
 - Brotli (`brew install brotli`) - for session-chronicle
-- AWS CLI (`brew install awscli`) - for session-chronicle S3 upload
-- 1Password CLI (`brew install 1password-cli`) - for session-chronicle and cloudflare-workers-publish credentials
+- 1Password CLI (`brew install 1password-cli`) - for cloudflare-workers-publish credentials
 - wrangler (`npx wrangler` via Node.js) - for cloudflare-workers-publish
 - Claude Code
 
@@ -196,7 +194,6 @@ Skills are model-invoked — Claude automatically activates them based on contex
 | Issue                         | Cause               | Solution                                 |
 | ----------------------------- | ------------------- | ---------------------------------------- |
 | Doppler auth failed           | Token expired       | `doppler login` to re-authenticate       |
-| S3 upload fails               | Missing credentials | Verify AWS credentials via 1Password CLI |
 | ClickHouse connection refused | Network/firewall    | Check ClickHouse Cloud IP allowlist      |
 | MLflow tracking error         | Server unreachable  | Check MLflow tracking URI configuration  |
 | Wrangler deploy fails         | Wrong directory     | `cd` to directory with wrangler.toml     |

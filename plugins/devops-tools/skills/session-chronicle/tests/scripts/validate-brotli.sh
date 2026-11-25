@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # validate-brotli.sh - Brotli compression round-trip test
-# ADR: /docs/adr/2026-01-02-session-chronicle-s3-sharing.md
 
 set -euo pipefail
 

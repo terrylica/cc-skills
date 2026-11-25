@@ -10,8 +10,6 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 
 **CRITICAL PRINCIPLE**: Registry entries must be **self-contained**. Record ALL session UUIDs (main + subagent) at commit time. Future maintainers should not need to run archaeology to understand provenance.
 
-**S3 Artifact Sharing**: Artifacts can be uploaded to S3 for team access. See [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md).
-
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
 ## When to Use This Skill
@@ -32,16 +30,14 @@ Excavate Claude Code session logs to capture **complete provenance** for researc
 | `findings/registry.jsonl`                 | YES        | Master index (small, append-only NDJSON) |
 | `findings/sessions/<id>/iterations.jsonl` | YES        | Iteration records (small, append-only)   |
 | `outputs/research_sessions/<id>/`         | NO         | Research artifacts (large, gitignored)   |
-| `tmp/`                                    | NO         | Temporary archives before S3 upload      |
-| S3 `example-findings-bucket/sessions/<id>/`      | N/A        | Permanent team-shared archive            |
 
-**Key Principle**: Only `findings/` is committed. Research artifacts go to gitignored `outputs/` and S3.
+**Key Principle**: Only `findings/` is committed. Research artifacts go to gitignored `outputs/`.
 
 ---
 
 ## Part 0: Preflight Check
 
-Verify session storage, find project sessions, and check required tools (jq, brotli, aws, op).
+Verify session storage, find project sessions, and check required tools (jq, brotli).
 
 **Full scripts**: [Preflight Scripts](./references/preflight-scripts.md)
 
@@ -49,13 +45,13 @@ Summary of steps:
 
 1. **Verify Session Storage** - Confirm `~/.claude/projects/` exists
 2. **Find Current Project Sessions** - Encode CWD path, enumerate main + subagent `.jsonl` files
-3. **Verify Required Tools** - Check `jq`, `brotli`, `aws`, `op` are installed
+3. **Verify Required Tools** - Check `jq` and `brotli` are installed
 
-### Step 4 (MANDATORY before any S3 share): Sanitize
+### Step 4 (MANDATORY before sharing any session): Sanitize
 
 **Raw Claude Code session JSONL files are dangerous to share.** They commonly contain real credentials (AWS keys, GitHub PATs, Telegram bot tokens, Tailscale API keys, 1Password service tokens), internal hostnames, Tailscale CGNAT IPs, emails, and other infrastructure secrets that leak into prompts via screenshots, env dumps, and shell commands.
 
-**Before** zipping + uploading to S3, run the sanitizer:
+**Before** a session file leaves this machine by any route (an archive, an attachment, a shared folder, an issue), run the sanitizer:
 
 ```bash
 SKILL_DIR="$(find $HOME/.claude/plugins/marketplaces/cc-skills -type d -name session-chronicle | head -1)"
@@ -82,7 +78,7 @@ The sanitizer is **field-aware** (does not destroy UUIDs, tool-use IDs, or forex
 
 **Output**: a redaction report listing per-pattern counts. Review before packaging to confirm nothing important was destroyed (sanity check: UUID integrity should be preserved).
 
-**S3 upload sequence**: always raw → sanitize → zip → S3 → presigned URL. **Never upload `-raw/` directly.**
+**Sharing sequence**: always raw → sanitize → review the report → package. **Never share `-raw/` directly.**
 
 ---
 
@@ -184,8 +180,6 @@ AskUserQuestion:
       description: "findings/<name>.md with embedded provenance table"
     - label: "Git commit with provenance"
       description: "Structured commit message with session references"
-    - label: "Upload to S3 for team sharing"
-      description: "Upload artifacts to S3 with retrieval command in commit"
 ```
 
 ### Flow F: Link to Existing ADR
@@ -251,7 +245,7 @@ Summary:
 
 - **Compression** - Brotli-9 compress each session to `outputs/research_sessions/<id>/*.jsonl.br` (gitignored)
 - **Manifest** - Auto-generated `manifest.json` with target_id, count, timestamp
-- **Commit message** - Template includes registry_id, attribution, session counts, S3 retrieval commands
+- **Commit message** - Template includes registry_id, attribution and session counts
 
 ---
 
@@ -341,14 +335,10 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
     ├── Append to sessions/<id>/iterations.jsonl
     └── Validate NDJSON format
 
-12. SANITIZE (MANDATORY before any S3 share)
+12. SANITIZE (MANDATORY before sharing any session)
     ├── Run scripts/sanitize_sessions.py on the staging directory
     ├── Review redaction_report.txt (verify no structural destruction)
-    └── Produce sanitized/ directory for downstream packaging
-
-13. (OPTIONAL) S3 UPLOAD
-    ├── Package sanitized/ directory (zip or brotli per-file)
-    └── Upload compressed archives, generate presigned URL if sharing externally
+    └── Produce sanitized/ directory for packaging
 ```
 
 ---
@@ -366,8 +356,6 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
 
 ## References
 
-- [S3 Sharing ADR](/docs/adr/2026-01-02-session-chronicle-s3-sharing.md)
-- [S3 Retrieval Guide](./references/s3-retrieval-guide.md)
 - [Registry Schema Reference](./references/registry-schema.md)
 - [Preflight Scripts](./references/preflight-scripts.md)
 - [Archaeology Scripts](./references/archaeology-scripts.md)
@@ -386,7 +374,6 @@ tail -1 findings/registry.jsonl | jq '.id, .created_by.github_username, (.sessio
 | No sessions in project    | Wrong path encoding         | Check encoded path matches ~/.claude/projects/      |
 | jq parse error            | Malformed JSONL             | Validate each line with `jq -c .` individually      |
 | brotli not found          | Missing dependency          | Install with `brew install brotli`                  |
-| S3 upload fails           | Missing AWS credentials     | Configure AWS CLI or use 1Password injection        |
 | UUID chain broken         | Session compacted           | Check related sessions for continuation             |
 | GitHub username missing   | Attribution not set         | Always require github_username in registry entry    |
 | Registry entry invalid    | Missing required fields     | Verify id, type, created_at, session_contexts exist |

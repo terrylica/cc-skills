@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-date: 2026-11-25
 date: 2026-01-02
 decision-maker: terrylica
 consulted: [claude-code-guide, Explore]
@@ -10,7 +11,7 @@ perspectives: [OperationalService, ProviderToOtherComponents, SecurityBoundary]
 
 # ADR: Session Chronicle S3 Artifact Sharing
 
-**Design Spec**: [Implementation Spec](/docs/design/2026-01-02-session-chronicle-s3-sharing/spec.md)
+> ⚠️ **SUPERSEDED 2026-11-25**: S3 sharing is retired. In practice it served a single test upload; its bucket and its access key have since been deleted, and handing coworkers one shared cloud credential to read session transcripts is not a pattern worth keeping. The local half stays: Brotli archives under `outputs/research_sessions/`, the sanitizer, the registry and the provenance commit message. Removed with it: `s3_upload.sh`, `retrieve_artifact.sh`, the S3 retrieval guide and manifest schema, the S3 and credential tests, and this ADR's design spec (`docs/design/2026-01-02-session-chronicle-s3-sharing/spec.md`, recoverable from git history). Share a session today by sanitizing it (`sanitize_sessions.py`, SKILL.md Step 4) and sending the result by whatever channel fits.
 
 ## Context and Problem Statement
 

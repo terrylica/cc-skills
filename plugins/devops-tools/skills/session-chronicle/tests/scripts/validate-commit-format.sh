@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# validate-commit-format.sh - Git commit message format check
-# ADR: /docs/adr/2026-01-02-session-chronicle-s3-sharing.md
+# validate-commit-format.sh - Git commit message format check for generate_commit_message.sh
 
 set -euo pipefail
 
@@ -8,7 +7,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "=== Git Commit Message Format Validation ==="
 
-# Check if generate script exists
 GEN_SCRIPT="$SCRIPT_DIR/../../scripts/generate_commit_message.sh"
 if [[ ! -f "$GEN_SCRIPT" ]]; then
   echo "✗ generate_commit_message.sh: NOT FOUND"
@@ -16,12 +14,11 @@ if [[ ! -f "$GEN_SCRIPT" ]]; then
 fi
 echo "✓ generate_commit_message.sh: Found"
 
-# Generate commit message with mock data
 TEMP_DIR=$(mktemp -d)
 # iter-38 SC2064: single quotes so $TEMP_DIR expands at signal time
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-# Create mock manifest
+# The fields extract_session_chain.sh writes.
 cat > "$TEMP_DIR/manifest.json" << 'MANIFEST'
 {
   "total_sessions": 2,
@@ -32,52 +29,45 @@ cat > "$TEMP_DIR/manifest.json" << 'MANIFEST'
   "last_timestamp": "2026-01-02T00:00:00Z",
   "project_path": "/test/project",
   "created_at": "2026-01-02T12:00:00Z",
-  "s3_location": "s3://example-findings-bucket/sessions/test-123"
+  "compression": "brotli-9"
 }
 MANIFEST
-
-# Run generate script
-COMMIT_MSG=$(bash "$GEN_SCRIPT" "$TEMP_DIR" "Test provenance finding" 2>&1 || true)
-
-# Validate required elements
-VALIDATIONS=(
-  "Session-Chronicle Provenance"
-  "s3://example-findings-bucket"
-  "sessions"
-  "op read"
-  "aws s3"
-  "Session-Chronicle-S3:"
-)
+touch "$TEMP_DIR/session-a.jsonl.br"
 
 PASSED=0
 FAILED=0
+pass() { echo "✓ $1"; ((PASSED++)) || true; }
+fail() { echo "✗ $1"; ((FAILED++)) || true; }
 
-for pattern in "${VALIDATIONS[@]}"; do
-  if grep -q "$pattern" <<<"$COMMIT_MSG"; then
-    echo "✓ Contains: $pattern"
-    ((PASSED++)) || true
-  else
-    echo "✗ Missing: $pattern"
-    ((FAILED++)) || true
-  fi
+rc=0
+COMMIT_MSG=$(bash "$GEN_SCRIPT" "$TEMP_DIR" "Test provenance finding" "2026-01-01-example-adr" 2>&1) || rc=$?
+if [[ $rc -eq 0 ]]; then pass "generator exits 0"; else fail "generator exited $rc: $COMMIT_MSG"; fi
+
+for pattern in \
+  "feat(provenance): Test provenance finding" \
+  "Session-Chronicle Provenance:" \
+  "  sessions_traced: 2" \
+  "  chain_depth: 12" \
+  "  compression: brotli-9" \
+  "  - session-a.jsonl.br" \
+  "Related ADR: 2026-01-01-example-adr"; do
+  if grep -qF -- "$pattern" <<<"$COMMIT_MSG"; then pass "Contains: $pattern"; else fail "Missing: $pattern"; fi
 done
 
-# Validate NO presigned URLs
-if grep -qi "presigned\|expires" <<<"$COMMIT_MSG"; then
-  echo "✗ Contains presigned URL reference (should not)"
-  ((FAILED++)) || true
-else
-  echo "✓ No presigned URL references"
-  ((PASSED++)) || true
-fi
+# No cloud upload or credential lookup is described any more.
+for pattern in "s3://" "aws s3" "op read" "op://" "presigned"; do
+  if grep -qiF -- "$pattern" <<<"$COMMIT_MSG"; then fail "Contains retired pattern: $pattern"; else pass "No: $pattern"; fi
+done
 
-# Validate retrieval command is embedded
-if grep -q "op://Claude Automation" <<<"$COMMIT_MSG"; then
-  echo "✓ Contains 1Password retrieval pattern"
-  ((PASSED++)) || true
+# A field the manifest lacks is left out, never filled with a placeholder.
+echo '{"total_sessions": 1}' > "$TEMP_DIR/manifest.json"
+rm -f "$TEMP_DIR"/*.br
+rc=0
+PARTIAL=$(bash "$GEN_SCRIPT" "$TEMP_DIR" "Partial" 2>&1) || rc=$?
+if [[ $rc -eq 0 ]] && grep -qF "  sessions_traced: 1" <<<"$PARTIAL" && ! grep -qE "N/A|total_lines|chain_depth|Archived sessions" <<<"$PARTIAL"; then
+  pass "Partial manifest: only present fields, no placeholders"
 else
-  echo "✗ Missing 1Password retrieval pattern"
-  ((FAILED++)) || true
+  fail "Partial manifest (rc=$rc): $PARTIAL"
 fi
 
 echo ""

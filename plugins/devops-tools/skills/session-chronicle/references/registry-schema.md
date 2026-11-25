@@ -50,8 +50,7 @@ Each line is a complete, self-contained JSON object:
     "adr": "docs/adr/2026-01-02-multiyear-momentum-vs-ml.md",
     "strategy_config": "examples/02_strategies/cs_momentum_multiyear.yaml",
     "research_log": "outputs/research_sessions/2026-01-01-multiyear-momentum/research_log.md",
-    "iteration_configs": "outputs/research_sessions/2026-01-01-multiyear-momentum/",
-    "s3": "s3://example-findings-bucket/sessions/2026-01-01-multiyear-momentum/"
+    "iteration_configs": "outputs/research_sessions/2026-01-01-multiyear-momentum/"
   },
   "status": "validated",
   "finding": "BiLSTM time-series models show no predictive edge (49.05% hit rate). Simple CS momentum outperforms.",
@@ -91,7 +90,6 @@ Each line is a complete, self-contained JSON object:
 | `strategy_config`   | `examples/...`                         | Committed strategy example  |
 | `research_log`      | `outputs/research_sessions/.../`       | Gitignored research log     |
 | `iteration_configs` | `outputs/research_sessions/.../`       | Gitignored config files     |
-| `s3`                | `s3://example-findings-bucket/sessions/<id>/` | S3 archive for team sharing |
 
 ---
 
