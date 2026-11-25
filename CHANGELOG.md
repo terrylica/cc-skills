@@ -1,3 +1,12 @@
+# [34.26.0](https://github.com/terrylica/cc-skills/compare/v34.25.3...v34.26.0) (2026-11-25)
+
+
+### Features
+
+* **gmail-commander:** link GitHub issues, check readers' access ([eeaf8aa](https://github.com/terrylica/cc-skills/commit/eeaf8aa8c0eb5316c47b7e43d31eb924da0821ec)), closes [#N](https://github.com/terrylica/cc-skills/issues/N) [#N](https://github.com/terrylica/cc-skills/issues/N)
+
+Email drafts often point people at GitHub issues, and most such repositories are private: a reader without access gets GitHub's 404 page and gives up, or never learns that an invitation is waiting (or has expired). gmail-draft.ts now makes issue references short text links wherever the email is rich text, checks with gh that every named reader can actually open and comment on a private repository's issues before any Gmail call, and makes sure the email tells readers that the links need access. The check caught a real case on its first live run: a reader's invitations had lapsed after GitHub's 7-day limit, which a plain "invited" status would have hidden.
+
 ## [34.25.3](https://github.com/terrylica/cc-skills/compare/v34.25.2...v34.25.3) (2026-11-24)
 
 
