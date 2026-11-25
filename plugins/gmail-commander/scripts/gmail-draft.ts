@@ -24,6 +24,7 @@
  *     [--github-reader LOGIN]...              # repeatable; GitHub login of everyone who will open the links
  *     [--github-access-ok '<reason>']         # make the draft although a reader cannot open a private repo
  *     [--no-github-access-note]               # never add the access paragraph
+ *     [--google-authuser EMAIL]               # Google file links open in this signed-in account (see GOOGLE ACCOUNT LINKS)
  *
  * REPLYING TO SOMEONE (the house style): quote each passage you answer VERBATIM in its own `> `
  * block and answer it underneath. The HTML part renders every such block as a styled quotation
@@ -88,6 +89,17 @@
  *      With a pending invitation the remark must mention the invitation. --no-github-access-note
  *      suppresses it; with --html a missing remark is a refusal, since the html cannot be edited.
  *
+ * GOOGLE ACCOUNT LINKS (--google-authuser, 2026-11-25; code in `google-authuser.ts`). A recipient who
+ * reads mail in a personal Google account but opens the organisation's files in a work account lands
+ * in the wrong account from a Docs or Drive link and asks for access from the personal one. Google's
+ * web apps honour `authuser=<email>`, which opens the link in that signed-in account. With the flag,
+ * before conversion, every link to docs, drive, sheets, slides, forms, sites, script, calendar and
+ * meet.google.com (bare, `<…>` or a named-link target) gets `authuser=EMAIL`, replacing any existing
+ * one; the rest of the query and the fragment are kept, the parameter goes before `#`, and `@` stays
+ * readable. Untouched: mail.google.com (it pins a mailbox itself), other hosts, `>` quotations, code
+ * spans and ``` fences. The plain part reads `text (URL)` with the new URL. Skipped with --html (the
+ * authored part is verbatim; a warning says so). Given twice, the values must agree.
+ *
  * LINGERING DRAFTS (2026-11-21): after the draft is verified, every other draft in the account is
  * read and compared with it (`lingering-drafts.ts`). A draft from the same sender to a shared
  * recipient with the same subject (Braille Tally cells, "Re:" and case ignored) is an earlier
@@ -99,7 +111,8 @@
  *
  * OUTPUT: one JSON line {draftId, threadId, account, replaced, attachments, pruned, superseded,
  * related, lingeringCheck, githubAccess: {repos: {"owner/repo": {visibility, readers: {login: status},
- * notes}}, privateRepos, accessOk}, accessNote: present|appended|suppressed|not-needed} —
+ * notes}}, privateRepos, accessOk}, accessNote: present|appended|suppressed|not-needed,
+ * googleAuthuser: {email, links} | null} —
  * machine-readable per CLI-first doctrine.
  * EXIT: 0 done and clean · 1 failed (nothing to rely on) · 3 draft made and verified, but earlier
  * versions still linger (listed in `superseded`) · 4 draft made and verified, but the lingering
@@ -108,6 +121,7 @@
 
 import { describe as describeDraft, findLingering, listDraftMeta } from "./lingering-drafts.ts";
 import { GITHUB_LOGIN, GITHUB_REPO_SLUG, prepareGithubLinks } from "./github-links.ts";
+import { addGoogleAuthuser, GOOGLE_AUTHUSER_EMAIL } from "./google-authuser.ts";
 
 interface Args {
   account: string;
@@ -135,10 +149,12 @@ interface Args {
   githubAccessOk?: string | undefined;
   /** `--no-github-access-note`: never add the access paragraph. */
   noGithubAccessNote: boolean;
+  /** `--google-authuser EMAIL`: Google web-app links open in this signed-in account. */
+  googleAuthuser?: string | undefined;
 }
 
 export const USAGE =
-  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--prune-superseded] [--html <file.html>] [--attach <file>]... [--github-repo <owner/repo>] [--github-reader <login>]... [--github-access-ok '<reason>'] [--no-github-access-note]";
+  "usage: gmail-draft.ts --account <tokenbase> --body <file> --from '<Name <addr>>' [--reply-to <msgId>] [--to …] [--cc …] [--subject …] [--replace <draftId>] [--prune-superseded] [--html <file.html>] [--attach <file>]... [--github-repo <owner/repo>] [--github-reader <login>]... [--github-access-ok '<reason>'] [--no-github-access-note] [--google-authuser <email>]";
 
 /** Parse the command line. Throws with USAGE when a required flag is missing (main prints it and exits 1). */
 export function parseArgs(argv: string[] = process.argv): Args {
@@ -164,10 +180,14 @@ export function parseArgs(argv: string[] = process.argv): Args {
   const githubRepo = repeated("github-repo", "OWNER/REPO").at(-1);
   if (githubRepo !== undefined && !GITHUB_REPO_SLUG.test(githubRepo)) throw new Error(`--github-repo ${JSON.stringify(githubRepo)} is not OWNER/REPO\n${USAGE}`);
   const githubAccessOk = repeated("github-access-ok", "a reason").at(-1);
+  const authusers = [...new Set(repeated("google-authuser", "an email address"))];
+  if (authusers.length > 1) throw new Error(`--google-authuser was given different addresses (${authusers.join(", ")}); a link opens in one account\n${USAGE}`);
+  const googleAuthuser = authusers[0];
+  if (googleAuthuser !== undefined && !GOOGLE_AUTHUSER_EMAIL.test(googleAuthuser)) throw new Error(`--google-authuser ${JSON.stringify(googleAuthuser)} is not an email address\n${USAGE}`);
   return {
     account, body, from, replyTo: get("reply-to"), to: get("to"), cc: get("cc"), subject: get("subject"), replace: get("replace"),
     pruneSuperseded: argv.includes("--prune-superseded"), html: get("html"), attach,
-    githubRepo, githubReaders, githubAccessOk, noGithubAccessNote: argv.includes("--no-github-access-note"),
+    githubRepo, githubReaders, githubAccessOk, noGithubAccessNote: argv.includes("--no-github-access-note"), googleAuthuser,
   };
 }
 
@@ -1220,10 +1240,23 @@ if (import.meta.main) {
   let parts: Awaited<ReturnType<typeof loadDraftParts>>;
   let attachments: Attachment[];
   let github: Awaited<ReturnType<typeof prepareGithubLinks>>;
+  let googleAuthuser: { email: string; links: number } | null = null;
   try {
     args = parseArgs();
-    // GitHub step first: links, reader access (gh only) and the access note, before any Gmail call.
-    github = await prepareGithubLinks(await Bun.file(args.body).text(), {
+    let rawBody = await Bun.file(args.body).text();
+    // Google account step: Google web-app links open in the --google-authuser account (not with --html, which is verbatim).
+    if (args.googleAuthuser !== undefined) {
+      if (args.html === undefined) {
+        const r = addGoogleAuthuser(rawBody, args.googleAuthuser);
+        rawBody = r.body;
+        googleAuthuser = { email: args.googleAuthuser, links: r.links };
+      } else {
+        googleAuthuser = { email: args.googleAuthuser, links: 0 };
+        console.error("GOOGLE: --google-authuser does not rewrite an authored --html part; add authuser= to its Google links (and the --body's) yourself.");
+      }
+    }
+    // GitHub step next: links, reader access (gh only) and the access note, before any Gmail call.
+    github = await prepareGithubLinks(rawBody, {
       githubRepo: args.githubRepo,
       readers: args.githubReaders,
       accessOk: args.githubAccessOk,
@@ -1419,6 +1452,7 @@ if (import.meta.main) {
     lingeringCheck: lingeringError ? `failed: ${lingeringError}` : "ok",
     githubAccess: github.githubAccess,
     accessNote: github.accessNote,
+    googleAuthuser,
   };
   console.log(JSON.stringify(out));
   process.exit(exitCode);

@@ -133,7 +133,8 @@ bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts
   [--github-repo owner/repo]       # bare #N links to this repo; its links read #N
   [--github-reader <login>]...     # everyone who will open GitHub links; private repos are checked with gh
   [--github-access-ok '<reason>'] [--no-github-access-note]
-# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[…],"pruned":[…],"superseded":[…],"related":[…],"lingeringCheck":"ok","githubAccess":{…},"accessNote":"…"}
+  [--google-authuser <work address>]  # Google file links open in this signed-in account
+# stdout: {"draftId":"…","threadId":"…","account":"…","replaced":…,"attachments":[…],"pruned":[…],"superseded":[…],"related":[…],"lingeringCheck":"ok","githubAccess":{…},"accessNote":"…","googleAuthuser":{"email":"…","links":N}|null}
 # exit: 0 clean · 1 failed · 3 earlier versions still linger · 4 the lingering check could not read the folder
 ```
 

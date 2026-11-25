@@ -307,6 +307,7 @@ bun "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/script
   --to 'Alex Roe <alex@example.com>' \
   --attach ./signed-agreement.pdf \
   --github-repo acme/handbook --github-reader jdoe \
+  --google-authuser alex.roe@example.org \
   --replace <superseded draftId>
 ```
 
@@ -322,6 +323,14 @@ Most issues we link to are in **private** repositories, and GitHub shows a plain
 - **The email says the links need access.** Unless a paragraph already mentions access or an invitation together with GitHub, links or issues, a standard paragraph (`GITHUB_ACCESS_NOTE`) is added before the provenance footer and sign-off; `--no-github-access-note` suppresses it. With `--html`, references are not rewritten and a missing remark is refused.
 
 The JSON line carries `githubAccess` (`repos` → `{visibility, readers: {login: status}, notes}`, `privateRepos`, `accessOk`) and `accessNote` (`present`, `appended`, `suppressed` or `not-needed`).
+
+### Google file links: open them in the reader's work account (since 2026-11-25)
+
+**House style: when a recipient reads mail in a personal Google account but opens the organisation's files in a work account, always pass `--google-authuser <work address>`.** Without it, a Docs or Drive link opens in whichever account the browser picks, usually the personal one, and the reader requests access from the wrong account. Google's own web apps honour `authuser=<email>`, which opens the link in that signed-in account.
+
+- Every link to `docs`, `drive`, `sheets`, `slides`, `forms`, `sites`, `script`, `calendar` or `meet.google.com` (bare, `<…>`, or a named-link target) gets `authuser=<work address>`, replacing any existing `authuser`; the rest of the query and the fragment are kept, and `@` stays readable (`?authuser=jane.doe@example.com`). The plain part reads `text (URL)` with the new URL.
+- Never touched: `mail.google.com` (a mail link pins its own mailbox), other hosts, `>` quotations, code spans and fences. With `--html` nothing is rewritten and a warning says so; put `authuser=` into both parts yourself.
+- The flag takes one address; repeating it with a different one is refused. The JSON line carries `googleAuthuser: {email, links}` (`null` without the flag).
 
 ### No earlier version may linger (every run, since 2026-11-21)
 
