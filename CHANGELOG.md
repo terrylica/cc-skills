@@ -1,3 +1,17 @@
+# [34.27.0](https://github.com/terrylica/cc-skills/compare/v34.26.0...v34.27.0) (2026-11-25)
+
+
+### Features
+
+* **gmail-commander:** --google-authuser opens Google file links in the reader's work account ([c63a62c](https://github.com/terrylica/cc-skills/commit/c63a62ce593d06caa8aa9e71dfa20dcd73596278))
+
+A recipient who reads mail in a personal Google account but must open the organisation's files in a work account clicks a Docs or Drive link, lands in the personal account, and requests access from the wrong one. Google's own web apps honour an authuser=&lt;email> query parameter that opens the link in that signed-in account, so the draft builder can now add it to every Google file link before conversion, keeping the html href and the plain part's text (URL) in agreement.
+
+- New scripts/google-authuser.ts: adds or replaces authuser=EMAIL on docs, drive, sheets, slides, forms, sites, script, calendar and meet.google.com links (bare, autolink or named-link target), keeping the query and fragment, with @ left readable and + percent-encoded; mail.google.com, other hosts, quotations, code spans and fences are left alone.
+- gmail-draft.ts takes --google-authuser EMAIL (validated; repeating it with a different address is refused), skips the rewrite with a warning for an authored --html part, and reports googleAuthuser: {email, links} (null without the flag) in its JSON line.
+- 15 tests in scripts/google-authuser.test.ts cover bare and named links, existing query, fragment, authuser replacement, untouched hosts, quotations and code, the plain-part rendering and flag parsing.
+- The gmail-access skill states the house style: when a recipient reads mail in a personal account but opens the organisation's files in a work account, always pass --google-authuser &lt;work address>.
+
 # [34.26.0](https://github.com/terrylica/cc-skills/compare/v34.25.3...v34.26.0) (2026-11-25)
 
 
