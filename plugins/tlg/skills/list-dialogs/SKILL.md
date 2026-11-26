@@ -54,9 +54,9 @@ Use `--preview N` only when you're scanning many messages and want a single-line
 `read`, `search` and `thread` print one line per message (`scripts/message-format.ts`):
 
 ```
-[2026-11-26 11:59:51 PCT] (id:812 ↩805) Ann Lee: 好的，我明白
+[2026-11-26 11:59:51 PCT] (id:812) ↩805 Ann Lee: 好的，我明白
     ❝只看第三张图❞
-[2026-11-26 11:40:02 PCT] (id:806 album:13975…) Carol: (edited) [fwd from Bob] [photo] caption text
+[2026-11-26 11:40:02 PCT] (id:806) album:13975… Carol: (edited) [fwd from Bob] [photo] caption text
 ```
 
 | Marker                  | Meaning (Telegram field)                                                                                           |
@@ -84,6 +84,8 @@ bun "$SCRIPT" read <chat> -n 50 --json            # the same records as dump, as
 bun "$SCRIPT" thread <chat> 812                # climb the ↩ chain: oldest first, ending at 812 (▶)
 bun "$SCRIPT" thread <chat> 812 --replies      # also the later replies to it (scans the next 300 messages)
 ```
+
+`--around ID -n N` lists the target, about N/2 older and N/2 newer messages (N+1 lines). `--topic 1` (a forum's General topic) is not a real thread and has not been checked live: read the whole chat instead. Counts (`-n`, `--depth`, `--scan`) must be at least 1, because GramJS reads 0 as "no limit".
 
 `thread` stops at a message that replies to nothing, a forum topic's root, a deleted parent, a parent in another chat, a cycle, or `--depth` (default 20), and says which. When someone quotes or replies to an old message you do not recognise, run `thread` on their message before answering: the quoted part (`❝…❞`) and the chain show what they are answering.
 

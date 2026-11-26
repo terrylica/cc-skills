@@ -127,4 +127,12 @@ describe("relinkedEntities — a greedy e-mail entity", () => {
     expect(changed).toBe(true);
     expect(entities.map((e) => [e.className, e.offset, e.length])).toEqual([["MessageEntityEmail", at, 15]]);
   });
+
+  test("two identical greedy entries give one replacement", () => {
+    const text = "联系方式是ann@example.com，谢谢";
+    const at = text.indexOf("ann");
+    const greedy = () => new Api.MessageEntityEmail({ offset: at - 1, length: 16 });
+    const { entities } = relinkedEntities({ message: text, entities: [greedy(), greedy()] });
+    expect(entities.map((e) => [e.className, e.offset, e.length])).toEqual([["MessageEntityEmail", at, 15]]);
+  });
 });

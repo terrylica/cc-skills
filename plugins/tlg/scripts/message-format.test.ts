@@ -102,7 +102,7 @@ describe("formatLine", () => {
 
   test("a reply shows ↩parent and the quote on its own line", () => {
     const line = formatLine(viewOf(reply(812, 805, { quote: true, quoteText: "只看第三张图" }), "Ann Lee"), utc);
-    expect(line).toBe("[2025-11-26 19:59:51 UTC] (id:812 ↩805) Ann Lee: text 812\n    ❝只看第三张图❞");
+    expect(line).toBe("[2025-11-26 19:59:51 UTC] (id:812) ↩805 Ann Lee: text 812\n    ❝只看第三张图❞");
   });
 
   test("markers for topic, album, edit, forward and media", () => {
@@ -117,7 +117,7 @@ describe("formatLine", () => {
       },
       "A",
     );
-    expect(formatLine(v, utc)).toBe("[2025-11-26 19:59:51 UTC] (id:41 ↩40 topic:7 album:9) A: (edited) [fwd] [document] cap");
+    expect(formatLine(v, utc)).toBe("[2025-11-26 19:59:51 UTC] (id:41) ↩40 topic:7 album:9 A: (edited) [fwd] [document] cap");
   });
 
   test("a service message shows its action and no media marker; an empty body renders nothing", () => {
@@ -138,13 +138,30 @@ describe("formatLine", () => {
   });
 });
 
+describe("formatLine mark", () => {
+  test("the mark prefixes the first line only, not continuation or quote lines", () => {
+    const v = viewOf({ ...reply(9, 5, { quote: true, quoteText: "q" }), message: "a\nb" }, "X");
+    expect(formatLine(v, { utc: true, indent: "  ", mark: "▶ " })).toBe(
+      "  ▶ [2025-11-26 19:59:51 UTC] (id:9) ↩5 X: a\n      b\n      ❝q❞",
+    );
+  });
+});
+
 describe("recordOf", () => {
+  test("reply_to_msg_id is Telegram's stored value, reply_parent the real parent (as in dump)", () => {
+    const r = recordOf(viewOf(reply(40, 7, { forumTopic: true }), "A"));
+    expect(r.reply_to_msg_id).toBe(7);
+    expect(r.reply_parent).toBeNull();
+    expect(r.forum_topic_id).toBe(7);
+  });
+
   test("carries every field, null when absent", () => {
     const r = recordOf(viewOf(reply(2, 1, { quote: true, quoteText: "q" }), "A", 77), { extra: 1 });
     expect(r).toMatchObject({
       id: 2,
       date: "2025-11-26T19:59:51.000Z",
       reply_to_msg_id: 1,
+      reply_parent: 1,
       quote_text: "q",
       forum_topic_id: null,
       fwd_from: null,
@@ -195,4 +212,15 @@ describe("climb", () => {
     const p = store([reply(3, 99, { replyToPeerId: { channelId: 5 } })]);
     expect((await climb(3, p.fetch)).stop).toBe("parent 99 is in channel:5");
   });
+});
+
+describe("tg-cli count flags", () => {
+  // GramJS reads a limit of 0 or NaN as no limit, so these must be refused before any connection is made.
+  for (const args of [["read", "me", "-n", "0"], ["read", "me", "-n", "abc"], ["thread", "me", "5", "--scan", "0"], ["thread", "me", "5", "--depth", "x"], ["search", "q", "-n", "0"]]) {
+    test(`${args.join(" ")} is a usage error`, () => {
+      const r = Bun.spawnSync(["bun", `${import.meta.dir}/tg-cli.ts`, ...args], { env: { ...process.env, HOME: "/nonexistent" } });
+      expect(r.exitCode).toBe(2);
+      expect(r.stderr.toString()).toMatch(/--(limit|scan|depth)/);
+    });
+  }
 });

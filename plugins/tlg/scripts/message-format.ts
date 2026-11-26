@@ -29,7 +29,8 @@ export interface MsgView {
   readonly senderId: number | undefined;
   readonly text: string;
   readonly out: boolean;
-  readonly replyToId: number | undefined;
+  readonly replyToId: number | undefined; // the real parent: a forum topic's root is not one
+  readonly replyToRaw: number | undefined; // replyTo.replyToMsgId as Telegram stored it
   readonly replyToPeer: string | undefined; // set when the parent is in another chat
   readonly topicId: number | undefined; // forum topic root, when the message sits in a topic
   readonly quote: string | undefined; // the quoted part of the parent
@@ -94,6 +95,7 @@ export function viewOf(m: any, sender: string, senderId?: number): MsgView {
     text: typeof m?.message === "string" ? m.message : "",
     out: Boolean(m?.out),
     replyToId,
+    replyToRaw: parent,
     replyToPeer: isReply ? peerLabel(rt.replyToPeerId) : undefined,
     topicId: topic,
     quote: isReply && rt.quote && typeof rt.quoteText === "string" && rt.quoteText ? rt.quoteText : undefined,
@@ -129,6 +131,7 @@ export interface LineOptions {
   readonly utc?: boolean | undefined;
   readonly seconds?: boolean | undefined;
   readonly chat?: string | undefined; // shown first, for listings across chats (global search)
+  readonly mark?: string | undefined; // prefix for the first line only, after the indent (e.g. "▶ ")
   readonly indent?: string | undefined; // prefix for every line (thread)
 }
 
@@ -149,14 +152,16 @@ function body(text: string, preview: number | undefined, indent: string): string
 
 /**
  * One listing line:
- *   [2026-11-26 11:59:51 PCT] (id:812 ↩805) Ann Lee: text
+ *   [2026-11-26 11:59:51 PCT] (id:812) ↩805 Ann Lee: text
  * with, when present: "↩N@channel:C" for a parent in another chat, "topic:T", "album:G", "(edited)",
  * "[fwd from X]" ("[fwd]" when Telegram names no origin), "[photo]" (beside a caption too), "[service: chat add user]", and the quoted part of the parent
  * on its own line as  ❝quote❞ .
  */
 export function formatLine(v: MsgView, opts: LineOptions = {}): string {
   const indent = opts.indent ?? "";
-  const tags = [`id:${v.id}`];
+  // "(id:N)" keeps its old exact form, since scripts match it (e.g. a reply watcher polling `read`); the new markers
+  // follow it.
+  const tags: string[] = [];
   if (v.replyToId !== undefined) {
     tags.push(`↩${v.replyToId}${v.replyToPeer ? `@${v.replyToPeer}` : ""}`);
   }
@@ -180,9 +185,10 @@ export function formatLine(v: MsgView, opts: LineOptions = {}): string {
   }
   const text = v.text;
   const head = [
-    `${indent}[${stamp(v.date, { zone: opts.zone, utc: opts.utc, seconds: opts.seconds })}]`,
+    `${indent}${opts.mark ?? ""}[${stamp(v.date, { zone: opts.zone, utc: opts.utc, seconds: opts.seconds })}]`,
     opts.chat ? `{${opts.chat}}` : "",
-    `(${tags.join(" ")})`,
+    `(id:${v.id})`,
+    ...tags,
     `${v.sender}:`,
     ...marks,
   ]
@@ -192,13 +198,18 @@ export function formatLine(v: MsgView, opts: LineOptions = {}): string {
   return `${head}${text ? ` ${body(text, opts.preview, indent)}` : ""}${quote}`;
 }
 
-/** The JSON record of `dump` and `read --json` (dump's original keys first; new keys are additions). */
+/**
+ * The JSON record of `read --json`, `search --json` and `thread --json`. Its keys mean what `dump`'s same-named keys
+ * mean (reply_to_msg_id as stored, reply_parent with topic roots set aside); grouped_id is a string here because album
+ * ids exceed 2^53 (dump's older numeric grouped_id is lossy and kept only for compatibility).
+ */
 export function recordOf(v: MsgView, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: v.id,
     date: v.date ? new Date(v.date * 1000).toISOString() : null,
     text: v.text || null,
-    reply_to_msg_id: v.replyToId ?? null,
+    reply_to_msg_id: v.replyToRaw ?? null,
+    reply_parent: v.replyToId ?? null,
     reply_to_peer: v.replyToPeer ?? null,
     forum_topic_id: v.topicId ?? null,
     quote_text: v.quote ?? null,

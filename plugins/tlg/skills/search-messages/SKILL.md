@@ -53,7 +53,7 @@ EOF
 Default (full text, multi-line indented):
 
 ```
-[YYYY-MM-DD HH:MM:SS PCT] {Chat Name -1001234567890} (id:12345 ↩12001) Sender: First line of body
+[YYYY-MM-DD HH:MM:SS PCT] {Chat Name -1001234567890} (id:12345) ↩12001 Sender: First line of body
     continuation line 1 (indented under header)
     continuation line 2
 ```

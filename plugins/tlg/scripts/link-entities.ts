@@ -72,7 +72,8 @@ export function relinkedEntities(message: { message?: string; entities?: readonl
   // A greedy e-mail entity is replaced by one over the address alone.
   for (const b of bad) {
     const span = b.type === "MessageEntityEmail" ? emailSpan(b.text) : undefined;
-    if (span !== undefined) {
+    const offset = span === undefined ? -1 : b.offset + span.offset;
+    if (span !== undefined && !kept.some((e) => e.className === "MessageEntityEmail" && e.offset === offset && e.length === span.length)) {
       kept.push(new Api.MessageEntityEmail({ offset: b.offset + span.offset, length: span.length }));
     }
   }
