@@ -9,6 +9,9 @@
  * Non-blocking: outputs additionalContext for Claude visibility.
  * Auto-fixes what it can, reports remaining issues.
  * Fail-open everywhere.
+ *
+ * A file that prettier would blow up by padding a wide table is left unchanged
+ * and reported (Phase 0.75; thresholds below).
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -16,8 +19,109 @@ import { detectBrokenTables, hasTableErrors } from "./lib/markdown-table-detecto
 
 const MAX_DIAGNOSTIC_LINES = 20;
 
+// --- Wide-table padding guard (Phase 0.75) ---
+//
+// Prettier aligns a table by padding EVERY cell to the widest cell of its
+// column, so a table with a few very long cells turns into mostly spaces. With
+// `--prose-wrap preserve` it always prints the aligned form (the compact form
+// exists only under `--prose-wrap never`), and nothing bounds the result.
+//
+// Measured case: one file holding a single table of about 275 rows with a few
+// long cells went from 161,149 to 1,322,925 bytes (8.2x, +1,161,776 bytes) in
+// one run of this hook while 9 lines of content had changed. It later reached
+// 1.69 MB, 83% of it padding; unpadded the same content is 318 KB, and prettier
+// on that would produce 3.6 MB (11x).
+//
+// The rule: a file is left unchanged, and reported, when formatting would BOTH
+//
+//   - at least double it (OVERSIZE_GROWTH_RATIO): more than half of the
+//     formatted file would be padding added by this one run, and
+//   - add at least OVERSIZE_MIN_GROWTH_BYTES: small files double all the time
+//     and harmlessly (a two-row table of 62 bytes becomes 92; a 1 KB note with
+//     one 300-character cell becomes 4 KB), so the ratio alone must not decide.
+//
+// Both conditions are required. The ratio alone would withhold formatting from
+// small notes; the byte count alone would withhold it from a large document
+// that grows by a modest fraction. The measured case clears the ratio 4 times
+// over and the byte floor 35 times over. Calibration on the other side: with
+// every table in this repository's 1,034 tracked .md files stripped of its
+// padding, formatting them back trips the rule for none. The largest growth is
+// 27,508 bytes, at 1.37x; the largest ratio is 2.69x, at 17,421 bytes.
+//
+// `.prettierignore` remains the permanent, per-repository opt-out; this guard
+// is the default for a repository that has not written one.
+export const OVERSIZE_GROWTH_RATIO = 2;
+export const OVERSIZE_MIN_GROWTH_BYTES = 32 * 1024;
+
 function collectLines(r: ReturnType<typeof Bun.spawnSync>): string[] {
   return (r.stdout?.toString().trim() || "").split("\n").filter((l) => l.trim());
+}
+
+/** A GFM delimiter row (`|---|:--:|`), optionally indented or inside a blockquote. */
+function isTableDelimiterRow(line: string): boolean {
+  return /^[ \t>|:-]+$/.test(line) && line.includes("|") && line.includes("-");
+}
+
+/**
+ * Upper bound, in bytes, on how much prettier's table alignment can add to `text`.
+ *
+ * It decides which files need the measured check at all: a file whose bound is
+ * under OVERSIZE_MIN_GROWTH_BYTES cannot trip the rule, so it goes straight to
+ * the ordinary `prettier --write` batch at no extra cost (this hook runs at
+ * every stop, over every uncommitted .md).
+ *
+ * Deliberately not a parser, so it cannot disagree with prettier's. For each
+ * table (the line above a delimiter row, down to the next blank line) with R
+ * rows and at most C columns, an aligned row is the sum of the column widths
+ * plus 3 bytes per column plus 1. Each column's widest cell sits in some row,
+ * and the cells of one row cannot be longer than that row's line, so the sum of
+ * the column widths is at most the sum of the C longest lines. Padding counts
+ * display columns, which never exceed UTF-8 bytes. Hence growth is at most
+ * R x (sum of the C longest lines + 3C + 1). Lines wrongly taken for table rows
+ * only loosen the bound. Formatting outside tables (blank lines around blocks,
+ * list markers) is not counted: across the same 1,034 files it never added
+ * more than 18 bytes to a file without a table.
+ */
+export function tablePaddingGrowthUpperBound(text: string): number {
+  const lines = text.split(/\r?\n/);
+  let bound = 0;
+  for (let i = 1; i < lines.length; i++) {
+    if (!isTableDelimiterRow(lines[i])) continue;
+    let end = i + 1;
+    while (end < lines.length && lines[end].trim() !== "") end++;
+    const rows = lines.slice(i - 1, end);
+    const maxColumns = rows.reduce((max, row) => Math.max(max, row.split("|").length), 0);
+    const longestFirst = rows.map((row) => Buffer.byteLength(row)).sort((a, b) => b - a);
+    const widestColumnsSum = longestFirst
+      .slice(0, Math.min(maxColumns, rows.length))
+      .reduce((sum, width) => sum + width, 0);
+    bound += rows.length * (widestColumnsSum + 3 * maxColumns + 1);
+    i = end;
+  }
+  return bound;
+}
+
+/** True when formatting would both multiply the file and add enough bytes to matter. */
+export function isOversizedFormat(originalBytes: number, formattedBytes: number): boolean {
+  return (
+    formattedBytes >= originalBytes * OVERSIZE_GROWTH_RATIO &&
+    formattedBytes - originalBytes >= OVERSIZE_MIN_GROWTH_BYTES
+  );
+}
+
+/**
+ * Size in bytes of what `prettier --write` would leave in `file`, measured by
+ * formatting to stdout with the same options; null when prettier fails or
+ * times out. Nothing is written.
+ */
+function measureFormattedBytes(file: string): number | null {
+  const r = Bun.spawnSync(["prettier", "--prose-wrap", "preserve", file], {
+    stdout: "pipe",
+    stderr: "pipe",
+    timeout: 10000,
+  });
+  if (r.exitCode !== 0) return null;
+  return r.stdout?.length ?? null;
 }
 
 function main(): void {
@@ -148,6 +252,40 @@ function main(): void {
     }
   }
 
+  // --- Phase 0.75: leave alone a file that formatting would blow up ---
+  // Only a file whose tables COULD add OVERSIZE_MIN_GROWTH_BYTES is measured
+  // (one extra prettier run, to a buffer). A file withheld here is withheld
+  // from markdownlint --fix too, so it is left exactly as it was.
+  if (hasPrettier && formatFiles.length > 0) {
+    const kept: string[] = [];
+    for (const f of formatFiles) {
+      let original: Buffer;
+      try {
+        original = readFileSync(f);
+      } catch {
+        kept.push(f); // unreadable -> prior behaviour (prettier reports it)
+        continue;
+      }
+      if (tablePaddingGrowthUpperBound(original.toString("utf8")) < OVERSIZE_MIN_GROWTH_BYTES) {
+        kept.push(f);
+        continue;
+      }
+      const formattedBytes = measureFormattedBytes(f);
+      if (formattedBytes === null) {
+        messages.push(
+          `${f}: SKIPPED auto-format — it has a wide table and prettier could not format it to a buffer to measure the result, so the file is left unchanged. To exempt it permanently, list it in .prettierignore.`,
+        );
+      } else if (isOversizedFormat(original.length, formattedBytes)) {
+        messages.push(
+          `${f}: SKIPPED auto-format — prettier would grow it from ${original.length} to ${formattedBytes} bytes (${(formattedBytes / original.length).toFixed(1)}x) by padding every table cell to its column's widest. The file is left unchanged (markdownlint --fix withheld too). To exempt it permanently, list it in .prettierignore; to accept the padding, run prettier on it by hand.`,
+        );
+      } else {
+        kept.push(f);
+      }
+    }
+    formatFiles = kept;
+  }
+
   // --- Phase 1: prettier --write (auto-fix formatting) ---
   if (hasPrettier && formatFiles.length > 0) {
     const prettierResult = Bun.spawnSync(
@@ -222,9 +360,13 @@ function truncate(text: string): string {
   return text;
 }
 
-try {
-  main();
-} catch {
-  // Fail-open — Stop hook must never block session end
-  console.log(JSON.stringify({}));
+// Run only as a script (the Stop orchestrator spawns this file); importing it
+// for its helpers, as the tests do, must not format anything.
+if (import.meta.main) {
+  try {
+    main();
+  } catch {
+    // Fail-open — Stop hook must never block session end
+    console.log(JSON.stringify({}));
+  }
 }
