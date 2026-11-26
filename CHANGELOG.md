@@ -1,3 +1,38 @@
+## [34.29.1](https://github.com/terrylica/cc-skills/compare/v34.29.0...v34.29.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **itp-hooks:** Stop formatter leaves wide-table files alone ([4e7a9c0](https://github.com/terrylica/cc-skills/commit/4e7a9c09b50852050a375b014ecabd8baf3fb2eb))
+
+stop-markdown-lint.ts formats every changed .md with prettier --write --prose-wrap preserve. Prettier aligns a table by padding every cell to the widest cell of its column, so a table with a few very long cells becomes mostly spaces, and nothing bounded the result. Measured: a file holding one table of about 275 rows went from 161,149 to 1,322,925 bytes in a single run while 9 lines of content had changed; it later reached 1.69 MB, 83% of it padding (318 KB unpadded, which prettier would turn into 3.6 MB). The only protection was a .prettierignore entry, an opt-out a repository has to know to write.
+
+The hook now leaves a file unchanged, and says so in its report, when formatting would both at least double it and add at least 32 KiB. The decision is measured: the file is formatted to a buffer with the same options and the sizes are compared, so nothing is written for a file that fails the test.
+
+- OVERSIZE_GROWTH_RATIO = 2: more than half of the formatted file would be padding added by that one run.
+- OVERSIZE_MIN_GROWTH_BYTES = 32 KiB: small files double harmlessly (62 bytes to 92, 1 KB to 4 KB), so the ratio alone must not decide.
+- The measured case clears the ratio 4 times over and the byte floor 35 times over. With every table in this repository's 1,034 tracked .md files stripped of its padding, formatting them back trips the rule for none (largest growth 27,508 bytes at 1.37x; largest ratio 2.69x at 17,421 bytes).
+- Ordinary files take the same single prettier --write call as before. A cheap upper bound on table padding (rows times the sum of the table's longest lines) picks the few files that need the extra measuring run; 36 of the 1,034 are over it.
+- A withheld file is withheld from markdownlint --fix as well, like a broken-table or ignored file, so it stays byte-identical. The report gives both sizes and names .prettierignore as the permanent opt-out.
+- The broken-table gate, the .prettierignore handling and Phase 2 are unchanged. The top-level call is gated on import.meta.main so the helpers can be imported by tests.
+- docs/markdown-table-guard.md gains "What the Stop hook leaves unformatted", which also documents the .prettierignore behaviour for the first time.
+
+Verified with the new hooks/stop-markdown-lint.test.ts (16 tests): the thresholds, the upper bound against prettier's real output including wide characters, and the spawned hook in a scratch repository, where an 8 KB wide-table file that prettier alone turns into 370 KB stays byte-identical and is reported, small and medium tables are still formatted, and a .prettierignore entry is still skipped. The previous hook grows the same fixture from 7,511 to 369,794 bytes. Also run: the markdown table detector and guard tests, tests/test-stop-orchestrator.sh, tasks/hook-lint/run (16 audits), validate-plugins --strict, the offline link check, and tsc on the two files.
+
+* **release:** a release no longer re-enables disabled plugins ([b029fc6](https://github.com/terrylica/cc-skills/commit/b029fc6dadfc995d80480af9ab808a39a38f2ea4))
+
+A plugin set to false under enabledPlugins in ~/.claude/settings.json was switched back to true by the next release. scripts/sync-enabled-plugins.sh, which the pre-sync and sync phases both run, decided whether a plugin was new with jq's alternative operator: .enabledPlugins[key] // "missing". That operator yields its right-hand side for false as well as for null and absent, so a disabled plugin looked missing and was enabled as "new". The script's own comment said a false value was respected; the expression never let it see one. One release log shows it: "Enabled 18 new plugin(s), 24 already enabled" two minutes after 18 plugins had been disabled, while disabled plugins of other marketplaces in the same file kept false. The expression dates from the script's first version.
+
+The verify phase carried the same expression, so with the first fix alone it would have failed every release on a machine with a disabled plugin ("missing from enabledPlugins").
+
+- sync-enabled-plugins.sh tests presence with has(): a missing key is added as true, an existing key (true, false or anything else) is never rewritten, and the report says how many plugins were left disabled.
+- It rewrites settings.json at most once per run, only when a key is added, through a temporary file beside it that keeps its permissions, instead of one rewrite per plugin through a fixed name in /tmp.
+- An enabledPlugins that is absent or null is treated as empty; one that is not an object is left untouched.
+- tasks/release/verify counts a key set to false as present.
+- docs/RELEASE.md lists the step and states that false survives.
+
+Verified with the new tasks/tests/test-sync-enabled-plugins-respects-disabled.sh, which runs the real script in a throwaway HOME: 10 of 10 cases pass, and 8 of the 10 fail against the previous script and verify phase. test-sync-backup-retention.sh and test-sync-hooks-prune-malformed-settings.sh still pass; shellcheck is clean on the three shell files. Not run against a live settings.json.
+
 # [34.29.0](https://github.com/terrylica/cc-skills/compare/v34.28.1...v34.29.0) (2026-11-26)
 
 
