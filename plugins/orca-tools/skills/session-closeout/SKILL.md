@@ -25,14 +25,38 @@ Never use `orca terminal close --worktree … --all` here: it closes every termi
 
 ```bash
 CLOSE=<this skill's directory>/scripts/orca-closeout   # e.g. resolved from the plugin cache
-"$CLOSE"                                              # show: session, name, terminal, running work, resume command
+"$CLOSE"                                              # show: session, name, terminal, running work, git, resume command
 "$CLOSE" --title "Area: outcome, state (dates)" [--tab-title "Short label"] [--dry-run]
 "$CLOSE" --title "…" --close [--min-wait 5] [--settle-timeout 1800] [--force] [--dry-run]
+"$CLOSE" --git-path DIR                               # read git from DIR instead of the current directory
 ```
 
 - Run it from **inside** the session being closed (Claude Code's Bash tool): it identifies the session from `CLAUDE_CODE_SESSION_ID` and the terminal from Orca's `ORCA_TERMINAL_HANDLE`. In an Orca chat (`ORCA_STRUCTURED_SESSION` set) there is no terminal: the label goes to the chat (`orca chat rename --name`, which defaults to the chat it runs in), and `--close` is refused.
-- stdout is one JSON object: `session`, `transcript`, `title`, `title_length`, `named`, `terminal`, `surface` (`terminal`, `chat`, or null outside Orca), `tab_labelled` (the terminal tab or the chat), `running` (each item: `kind`, `id`, `name`, `state`, `source`), `running_count`, `checks` (per source: `ok`, or why it is unusable), `marked` (`tab`, `workspace`), `close_scheduled`, `close_deferred`, `watcher_pid`, `close_log`, `resume`. Exit 2 means it refused before changing anything.
+- stdout is one JSON object: `session`, `transcript`, `title`, `title_length`, `named`, `terminal`, `surface` (`terminal`, `chat`, or null outside Orca), `tab_labelled` (the terminal tab or the chat), `running` (each item: `kind`, `id`, `name`, `state`, `source`), `running_count`, `checks` (per source: `ok`, or why it is unusable; `checks.git` names every git value that could not be determined), `git` (below), `marked` (`tab`, `workspace`), `close_scheduled`, `close_deferred`, `watcher_pid`, `close_log`, `resume`. Exit 2 means it refused before changing anything (the git report's fetch may have updated remote-tracking refs, nothing else).
 - **Every form reports running work**, so the handoff can list it under **Open**. With `--close` it does not refuse because of running work: the close waits for it (below).
+- **Every form reports git** for the worktree it runs in, so nobody has to check by hand whether the work was saved and merged. `--close` refuses (exit 2, before changing anything) while that worktree has uncommitted files or unpushed commits, or while either count cannot be read, unless `--force` (below).
+
+## Git: what is reported, and what refuses the close
+
+`git` is `null` outside a repository (`checks.git`: `not a git repository`), and also when git cannot read the repository (dubious ownership, a pruned linked worktree, a corrupt `.git`): then `checks.git` says why and `--close` refuses, because files there may be unsaved. Otherwise it describes the worktree the script runs in (`--git-path DIR` to read another):
+
+| Field            | Meaning                                                                                                                                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `worktree`       | `path` (the toplevel) and `linked` (`true` for a linked worktree, `false` for the main one)                                                                                                                                                                              |
+| `branch`, `head` | The branch, `null` on a detached HEAD; the commit                                                                                                                                                                                                                        |
+| `upstream`       | `name` and `state` (`up-to-date`, `ahead`, `behind`, `diverged`, or `gone` when the remote branch was deleted), with `ahead` and `behind` counts; `null` when the branch tracks nothing                                                                                  |
+| `dirty`          | Uncommitted files, tracked and untracked, ignored ones excluded; a worktree nested inside it is not counted                                                                                                                                                              |
+| `unpushed`       | Commits of HEAD on no remote branch (`git rev-list HEAD --not --remotes`). The commits of a merged pull request whose head is HEAD count as pushed. `null` when the repository has no remote                                                                             |
+| `merged`         | `true` when HEAD is in the remote default branch, or a merged pull request has HEAD as its head; `false` when `gh` finds no such pull request; `"unknown"` when HEAD is outside the default branch and `gh` is missing or fails; `null` with no remote or a failed fetch |
+| `pr`             | The merged pull request whose head is HEAD (`number`, `url`, `head`), when `gh` found one; never one from an earlier use of the same branch name                                                                                                                         |
+| `remote`         | The remote read (the upstream's, else `origin`, else the first), its `default_branch` (from `refs/remotes/<remote>/HEAD`, else the remote's own HEAD, else `main` or `master`) and whether the fetch succeeded                                                           |
+| `children`       | Every other worktree of the same repository inside this one (for example `.claude/worktrees/*`), each with the fields above and `prunable` (its directory is gone)                                                                                                       |
+| `blocks_close`   | What makes `--close` refuse: uncommitted files or unpushed commits of this worktree, or a count that could not be read. Empty when the close may proceed                                                                                                                 |
+
+- **A fetch comes first** (`git fetch --prune` of that one remote, capped by `ORCA_CLOSEOUT_CALL_TIMEOUT` like every call), so `merged` and `gone` are current. It updates only remote-tracking refs, also under `--dry-run`. When it fails or times out, `merged` is `null` and `checks.git` says why.
+- **A squash or rebase merge leaves HEAD outside the default branch.** The script then asks `gh pr list --head <branch> --state merged` (`ORCA_CLOSEOUT_GH` names another `gh`, or a missing path to skip it). Without `gh` the answer is `"unknown"`, and such a branch also reads as unpushed once its remote branch is deleted, so the close asks for `--force`: confirm the merge by its pull request first.
+- **Why unsaved work refuses the close.** Closing the tab loses no file, but it ends the agent, which is the one actor that knows what those changes were for. A merged branch, or a pushed one that is not merged yet, never refuses; it is only reported. Children never refuse the close either: they are reported for step 2 below.
+- **A timeout is unknown, never clean.** A git call that times out leaves its value `null`; a `null` `dirty` or `unpushed` count refuses the close like a real one.
 - With `--close`, the tab closes only **after your turn ends and everything this session started has finished**: a detached watcher waits for Orca's idle signal (`orca terminal wait --for tui-idle`), so your final message is delivered and saved first, and then until nothing is running (at most `--settle-timeout` seconds). Make that final message the handoff (below). If the user types a new prompt before then, the close is cancelled. If the work never finishes in time, the tab stays open, the markers are removed, and the workspace gets its unread dot.
 
 ## Running work: what counts, and what the user sees
@@ -78,7 +102,7 @@ The session's **last message** is what a person sees first: Orca's Agent Session
 
 ```text
 Closeout - <the session name>
-Done:  <outcomes, each with its proof: commit, PR, release, file path>
+Done:  <outcomes, each with its proof: commit, PR, release, file path; "worktree merged (PR …)" when it is>
 Open:  <unfinished items, each with its owner: you / the agent / someone named>
 Next:  <the single next action, and what it waits on>
 Resume: claude --resume <id>   (from <starting folder>; or Agent Session History)
@@ -101,11 +125,16 @@ and end with the five-line Closeout block (Done / Open / Next / Resume), nothing
 
 ## Steps
 
-1. **Check for unfinished work.** Run `"$CLOSE"`: its `running` list is what this session started that has not finished. Wait for it or stop it (`TaskStop`) if it should end now; otherwise list it under **Open**. Also: drafts or messages not sent? Uncommitted changes the user expects pushed? Never pass `--force` just to get the tab closed: it kills that work.
-2. **Retire the session's own subagents and teammates.** Run `ListAgents`: every subagent or named teammate this session spawned stays listed under the session in Orca's sidebar (idle for hours) until it is stopped. For each one whose result is already used, stop it with `TaskStop` (pass its name); one still working is either waited for or listed under **Open**. Leave **peer sessions** alone: they are other people's or other tasks' sessions, not this session's children. The script cannot do this step: it can see running subagents and teammates (and the close waits for them), but only the agent itself can stop them, and an idle teammate is not running work, so the script never waits for or retires it.
-3. **Choose the name** (rules above). The same `"$CLOSE"` output shows any existing name.
-4. **Name, and close if asked:** `"$CLOSE" --title "…" [--tab-title "…"] [--close]`. Use `--dry-run` first if unsure.
-5. **Write the Closeout block as your final message**, using `resume` from the script's JSON.
+1. **Check for unfinished work.** Run `"$CLOSE"`: its `running` list is what this session started that has not finished. Wait for it or stop it (`TaskStop`) if it should end now; otherwise list it under **Open**. Also: drafts or messages not sent? Never pass `--force` just to get the tab closed: it kills that work.
+2. **Check git**, from the same output's `git` object; never by hand.
+   - **Uncommitted, unpushed or unmerged work** (`dirty`, `unpushed`, `merged` other than `true`, in this worktree or a child) goes under **Open**, with its owner, unless you commit, push or merge it now. `checks.git` names anything that could not be determined; say so rather than guess.
+   - **A merged child worktree this session created** (`children`, created by its own `git worktree add` or `EnterWorktree`) is removed by the session, but only when its entry shows `merged: true`, `dirty: 0` and `unpushed` 0 or `null`: `git worktree remove <path>` (never `--force`), then its local branch (`git branch -d`, or `-D` only when `merged` is `true` through its `pr`), then its remote branch if `upstream.state` is not `gone` (`git push <remote> --delete <branch>`). A child this session did not create belongs to another session: report it, never remove it.
+   - **This session's own worktree is never removed from inside the session**: its shell lives there. When it is merged and clean, hand its removal to the user or to the main session, and say so under **Next**.
+   - The Closeout block's **Done** line states that the worktree is merged, with the pull request that merged it (`pr.url`, or the commit in `default_branch`).
+3. **Retire the session's own subagents and teammates.** Run `ListAgents`: every subagent or named teammate this session spawned stays listed under the session in Orca's sidebar (idle for hours) until it is stopped. For each one whose result is already used, stop it with `TaskStop` (pass its name); one still working is either waited for or listed under **Open**. Leave **peer sessions** alone: they are other people's or other tasks' sessions, not this session's children. The script cannot do this step: it can see running subagents and teammates (and the close waits for them), but only the agent itself can stop them, and an idle teammate is not running work, so the script never waits for or retires it.
+4. **Choose the name** (rules above). The same `"$CLOSE"` output shows any existing name.
+5. **Name, and close if asked:** `"$CLOSE" --title "…" [--tab-title "…"] [--close]`. Use `--dry-run` first if unsure. A close refused for unsaved git work is lifted by committing and pushing it, or, once it is listed under **Open**, by `--force`.
+6. **Write the Closeout block as your final message**, using `resume` from the script's JSON.
 
 ## Why each step (observed, not assumed)
 
@@ -124,6 +153,8 @@ and end with the five-line Closeout block (Done / Open / Next / Resume), nothing
 - **`orca` may not be Orca.** On Linux desktops `/usr/bin/orca` is often the GNOME screen reader. The script uses `$ORCA_CLI`, then Orca's own `ORCA_CLI_BIN_DIR`, then an `orca` whose help lists terminal commands.
 - **An Orca chat is not a terminal** (measured 2026-11-11, Orca 1.4.255 and 1.4.256). A chat session's environment has `ORCA_STRUCTURED_SESSION`, `ORCA_AGENT_SESSION_ID` and `ORCA_CHAT_SCRATCH_DIR` and no terminal of its own, yet a session that started in a terminal tab can still carry that tab's `ORCA_TERMINAL_HANDLE` after it moved to a chat. Before this fix the script used that stale handle, named the old tab, and its close watcher waited 600 s for `orca terminal wait --for tui-idle`, which a chat never sends, then logged "the agent did not become idle". Now a chat ignores any terminal handle, names itself with `orca chat rename` (`orca skills get orca-cli`: "A chat tab has no terminal handle, so `terminal rename` cannot rename it"), never marks `[running]` (there is no terminal title for a watcher to restore) and refuses `--close` before changing anything. `orca chat --help` lists `rename` as its only command.
 - **Outside Orca** (plain terminal, another IDE): naming still works and running work is still reported (processes and transcript); `--tab-title`, `--close` and the markers need Orca.
+- **A squash-merged branch reads `merged: "unknown"` without `gh`**, and its commits read as unpushed once the remote branch is deleted, so `--close` refuses. With `gh` signed in, the merged pull request whose head is HEAD settles both. A branch whose last commit came after the merge reads `merged: false` and no `pr`: that commit is unmerged work.
+- **The script runs `git` from the current directory.** If the shell moved out of the session's worktree, pass `--git-path`.
 - **The watcher cannot be observed from inside the session.** It acts only after the turn ends with nothing running, so a poll, cron or wake-up the session starts to watch it is itself running work and holds it open. Read `close_log` later, or watch it from outside the session.
 - **A `/loop` or cron keeps the tab open.** Session crons and pending wake-ups count as running work (Orca shows the row as working between ticks, [stablyai/orca#15137](https://github.com/stablyai/orca/issues/15137)). Stop the loop (`ScheduleWakeup` with `stop`, `CronDelete`) before closing, or the close waits until `--settle-timeout`.
 

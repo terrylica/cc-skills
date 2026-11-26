@@ -14,7 +14,13 @@
 #                                                   stays open, its markers removed, with the workspace's unread dot set
 #                 [--force]                         close as soon as the turn ends, even with work running or unreadable
 #                                                   status; that work is killed with the tab
-#   Every form takes --dry-run (check everything, change nothing). --title and --close can be combined.
+#   Every form takes --dry-run (check everything, change nothing but remote-tracking refs, which the git report
+#   fetches). --title and --close can be combined.
+#   Every form reports git: the worktree it runs in (or --git-path DIR), its branch, upstream, uncommitted files,
+#   unpushed commits, whether it is merged into the remote default branch (after a fetch, which updates only
+#   remote-tracking refs; a squash merge is confirmed through gh, ORCA_CLOSEOUT_GH overrides which gh), and every other
+#   worktree inside it. --close refuses (exit 2) while this worktree has uncommitted files or unpushed commits, or either
+#   cannot be read, unless --force. Merge state never refuses; it is reported.
 #   In an Orca chat (ORCA_STRUCTURED_SESSION set) the label goes to the chat with `orca chat rename`, and --close is
 #   refused (exit 2): Orca's CLI cannot close a chat. A terminal handle inherited from an earlier tab is ignored.
 #
@@ -22,12 +28,14 @@
 #   session, the workspace gets status in-progress (only if it had a status) and a "Running: … | " comment prefix (only
 #   if it had a comment): Orca can clear neither, so a field that was empty stays empty. A detached watcher restores
 #   all of it however it ends (settled, timed out, agent gone, tab changed), and with --close then closes the tab.
-#   Every external call (ps, lsof, the Orca CLI) has a timeout (ORCA_CLOSEOUT_CALL_TIMEOUT, default 20 s); a call that
+#   Every external call (ps, lsof, git, gh, the Orca CLI) has a timeout (ORCA_CLOSEOUT_CALL_TIMEOUT, default 20 s); a call that
 #   times out counts as "not confirmed", never as "nothing running".
 #
-# Exit status: 0 done, 1 a step failed, 2 refused before any change (bad arguments, unsafe close, not inside Orca).
+# Exit status: 0 done, 1 a step failed, 2 refused before any change other than that fetch (bad arguments, unsafe close,
+# unsaved git work, not inside Orca).
 # stdout is one JSON object (except --help); progress and warnings go to stderr.
-# Requires: bash >= 3.2, python3 >= 3.9; the Orca IDE CLI only for --tab-title/--close and the markers. No GNU-only flags.
+# Requires: bash >= 3.2, python3 >= 3.9; the Orca IDE CLI only for --tab-title/--close and the markers; git for the git
+# report, gh only to confirm a squash or rebase merge. No GNU-only flags.
 set -euo pipefail
 
 die() { printf 'orca-closeout: %s\n' "$1" >&2; exit "${2:-2}"; }
@@ -39,11 +47,11 @@ import json, os, re, sys, subprocess, time, glob, tempfile, datetime, signal
 # Every subprocess gets a timeout (ORCA_CLOSEOUT_CALL_TIMEOUT seconds, default 20). A call that times out or cannot
 # start returns None, and every caller reads None as "not confirmed": never as "nothing running" or "safe to close".
 CALL_TIMEOUT = float(os.environ.get("ORCA_CLOSEOUT_CALL_TIMEOUT") or 20)
-def call(args, timeout=None, env=None):
+def call(args, timeout=None, env=None, cwd=None):
     """Run args with a timeout, in its own process group so a timeout kills the whole group. CompletedProcess or None."""
     try:
         p = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             env=env, start_new_session=True)
+                             env=env, cwd=cwd, start_new_session=True)
     except OSError:
         return None
     try:
@@ -296,6 +304,212 @@ if r is None:
     sys.exit(124)
 sys.stdout.write(r.stdout); sys.stderr.write(r.stderr); sys.exit(r.returncode)' "$@"; }
 
+# Used only by the git report (one call per run), so the watcher never loads it.
+GITLIB='
+# ── Git state of the session worktree and of the worktrees inside it. Every git and gh call goes through call(), so
+#    it has the same timeout; a call that times out leaves its field null with the reason, and --close reads a null
+#    dirty or unpushed count as unsaved work that cannot be ruled out, never as clean.
+import shutil
+GIT_ENV = dict(C_ENV, GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0")
+GH_ENV = dict(C_ENV, GH_PROMPT_DISABLED="1", GH_NO_UPDATE_NOTIFIER="1", NO_COLOR="1")
+class Unknown(Exception):
+    """A git call that timed out, could not run or failed where it should not: the value it was for is unknown."""
+def git(path, *args, ok=(0,)):
+    """`git -C path ARGS`; raises Unknown unless it exits with a status in ok."""
+    r = call(["git", "-C", path, *args], env=GIT_ENV)
+    if r is None: raise Unknown("git %s timed out after %gs" % (args[0], CALL_TIMEOUT))
+    if r.returncode not in ok: raise Unknown("git %s failed: %s" % (args[0], scrub(r.stderr)))
+    return r
+def scrub(err):
+    """The first line of an error, with any credentials in a URL removed."""
+    line = next((l for l in (err or "").splitlines() if l.strip()), "no message").strip()
+    return re.sub(r"://[^/@\s]+@", "://***@", line)[:200]
+def plural(n, word): return "%d %s%s" % (n, word, "" if n == 1 else "s")
+def dirty_count(path, skip):
+    """Uncommitted files, tracked and untracked (ignored ones excluded), each file of an untracked directory counted.
+    skip: paths relative to path (ending in /) of worktrees inside it, which status shows as an untracked directory."""
+    out = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=all").stdout.split("\0")
+    n, i = 0, 0
+    while i < len(out):
+        e = out[i]; i += 1
+        if len(e) < 4: continue
+        if "R" in e[:2] or "C" in e[:2]: i += 1   # a rename or copy carries its old path in the next field
+        if e[3:] not in skip: n += 1
+    return n
+def upstream_of(path, branch):
+    """The upstream of the branch: name, state (gone, up-to-date, ahead, behind, diverged), ahead, behind. None if it has none."""
+    full, _, short = git(path, "for-each-ref", "--format=%(upstream)%00%(upstream:short)",
+                         "refs/heads/" + branch).stdout.strip().partition("\0")
+    if not full: return None
+    if git(path, "rev-parse", "--verify", "--quiet", full + "^{commit}", ok=(0, 1)).returncode != 0:
+        return {"name": short or full, "state": "gone", "ahead": None, "behind": None}
+    a, b = (int(x) for x in git(path, "rev-list", "--left-right", "--count", "HEAD..." + full).stdout.split())
+    state = "diverged" if a and b else "ahead" if a else "behind" if b else "up-to-date"
+    return {"name": short or full, "state": state, "ahead": a, "behind": b}
+def merged_prs(path, branch, gh):
+    """Merged pull requests whose head is this branch, newest first, from gh. Raises Unknown when gh fails."""
+    r = call([gh, "pr", "list", "--head", branch, "--state", "merged", "--limit", "10",
+              "--json", "number,url,headRefOid,mergedAt"], env=GH_ENV, cwd=path)
+    if r is None: raise Unknown("gh pr list timed out after %gs" % CALL_TIMEOUT)
+    if r.returncode != 0: raise Unknown("gh pr list failed: %s" % scrub(r.stderr or r.stdout))
+    try: prs = json.loads(r.stdout or "[]")
+    except ValueError: raise Unknown("gh pr list printed no JSON")
+    return sorted((p for p in prs if isinstance(p, dict)), key=lambda p: p.get("mergedAt") or "", reverse=True)
+def worktree_state(path, ctx, reasons, skip=()):
+    """The fields of one worktree. Any value that could not be read is None, with the reason added to reasons."""
+    w = {"worktree": {"path": path, "linked": None}, "branch": None, "head": None, "upstream": None, "dirty": None,
+         "unpushed": None, "merged": None, "pr": None}
+    def field(name, fn):
+        try: return fn()
+        except Unknown as e:
+            reasons.append("%s: %s" % (name, e)); return None
+    def linked():
+        out = git(path, "rev-parse", "--absolute-git-dir", "--git-common-dir").stdout.splitlines()
+        if len(out) < 2: raise Unknown("git rev-parse printed %d lines" % len(out))
+        d, c = out[:2]
+        return os.path.realpath(d) != os.path.realpath(os.path.join(path, c))
+    w["worktree"]["linked"] = field("worktree", linked)
+    sym = field("branch", lambda: git(path, "symbolic-ref", "--quiet", "--short", "HEAD", ok=(0, 1)))
+    if sym is not None and sym.returncode == 0: w["branch"] = sym.stdout.strip()
+    h = field("head", lambda: git(path, "rev-parse", "--verify", "--quiet", "HEAD^{commit}", ok=(0, 1)))
+    if h is not None and h.returncode == 0: w["head"] = h.stdout.strip()
+    elif h is not None:   # an unborn branch: nothing committed, so nothing unpushed or unmerged yet
+        w["unpushed"] = 0
+    if w["branch"] and w["head"]: w["upstream"] = field("upstream", lambda: upstream_of(path, w["branch"]))
+    w["dirty"] = field("dirty", lambda: dirty_count(path, skip))
+    if not w["head"]: return w
+    # merged: HEAD inside the remote default branch; else (a squash or rebase merge leaves it outside) a merged pull
+    # request whose head is HEAD, from gh. Ancestry needs a fresh fetch: without one the value is null.
+    pr_head = None
+    if ctx["default"]:
+        anc = field("merged", lambda: git(path, "merge-base", "--is-ancestor", w["head"], ctx["default"], ok=(0, 1)))
+        prs, why = None, None
+        if w["branch"] and w["branch"] != ctx["default_name"] and ctx["gh"]:
+            try: prs = merged_prs(path, w["branch"], ctx["gh"])
+            except Unknown as e: why = str(e)
+        # Only a pull request whose head is this HEAD merged it: a reused branch name, or a fork with the same branch
+        # name, has merged pull requests of its own.
+        mine = [p for p in prs or [] if p.get("headRefOid") == w["head"]]
+        if mine: w["pr"] = {"number": mine[0].get("number"), "url": mine[0].get("url"), "head": mine[0].get("headRefOid")}
+        if anc is None:
+            pass
+        elif anc.returncode == 0:
+            w["merged"] = True
+        elif w["branch"] and w["branch"] == ctx["default_name"]:
+            w["merged"] = False   # the default branch itself, with commits its remote copy does not have
+        elif mine:
+            w["merged"] = True; pr_head = w["head"]
+        elif prs is not None:
+            w["merged"] = False   # gh answered: no merged pull request has this HEAD
+            if prs: pr_head = prs[0].get("headRefOid")
+        else:
+            w["merged"] = "unknown"
+            reasons.append("merged: HEAD is not in %s (a squash or rebase merge?) and %s" % (ctx["default_label"],
+                "HEAD is detached, so no pull request can be looked up" if not w["branch"]
+                else why if why else "gh was not found to look up a merged pull request"))
+    # unpushed: commits of this branch on no remote branch. The head of a merged pull request is on the remote (its pull
+    # ref) even after the branch was deleted, so its commits count as pushed. No remote at all: nothing to push to.
+    if ctx["remotes"]:
+        not_ = ["--not", "--remotes"]
+        known = field("unpushed", lambda: git(path, "cat-file", "-e", pr_head + "^{commit}", ok=(0, 1, 128))) if pr_head else None
+        if known is not None and known.returncode == 0: not_.append(pr_head)
+        r = field("unpushed", lambda: git(path, "rev-list", "--count", "HEAD", *not_))
+        if r is not None: w["unpushed"] = int(r.stdout.strip() or 0)
+    return w
+def child_worktrees(top, reasons):
+    """Every other worktree of the repository whose path is inside top: (path, prunable)."""
+    try: r = git(top, "worktree", "list", "--porcelain")
+    except Unknown as e:
+        reasons.append("children: %s" % e); return []
+    root, out, cur = os.path.realpath(top), [], {}
+    for line in r.stdout.splitlines() + [""]:
+        if line.startswith("worktree "): cur = {"path": line[9:], "prunable": False}
+        elif line.startswith("prunable"): cur["prunable"] = True
+        elif not line and cur:
+            rp = os.path.realpath(cur["path"])
+            if rp != root and rp.startswith(root + os.sep): out.append(cur)
+            cur = {}
+    return out
+def git_report(start, gh):
+    """(the git object or None, the check, the reasons --close refuses for). gh: the gh CLI, or None."""
+    gh = shutil.which(gh) if gh else None
+    if not shutil.which("git"): return None, "git not found", []
+    try: top = git(start, "rev-parse", "--show-toplevel", ok=(0, 128))
+    except Unknown as e: return None, str(e), ["git state unreadable (%s)" % e]
+    if top.returncode != 0:
+        # Only the plain answer means no repository. Exit 128 also covers a repository git cannot read (dubious
+        # ownership, a linked worktree whose gitdir was pruned, a corrupt .git): files there may be unsaved.
+        if "(or any of the parent directories)" in top.stderr: return None, "not a git repository", []
+        e = scrub(top.stderr)
+        return None, "git cannot read this repository: %s" % e, ["git state unreadable (%s)" % e]
+    top, reasons = top.stdout.strip(), []
+    ctx = {"remotes": [], "default": None, "default_name": None, "default_label": None,
+           "gh": gh}
+    try:
+        ctx["remotes"] = git(top, "remote").stdout.split()
+        b = git(top, "symbolic-ref", "--quiet", "--short", "HEAD", ok=(0, 1)).stdout.strip()
+        up = git(top, "config", "--get", "branch.%s.remote" % b, ok=(0, 1)).stdout.strip() if b else ""
+    except Unknown as e:
+        reasons.append("remote: %s" % e); up = ""
+        ctx["remotes"] = None   # unknown, not none: unpushed then stays unknown and refuses the close
+    rs = ctx["remotes"] or []
+    remote = up if up in rs else "origin" if "origin" in rs else (rs[0] if rs else None)
+    fetched = False
+    if remote is None:
+        if ctx["remotes"] is not None: reasons.append("merged: no remote")
+    else:
+        r = call(["git", "-C", top, "-c", "gc.auto=0", "-c", "maintenance.auto=false", "fetch", "--quiet", "--prune",
+                  "--no-recurse-submodules", remote], env=GIT_ENV)
+        if r is None: reasons.append("merged: fetch from %s timed out after %gs" % (remote, CALL_TIMEOUT))
+        elif r.returncode != 0: reasons.append("merged: fetch from %s failed: %s" % (remote, scrub(r.stderr)))
+        else: fetched = True
+    if fetched:
+        # The default branch: refs/remotes/<remote>/HEAD; else the own HEAD of the remote; else main or master.
+        try:
+            ref = git(top, "symbolic-ref", "--quiet", "refs/remotes/%s/HEAD" % remote, ok=(0, 1, 128)).stdout.strip()
+            if not ref:
+                try:
+                    m = re.search(r"^ref: refs/heads/(\S+)\tHEAD$", git(top, "ls-remote", "--symref", remote, "HEAD").stdout, re.M)
+                    if m: ref = "refs/remotes/%s/%s" % (remote, m.group(1))
+                except Unknown:
+                    pass   # fall through to main or master
+            for cand in ([ref] if ref else []) + ["refs/remotes/%s/main" % remote, "refs/remotes/%s/master" % remote]:
+                if git(top, "rev-parse", "--verify", "--quiet", cand + "^{commit}", ok=(0, 1)).returncode == 0:
+                    ctx["default"] = cand; break
+        except Unknown as e:
+            reasons.append("merged: default branch: %s" % e)
+        if ctx["default"]:
+            ctx["default_label"] = ctx["default"][len("refs/remotes/"):]
+            ctx["default_name"] = ctx["default_label"][len(remote) + 1:]
+        else:
+            reasons.append("merged: the default branch of %s is unknown" % remote)
+    kids = child_worktrees(top, reasons)
+    skip = {os.path.relpath(os.path.realpath(k["path"]), os.path.realpath(top)) + "/" for k in kids}
+    g = worktree_state(top, ctx, reasons, skip)
+    g["remote"] = {"name": remote, "default_branch": ctx["default_label"], "fetched": fetched}
+    g["children"] = []
+    for k in kids:
+        cr = []
+        if k["prunable"] or not os.path.isdir(k["path"]):
+            c = {"worktree": {"path": k["path"], "linked": True}, "branch": None, "head": None, "upstream": None,
+                 "dirty": None, "unpushed": None, "merged": None, "pr": None, "prunable": True}
+        else:
+            c = worktree_state(k["path"], ctx, cr); c["prunable"] = False
+        rel = os.path.relpath(os.path.realpath(k["path"]), os.path.realpath(top))
+        reasons += ["%s: %s" % (rel, x) for x in cr]
+        g["children"].append(c)
+    # What refuses --close: this worktree, its own unsaved work, or a count that could not be read. Children and the
+    # merge state are only reported.
+    block = []
+    if g["dirty"] is None: block.append("uncommitted files unknown")
+    elif g["dirty"]: block.append(plural(g["dirty"], "uncommitted file"))
+    if g["head"] and ctx["remotes"] != []:
+        if g["unpushed"] is None: block.append("unpushed commits unknown")
+        elif g["unpushed"]: block.append(plural(g["unpushed"], "unpushed commit"))
+    g["blocks_close"] = block
+    return g, "; ".join(reasons) or "ok", block
+'
+
 # Limits measured in the shipping code (see SKILL.md "Name length"): Claude Code keeps at most 200 code points of a
 # title, control characters removed; Orca's Agent Session History keeps 96 UTF-16 units (longer: 93 + an ellipsis).
 ORCA_HISTORY_MAX=96
@@ -440,7 +654,7 @@ sys.exit(rc)
   exit 0
 fi
 
-title='' tab_title='' close=0 min_wait=5 settle=1800 force=0 dry=0 allow_long=0
+title='' tab_title='' close=0 min_wait=5 settle=1800 force=0 dry=0 allow_long=0 git_path=$PWD
 while [ $# -gt 0 ]; do
   case $1 in
     --title) [ $# -ge 2 ] || die "--title needs a value"; title=$2; shift 2 ;;
@@ -451,7 +665,8 @@ while [ $# -gt 0 ]; do
     --force) force=1; shift ;;
     --allow-long) allow_long=1; shift ;;
     --dry-run) dry=1; shift ;;
-    -h|--help|help) sed -n '2,26p' "$0"; exit 0 ;;
+    --git-path) [ $# -ge 2 ] || die "--git-path needs a directory"; git_path=$2; shift 2 ;;
+    -h|--help|help) sed -n '2,32p' "$0"; exit 0 ;;
     *) die "unknown argument: $1 (see --help)" ;;
   esac
 done
@@ -459,6 +674,7 @@ case $min_wait in ''|*[!0-9]*) die "--min-wait must be a whole number of seconds
 [ "$min_wait" -le "$MAX_WAIT" ] || die "--min-wait is at most $MAX_WAIT seconds"
 case $settle in ''|*[!0-9]*) die "--settle-timeout must be a whole number of seconds" ;; esac
 [ "$settle" -le "$MAX_SETTLE" ] || die "--settle-timeout is at most $MAX_SETTLE seconds"
+[ -d "$git_path" ] || die "--git-path is not a directory: $git_path"
 
 # ── An Orca chat (the GUI agent surface) rather than a terminal. Orca sets ORCA_STRUCTURED_SESSION in a chat's
 #    environment and gives it no terminal: `orca chat` has only `rename`, there is no command to close a chat, and a
@@ -581,18 +797,26 @@ print(json.dumps({"agent": agent, "own_shell": own_shell, "running": running, "c
   "$$" "$transcript" "$sid" "$tab")
 agent=$(pa 'print(json.loads(sys.argv[1])["agent"] or "")' "$rj")
 running_count=$(pa 'print(len(json.loads(sys.argv[1])["running"]))' "$rj")
+# ── Git: this worktree and the worktrees inside it. Every form reports it; only --close acts on it. ───────────────────
+gj=$(pa "$GITLIB"'
+gh = os.environ["ORCA_CLOSEOUT_GH"] if "ORCA_CLOSEOUT_GH" in os.environ else "gh"
+try:
+    g, check, block = git_report(sys.argv[1], gh)
+except Exception as e:   # never a crash, and never read as clean
+    g, check, block = None, "git report failed: %s" % e, ["git state unreadable (%s)" % e]
+print(json.dumps({"git": g, "check": check, "blockers": block}))' "$git_path")
 show_running() {
   pa 'for c in json.loads(sys.argv[1])["running"]: print("  still running: %s %s (%s, from %s)" % (c["kind"], c["id"] if c["id"] is not None else c["name"], c["state"], c["source"]), file=sys.stderr)' "$rj"
 }
 
 if [ -z "$title" ] && [ "$close" -eq 0 ] && [ -z "$tab_title" ]; then
   pa '
-r = json.loads(sys.argv[6])
+r, g = json.loads(sys.argv[6]), json.loads(sys.argv[8])
 print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
                   "terminal": sys.argv[4] or None, "running": r["running"], "running_count": len(r["running"]),
-                  "checks": r["checks"], "surface": sys.argv[7] or None,
+                  "checks": dict(r["checks"], git=g["check"]), "git": g["git"], "surface": sys.argv[7] or None,
                   "resume": "cd %s && claude --resume %s" % (sys.argv[5], sys.argv[1])}))' \
-    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd" "$rj" "$surface"
+    "$sid" "$transcript" "$(current_title)" "$handle" "$cwd" "$rj" "$surface" "$gj"
   exit 0
 fi
 
@@ -616,6 +840,12 @@ print(", ".join(bad))' "$rj")
   if [ -n "$bad" ]; then
     [ "$force" -eq 1 ] || die "not closing: running work cannot be ruled out ($bad). Pass --force to close anyway"
     warn "--force: running work is not fully checked ($bad)"
+  fi
+  # Closing the tab loses no file, but it ends the agent, the one actor that knows what unsaved changes were for.
+  gbad=$(pa 'print("; ".join(json.loads(sys.argv[1])["blockers"]))' "$gj")
+  if [ -n "$gbad" ]; then
+    [ "$force" -eq 1 ] || die "not closing: this worktree has unsaved git work ($gbad). Commit and push it, or list it under Open and pass --force; nothing was changed"
+    warn "--force: closing with unsaved git work ($gbad)"
   fi
   if [ "$running_count" -gt 0 ]; then
     show_running
@@ -804,16 +1034,16 @@ os.close(w); print(os.read(r, 32).decode()); os.wait()' \
 fi
 
 pa '
-r = json.loads(sys.argv[11])
+r, g = json.loads(sys.argv[11]), json.loads(sys.argv[17])
 print(json.dumps({"session": sys.argv[1], "transcript": sys.argv[2], "title": sys.argv[3] or None,
   "title_length": len(sys.argv[3]) if sys.argv[3] else None, "named": sys.argv[4] == "true",
   "terminal": sys.argv[5] or None, "surface": sys.argv[16] or None, "tab_labelled": sys.argv[6] == "true",
-  "running": r["running"], "running_count": len(r["running"]), "checks": r["checks"],
-  "marked": {"tab": sys.argv[12] == "true", "workspace": sys.argv[13] == "true"},
+  "running": r["running"], "running_count": len(r["running"]), "checks": dict(r["checks"], git=g["check"]),
+  "git": g["git"], "marked": {"tab": sys.argv[12] == "true", "workspace": sys.argv[13] == "true"},
   "close_scheduled": sys.argv[14] == "close" and bool(sys.argv[7]),
   "close_deferred": sys.argv[14] == "close" and bool(sys.argv[7]) and len(r["running"]) > 0 and sys.argv[15] != "1",
   "watcher_pid": int(sys.argv[7]) if sys.argv[7] else None, "closer_pid": int(sys.argv[7]) if sys.argv[7] else None,
   "close_log": sys.argv[8] or None, "dry_run": sys.argv[9] == "1",
   "resume": "cd %s && claude --resume %s" % (sys.argv[10], sys.argv[1])}))' \
   "$sid" "$transcript" "$title" "$named" "$handle" "$tabbed" "$closer" "$log" "$dry" "$cwd" "$rj" \
-  "$marked_tab" "$marked_worktree" "$wmode" "$force" "$surface"
+  "$marked_tab" "$marked_worktree" "$wmode" "$force" "$surface" "$gj"
