@@ -1,3 +1,22 @@
+# [34.30.0](https://github.com/terrylica/cc-skills/compare/v34.29.1...v34.30.0) (2026-11-26)
+
+
+### Features
+
+* **web-forge:** gmail-routing recipe for Gmail Routing rules ([#149](https://github.com/terrylica/cc-skills/issues/149)) ([762dcc5](https://github.com/terrylica/cc-skills/commit/762dcc51dbeeec4de90d8096c52487b492ade5d7))
+
+* feat(web-forge): gmail-routing recipe for Gmail Routing rules
+
+Default routing only sees mail addressed to the domain, so redirecting outbound mail for one outside address needed the per-org-unit "Routing" setting, which no API writes (the Cloud Identity Policy API lists Gmail "Routing > Manage address lists" but no routing rules). The recipe follows gmail-default-routing: pure spec → form ops → expected form → diff, live fill with a read-back before Save, then a reload and a read-back from the rule's Edit dialog.
+
+- Flags: --description (the rule's identity, stored by Google), --messages, --account-types, --envelope-recipient single:&lt;email>, --change-envelope-recipient, --add-original-to-header, --org-unit (asserted, no navigation), --dry-run, --verify, --update.
+- The Edit dialog is opened by the row's exact Description cell, never by position, and a rule counts only when the dialog shows the spec's description and the row reads Enabled (otherwise row-mismatch or disabled, exit 1).
+- A filled form that does not read back as the spec is cancelled and reported as fill-mismatch with the raw form, never saved.
+- Measured live 2026-11-26: the settings are forms named after each setting; "Show options" is a link; two "Email address:" fields (senders' hidden first, recipients' last).
+- admin-console skill: the recipe's section, and the re-authentication lesson (a password manager's frame on "verify it's you" detaches the extension: pass it in the profile's own window, then re-run).
+
+* docs(release-notes): 34.30.0 narrative for the gmail-routing recipe
+
 ## [34.29.1](https://github.com/terrylica/cc-skills/compare/v34.29.0...v34.29.1) (2026-11-26)
 
 
