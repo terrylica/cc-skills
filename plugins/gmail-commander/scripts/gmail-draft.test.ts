@@ -152,6 +152,24 @@ test("HTML renders a real <ul>, strips the bullet char, and keeps authored numbe
   expect(html).not.toContain("<li>- (a) wait</li>");
 });
 
+test("a list numbered 1. 2. 3. renders as <ol> with the numbers stripped, never a bullet plus a number", () => {
+  const html = blocksToHtml(splitBodyIntoBlocks("Steps:\n1. pass it on\n2. the label shows it\n3. copy the answer"));
+  expect(html).toContain("<ol>\n<li>pass it on</li>\n<li>the label shows it</li>\n<li>copy the answer</li>\n</ol>");
+  expect(html).not.toContain("<ul>");
+  expect(html).not.toContain("<li>1.");
+  expect(blocksToPlainText(splitBodyIntoBlocks("1. a\n2. b"))).toBe("1. a\n2. b\n"); // the plain part keeps the numbers
+});
+
+test("a numbered list that starts above 1 keeps its first number as start", () => {
+  expect(blocksToHtml(splitBodyIntoBlocks("3) third\n4) fourth"))).toContain('<ol start="3">\n<li>third</li>\n<li>fourth</li>\n</ol>');
+});
+
+test("a list mixing numbers and bullets stays a <ul> with its text unchanged", () => {
+  const html = blocksToHtml(splitBodyIntoBlocks("- first\n2. second"));
+  expect(html).toContain("<ul>");
+  expect(html).toContain("<li>2. second</li>");
+});
+
 test("URLs inside list items are still linkified and text still escaped", () => {
   const html = blocksToHtml(splitBodyIntoBlocks("- see https://example.com/x\n- and <b>not html</b>"));
   expect(html).toContain('<a href="https://example.com/x">https://example.com/x</a>');

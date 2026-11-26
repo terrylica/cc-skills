@@ -601,6 +601,14 @@ export function blocksToHtml(blocks: BodyBlock[]): string {
       if (b.kind === "prose") return `<p>${render(b.text)}</p>`;
       if (b.kind === "quote") return `<blockquote style="${QUOTE_BLOCK_STYLE}">${render(b.text)}</blockquote>`;
       const lead = b.leadIn ? `<p>${render(b.leadIn)}</p>\n` : "";
+      // A list numbered "1." "2." throughout becomes a real <ol>, its numbers stripped from the text: left in a
+      // <ul>, the reader saw a bullet AND the number ("• 1. …", 2026-11-25). The first number is kept as `start`.
+      const numbered = b.items.map((item) => /^\s{0,3}(\d{1,2})[.)]\s+/.exec(item));
+      if (numbered.every(Boolean)) {
+        const first = Number(numbered[0]![1]);
+        const items = b.items.map((item) => `<li>${render(item.replace(/^\s{0,3}\d{1,2}[.)]\s+/, ""))}</li>`).join("\n");
+        return `${lead}<ol${first === 1 ? "" : ` start="${first}"`}>\n${items}\n</ol>`;
+      }
       const items = b.items
         .map((item) => `<li>${render(item.replace(/^\s{0,3}[-*+\u2022]\s+/, ""))}</li>`)
         .join("\n");
