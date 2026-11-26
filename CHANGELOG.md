@@ -1,3 +1,17 @@
+## [34.28.1](https://github.com/terrylica/cc-skills/compare/v34.28.0...v34.28.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **gmail-commander:** numbered lists render as <ol> ([645b155](https://github.com/terrylica/cc-skills/commit/645b155d474e8a651e7931a402b504de7f8b6bbb))
+
+A draft body with "1. … 2. … 3. …" went into the HTML part as a &lt;ul> whose items still began with "1.", so the reader saw a bullet and then the number ("• 1. …"). A list numbered throughout now renders as an &lt;ol> with the numbers taken out of the item text; the HTML Standard says the ol element "represents a list of items, where the items have been intentionally ordered" (html.spec.whatwg.org, grouping content). A list that starts above 1 keeps its first number as the start attribute ("The start attribute, if present, must be a valid integer").
+
+- Numbered throughout (1. or 1)): &lt;ol>, numbers stripped, start="N" when the first is not 1.
+- Mixed bullets and numbers, or letters: unchanged, a &lt;ul> with the authored text kept.
+- The text/plain part is unchanged and keeps the numbers.
+- Three new tests; an assembled message with a numbered list passes validateMimeBeforeUpload.
+
 # [34.28.0](https://github.com/terrylica/cc-skills/compare/v34.27.0...v34.28.0) (2026-11-26)
 
 
