@@ -1,3 +1,20 @@
+# [34.29.0](https://github.com/terrylica/cc-skills/compare/v34.28.1...v34.29.0) (2026-11-26)
+
+
+### Features
+
+* **orca-tools:** session-closeout reports git state ([#148](https://github.com/terrylica/cc-skills/issues/148)) ([1372139](https://github.com/terrylica/cc-skills/commit/13721392528b37680e9bce8304956712543de9b9)), closes [#147](https://github.com/terrylica/cc-skills/issues/147)
+
+session-closeout checked for running work but never for git, so an agent closing out a worktree had to check by hand whether its branch was pushed, merged and clean, and whether the child worktrees it had made were gone. The script now reports that natively in every form, and --close refuses to end the agent while its worktree holds uncommitted files or unpushed commits, because the agent is the one actor that knows what those changes were for. A merged or pushed-but-unmerged branch never blocks the close; it is reported so the Closeout block can say the worktree is merged, with the pull request that merged it.
+
+- Added: a git object in the JSON of the show, --title and --close forms: worktree path and linked/main, branch (null when detached), head, upstream (name; up-to-date, ahead, behind, diverged or gone; counts), dirty (tracked and untracked files, ignored ones excluded), unpushed (commits on no remote branch), merged, pr, remote, children and blocks_close; checks.git names anything that could not be determined (#147).
+- Added: merged is decided after a capped git fetch --prune of one remote, by ancestry against the remote default branch (refs/remotes/&lt;remote>/HEAD, else the remote's own HEAD, else main or master); a squash or rebase merge is confirmed by gh pr list --head &lt;branch> --state merged, only by a pull request whose head is HEAD, and reads "unknown" without gh; no remote or a failed fetch reads null with the reason.
+- Added: children lists every other worktree of the repository inside this one (for example .claude/worktrees/*) with the same fields and prunable; a nested worktree is not counted as its parent's untracked files.
+- Changed: --close exits 2 before changing anything when this worktree has uncommitted files or unpushed commits, when either count cannot be read, or when git cannot read the repository (dubious ownership, a pruned linked worktree, a corrupt .git), unless --force; a git call that times out is unknown, never clean.
+- Added: --git-path DIR reads git from another directory, and ORCA_CLOSEOUT_GH names the gh to use (a missing path skips it).
+- Changed: SKILL.md gains step 2 "Check git": unsaved or unmerged work goes under Open with its owner; a merged, clean child worktree this session created is removed (worktree, local branch, remote branch); the session's own worktree is never removed from inside it; the Done line states the merge and its pull request.
+- Tests: 15 new cases in orca-closeout.test.ts, each in a throwaway repository with a bare remote, cover the issue's acceptance cases (a) to (f) plus the default-branch fallback, gh confirming or denying a squash merge, a failed fetch, an unreadable repository and a hung git; all 74 tests pass under /bin/bash 3.2.
+
 ## [34.28.1](https://github.com/terrylica/cc-skills/compare/v34.28.0...v34.28.1) (2026-11-26)
 
 
