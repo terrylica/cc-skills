@@ -91,7 +91,8 @@ The Sync and Verify phases:
 2. **Refresh the plugin cache** so the next session loads the new version.
 3. **Run `scripts/sync-hooks-to-settings.sh`**, which removes cc-skills hook entries that installs older than v20.2.3 copied into `~/.claude/settings.json`. It never adds any: plugin hooks load from each plugin's `hooks/hooks.json`. On a clean machine it touches nothing.
 4. **Run `scripts/sync-commands-to-settings.sh`** and keep the newest `CC_SKILLS_BACKUP_RETENTION` (default 5) snapshots of `~/.claude/commands/`.
-5. **Verify** the tag, the GitHub release, the cache and the hook files.
+5. **Run `scripts/sync-enabled-plugins.sh`**, which adds an `enabledPlugins` key set to `true` for each marketplace plugin that has no key yet. A key that exists is never changed, so a plugin you set to `false` stays off across releases; the file is rewritten only when a key is added.
+6. **Verify** the tag, the GitHub release, the cache and the hook files. A plugin set to `false` counts as present.
 
 ## Manual Release (npm)
 
