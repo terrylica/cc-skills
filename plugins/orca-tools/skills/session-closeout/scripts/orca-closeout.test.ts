@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from
 // Waits below are poll-until loops with generous ceilings (#83): a passing run is no slower, and a loaded machine
 // (the parallel pre-push gate) no longer turns slow process start-up into a failure.
 setDefaultTimeout(120_000);
-import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -84,6 +84,8 @@ function baseEnv(extra: Record<string, string | undefined> = {}): Record<string,
     CLAUDE_CODE_SESSION_ID: SID,
     ORCA_USER_DATA_PATH: join(dir, "orca-data"),
     ORCA_CLOSEOUT_POLL: "1",
+    // No gh unless a test provides one: a real gh would ask a real host about these throwaway branches.
+    ORCA_CLOSEOUT_GH: join(dir, "no-gh"),
     ...extra,
   };
   for (const k of Object.keys(e)) if (e[k] === undefined) delete e[k];
@@ -112,7 +114,7 @@ os.wait()`;
  * Run with no `claude` ancestor, synchronously: double-forked away from the test runner, so a real Claude Code session
  * running these tests (and the work it has running) is never mistaken for the script's own agent.
  */
-function run(args: string[], env: Record<string, string | undefined> = {}) {
+function run(args: string[], env: Record<string, string | undefined> = {}, cwd = dir) {
   const res = join(dir, "isolated.json");
   rmSync(res, { force: true });
   const py = `import json, os, subprocess, sys, time
@@ -128,7 +130,7 @@ os.wait()
 for _ in range(1800):
     if os.path.exists(res): break
     time.sleep(0.05)`;
-  Bun.spawnSync(["python3", "-c", py, res, BASH, SCRIPT, ...args], { env: baseEnv(env), cwd: dir });
+  Bun.spawnSync(["python3", "-c", py, res, BASH, SCRIPT, ...args], { env: baseEnv(env), cwd });
   return JSON.parse(readFileSync(res, "utf8")) as { code: number; out: string; err: string };
 }
 
@@ -139,7 +141,7 @@ for _ in range(1800):
  */
 function runAsAgent(
   args: string[],
-  opts: { background?: number; linger?: number; env?: Record<string, string | undefined>; script?: string } = {},
+  opts: { background?: number; linger?: number; env?: Record<string, string | undefined>; script?: string; cwd?: string } = {},
 ) {
   const script = opts.script ?? SCRIPT;
   const bin = join(dir, "bin");
@@ -167,11 +169,11 @@ exit 0
   );
   chmodSync(fake, 0o755);
   if (opts.linger) {
-    Bun.spawn([fake], { env: baseEnv(opts.env ?? {}), cwd: dir, stdout: "ignore", stderr: "ignore" });
+    Bun.spawn([fake], { env: baseEnv(opts.env ?? {}), cwd: opts.cwd ?? dir, stdout: "ignore", stderr: "ignore" });
     const t0 = Date.now();
     while (!existsSync(`${res}.rc`) && Date.now() - t0 < 90_000) Bun.sleepSync(50);
   } else {
-    Bun.spawnSync([fake], { env: baseEnv(opts.env ?? {}), cwd: dir });
+    Bun.spawnSync([fake], { env: baseEnv(opts.env ?? {}), cwd: opts.cwd ?? dir });
   }
   const rc = existsSync(`${res}.rc`) ? Number(readFileSync(`${res}.rc`, "utf8").trim()) : -1;
   return { code: rc, out: readFileSync(`${res}.out`, "utf8"), err: readFileSync(`${res}.err`, "utf8") };
@@ -232,6 +234,8 @@ describe("show", () => {
     expect(j.session).toBe(SID);
     expect(j.title).toBeNull();
     expect(j.resume).toBe(`cd /tmp/start && claude --resume ${SID}`);
+    expect(j.git).toBeNull();
+    expect(j.checks.git).toBe("not a git repository");
   });
   test("refuses outside a Claude Code session", () => {
     expect(run([], { CLAUDE_CODE_SESSION_ID: undefined }).code).toBe(2);
@@ -726,14 +730,14 @@ describe("transcript reading", () => {
   });
 });
 
+// As measured: the chat's own environment has no terminal handle, but one from an earlier terminal tab of the same
+// session can still be present. It must never be used.
+const chatEnv = (orca: string): Record<string, string | undefined> => ({
+  ...orcaEnv(orca),
+  ORCA_STRUCTURED_SESSION: "1",
+  ORCA_AGENT_SESSION_ID: "chat-session-1",
+});
 describe("an Orca chat (ORCA_STRUCTURED_SESSION; Orca 1.4.255 has no chat close and no chat idle signal)", () => {
-  // As measured: the chat's own environment has no terminal handle, but one from an earlier terminal tab of the same
-  // session can still be present. It must never be used.
-  const chatEnv = (orca: string): Record<string, string | undefined> => ({
-    ...orcaEnv(orca),
-    ORCA_STRUCTURED_SESSION: "1",
-    ORCA_AGENT_SESSION_ID: "chat-session-1",
-  });
   test("names the session and renames the chat with `orca chat rename`, never touching the stale terminal", () => {
     const r = run(["--title", "Area: what was done", "--tab-title", "Short"], chatEnv(stubOrca(TAB)));
     expect({ code: r.code, err: r.err }).toMatchObject({ code: 0 });
@@ -785,5 +789,259 @@ describe("an Orca chat (ORCA_STRUCTURED_SESSION; Orca 1.4.255 has no chat close 
   test("a terminal session still reports the terminal surface", () => {
     const j = JSON.parse(run([], orcaEnv(stubOrca(TAB))).out);
     expect(j).toMatchObject({ surface: "terminal", terminal: HANDLE });
+  });
+});
+
+// ── Git state (#147). Each case is a throwaway repository with a bare remote, both inside the test dir. ─────────────
+const GIT_IDENTITY = {
+  GIT_AUTHOR_NAME: "t",
+  GIT_AUTHOR_EMAIL: "t@example.invalid",
+  GIT_COMMITTER_NAME: "t",
+  GIT_COMMITTER_EMAIL: "t@example.invalid",
+};
+/** Run git for the test setup (never the script's own calls), with no user or system configuration. */
+function g(cwd: string, ...args: string[]): string {
+  const env = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: dir, GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0", ...GIT_IDENTITY };
+  const r = Bun.spawnSync(["git", ...args], { cwd, env });
+  if (r.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr.toString()}`);
+  return r.stdout.toString().trim();
+}
+function commit(w: string, file: string) {
+  writeFileSync(join(w, file), `${file}\n`);
+  g(w, "add", file);
+  g(w, "commit", "-q", "-m", file);
+}
+/** A clone of a bare remote with main pushed, and the branch `feat` (one commit) pushed with its upstream. */
+function repo(): string {
+  g(dir, "init", "-q", "--bare", "-b", "main", join(dir, "remote.git"));
+  g(dir, "clone", "-q", join(dir, "remote.git"), "work");
+  const w = join(dir, "work");
+  commit(w, "a.txt");
+  g(w, "push", "-q", "-u", "origin", "main");
+  g(w, "switch", "-q", "-c", "feat");
+  commit(w, "b.txt");
+  g(w, "push", "-q", "-u", "origin", "feat");
+  return w;
+}
+/** feat (two commits) squash-merged into main on the remote, its remote branch deleted, and feat checked out again. */
+function squashed(): string {
+  const w = repo();
+  commit(w, "b2.txt");
+  g(w, "push", "-q");
+  g(w, "switch", "-q", "main");
+  g(w, "merge", "-q", "--squash", "feat");
+  g(w, "commit", "-q", "-m", "feat (squashed)");
+  g(w, "push", "-q", "origin", "main");
+  g(w, "push", "-q", "origin", "--delete", "feat");
+  g(w, "switch", "-q", "feat");
+  return w;
+}
+/** A stub gh that logs its arguments and prints `json` for `gh pr list`, or fails when json is null. */
+function stubGh(json: unknown): string {
+  const p = join(dir, "gh");
+  writeFileSync(
+    p,
+    json === null
+      ? "#!/bin/sh\necho 'gh: not logged in' >&2\nexit 1\n"
+      : `#!/bin/sh\necho "$*" >> "${dir}/gh.log"\ncat <<'JSON'\n${JSON.stringify(json)}\nJSON\n`,
+  );
+  chmodSync(p, 0o755);
+  return p;
+}
+/** The show form, run in cwd: must succeed. */
+function show(cwd: string, env: Record<string, string | undefined> = {}) {
+  const r = run([], env, cwd);
+  expect({ code: r.code, err: r.err }).toMatchObject({ code: 0 });
+  return JSON.parse(r.out);
+}
+
+describe("git state (every form reports it; --close refuses on unsaved work)", () => {
+  test("(a) a clean branch merged by fast-forward: merged, nothing dirty or unpushed, and --close is allowed", () => {
+    const w = repo();
+    g(w, "push", "-q", "origin", "feat:main"); // the fast-forward merge
+    const j = show(w);
+    expect(j.checks.git).toBe("ok");
+    expect(j.git).toMatchObject({
+      worktree: { path: realpathSync(w), linked: false },
+      branch: "feat",
+      upstream: { name: "origin/feat", state: "up-to-date", ahead: 0, behind: 0 },
+      dirty: 0,
+      unpushed: 0,
+      merged: true,
+      remote: { name: "origin", default_branch: "origin/main", fetched: true },
+      children: [],
+      blocks_close: [],
+    });
+    expect(j.git.head).toBe(g(w, "rev-parse", "HEAD"));
+    // The --title and --close forms carry the same object.
+    const r = runAsAgent(["--title", "t", "--close", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: w });
+    expect({ code: r.code, err: r.err }).toMatchObject({ code: 0 });
+    expect(JSON.parse(r.out).git.merged).toBe(true);
+    expect(JSON.parse(r.out).checks.git).toBe("ok");
+  });
+  test("(a) the default branch is found without refs/remotes/origin/HEAD, from the remote itself", () => {
+    const w = repo();
+    g(w, "push", "-q", "origin", "feat:main");
+    g(w, "remote", "set-head", "origin", "--delete");
+    // git 2.48+ recreates origin/HEAD on fetch (fetch.followRemoteHEAD defaults to create); turn that off so the
+    // fallback is what runs. Older git ignores the setting.
+    g(w, "config", "remote.origin.followRemoteHEAD", "never");
+    expect(show(w).git).toMatchObject({ merged: true, remote: { default_branch: "origin/main" } });
+    const still = Bun.spawnSync(["git", "-C", w, "symbolic-ref", "-q", "refs/remotes/origin/HEAD"], { env: { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: dir } });
+    expect(still.exitCode).not.toBe(0);
+  });
+  test("a repository git cannot read (a pruned linked worktree) is not read as no repository: --close refuses", () => {
+    const w = repo();
+    g(w, "worktree", "add", "-q", join(dir, "lost"), "-b", "lost");
+    writeFileSync(join(dir, "lost", "unsaved.txt"), "x\n");
+    rmSync(join(w, ".git", "worktrees", "lost"), { recursive: true, force: true });
+    const j = show(join(dir, "lost"));
+    expect(j.git).toBeNull();
+    expect(j.checks.git).toContain("git cannot read this repository");
+    const r = runAsAgent(["--close", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: join(dir, "lost") });
+    expect({ code: r.code, err: r.err }).toMatchObject({ code: 2 });
+    expect(r.err).toContain("git state unreadable");
+  });
+  test("(b) a dirty tree: --close exits 2 with nothing changed, and --force allows it", () => {
+    const w = repo();
+    writeFileSync(join(w, "a.txt"), "changed\n");
+    writeFileSync(join(w, "new.txt"), "untracked\n");
+    writeFileSync(join(w, ".gitignore"), "*.log\n");
+    writeFileSync(join(w, "ignored.log"), "ignored\n");
+    // a.txt, new.txt and .gitignore; never the ignored file.
+    expect(show(w).git).toMatchObject({ dirty: 3, unpushed: 0, blocks_close: ["3 uncommitted files"] });
+    const before = readFileSync(transcript, "utf8");
+    const r = runAsAgent(["--title", "t", "--close"], { env: orcaEnv(stubOrca(TAB)), cwd: w });
+    expect({ code: r.code, err: r.err }).toMatchObject({ code: 2 });
+    expect(r.err).toContain("unsaved git work (3 uncommitted files)");
+    expect(readFileSync(transcript, "utf8")).toBe(before);
+    expect(orcaCalls()).not.toContain("terminal rename");
+    expect(orcaCalls()).not.toContain("terminal close");
+    const f = runAsAgent(["--title", "t", "--close", "--force", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: w });
+    expect({ code: f.code, err: f.err }).toMatchObject({ code: 0 });
+    expect(f.err).toContain("--force: closing with unsaved git work (3 uncommitted files)");
+    expect(f.err).toContain("would start a close watcher");
+  });
+  test("(c) an unpushed commit: --close exits 2 with nothing changed, and --force allows it", () => {
+    const w = repo();
+    commit(w, "c.txt");
+    expect(show(w).git).toMatchObject({ dirty: 0, unpushed: 1, upstream: { state: "ahead", ahead: 1, behind: 0 } });
+    const before = readFileSync(transcript, "utf8");
+    const r = runAsAgent(["--title", "t", "--close"], { env: orcaEnv(stubOrca(TAB)), cwd: w });
+    expect({ code: r.code, err: r.err }).toMatchObject({ code: 2 });
+    expect(r.err).toContain("unsaved git work (1 unpushed commit)");
+    expect(readFileSync(transcript, "utf8")).toBe(before);
+    expect(orcaCalls()).not.toContain("terminal close");
+    expect(runAsAgent(["--close", "--force", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: w }).code).toBe(0);
+  });
+  test("a pushed but unmerged branch does not block --close; it is only reported", () => {
+    const w = repo();
+    expect(show(w).git).toMatchObject({ merged: "unknown", unpushed: 0, dirty: 0 });
+    expect(runAsAgent(["--close", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: w }).code).toBe(0);
+  });
+  test("(d) a branch merged by squash, its upstream gone, no gh: merged is unknown and checks.git names the reason", () => {
+    const w = squashed();
+    const j = show(w);
+    expect(j.git).toMatchObject({ branch: "feat", merged: "unknown", upstream: { name: "origin/feat", state: "gone" }, dirty: 0 });
+    expect(j.checks.git).toContain("HEAD is not in origin/main");
+    expect(j.checks.git).toContain("gh was not found");
+    // Its commits are on no remote branch any more, so they count as unpushed: closing needs --force.
+    expect(j.git.unpushed).toBe(2);
+  });
+  test("(d) with gh: a merged pull request whose head is HEAD confirms it, and its commits count as pushed", () => {
+    const w = squashed();
+    const head = g(w, "rev-parse", "HEAD");
+    const gh = stubGh([{ number: 7, url: "https://example.invalid/pull/7", headRefOid: head, mergedAt: "2026-11-26T00:00:00Z" }]);
+    const j = show(w, { ORCA_CLOSEOUT_GH: gh });
+    expect(j.git).toMatchObject({ merged: true, unpushed: 0, pr: { number: 7, url: "https://example.invalid/pull/7", head } });
+    expect(j.git.blocks_close).toEqual([]);
+    expect(readFileSync(join(dir, "gh.log"), "utf8")).toContain("pr list --head feat --state merged");
+    const r = runAsAgent(["--close", "--dry-run"], { env: { ...orcaEnv(stubOrca(TAB)), ORCA_CLOSEOUT_GH: gh }, cwd: w });
+    expect({ code: r.code, err: r.err }).toMatchObject({ code: 0 });
+  });
+  test("(d) with gh: no merged pull request means not merged; a failing gh means unknown, with its reason", () => {
+    const w = squashed();
+    expect(show(w, { ORCA_CLOSEOUT_GH: stubGh([]) }).git.merged).toBe(false);
+    const j = show(w, { ORCA_CLOSEOUT_GH: stubGh(null) });
+    expect(j.git.merged).toBe("unknown");
+    expect(j.checks.git).toContain("gh pr list failed: gh: not logged in");
+  });
+  test("(e) a child worktree inside the session worktree is listed under children, with its own fields", () => {
+    const w = repo();
+    g(w, "push", "-q", "origin", "feat:main");
+    g(w, "worktree", "add", "-q", ".claude/worktrees/kid", "-b", "kid");
+    g(w, "worktree", "add", "-q", join(dir, "elsewhere"), "-b", "outside"); // not inside: not a child
+    const kid = join(w, ".claude", "worktrees", "kid");
+    commit(kid, "k.txt");
+    writeFileSync(join(kid, "scratch.txt"), "x\n");
+    const j = show(w);
+    // The parent's status shows the child as an untracked directory; that is not the parent's uncommitted work.
+    expect(j.git).toMatchObject({ worktree: { linked: false }, dirty: 0, unpushed: 0, merged: true });
+    expect(j.git.children).toHaveLength(1);
+    expect(j.git.children[0]).toMatchObject({
+      worktree: { path: realpathSync(kid), linked: true },
+      branch: "kid",
+      upstream: null,
+      dirty: 1,
+      unpushed: 1,
+      merged: "unknown", // outside main, and no gh to ask about a squash merge
+      prunable: false,
+    });
+    // Seen from the child itself: a linked worktree with no children.
+    expect(show(kid).git).toMatchObject({ worktree: { linked: true }, branch: "kid", children: [] });
+  });
+  test("(e) a child worktree whose directory was deleted is listed as prunable", () => {
+    const w = repo();
+    g(w, "worktree", "add", "-q", "kid2", "-b", "kid2");
+    rmSync(join(w, "kid2"), { recursive: true, force: true });
+    const j = show(w);
+    expect(j.git.children).toHaveLength(1);
+    expect(j.git.children[0]).toMatchObject({ prunable: true, dirty: null });
+  });
+  test("(f) no remote: merged and unpushed are null, the reason is named, and nothing fails", () => {
+    const w = join(dir, "solo");
+    g(dir, "init", "-q", "-b", "main", w);
+    commit(w, "a.txt");
+    const j = show(w);
+    expect(j.git).toMatchObject({
+      branch: "main",
+      merged: null,
+      unpushed: null,
+      dirty: 0,
+      upstream: null,
+      remote: { name: null, fetched: false },
+    });
+    expect(j.checks.git).toBe("merged: no remote");
+    expect(runAsAgent(["--close", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: w }).code).toBe(0);
+  });
+  test("a failed fetch leaves merged null with the reason, and does not block the close", () => {
+    const w = repo();
+    rmSync(join(dir, "remote.git"), { recursive: true, force: true });
+    const j = show(w);
+    expect(j.git.merged).toBeNull();
+    expect(j.git.remote.fetched).toBe(false);
+    expect(j.checks.git).toContain("merged: fetch from origin failed");
+    expect(runAsAgent(["--close", "--dry-run"], { env: orcaEnv(stubOrca(TAB)), cwd: w }).code).toBe(0);
+  });
+  test("--git-path reads another directory", () => {
+    const w = repo();
+    expect(JSON.parse(run(["--git-path", w]).out).git.branch).toBe("feat");
+    expect(run(["--git-path", join(dir, "nope")]).code).toBe(2);
+  });
+  test("a hung git is unknown, never clean: the report is null with the reason, and --close refuses", () => {
+    const w = repo();
+    const bin = join(dir, "hangbin");
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, "git"), "#!/bin/sh\nsleep 30\n");
+    chmodSync(join(bin, "git"), 0o755);
+    const env = { ...FAST, PATH: `${bin}:${process.env.PATH ?? "/usr/bin:/bin"}` };
+    const t0 = Date.now();
+    const j = show(w, env);
+    expect(Date.now() - t0).toBeLessThan(15000);
+    expect(j.git).toBeNull();
+    expect(j.checks.git).toContain("timed out");
+    const r = runAsAgent(["--close"], { env: { ...orcaEnv(stubOrca(TAB)), ...env }, cwd: w });
+    expect({ code: r.code, err: r.err }).toMatchObject({ code: 2 });
+    expect(r.err).toContain("git state unreadable");
   });
 });
