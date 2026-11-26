@@ -1,3 +1,20 @@
+# [34.28.0](https://github.com/terrylica/cc-skills/compare/v34.27.0...v34.28.0) (2026-11-26)
+
+
+### Features
+
+* **session-chronicle:** retire unused S3 sharing; keep local archives ([#143](https://github.com/terrylica/cc-skills/issues/143)) ([e6840e0](https://github.com/terrylica/cc-skills/commit/e6840e03ff77ed2c9254a37b63a9b7e994a9c915)), closes [#142](https://github.com/terrylica/cc-skills/issues/142)
+
+S3 sharing served one test upload in January 2026. The bucket and the access key it was written for have since been deleted, so its upload and retrieval paths could no longer run for anyone, and on main validate-e2e.sh failed because two of its tests could not read the vault item. Its design also read one shared AWS key from a team vault and printed that lookup into every commit message. The local half (Brotli archives, the sanitizer, the registry, provenance commit messages) is unchanged. Nothing that worked stops working, so this is a minor release, not a breaking one.
+
+- Removed: scripts/s3_upload.sh, scripts/retrieve_artifact.sh, references/s3-retrieval-guide.md, references/s3-manifest-schema.json, the tests validate-s3-upload, validate-credential-access and validate-cross-references (S3-only links), tests/AUDIT-REPORT-2026-01-02.md, and the design spec docs/design/2026-01-02-session-chronicle-s3-sharing/ (in git history).
+- generate_commit_message.sh no longer prints the "Retrieval (requires 1Password ...)" block, which it printed even with no S3 location, and no longer fills missing manifest fields with an invented N/A: absent fields are left out. It lists the local .jsonl.br archives.
+- SKILL.md: sanitizing is mandatory before a session leaves the machine by any route; the S3 output option, the aws and op prerequisites and the S3 troubleshooting row are gone.
+- references/preflight-scripts.md no longer requires the aws and op CLIs (its tool check exited 1 without them, blocking the skill on a machine with no AWS CLI).
+- provenance-schema.json loses s3_artifacts; registry-schema and output-generation lose the S3 path and the retrieval recipe; the test fixture loses s3_location.
+- validate-commit-format.sh pins the new output (14 checks, the generator's exit status kept) and fails against the old generator (4 failures). validate-e2e.sh fails on main and passes now (4/4); moon run repo:check passes.
+- The ADR is marked superseded (2026-11-25) with the reason; the design-spec coverage counts in docs/CLAUDE.md and docs/design/CLAUDE.md read 24 of 42 (verify-doc-counts).
+
 # [34.27.0](https://github.com/terrylica/cc-skills/compare/v34.26.0...v34.27.0) (2026-11-25)
 
 
