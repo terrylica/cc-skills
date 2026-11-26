@@ -6,6 +6,7 @@ import type { Family } from "../lib/gate.ts";
 import type { Driver } from "../lib/page.ts";
 import { GOOGLE_ADMIN } from "./google-admin/family.ts";
 import * as gmailDefaultRouting from "./google-admin/gmail-default-routing.ts";
+import * as gmailRouting from "./google-admin/gmail-routing.ts";
 import * as passwordless from "./google-admin/passwordless.ts";
 
 export interface Recipe {
@@ -30,6 +31,16 @@ export const RECIPES: Record<string, Recipe> = {
     flags: gmailDefaultRouting.FLAGS,
     validate: (f) => void gmailDefaultRouting.specFromFlags(f),
     run: gmailDefaultRouting.run,
+  },
+  "gmail-routing": {
+    name: "gmail-routing",
+    family: GOOGLE_ADMIN,
+    summary: "Gmail › Routing (per org unit; can act on outbound mail): ensure one rule, identified by its description, idempotently, with read-back",
+    url: gmailRouting.URL,
+    verbs: { ensure: "create the rule if missing; no-op when identical; report (or --update) when it differs; --verify reads back only; --dry-run fills then cancels" },
+    flags: gmailRouting.FLAGS,
+    validate: (f) => void gmailRouting.specFromFlags(f),
+    run: gmailRouting.run,
   },
   passwordless: {
     name: "passwordless",

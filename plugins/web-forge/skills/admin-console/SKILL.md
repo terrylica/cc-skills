@@ -1,6 +1,6 @@
 ---
 name: admin-console
-description: Drive console-only Google Workspace Admin settings (admin.google.com) that no API or GAM can reach, through a signed-in Chrome profile chosen by admin email — recipes as data, idempotent ensure, read-back verification after Save, JSON result, a screenshot per step. First recipe gmail-default-routing (Gmail › Default routing rules: match a group, single address, pattern or everyone; change the envelope recipient, add X-Gm-Original-To). Handles the "verify it's you" re-authentication gate without ever typing a password. TRIGGERS - admin console, admin.google.com, Google Admin setting with no API, Gmail default routing, routing rule, change envelope recipient, X-Gm-Original-To, GAM cannot, Cloud Identity Policy API missing setting, verify it's you admin.
+description: Drive console-only Google Workspace Admin settings (admin.google.com) that no API or GAM can reach, through a signed-in Chrome profile chosen by admin email — recipes as data, idempotent ensure, read-back verification after Save, JSON result, a screenshot per step. Recipes gmail-default-routing (Gmail › Default routing rules: match a group, single address, pattern or everyone; change the envelope recipient, add X-Gm-Original-To), gmail-routing (Gmail › Routing per org unit, including OUTBOUND mail: redirect mail for one outside address, by description) and passwordless. Handles the "verify it's you" re-authentication gate without ever typing a password. TRIGGERS - admin console, admin.google.com, Google Admin setting with no API, Gmail default routing, Gmail routing, outbound routing rule, envelope filter, routing rule, change envelope recipient, X-Gm-Original-To, GAM cannot, Cloud Identity Policy API missing setting, verify it's you admin.
 allowed-tools: Bash, Read
 ---
 
@@ -61,6 +61,24 @@ Every other "Modify message" checkbox is set **clear**: the rule matches the spe
 
 **Read-back.** After Save the page is reloaded, the rule is found again and its Edit dialog is read and compared field by field. A mismatch exits 1. This is still the same console: an end-to-end mail test (or Email Log Search) is the independent confirmation.
 
+### `gmail-routing ensure`
+
+Gmail › Routing › **Routing**, the per-org-unit setting. Unlike Default routing it can act on **outbound** mail (for example, send every outbound message addressed to one outside address to an internal one instead), and it has a description field, which identifies the rule.
+
+| Flag | Meaning |
+| --- | --- |
+| `--description <text>` | Stored by Google and shown in the table's Description column; the rule's identity (required) |
+| `--messages outbound[,inbound,internal-outbound,internal-inbound]` | "1. Email messages to affect" (required) |
+| `--account-types users[,groups,inactive,archived-delegate]` | Account types the action applies to (default `users`, Google's own default) |
+| `--envelope-recipient single:<email>` | "Show options › B. Envelope filter › Only affect specific envelope recipients", single address |
+| `--change-envelope-recipient <email>` · `--add-original-to-header` | As in Default routing |
+| `--org-unit <name>` | Refuse unless the page shows "Showing settings for users in <name>" (the page opens at the top unit; no navigation) |
+| `--dry-run` · `--verify` · `--update` | As above. A filled form that does not read back as the spec is cancelled and reported (`fill-mismatch`, with the raw form), never saved |
+
+Every "Modify message" box the spec does not ask for, "A. Address lists" and "Only affect specific envelope senders" are set **clear**. The envelope filter is what limits a change of envelope recipient to the one recipient it names; the others on the same message are not affected.
+
+Measured 2026-11-26: the page holds several settings, each a `form` named after it (Outbound gateway, Routing, Non-Gmail mailbox …), so the table and its **Add another rule** button are looked up inside the form named "Routing". **Show options** is a link, not a button; an Edit dialog may already show "Hide options". Two text fields are both named "Email address:", the senders' first (kept in the DOM, hidden, while its box is clear) and the recipients' second, so the recipients' value is the **last** one. The table's "Consequences" column summarises the X-Gm-Original-To header as "Add custom headers"; the Edit dialog is the record.
+
 ### `passwordless ensure` · `passwordless inspect`
 
 Security › Authentication › Passwordless: "Allow users to skip their password and authenticate with a passkey" (Google's help page calls it "Allow users to skip passwords at sign-in by using passkeys"). Off as Google ships it; users then read "Skip password when possible isn't allowed for this account". The Cloud Identity Policy API exposes only the sibling `settings/security.passkeys_restriction` (measured 2026-11-10 on a full `policies.list`). `--allow-skip on|off` acts on the unit the page opens with (the top organizational unit); `--verify`, `--dry-run` as above; `inspect` is a read-only survey (checkboxes, buttons, text) for writing new steps. Turning it on also stops users adding a security key for 2-Step Verification only (passkeys on security keys still work), as the page itself says.
@@ -74,6 +92,7 @@ The Admin console periodically sends an administrator to accounts.google.com for
 3. **Alerts** the operator: `--alert local` (default) posts a desktop notice through `~/.claude/tools/notify` when present; `--alert emergency` also sends a Pushover Emergency (priority 2, retry 60 s, expire 600 s) through the pushover-commander plugin with the HTTP(S) proxy variables removed. The core is called with `--no-wait`, so it returns once Pushover accepted the page instead of polling for the acknowledgement; the log then reads `emergency alert sent`, and a real failure names its exit code, signal or spawn error. Use `emergency` for crown-level admin steps.
 4. **Polls the tab without reloading it** (every 5 s, up to `--reauth-wait`, default 600 s), because a reload discards what the operator is typing. When the tab reaches admin.google.com the run continues.
 5. On timeout it exits 4. If the check was passed in a **different** tab of the same profile, this tab does not notice: just re-run, the command is idempotent.
+6. **When the extension cannot even load the page (measured 2026-11-26).** In `--connect extension` mode the navigation itself can fail with "No open tabs … Chrome may have detached the debugger because the page contains a frame that extensions are not allowed to debug": the console redirected to the password page and a password manager's inline frame detached the extension. Open the console URL in that profile's own window (`chrome-profile.sh open <admin-email> <url>`), pass the check there through the password manager's own menu (by hand, or with Orca computer use on that window), close the extension's leftover tabs (`chrome-profile.sh tabs close --id …`), then re-run: the recipe then loads the console normally. A fresh `--connect cdp` profile that has never signed in is no shortcut: Google's sign-in page there stayed on the identifier step after Next.
 
 ## Lessons baked into the primitives (measured 2026-10-19, extended 2026-11-10)
 
@@ -110,7 +129,7 @@ Pass `--screenshots <dir>` to save one PNG per step (failures are always saved, 
 
 ## Known fragility
 
-Google changes the console without notice. Selectors use accessible roles and the words on screen, so a reworded label ("Change envelope recipient") or a restructured dialog breaks a recipe loudly (a step fails, a screenshot is saved, the dialog is cancelled) rather than silently. The English UI is assumed. Tested live: create, `--dry-run`, `--verify`, `unchanged`, `differs`. Not yet exercised live: `--connect cdp`, `--update`, `single`/`pattern`/`all` matches, and the re-authentication wait (classification is unit-tested).
+Google changes the console without notice. Selectors use accessible roles and the words on screen, so a reworded label ("Change envelope recipient") or a restructured dialog breaks a recipe loudly (a step fails, a screenshot is saved, the dialog is cancelled) rather than silently. The English UI is assumed. Tested live: create, `--dry-run`, `--verify`, `unchanged`, `differs`. `gmail-routing`: `--dry-run` (including a `fill-mismatch` it reported and cancelled), create and `--verify` (2026-11-26). Not yet exercised live: `--connect cdp`, `--update`, `single`/`pattern`/`all` matches, and the re-authentication wait (classification is unit-tested).
 
 ## Post-Execution Reflection
 
