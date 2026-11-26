@@ -24,8 +24,9 @@ import process from "node:process";
 export const FOOTER_RULE = "------";
 
 // Matches an existing Claude Code provenance footer under any marker wording so we never
-// double-stamp. Anchored to the rule line to avoid matching prose that merely mentions it.
-export const FOOTER_RE = /\n------\n(?:Parked by|Sent via|via) Claude Code \| session /;
+// double-stamp. Anchored to the rule line to avoid matching prose that merely mentions it. A footer
+// made without a session id ("via Claude Code | 2026-11-26 12:00 PCT") counts too (2026-11-26).
+export const FOOTER_RE = /\n------\n(?:Parked by|Sent via|via) Claude Code(?: \| |\n|$)/;
 
 // British Columbia's own abbreviation (2026-11-08). Since 1 Nov 2026 BC keeps UTC-7 all year and the
 // province names it "Pacific Time", abbreviated PCT (BC government, "No falling back with B.C.'s new time

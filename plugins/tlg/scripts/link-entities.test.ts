@@ -115,3 +115,16 @@ describe("editableEntities — mentions survive messages.EditMessage", () => {
     expect(() => inputUserFromPeer(new Api.InputPeerChat({ chatId: bigInt(1) }))).toThrow("not a user");
   });
 });
+
+describe("relinkedEntities — a greedy e-mail entity", () => {
+  test("is replaced by one over the address alone", () => {
+    const text = "联系方式是ann@example.com，谢谢";
+    const at = text.indexOf("ann");
+    const { entities, changed } = relinkedEntities({
+      message: text,
+      entities: [new Api.MessageEntityEmail({ offset: at - 1, length: 16 })],
+    });
+    expect(changed).toBe(true);
+    expect(entities.map((e) => [e.className, e.offset, e.length])).toEqual([["MessageEntityEmail", at, 15]]);
+  });
+});

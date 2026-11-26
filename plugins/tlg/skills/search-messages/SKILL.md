@@ -45,21 +45,25 @@ EOF
 | `--from`     | string/int | Filter by sender                                                         |
 | `-n/--limit` | int        | Max results (default: 20)                                                |
 | `--preview`  | int        | Truncate each body to N chars (default: full text, multi-line indented). |
+| `--json`     | flag       | JSON records (the `dump` fields, plus `chat_id`/`chat_name` globally)    |
+| `--utc`      | flag       | Times in UTC instead of the local zone                                   |
 
 ## Output Format
 
 Default (full text, multi-line indented):
 
 ```
-[YYYY-MM-DD HH:MM] [Chat Name] (id:12345) Sender: First line of body
+[YYYY-MM-DD HH:MM:SS PCT] {Chat Name -1001234567890} (id:12345 ↩12001) Sender: First line of body
     continuation line 1 (indented under header)
     continuation line 2
 ```
 
+The `{chat}` part appears in global search only (a message id means nothing without its chat); with `--chat` it is left out. The other markers (`↩N`, `❝quote❞`, `[photo]`, `album:`, `(edited)`, `[fwd from …]`) are those of `read`: see the list-dialogs skill, "What a listed line shows". Use the chat id from `{…}` with `read <chat> --around <id>` or `thread <chat> <id>`.
+
 With `--preview 100`:
 
 ```
-[YYYY-MM-DD HH:MM] [Chat Name] (id:12345) Sender: First line of body ⏎ continuation collapsed onto…
+[YYYY-MM-DD HH:MM:SS PCT] (id:12345) Sender: First line of body ⏎ continuation collapsed onto…
 ```
 
 Use `--preview N` only for high-volume scans where you want one row per

@@ -44,14 +44,15 @@ EOF
 ## Workflow
 
 1. Use `read <chat> -n N` to browse messages and find IDs
-2. Messages with media show `[media/service]` in text
-3. Use `download <chat> <id>` to save the file
+2. A message with media shows its kind (`[photo]`, `[document]`, …) beside its caption; `[web page]` is only a link preview and has nothing to download
+3. An attachment is its own message: text and files sent together are separate ids, and an album's items share one `album:G` marker (usually adjacent ids)
+4. Use `download <chat> <id>` with the id of the media message itself
 
 ## Error Handling
 
 | Error               | Cause              | Fix                         |
 | ------------------- | ------------------ | --------------------------- |
-| `message not found` | Invalid message ID | Check with `read` first     |
+| `message not found` | The id is not in this chat (an id from a global search belongs to the chat shown in its `{…}`) | Check with `read` first     |
 | `has no media`      | Text-only message  | Choose a message with media |
 
 ## Post-Execution Reflection

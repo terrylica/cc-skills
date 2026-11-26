@@ -83,14 +83,16 @@ bun "$SCRIPT" pin <chat> <msg_id> [--unpin] [--silent]
 bun "$SCRIPT" mark-read <chat>
 
 # Reading & Search
-bun "$SCRIPT" read <chat> [-n 10]
-bun "$SCRIPT" search "query" [--chat <chat>] [--from <user>]
+bun "$SCRIPT" read <chat> [-n 10] [--around ID | --after ID | --before ID] [--topic ID] [--json] [--utc]
+bun "$SCRIPT" thread <chat> <msg_id> [--replies]   # what a reply answers: climb its ↩ chain
+bun "$SCRIPT" search "query" [--chat <chat>] [--from <user>]   # global results name their {chat}
 bun "$SCRIPT" dialogs
 bun "$SCRIPT" whoami
 bun "$SCRIPT" find-user @username
 
 # Media
 bun "$SCRIPT" download <chat> <msg_id> [-o /path]
+bun "$SCRIPT" dump <chat> <out_dir> [--no-media] [--after ID]
 
 # Groups
 bun "$SCRIPT" create-group "Title" [--type supergroup|channel|group]

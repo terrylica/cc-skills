@@ -37,7 +37,7 @@ export interface LinkSpan {
 
 /** A stored link entity that covers more (or other) text than its URL. */
 export interface BadLink {
-  readonly type: "MessageEntityUrl" | "MessageEntityTextUrl";
+  readonly type: "MessageEntityUrl" | "MessageEntityTextUrl" | "MessageEntityEmail";
   readonly offset: number;
   readonly length: number;
   /** The message text the entity covers. */
@@ -297,23 +297,32 @@ const NOT_URL_TEXT_RE = /[^!-~]/;
  * or a TextUrl whose visible text shows a URL with a different host, or a URL plus non-ASCII text.
  * A TextUrl whose visible text is a plain label with no URL in it (`<a href="…">打开</a>`) is fine, as
  * are mention and tg:// links.
+ *
+ * A MessageEntityEmail is checked like a Url: the server's e-mail linkifier is greedy too. Measured on
+ * 2026-11-23 (a group message, found by another harness's read-back check): an e-mail entity ran from the
+ * Chinese 是 before the address to its `.com`. `relink` replaces such an entity with one over the address
+ * alone (`emailSpan`); deleting and resending the message works too.
  */
 export function badLinks(message: MessageLike): BadLink[] {
   const text = message.message ?? "";
   const bad: BadLink[] = [];
   for (const e of message.entities ?? []) {
     const type = e.className;
-    if (type !== "MessageEntityUrl" && type !== "MessageEntityTextUrl") {
+    if (type !== "MessageEntityUrl" && type !== "MessageEntityTextUrl" && type !== "MessageEntityEmail") {
       continue;
     }
     const offset = Number(e.offset ?? 0);
     const length = Number(e.length ?? 0);
     const covered = text.slice(offset, offset + length);
-    const url = type === "MessageEntityUrl" ? covered : String(e.url ?? "");
+    const url = type === "MessageEntityTextUrl" ? String(e.url ?? "") : covered;
     let reason: string | undefined;
     if (type === "MessageEntityUrl") {
       if (NOT_URL_TEXT_RE.test(covered)) {
         reason = "the link covers whitespace or non-ASCII text after the URL";
+      }
+    } else if (type === "MessageEntityEmail") {
+      if (NOT_URL_TEXT_RE.test(covered)) {
+        reason = "the e-mail link covers whitespace or non-ASCII text next to the address";
       }
     } else if (/^https?:\/\//i.test(url)) {
       const shown = linkSpans(covered);
@@ -330,6 +339,14 @@ export function badLinks(message: MessageLike): BadLink[] {
     }
   }
   return bad;
+}
+
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,24}/;
+
+/** The address inside a text an e-mail entity covered (offsets relative to `covered`), or undefined. */
+export function emailSpan(covered: string): { offset: number; length: number } | undefined {
+  const m = EMAIL_RE.exec(covered);
+  return m ? { offset: m.index, length: m[0].length } : undefined;
 }
 
 /** One line per bad link, for an error message. */

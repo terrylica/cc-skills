@@ -71,7 +71,14 @@ Each line is a JSON object with these fields:
 | `media_file`      | string/null | Filename in media/ dir (e.g., "6.jpg")          |
 | `views`           | int/null    | View count (channels only)                      |
 | `forwards`        | int/null    | Forward count                                   |
-| `reply_to_msg_id` | int/null    | Parent message ID if reply                      |
+| `reply_to_msg_id` | int/null    | Telegram's `replyToMsgId` as stored (in a forum topic, the topic root when the message replies to nothing else) |
+| `reply_parent`    | int/null    | The message it really replies to (topic roots set aside)                        |
+| `quote_text`      | string/null | The part of the parent the sender selected and quoted                           |
+| `reply_to_peer`   | string/null | `channel:N` / `chat:N` / `user:N` when the parent is in another chat            |
+| `forum_topic_id`  | int/null    | The forum topic the message sits in                                             |
+| `fwd_from`        | string/null | A forward's origin name or peer (`""` when Telegram names none)                 |
+| `out`             | bool        | Sent by this account                                                            |
+| `action`          | string/null | A service message's kind (`pin message`, `chat add user`, …)                    |
 | `grouped_id`      | int/null    | Album group ID (shared across album messages)   |
 | `edit_date`       | string/null | ISO 8601 timestamp of last edit                 |
 | `sender.id`       | int         | Sender's Telegram user/channel ID               |
@@ -81,6 +88,8 @@ Each line is a JSON object with these fields:
 ## Resume Support
 
 Re-running the same command skips already-downloaded media files (checks `dest.exists()`). The NDJSON is fully rewritten each run. This makes it safe to resume interrupted downloads.
+
+**Incremental:** `dump <chat> <out_dir> --after <last_id>` reads only the messages after `last_id` and writes them to `messages-after-<last_id>.ndjson` beside the full `messages.ndjson`, which it never overwrites.
 
 ## Querying the Output
 

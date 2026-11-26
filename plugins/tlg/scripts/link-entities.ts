@@ -11,7 +11,7 @@
  */
 
 import { Api } from "./vendor/telegram.js";
-import { badLinks, linkSpans } from "./safe-links.ts";
+import { badLinks, emailSpan, linkSpans } from "./safe-links.ts";
 
 // Entities whose text must not get a link of its own: code, and anything Telegram already
 // treats as a link or an address.
@@ -55,7 +55,8 @@ export function withExactLinkEntities(raw: string, entities: readonly Entity[]):
 
 /**
  * Entities for re-sending a read-back message with its links made exact: every link entity that
- * `badLinks` flags is dropped, and each bare link left uncovered gets an exact TextUrl.
+ * `badLinks` flags is dropped (a greedy e-mail entity is replaced by one over the address alone), and
+ * each bare link left uncovered gets an exact TextUrl.
  * `changed` is false when the message needs no edit.
  */
 export function relinkedEntities(message: { message?: string; entities?: readonly Entity[] | null }): {
@@ -68,6 +69,14 @@ export function relinkedEntities(message: { message?: string; entities?: readonl
   const kept = all.filter(
     (e) => !bad.some((b) => b.type === e.className && b.offset === e.offset && b.length === e.length),
   );
+  // A greedy e-mail entity is replaced by one over the address alone.
+  for (const b of bad) {
+    const span = b.type === "MessageEntityEmail" ? emailSpan(b.text) : undefined;
+    if (span !== undefined) {
+      kept.push(new Api.MessageEntityEmail({ offset: b.offset + span.offset, length: span.length }));
+    }
+  }
+  kept.sort(byOffset);
   const relinked = withExactLinkEntities(raw, kept);
   if (bad.length === 0 && relinked === undefined) {
     return { entities: all, changed: false };

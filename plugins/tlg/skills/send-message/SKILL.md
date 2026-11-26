@@ -41,6 +41,16 @@ The Bruntwork group (`-1003958083153`) is a **supergroup with Topics**. All mess
 bun "$SCRIPT" send --html --reply-to 5 -1003958083153 "<b>Policy update</b> ..."
 ```
 
+## Replying to a specific message
+
+Telegram keeps a reply's link to the message it answers (`replyTo.replyToMsgId`) and, when the sender selected part of that message, the quoted part (`replyTo.quoteText`). Both show in `read`, `search` and `thread` as `↩N` and `❝…❞` (list-dialogs skill, "What a listed line shows").
+
+- **Before answering, find what they answered.** When a message carries `↩N` or a quote you do not recognise, run `thread <chat> <id>`: it climbs the chain to where the conversation began, so an answer addresses the right earlier point. Use `read <chat> --around N` for the messages around the parent.
+- **Reply to the message you answer:** `send <to> "…" --reply-to <id>`. Do this in groups always, and in a private chat whenever the answer is not to the newest message, so the recipient sees which question it answers. Every part of a split message carries the same `--reply-to`.
+- **In a forum topic,** reply to the message itself; `--reply-to <topic root>` only posts into the topic.
+- **One question, one answer.** When an earlier unanswered message of ours is superseded, delete it (`delete <chat> <id>`) before sending the replacement, rather than leaving the recipient two versions.
+- `--reply-to` must be a whole number (`send` refuses anything else).
+
 ## Auto-split for long messages
 
 Telegram's hard limit is 4096 post-parsing chars per message. **tg-cli.ts `send` and `draft` both auto-split** messages exceeding ~3900 plain chars into multiple sequential posts, preserving HTML formatting and section structure.
@@ -71,7 +81,9 @@ via Claude Code | session <uuid> | <context> | <timestamp>
 - `<uuid>` is `CLAUDE_CODE_SESSION_ID` (dropped if unset); `<context>` is included only when you pass `--context` (never auto-filled from the working directory, which would disclose a folder name to recipients).
 - **`--context "<label>"`** adds an optional context label (e.g. `--context "project / contact"`).
 - **`--no-footer`** opts out — use it for an external or sensitive chat, or a message whose provenance must not travel (e.g. relaying a one-time code).
-- Content already carrying a Claude Code footer (e.g. piped straight from `draft-park get`, whose marker reads `Parked by Claude Code …`) is **not** re-stamped, so its own marker survives.
+- Content already carrying a Claude Code footer (e.g. piped straight from `draft-park get`, whose marker reads `Parked by Claude Code …`) is **not** re-stamped, so its own marker survives. A footer made without a session id counts too (since 2026-11-26).
+- **Do not write a footer by hand.** Only a footer matching `FOOTER_RE` (a `------` line, then `via` / `Sent via` / `Parked by` `Claude Code |`) stops the stamp; any other wording gets a second footer.
+- **Captions:** Telegram allows 1,024 characters in a media caption (4,096 with Premium), footer included. `send-file` refuses a longer caption before uploading; send the text as its own message, replying to the file (`send <to> "…" --reply-to <file_id>`).
 
 SSoT for the logic: `scripts/session-footer.ts` (unit tests in `scripts/session-footer.test.ts`).
 
@@ -80,6 +92,8 @@ SSoT for the logic: `scripts/session-footer.ts` (unit tests in `scripts/session-
 Telegram's server linkifies a bare URL greedily, up to the next whitespace. Measured on 2026-11-22 (sent to Saved Messages, entities read back): `打开 github.com/login/device，用你自己的账号` was stored with a `MessageEntityUrl` over `github.com/login/device，用你自己的账号`, so the full-width comma and the Chinese after it became part of the link (the `https://` form did the same). A space before the comma gave the exact link; an explicit `<a href="https://github.com/login/device">github.com/login/device</a>` gave a `TextUrl` over exactly the URL and no other link; `<code>…</code>` gave a code span, not a link.
 
 So `send`, `draft`, `send-file` captions and `edit` give every bare link an explicit, exact link before sending (`scripts/safe-links.ts`): a link ends at the first whitespace or non-ASCII character (every full-width and CJK punctuation mark, every ideograph, emoji) and loses trailing ASCII punctuation (`.,;:!?'"` and an unbalanced `)`/`]`). With `--html` each one becomes `<a href="https://…">visible</a>`; plain text keeps its own parse and gains an exact link entity. Text inside `<a>`, `<code>` and `<pre>` is left alone. Each sent message is then read back, and the command **exits 1 naming the link** if Telegram stored one that covers more than its URL. Fix already-sent messages with `relink <chat> <ids>`, which re-edits only their link entities (the text is unchanged, and mentions survive: read-back `MessageEntityMentionName` entities are sent as `InputMessageEntityMentionName`, without which the edit drops them).
+
+E-mail addresses are linkified greedily too: on 2026-11-23 an e-mail entity in a group message ran from the Chinese 是 before the address to its `.com`. The read-back check covers `MessageEntityEmail` as well, and `relink` replaces such an entity with one over the address alone.
 
 You need not add spaces around links. A URL that really contains ideographs is not supported: send it percent-encoded. Other code imports the same functions from `"$(cc-plugin-root tlg)/scripts/safe-links.ts"`: `exactLinks(text, { html })` before sending and `badLinks(message)` on the read-back message.
 

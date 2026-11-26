@@ -21,7 +21,8 @@
 // INVENTED-FALLBACK-OK — the display placeholders below are ported VERBATIM from
 // tg-cli.py (the behavioural SSoT) so output is identical across the migration:
 //   "Unknown" / "?"  → message sender whose entity didn't resolve (read/search)
-//   "[media/service]" / "[media]" → a non-text message body in a listing
+// Listings are rendered by message-format.ts (2026-11): a non-text body shows its kind ("[photo]",
+// "[service: …]", from the MessageMedia*/MessageAction* class name) instead of the old "[media/service]" / "[media]".
 // Non-display `??`/`||` here are argparse-equivalent defaults (--type supergroup,
 // -o ".", --about "", --search ""), not invented tokens.
 
@@ -36,6 +37,7 @@ import { OP_SA_TOKEN_UNCONFIGURED_HINT, resolveOpSaToken } from "./op-sa-token.t
 import { PROFILES_RELATIVE_PATH, unknownProfileMessage } from "./profile-hint.ts";
 import { applyFooter } from "./session-footer.ts";
 import { badLinks, describeBadLinks, exactLinks } from "./safe-links.ts";
+import { climb, formatLine, type LineOptions, recordOf, viewOf } from "./message-format.ts";
 import { editableEntities, inputUserFromPeer, relinkedEntities, withExactLinkEntities } from "./link-entities.ts";
 
 // ── Enums ─────────────────────────────────────────────────
@@ -50,6 +52,7 @@ enum Command {
   Delete = "delete",
   Pin = "pin",
   Read = "read",
+  Thread = "thread",
   Search = "search",
   MarkRead = "mark-read",
   Dialogs = "dialogs",
@@ -105,6 +108,8 @@ const DEFAULT_OP_VAULT = "Claude Automation";
 // Telegram's hard limit is 4096 post-parse chars; 3900 leaves margin for a
 // "(Part i/n)" header prepended to continuation chunks.
 const TELEGRAM_MAX_PLAIN_CHARS = 3900;
+// A media caption's limit for an account without Premium (Premium: 4096).
+const TELEGRAM_MAX_CAPTION_CHARS = 1024;
 const SPLIT_SEPARATORS = [
   "\n\n━━━━━━━━━━━━━━\n\n",
   "\n━━━━━━━━━━━━━━\n",
@@ -237,14 +242,6 @@ const jsonResult = (value: unknown): RunResult => ({ text: JSON.stringify(value,
 /** numeric string → number (chat/user id), otherwise the raw @username/phone. */
 function parseEntity(value: string): string | number {
   return /^-?\d+$/.test(value) ? Number(value) : value;
-}
-
-function fmtDate(unix: number | undefined, withSeconds = true): string {
-  if (!unix) {
-    return "";
-  }
-  const iso = new Date(unix * 1000).toISOString().replace("T", " ").replace("Z", "");
-  return withSeconds ? iso.slice(0, 19) : iso.slice(0, 16);
 }
 
 /** Approximate Telegram's post-parse char count for an HTML message. */
@@ -395,16 +392,54 @@ function entityLabel(entity: any, fallback: string): string {
   );
 }
 
-function formatBody(text: string, previewChars: number | undefined): string {
-  if (previewChars !== undefined) {
-    const flat = text.replace(/\n/g, " ⏎ ");
-    return flat.length > previewChars ? `${flat.slice(0, previewChars)}…` : flat;
+/** A sender's display name: a chat's title, else "First Last", else the username. */
+function personName(s: any, fallback = "Unknown"): string {
+  return s?.title || [s?.firstName, s?.lastName].filter(Boolean).join(" ").trim() || s?.username || fallback;
+}
+
+/** Resolve senders once per id (a listing repeats the same few people). */
+function senderResolver(): (m: any) => Promise<{ name: string; id: number | undefined }> {
+  const cache = new Map<string, string>();
+  return async (m: any) => {
+    const key = m?.senderId !== undefined && m?.senderId !== null ? String(m.senderId) : "";
+    const id = key ? Number(key) : undefined;
+    if (key && cache.has(key)) {
+      return { name: cache.get(key) as string, id };
+    }
+    let name = "Unknown";
+    try {
+      name = personName(await m.getSender(), name);
+    } catch {
+      // sender unresolved
+    }
+    if (key) {
+      cache.set(key, name);
+    }
+    return { name, id };
+  };
+}
+
+function lineOptions(flags: Flags, preview: number | undefined): LineOptions {
+  return { preview, utc: flags.has("--utc") };
+}
+
+function optNum(flags: Flags, name: string): number | undefined {
+  const v = flags.get(name);
+  if (v === undefined) {
+    return undefined;
   }
-  if (!text.includes("\n")) {
-    return text;
+  const n = Number(v);
+  if (!Number.isInteger(n)) {
+    throw new UsageError(`${name} needs a whole number, got "${v}"`);
   }
-  const lines = text.split("\n");
-  return `${lines[0]}\n${lines.slice(1).map((l) => `    ${l}`).join("\n")}`;
+  return n;
+}
+
+/** One message by id, or undefined when it is deleted or not in this chat. */
+async function fetchMessage(client: TelegramClient, chat: string | number, id: number): Promise<any | undefined> {
+  const r: any = await client.getMessages(chat as any, { ids: id });
+  const m = Array.isArray(r) ? r[0] : r;
+  return m && m.className !== "MessageEmpty" ? m : undefined;
 }
 
 // ── Arg parsing ───────────────────────────────────────────
@@ -420,6 +455,9 @@ const BOOLEAN_FLAGS = new Set([
   "--admins",
   "--no-media",
   "--no-footer",
+  "--json",
+  "--utc",
+  "--replies",
 ]);
 const FLAG_ALIASES: Record<string, string> = {
   "-c": "--caption",
@@ -514,7 +552,7 @@ async function handleSend({ profile, pos, flags }: Ctx): Promise<RunResult> {
   const recipient = parseEntity(requirePos(pos, 0, "recipient"));
   const message = withFooter(requirePos(pos, 1, "message"), flags);
   const mode = htmlParseMode(flags);
-  const replyTo = flags.get("--reply-to") ? Number(flags.get("--reply-to")) : undefined;
+  const replyTo = optNum(flags, "--reply-to");
   const client = await connectAuthed(profile);
   try {
     const chunks = splitLongMessage(message, mode);
@@ -578,13 +616,21 @@ async function handleSendFile({ profile, pos, flags }: Ctx): Promise<RunResult> 
   if (!existsSync(file) || !statSync(file).isFile()) {
     throw new UsageError(`file not found: ${file}`);
   }
+  // Policy: a file send is a message too, so its caption carries the session footer.
+  // No caption → the footer becomes the caption (unless --no-footer).
+  const caption = flags.has("--no-footer")
+    ? flags.get("--caption")
+    : withFooter(flags.get("--caption") ?? "", flags).replace(/^\n+/, "");
+  // Telegram cuts nothing silently here: it refuses a caption over its limit (MEDIA_CAPTION_TOO_LONG) after the
+  // upload. Check first, with the footer counted.
+  if (caption && caption.length > TELEGRAM_MAX_CAPTION_CHARS) {
+    throw new UsageError(
+      `caption is ${caption.length} characters with the session footer; Telegram allows ${TELEGRAM_MAX_CAPTION_CHARS} ` +
+        "(4096 with Premium). Send the text as its own message (send --reply-to the file's id) or shorten the caption.",
+    );
+  }
   const client = await connectAuthed(profile);
   try {
-    // Policy: a file send is a message too, so its caption carries the session footer.
-    // No caption → the footer becomes the caption (unless --no-footer).
-    const caption = flags.has("--no-footer")
-      ? flags.get("--caption")
-      : withFooter(flags.get("--caption") ?? "", flags).replace(/^\n+/, "");
     const out = caption ? exactOutgoing(client, caption, undefined) : undefined;
     const sent: any = await client.sendFile(recipient as any, {
       file,
@@ -702,26 +748,123 @@ async function handlePin({ profile, pos, flags }: Ctx): Promise<RunResult> {
 async function handleRead({ profile, pos, flags }: Ctx): Promise<RunResult> {
   const chat = parseEntity(requirePos(pos, 0, "chat"));
   const limit = flags.num("--limit", 10);
-  const preview = flags.get("--preview") ? Number(flags.get("--preview")) : undefined;
+  const preview = optNum(flags, "--preview");
+  const around = optNum(flags, "--around");
+  const after = optNum(flags, "--after");
+  const before = optNum(flags, "--before");
+  const topic = optNum(flags, "--topic");
+  if (around !== undefined && (after !== undefined || before !== undefined)) {
+    throw new UsageError("--around cannot be combined with --after/--before");
+  }
   const client = await connectAuthed(profile);
-  const lines: string[] = [];
+  const name = senderResolver();
+  const msgs: any[] = [];
   try {
-    for await (const msg of client.iterMessages(chat as any, { limit })) {
-      const m: any = msg;
-      let name = "Unknown";
-      try {
-        const sender: any = await m.getSender();
-        name = sender?.firstName || sender?.title || sender?.username || "Unknown";
-      } catch {
-        // sender unresolved
+    const base = topic !== undefined ? { replyTo: topic } : {};
+    if (around !== undefined) {
+      // The target and the older half (offsetId lists ids below it), then the newer half in order.
+      const older = Math.floor(limit / 2) + 1;
+      for await (const m of client.iterMessages(chat as any, { ...base, offsetId: around + 1, limit: older })) {
+        msgs.push(m);
       }
-      const text = formatBody(m.message || "[media/service]", preview);
-      lines.push(`[${fmtDate(m.date)}] (id:${m.id}) ${name}: ${text}`);
+      const newer: any[] = [];
+      for await (const m of client.iterMessages(chat as any, { ...base, minId: around, reverse: true, limit: limit - older + 1 })) {
+        newer.push(m);
+      }
+      msgs.unshift(...newer.reverse());
+    } else if (after !== undefined) {
+      // The first N messages after the id, shown newest first like every listing.
+      for await (const m of client.iterMessages(chat as any, {
+        ...base,
+        minId: after,
+        ...(before !== undefined ? { maxId: before } : {}),
+        reverse: true,
+        limit,
+      })) {
+        msgs.unshift(m);
+      }
+    } else {
+      for await (const m of client.iterMessages(chat as any, { ...base, ...(before !== undefined ? { maxId: before } : {}), limit })) {
+        msgs.push(m);
+      }
     }
+    const rows: { m: any; who: { name: string; id: number | undefined } }[] = [];
+    for (const m of msgs) {
+      rows.push({ m, who: await name(m) });
+    }
+    if (flags.has("--json")) {
+      return jsonResult(rows.map(({ m, who }) => recordOf(viewOf(m, who.name, who.id))));
+    }
+    const opts = lineOptions(flags, preview);
+    return {
+      text: rows
+        .map(({ m, who }) => `${Number(m.id) === around ? "▶ " : ""}${formatLine(viewOf(m, who.name, who.id), opts)}`)
+        .join("\n"),
+    };
   } finally {
     await client.disconnect();
   }
-  return { text: lines.join("\n") };
+}
+
+/**
+ * thread <chat> <id>: the reply chain a message answers, oldest first, ending at the message itself (▶).
+ * Climbs replyTo.replyToMsgId one message at a time and stops at the first message that replies to nothing, a
+ * forum topic's root, a deleted parent, a parent in another chat, a cycle, or --depth. --replies also lists the
+ * later messages that reply to the message or to one of those replies, scanning the next --scan messages.
+ */
+async function handleThread({ profile, pos, flags }: Ctx): Promise<RunResult> {
+  const chat = parseEntity(requirePos(pos, 0, "chat"));
+  const start = Number(requirePos(pos, 1, "message_id"));
+  if (!Number.isInteger(start)) {
+    throw new UsageError(`message_id must be a whole number, got "${pos[1]}"`);
+  }
+  const depth = flags.num("--depth", 20);
+  const scan = flags.num("--scan", 300);
+  const preview = optNum(flags, "--preview");
+  const client = await connectAuthed(profile);
+  const name = senderResolver();
+  try {
+    const { chain, stop } = await climb(start, (id) => fetchMessage(client, chat, id), depth);
+    const replies: any[] = [];
+    if (flags.has("--replies") && chain.length) {
+      const inThread = new Set<number>([start]);
+      for await (const m of client.iterMessages(chat as any, { minId: start, reverse: true, limit: scan })) {
+        const parent = viewOf(m, "").replyToId;
+        if (parent !== undefined && inThread.has(parent)) {
+          inThread.add(Number((m as any).id));
+          replies.push(m);
+        }
+      }
+    }
+    const ordered = [...chain].reverse();
+    if (flags.has("--json")) {
+      const out: unknown[] = [];
+      for (const m of [...ordered, ...replies]) {
+        const who = await name(m);
+        out.push(recordOf(viewOf(m, who.name, who.id), { in_chain: ordered.includes(m), is_start: Number(m.id) === start }));
+      }
+      return jsonResult({ start, stop, messages: out });
+    }
+    const opts = lineOptions(flags, preview);
+    const lines = [`(chain of ${chain.length}; climbed to: ${stop})`];
+    for (const [i, m] of ordered.entries()) {
+      const who = await name(m);
+      const mark = Number(m.id) === start ? "▶ " : "";
+      lines.push(formatLine(viewOf(m, who.name, who.id), { ...opts, indent: `${"  ".repeat(i)}${mark}` }));
+    }
+    if (replies.length) {
+      lines.push(`(replies found in the next ${scan} messages: ${replies.length})`);
+      for (const m of replies) {
+        const who = await name(m);
+        lines.push(formatLine(viewOf(m, who.name, who.id), { ...opts, indent: `${"  ".repeat(ordered.length)}` }));
+      }
+    } else if (flags.has("--replies")) {
+      lines.push(`(no replies in the next ${scan} messages)`);
+    }
+    return { text: lines.join("\n") };
+  } finally {
+    await client.disconnect();
+  }
 }
 
 async function handleSearch({ profile, pos, flags }: Ctx): Promise<RunResult> {
@@ -729,21 +872,19 @@ async function handleSearch({ profile, pos, flags }: Ctx): Promise<RunResult> {
   const chat = flags.get("--chat") ? parseEntity(flags.get("--chat") as string) : undefined;
   const fromUser = flags.get("--from") ? parseEntity(flags.get("--from") as string) : undefined;
   const limit = flags.num("--limit", 20);
-  const preview = flags.get("--preview") ? Number(flags.get("--preview")) : undefined;
+  const preview = optNum(flags, "--preview");
+  const opts = lineOptions(flags, preview);
   const client = await connectAuthed(profile);
   const lines: string[] = [];
+  const records: unknown[] = [];
   try {
     if (chat !== undefined) {
-      for await (const msg of client.iterMessages(chat as any, { search: query, limit, fromUser: fromUser as any })) {
-        const m: any = msg;
-        let name = "?";
-        try {
-          const s: any = await m.getSender();
-          name = s?.firstName || s?.title || s?.username || "?";
-        } catch {
-          // ignore
-        }
-        lines.push(`[${fmtDate(m.date, false)}] (id:${m.id}) ${name}: ${formatBody(m.message || "[media]", preview)}`);
+      const name = senderResolver();
+      for await (const m of client.iterMessages(chat as any, { search: query, limit, fromUser: fromUser as any })) {
+        const who = await name(m);
+        const v = viewOf(m, who.name, who.id);
+        lines.push(formatLine(v, opts));
+        records.push(recordOf(v));
       }
     } else {
       const res: any = await client.invoke(
@@ -758,14 +899,31 @@ async function handleSearch({ profile, pos, flags }: Ctx): Promise<RunResult> {
           limit,
         }) as any,
       );
+      // The result carries the users and chats it mentions: name each message's chat and sender from them.
+      const users = new Map<string, any>((res.users ?? []).map((u: any) => [String(u.id), u]));
+      const chats = new Map<string, any>((res.chats ?? []).map((c: any) => [String(c.id), c]));
+      const label = (peer: any): { name: string; id: string } | undefined => {
+        if (!peer) {
+          return undefined;
+        }
+        const id = String(peer.userId ?? peer.chatId ?? peer.channelId ?? "");
+        const e = peer.userId !== undefined ? users.get(id) : chats.get(id);
+        return { name: personName(e, id), id: peer.channelId !== undefined ? `-100${id}` : peer.chatId !== undefined ? `-${id}` : id };
+      };
+      // A private chat's messages carry no fromId: the sender is the account itself (out) or the chat's user.
+      const me: any = (res.messages ?? []).some((m: any) => m.out && !m.fromId) ? await client.getMe() : undefined;
       for (const m of res.messages ?? []) {
-        lines.push(`[${fmtDate(m.date, false)}] (id:${m.id}): ${formatBody(m.message || "[media]", preview)}`);
+        const where = label(m.peerId);
+        const from = label(m.fromId) ?? (m.out ? { name: personName(me), id: String(me?.id ?? "") } : where);
+        const v = viewOf(m, from?.name ?? "Unknown", from?.id ? Number(from.id) : undefined);
+        lines.push(formatLine(v, { ...opts, chat: where ? `${where.name} ${where.id}` : undefined }));
+        records.push(recordOf(v, { chat_id: where ? Number(where.id) : null, chat_name: where?.name ?? null }));
       }
     }
   } finally {
     await client.disconnect();
   }
-  return { text: lines.join("\n") };
+  return flags.has("--json") ? jsonResult(records) : { text: lines.join("\n") };
 }
 
 async function handleMarkRead({ profile, pos }: Ctx): Promise<RunResult> {
@@ -888,7 +1046,9 @@ async function handleDump({ profile, pos, flags }: Ctx): Promise<RunResult> {
   const chat = parseEntity(requirePos(pos, 0, "chat"));
   const outDir = requirePos(pos, 1, "output");
   const wantMedia = !flags.has("--no-media");
-  const ndjsonPath = join(outDir, "messages.ndjson");
+  // --after writes beside the full archive, never over it: messages.ndjson is rewritten on every run.
+  const after = optNum(flags, "--after");
+  const ndjsonPath = join(outDir, after === undefined ? "messages.ndjson" : `messages-after-${after}.ndjson`);
   const mediaDir = join(outDir, "media");
   mkdirSync(mediaDir, { recursive: true });
   const client = await connectAuthed(profile);
@@ -898,8 +1058,9 @@ async function handleDump({ profile, pos, flags }: Ctx): Promise<RunResult> {
   let skipCount = 0;
   const records: string[] = [];
   try {
-    for await (const msg of client.iterMessages(chat as any, { reverse: true })) {
+    for await (const msg of client.iterMessages(chat as any, { reverse: true, ...(after !== undefined ? { minId: after } : {}) })) {
       const m: any = msg;
+      const v = viewOf(m, "");
       const ext = m.media ? mediaExtension(m.media) : null;
       const mediaFile = ext ? `${m.id}${ext}` : null;
       let sender: any = null;
@@ -931,6 +1092,15 @@ async function handleDump({ profile, pos, flags }: Ctx): Promise<RunResult> {
           grouped_id: m.groupedId ? Number(m.groupedId) : null,
           edit_date: m.editDate ? new Date(m.editDate * 1000).toISOString() : null,
           sender,
+          // Added 2026-11: the parent once a forum topic's root is set aside, the quoted part of the parent,
+          // a parent in another chat, the topic, a forward's origin, direction, and a service action.
+          reply_parent: v.replyToId ?? null,
+          quote_text: v.quote ?? null,
+          reply_to_peer: v.replyToPeer ?? null,
+          forum_topic_id: v.topicId ?? null,
+          fwd_from: v.fwdFrom ?? null,
+          out: v.out,
+          action: v.action ?? null,
         }),
       );
       if (wantMedia && mediaFile) {
@@ -1185,6 +1355,7 @@ const HANDLERS: Record<Command, (ctx: Ctx) => Promise<RunResult>> = {
   [Command.Delete]: handleDelete,
   [Command.Pin]: handlePin,
   [Command.Read]: handleRead,
+  [Command.Thread]: handleThread,
   [Command.Search]: handleSearch,
   [Command.MarkRead]: handleMarkRead,
   [Command.Dialogs]: handleDialogs,
@@ -1212,9 +1383,14 @@ Messaging:   send <to> <text> [--html] [--reply-to ID] | draft <to> <text> [--ht
              forward <from> <ids> <to> | edit <chat> <id> <text> [--html]
              relink <chat> <ids>   (make every link in sent messages cover exactly its URL)
              delete <chat> <ids> [--self-only] | pin <chat> [id] [--unpin] [--silent]
-Reading:     read <chat> [-n N] [--preview C] | search <q> [--chat C] [--from U] [-n N]
+Reading:     read <chat> [-n N] [--preview C] [--around ID | --after ID | --before ID] [--topic ID] [--json] [--utc]
+             thread <chat> <id> [--depth N] [--replies] [--scan N] [--preview C] [--json] [--utc]
+             search <q> [--chat C] [--from U] [-n N] [--preview C] [--json] [--utc]
              mark-read <chat> | dialogs | whoami | find-user <q>
-Media:       download <chat> <id> [-o DIR] | dump <chat> <out_dir> [--no-media]
+             A listed line: [2026-11-26 11:59:51 PCT] (id:812 ↩805 topic:T album:G) Name: (edited) [fwd from X] [photo] text
+             ↩N = the message it replies to; a quoted part of that message follows on its own line as ❝…❞;
+             times are local (--utc for UTC); "thread" climbs the ↩ chain to where the conversation began.
+Media:       download <chat> <id> [-o DIR] | dump <chat> <out_dir> [--no-media] [--after ID]
 Groups:      create-group <title> [--type group|supergroup|channel] [--about A] [--users ...]
              invite <group> <users...> | kick <group> <user> | members <group> [--admins] [-n N]
 Auth:        check-auth | send-code | sign-in --code <c> --hash <h> [--password <pw>]

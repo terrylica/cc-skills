@@ -67,6 +67,17 @@ describe("applyFooter", () => {
     expect(out).toContain("Parked by Claude Code");
     expect(out).not.toContain("via Claude Code | session");
   });
+  test("never double-stamps a footer made without a session id", () => {
+    delete process.env.CLAUDE_CODE_SESSION_ID;
+    const once = applyFooter("hello");
+    expect(once).not.toContain("session");
+    process.env.CLAUDE_CODE_SESSION_ID = SID;
+    expect(applyFooter(once)).toBe(once);
+  });
+
+  test("prose after a rule line that merely mentions Claude Code is not a footer", () => {
+    expect(FOOTER_RE.test("\nnotes\n------\nvia Claude Codex we tried")).toBe(false);
+  });
 });
 
 describe("localTimestamp", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { badLinks, exactLinks, hostOf, linkSpans } from "./safe-links.ts";
+import { badLinks, emailSpan, exactLinks, hostOf, linkSpans } from "./safe-links.ts";
 
 const plain = (text: string): string => exactLinks(text, { html: false });
 const html = (text: string): string => exactLinks(text, { html: true });
@@ -181,5 +181,26 @@ describe("hostOf", () => {
   test("strips scheme, port, path and case", () => {
     expect(hostOf("HTTPS://GitHub.com:443/login?x=1")).toBe("github.com");
     expect(hostOf("t.me/x")).toBe("t.me");
+  });
+});
+
+describe("badLinks — e-mail entities (a group message, 2026-11-23)", () => {
+  const text = "联系方式是ann@example.com，谢谢";
+  const at = text.indexOf("ann");
+
+  test("an e-mail entity that swallowed the Chinese before the address is reported", () => {
+    const bad = badLinks({ message: text, entities: [{ className: "MessageEntityEmail", offset: at - 1, length: 16 }] });
+    expect(bad).toHaveLength(1);
+    expect(bad[0]?.text).toBe("是ann@example.com");
+    expect(bad[0]?.reason).toContain("e-mail");
+  });
+
+  test("an exact e-mail entity is fine", () => {
+    expect(badLinks({ message: text, entities: [{ className: "MessageEntityEmail", offset: at, length: 15 }] })).toEqual([]);
+  });
+
+  test("emailSpan finds the address inside the covered text", () => {
+    expect(emailSpan("是ann@example.com，")).toEqual({ offset: 1, length: 15 });
+    expect(emailSpan("no address")).toBeUndefined();
   });
 });
