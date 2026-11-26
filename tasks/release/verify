@@ -161,8 +161,10 @@ for PLUGIN in $(jq -r '.plugins[].name' "$MARKETPLACE_JSON"); do
             fi
         fi
     fi
-    # 8b: in enabledPlugins?
-    IN_ENABLED=$(jq -r --arg k "$KEY" '.enabledPlugins[$k] // "missing"' "$SETTINGS")
+    # 8b: in enabledPlugins? A key set to `false` is PRESENT: the user switched that plugin off,
+    # and that is a valid state, not an error. Test presence with has(), never with `//`, which
+    # yields its right-hand side for `false` too and so reported every disabled plugin as missing.
+    IN_ENABLED=$(jq -r --arg k "$KEY" '(.enabledPlugins // {}) | if type == "object" and has($k) then "present" else "missing" end' "$SETTINGS")
     if [[ "$IN_ENABLED" == "missing" ]]; then
         echo "  ✗ $KEY missing from enabledPlugins in settings.json"
         ((ERRORS+=1))
