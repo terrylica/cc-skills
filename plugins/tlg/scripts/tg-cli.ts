@@ -1417,7 +1417,7 @@ Reading:     read <chat> [-n N] [--preview C] [--around ID | --after ID | --befo
              thread <chat> <id> [--depth N] [--replies] [--scan N] [--preview C] [--json] [--utc]
              search <q> [--chat C] [--from U] [-n N] [--preview C] [--json] [--utc]
              mark-read <chat> | dialogs | whoami | find-user <q>
-             A listed line: [2026-11-26 11:59:51 PCT] (id:812) ↩805 topic:T album:G Name: (edited) [fwd from X] [photo] text
+             A listed line: [2026-11-26 11:59:51 PCT] (id:812) Name: ↩805 topic:T album:G (edited) [fwd from X] [photo] text
              ↩N = the message it replies to; a quoted part of that message follows on its own line as ❝…❞;
              times are local (--utc for UTC); "thread" climbs the ↩ chain to where the conversation began.
 Media:       download <chat> <id> [-o DIR] | dump <chat> <out_dir> [--no-media] [--after ID]

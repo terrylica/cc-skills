@@ -54,9 +54,9 @@ Use `--preview N` only when you're scanning many messages and want a single-line
 `read`, `search` and `thread` print one line per message (`scripts/message-format.ts`):
 
 ```
-[2026-11-26 11:59:51 PCT] (id:812) ↩805 Ann Lee: 好的，我明白
+[2026-11-26 11:59:51 PCT] (id:812) Ann Lee: ↩805 好的，我明白
     ❝只看第三张图❞
-[2026-11-26 11:40:02 PCT] (id:806) album:13975… Carol: (edited) [fwd from Bob] [photo] caption text
+[2026-11-26 11:40:02 PCT] (id:806) Carol: album:13975… (edited) [fwd from Bob] [photo] caption text
 ```
 
 | Marker                  | Meaning (Telegram field)                                                                                           |

@@ -53,12 +53,12 @@ EOF
 Default (full text, multi-line indented):
 
 ```
-[YYYY-MM-DD HH:MM:SS PCT] {Chat Name -1001234567890} (id:12345) ↩12001 Sender: First line of body
+[YYYY-MM-DD HH:MM:SS PCT] (id:12345) Sender: {Chat Name -1001234567890} ↩12001 First line of body
     continuation line 1 (indented under header)
     continuation line 2
 ```
 
-The `{chat}` part appears in global search only (a message id means nothing without its chat); with `--chat` it is left out. The other markers (`↩N`, `❝quote❞`, `[photo]`, `album:`, `(edited)`, `[fwd from …]`) are those of `read`: see the list-dialogs skill, "What a listed line shows". Use the chat id from `{…}` with `read <chat> --around <id>` or `thread <chat> <id>`.
+The `{chat}` marker appears in global search only (a message id means nothing without its chat); with `--chat` it is left out. The other markers (`↩N`, `❝quote❞`, `[photo]`, `album:`, `(edited)`, `[fwd from …]`) are those of `read`: see the list-dialogs skill, "What a listed line shows". Use the chat id from `{…}` with `read <chat> --around <id>` or `thread <chat> <id>`.
 
 With `--preview 100`:
 

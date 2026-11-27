@@ -152,16 +152,19 @@ function body(text: string, preview: number | undefined, indent: string): string
 
 /**
  * One listing line:
- *   [2026-11-26 11:59:51 PCT] (id:812) ↩805 Ann Lee: text
- * with, when present: "↩N@channel:C" for a parent in another chat, "topic:T", "album:G", "(edited)",
- * "[fwd from X]" ("[fwd]" when Telegram names no origin), "[photo]" (beside a caption too), "[service: chat add user]", and the quoted part of the parent
- * on its own line as  ❝quote❞ .
+ *   [2026-11-26 11:59:51 PCT] (id:812) Ann Lee: ↩805 text
+ * with, after the sender and when present: "{Chat -100…}" (global search), "↩N" ("↩N@channel:C" for a parent in
+ * another chat), "topic:T", "album:G", "(edited)", "[fwd from X]" ("[fwd]" when Telegram names no origin), "[photo]"
+ * (beside a caption too), "[service: chat add user]"; then the text, and the quoted part of the parent on its own line
+ * as  ❝quote❞ .
+ *
+ * Contract: an unmarked line starts "[time] (id:N) Sender: ", exactly as before 2026-11. A reply watcher polls `read`
+ * and matches /^\[[^\]]+\] \(id:[0-9]+\) / then requires the sender label right after it, so every marker goes after
+ * the sender (`formatLine` tests hold the line to that shape).
  */
 export function formatLine(v: MsgView, opts: LineOptions = {}): string {
   const indent = opts.indent ?? "";
-  // "(id:N)" keeps its old exact form, since scripts match it (e.g. a reply watcher polling `read`); the new markers
-  // follow it.
-  const tags: string[] = [];
+  const tags: string[] = opts.chat ? [`{${opts.chat}}`] : [];
   if (v.replyToId !== undefined) {
     tags.push(`↩${v.replyToId}${v.replyToPeer ? `@${v.replyToPeer}` : ""}`);
   }
@@ -186,10 +189,9 @@ export function formatLine(v: MsgView, opts: LineOptions = {}): string {
   const text = v.text;
   const head = [
     `${indent}${opts.mark ?? ""}[${stamp(v.date, { zone: opts.zone, utc: opts.utc, seconds: opts.seconds })}]`,
-    opts.chat ? `{${opts.chat}}` : "",
     `(id:${v.id})`,
-    ...tags,
     `${v.sender}:`,
+    ...tags,
     ...marks,
   ]
     .filter(Boolean)

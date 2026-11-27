@@ -102,7 +102,7 @@ describe("formatLine", () => {
 
   test("a reply shows ↩parent and the quote on its own line", () => {
     const line = formatLine(viewOf(reply(812, 805, { quote: true, quoteText: "只看第三张图" }), "Ann Lee"), utc);
-    expect(line).toBe("[2025-11-26 19:59:51 UTC] (id:812) ↩805 Ann Lee: text 812\n    ❝只看第三张图❞");
+    expect(line).toBe("[2025-11-26 19:59:51 UTC] (id:812) Ann Lee: ↩805 text 812\n    ❝只看第三张图❞");
   });
 
   test("markers for topic, album, edit, forward and media", () => {
@@ -117,7 +117,7 @@ describe("formatLine", () => {
       },
       "A",
     );
-    expect(formatLine(v, utc)).toBe("[2025-11-26 19:59:51 UTC] (id:41) ↩40 topic:7 album:9 A: (edited) [fwd] [document] cap");
+    expect(formatLine(v, utc)).toBe("[2025-11-26 19:59:51 UTC] (id:41) A: ↩40 topic:7 album:9 (edited) [fwd] [document] cap");
   });
 
   test("a service message shows its action and no media marker; an empty body renders nothing", () => {
@@ -133,16 +133,36 @@ describe("formatLine", () => {
 
   test("a chat label comes first in a listing across chats", () => {
     expect(formatLine(viewOf({ id: 1, date: T, message: "x" }, "A"), { ...utc, chat: "Team -1001" })).toBe(
-      "[2025-11-26 19:59:51 UTC] {Team -1001} (id:1) A: x",
+      "[2025-11-26 19:59:51 UTC] (id:1) A: {Team -1001} x",
     );
   });
+});
+
+describe("formatLine line contract", () => {
+  // Scripts that poll `read` (a reply watcher) match this header and then require the sender label right after it.
+  const HEADER = /^\[[^\]]+\] \(id:[0-9]+\) /;
+  const cases = [
+    viewOf({ id: 1, date: T, message: "plain" }, "Ann"),
+    viewOf({ ...reply(41, 40, { forumTopic: true, replyToTopId: 7, quote: true, quoteText: "q" }), groupedId: 9, editDate: T, fwdFrom: { fromName: "B" }, media: { className: "MessageMediaPhoto" } }, "Ann"),
+    viewOf({ id: 7, date: T, message: "", action: { className: "MessageActionPinMessage" } }, "Ann"),
+  ];
+  for (const v of cases) {
+    for (const opts of [{}, { utc: true }, { preview: 20 }]) {
+      test(`id ${v.id} ${JSON.stringify(opts)} keeps "[time] (id:N) Sender: "`, () => {
+        const line = formatLine(v, opts).split("\n")[0] ?? "";
+        const m = HEADER.exec(line);
+        expect(m).not.toBeNull();
+        expect(line.slice(m?.[0].length).startsWith("Ann:")).toBe(true);
+      });
+    }
+  }
 });
 
 describe("formatLine mark", () => {
   test("the mark prefixes the first line only, not continuation or quote lines", () => {
     const v = viewOf({ ...reply(9, 5, { quote: true, quoteText: "q" }), message: "a\nb" }, "X");
     expect(formatLine(v, { utc: true, indent: "  ", mark: "▶ " })).toBe(
-      "  ▶ [2025-11-26 19:59:51 UTC] (id:9) ↩5 X: a\n      b\n      ❝q❞",
+      "  ▶ [2025-11-26 19:59:51 UTC] (id:9) X: ↩5 a\n      b\n      ❝q❞",
     );
   });
 });
