@@ -200,8 +200,8 @@ export function formatLine(v: MsgView, opts: LineOptions = {}): string {
 
 /**
  * The JSON record of `read --json`, `search --json` and `thread --json`. Its keys mean what `dump`'s same-named keys
- * mean (reply_to_msg_id as stored, reply_parent with topic roots set aside); grouped_id is a string here because album
- * ids exceed 2^53 (dump's older numeric grouped_id is lossy and kept only for compatibility).
+ * mean (reply_to_msg_id as stored, reply_parent with topic roots set aside); grouped_id is a string in both, because
+ * album ids exceed 2^53.
  */
 export function recordOf(v: MsgView, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {

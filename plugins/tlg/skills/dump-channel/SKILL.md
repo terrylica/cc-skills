@@ -79,7 +79,7 @@ Each line is a JSON object with these fields:
 | `fwd_from`        | string/null | A forward's origin name or peer (`""` when Telegram names none)                 |
 | `out`             | bool        | Sent by this account                                                            |
 | `action`          | string/null | A service message's kind (`pin message`, `chat add user`, …)                    |
-| `grouped_id`      | int/null    | Album group ID (shared across album messages)   |
+| `grouped_id`      | string/null | Album group ID (shared across album messages); a string since 2026-11, because the ids exceed 2^53 and a JSON number lost their last digits |
 | `edit_date`       | string/null | ISO 8601 timestamp of last edit                 |
 | `sender.id`       | int         | Sender's Telegram user/channel ID               |
 | `sender.name`     | string      | Display name (channel title or user first name) |

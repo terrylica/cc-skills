@@ -1118,7 +1118,8 @@ async function handleDump({ profile, pos, flags }: Ctx): Promise<RunResult> {
           views: m.views ?? null,
           forwards: m.forwards ?? null,
           reply_to_msg_id: m.replyTo?.replyToMsgId ?? null,
-          grouped_id: m.groupedId ? Number(m.groupedId) : null,
+          // A string: album ids exceed 2^53, so a JSON number lost their last digits (before 2026-11).
+          grouped_id: v.album ?? null,
           edit_date: m.editDate ? new Date(m.editDate * 1000).toISOString() : null,
           sender,
           // Added 2026-11: the parent once a forum topic's root is set aside, the quoted part of the parent,
