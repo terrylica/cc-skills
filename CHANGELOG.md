@@ -1,3 +1,14 @@
+# [34.31.0](https://github.com/terrylica/cc-skills/compare/v34.30.1...v34.31.0) (2026-11-27)
+
+
+### Features
+
+* **chrome-profiles:** drive another machine's Chrome with mcp-drive cmd; extension 0.6.0 token page ([f16693b](https://github.com/terrylica/cc-skills/commit/f16693b224fbec26c9f0ad2c17d1f306a110e52e))
+
+mcp-drive.ts gains a third transport, `cmd <steps.json> -- <command...>`: a Playwright Extension server reached through an explicit stdio command, typically `ssh <host> <bridge>` to another machine. The far side must start @playwright/mcp --extension inside the desktop session that runs the target Chrome, because extension mode launches the Chrome binary with the extension's connect address, and a launch from an ssh session (Windows session 0, a Linux login without the display) never reaches the user's browser. cmd mode closes the run's tab like ext mode and skips the leftover sweep, which only sees this Mac's Chrome. A server command that cannot start or exits mid-run now ends the run at once instead of waiting out the 180 s request timeout. New mcp-drive.test.ts with a fake stdio MCP server fixture covers the round trip, tool errors, both fast failures and usage errors (5 tests); the first version sliced the command one argument late, which these tests catch.
+
+Playwright Extension 0.6.0 removed status.html: the token page is now manage.html (window "Playwright Extension", button "Rotate token"), storage unchanged. Chrome updates the extension per profile, so one machine holds both versions (measured here: most profiles 0.6.0, three still 0.4.0). chrome-profile.sh setup and rotate-token pick the page, window title and button from the version installed in the profile; rotate-token's 0.6.0 press is read from the extension's source and not yet exercised. Doctrine also records that a password manager's frame on Google's sign-in pages detaches the session (measured 2026-11-26).
+
 ## [34.30.1](https://github.com/terrylica/cc-skills/compare/v34.30.0...v34.30.1) (2026-11-27)
 
 
