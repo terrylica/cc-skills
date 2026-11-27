@@ -1,3 +1,17 @@
+## [34.30.1](https://github.com/terrylica/cc-skills/compare/v34.30.0...v34.30.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **chrome-profiles:** setInputFiles hangs; upload via DataTransfer ([87557d5](https://github.com/terrylica/cc-skills/commit/87557d5c1b8617b77224e3c8427bc37a66fedcf7))
+
+Uploading a file through the Playwright Extension with Playwright's setInputFiles never completes: every attempt timed out, and one coincided with the operator's Chrome going unresponsive until the run was stopped. Building the File inside the page and handing it to the input through a DataTransfer works, and upload widgets built on that input accept it. The browser-automation skill now says so, next to the related advice on setting form values by script.
+
+- New SKILL.md bullet: the setInputFiles hang, measured 2026-11-26.
+- The working route: rebuild the File from base64 bytes in the page, assign it with a DataTransfer, dispatch change.
+- Handling the bytes: pass them in a quiet step so the run does not echo them, and delete the steps file afterwards.
+- Multi-file forms: a drop zone often becomes a preview after its upload, so re-query the file inputs before the next one.
+
 # [34.30.0](https://github.com/terrylica/cc-skills/compare/v34.29.1...v34.30.0) (2026-11-26)
 
 
