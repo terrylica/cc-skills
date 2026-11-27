@@ -1,3 +1,44 @@
+# [35.0.0](https://github.com/terrylica/cc-skills/compare/v34.31.0...v35.0.0) (2026-11-27)
+
+
+* fix(tlg)!: dump writes grouped_id as a string ([a9d424d](https://github.com/terrylica/cc-skills/commit/a9d424d2d4d01859cba74644e33deb17207f9cb6))
+
+Album ids exceed 2^53, so the JSON number dump wrote lost their last digits and could not be matched to the album's messages. dump and read --json now share the string form.
+
+* fix(tlg)!: listing markers follow the sender ([3a6eb1e](https://github.com/terrylica/cc-skills/commit/3a6eb1e14921858a6b9945561e5436ac5834d98b))
+
+A reply watcher on one of our machines polls `tg-cli read`, matches /^\[[^]]+\] \(id:[0-9]+\) / and requires its own sender label right after it to skip our messages. Markers placed between (id:N) and the sender would have made it wake on our own replies and miss --from matches. Every marker (↩N, topic, album, {chat}, edit, forward, media) now follows "Sender:"; a contract test holds the header shape. Checked with that watcher's own awk filter on new lines: our reply skipped, theirs kept, newest id right.
+
+
+
+### Bug Fixes
+
+* **tlg:** bounded counts, thread mark and cross-chat replies, Premium captions, dump-consistent record keys ([17b66ae](https://github.com/terrylica/cc-skills/commit/17b66ae0d8fda9033816c5e01f14125077b501f7))
+
+From an independent review of the previous commit: GramJS treats a limit of 0 or NaN as no limit, so -n, --depth and --scan must be whole numbers of at least 1 (refused before connecting); the ▶ mark of thread and read --around prefixes only a message's first line; thread --replies ignores replies to a message of another chat; a missing thread start exits 1; send-file allows 4,096-character captions on Premium accounts; read/search/thread --json use dump's meaning of reply_to_msg_id (as stored) and reply_parent (topic roots set aside); relink adds one replacement for duplicate greedy e-mail entities; a channel post in global search is attributed to the channel; listings keep the old (id:N) tag and sender label, since scripts match them.
+
+
+
+### Features
+
+* **tlg:** show what a message replies to and quotes; thread command; e-mail link guard ([7983671](https://github.com/terrylica/cc-skills/commit/798367161d72ca4e48cdb2daaf880f77fc3409cd))
+
+Reading a reply used to need a full dump and a hand walk along reply_to_msg_id (2026-11-26: a quoted reply in a private chat). read, search and the new thread command now share one formatter, message-format.ts, that shows the parent (↩N), the quoted part of it (❝…❞), the forum topic, album, edit, forward origin, media kind beside a caption and service action, with local times and their zone label (e.g. PCT; --utc for UTC).
+
+- thread &lt;chat> &lt;id> [--depth N] [--replies] [--scan N]: climbs the reply chain oldest first and says where it stopped (start of the conversation, topic root, deleted parent, parent in another chat, cycle, depth).
+- read: --around, --after, --before, --topic, --json; global search names each result's chat and sender.
+- dump: reply_parent, quote_text, reply_to_peer, forum_topic_id, fwd_from, out, action; --after ID writes messages-after-ID.ndjson beside the full archive.
+- badLinks checks MessageEntityEmail too (a greedy e-mail entity swallowed Chinese text on 2026-11-23); relink trims it to the address.
+- send-file refuses a caption over 1,024 characters (footer included) before uploading; --reply-to must be a whole number; a footer without a session id is no longer stamped twice.
+- Skill docs: a Replying section in send-message, the listed line's markers in list-dialogs, corrected search, download-media and dump-channel docs; tsconfig now type-checks session-footer, profile-hint and message-format.
+
+
+
+### BREAKING CHANGES
+
+* read and search print local time with its zone label (e.g. PCT; --utc for the old UTC) and markers after the sender; global search lines gain the sender and a {chat} marker.
+* dump's grouped_id is a string (was a lossy number).
+
 # [34.31.0](https://github.com/terrylica/cc-skills/compare/v34.30.1...v34.31.0) (2026-11-27)
 
 
