@@ -15,11 +15,11 @@
 // token leaves this process only through --emit-fd, which refuses fds 0-2 and any terminal, so neither a log, a
 // transcript nor a terminal receives it by accident. STDERR carries reasons and file names, never values.
 //
-// Exit codes: 0 found · 1 no live token record (the status page has not created one yet, or it was removed) ·
+// Exit codes: 0 found · 1 no live token record (the token page — status.html up to 0.4.x, manage.html from 0.6.0 — has not created one yet, or it was removed) ·
 //             2 usage · 3 no readable Local Storage in that profile · 4 a record exists but is not token-shaped.
 //
 // WHERE THE TOKEN LIVES. The extension keeps it in its own origin's localStorage under "auth-token"
-// (lib/ui/authToken.js) and creates it the first time its status page opens. Chrome stores localStorage in a
+// (lib/ui/authToken.js) and creates it the first time its token page opens (status.html up to 0.4.x, manage.html from 0.6.0). Chrome stores localStorage in a
 // LevelDB: user keys are "_" + origin + "\0" + key and values carry a one-byte encoding prefix (0 = UTF-16LE,
 // 1 = Latin-1); recent writes sit in the write-ahead *.log, older ones in *.ldb tables whose blocks are usually
 // Snappy-compressed, so a text search of the files finds the record only sometimes.
@@ -323,7 +323,7 @@ export function main(argv: string[]): number {
   }
 
   if (found.status === "absent") {
-    process.stderr.write("no live auth-token record yet (open the extension's status page in this profile)\n");
+    process.stderr.write("no live auth-token record yet (open the extension's token page in this profile: manage.html from 0.6.0, status.html before)\n");
     status({ status: "not-found", records: found.records });
     return 1;
   }

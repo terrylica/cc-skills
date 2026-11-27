@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // mcp-drive.ts — drive a browser MCP server from Bash, with NO Claude Code restart.
 //
-// Two transports, one step format:
+// Three transports, one step format:
 //   bun mcp-drive.ts ext <account-email> <steps.json>   the profile's Playwright Extension server
 //                                                        (chrome-profile.sh playwright-mcp <email>;
 //                                                        rides the stored token: no Allow dialog)
@@ -9,6 +9,11 @@
 //                                                        everyday Chrome (sees EVERY profile's tabs; needs
 //                                                        chrome://inspect remote debugging ON, and Chrome
 //                                                        may ask "Allow remote debugging?" once)
+//   bun mcp-drive.ts cmd <steps.json> -- <command...>    a Playwright Extension server reached through an
+//                                                        explicit stdio command, typically another machine's
+//                                                        (`ssh host <bridge>`); its tab is closed as in ext
+//                                                        mode, and the leftover sweep is off because it can
+//                                                        only see THIS Mac's Chrome
 //
 // steps.json: [{ "tool": "<mcp tool>", "args": {...}, "quiet": false, "max": 4000 }, ...]
 //   quiet: print only ok/ERROR and the result length, never its text (use for any step whose page may
@@ -24,7 +29,7 @@
 // Blob download (then `vault set --stdin` and delete the file).
 // At the end of an ext-mode run its tab is closed (every run's tab used to stay open and pile up in the
 // operator's Chrome). Set MCP_DRIVE_KEEP_TAB=1 to keep it, e.g. while a download it started is still writing.
-// LEFTOVER SWEEP (both modes): the run lists every Chrome tab before it starts and again at the end
+// LEFTOVER SWEEP (ext and cdp modes): the run lists every Chrome tab before it starts and again at the end
 // (chrome-tabs.ts, Chrome's AppleScript: no dialog), and closes tabs that appeared during the run on a host
 // named in steps.json, such as a "View rule" link that opened a new tab, or the extension's connect page. The server itself cannot see those
 // tabs. MCP_DRIVE_KEEP_TAB=1 or MCP_DRIVE_NO_SWEEP=1 turns the sweep off; outside the desktop session
@@ -38,7 +43,7 @@ import { CONNECT_PAGE, TabsError, closeTabs, hostOf, listTabs, stepHosts } from 
 type Step = { tool: string; args?: Record<string, unknown>; quiet?: boolean; max?: number };
 
 function usage(): never {
-  console.error("usage: mcp-drive.ts ext <account-email> <steps.json> | cdp <steps.json>");
+  console.error("usage: mcp-drive.ts ext <account-email> <steps.json> | cdp <steps.json> | cmd <steps.json> -- <command...>");
   process.exit(2);
 }
 const [mode, a1, a2] = process.argv.slice(2);
@@ -51,11 +56,15 @@ if (mode === "ext" && a1 && a2) {
   cmd = ["npx", "-y", "chrome-devtools-mcp@latest", "--autoConnect", "--channel", "stable",
     "--userDataDir", `${process.env.HOME}/Library/Application Support/Google/Chrome`, "--no-usage-statistics"];
   stepsPath = a1;
+} else if (mode === "cmd" && a1 && a2 === "--" && process.argv.length > 5) {
+  cmd = process.argv.slice(5); // [bun, mcp-drive.ts, "cmd", steps.json, "--", command...]
+  stepsPath = a1;
 } else usage();
+const extServer = mode === "ext" || mode === "cmd"; // a Playwright Extension server: one fresh tab per run
 
 const steps = JSON.parse(readFileSync(stepsPath, "utf8")) as Step[];
 
-const sweep = process.env.MCP_DRIVE_KEEP_TAB !== "1" && process.env.MCP_DRIVE_NO_SWEEP !== "1";
+const sweep = mode !== "cmd" && process.env.MCP_DRIVE_KEEP_TAB !== "1" && process.env.MCP_DRIVE_NO_SWEEP !== "1";
 const hosts = stepHosts(JSON.stringify(steps));
 let tabsBefore: Set<string> | null = null;
 if (sweep) {
@@ -68,6 +77,11 @@ if (sweep) {
 const workDir = mkdtempSync(join(tmpdir(), "mcp-drive-"));
 const child = spawn(cmd[0], cmd.slice(1), { stdio: ["pipe", "pipe", "pipe"], cwd: workDir });
 child.stderr.on("data", () => {}); // server logs are noise and may echo page content; never printed
+child.on("error", (e) => { console.error(`mcp-drive: could not start ${cmd[0]}: ${e.message}`); process.exit(1); });
+let closing = false; // the final tab close may drop the connection on purpose
+child.on("exit", (c) => {
+  if (!closing && waiters.size) { console.error(`mcp-drive: server command exited (${c}) with a request pending`); process.exit(1); }
+});
 
 let buf = "";
 const waiters = new Map<number, (m: any) => void>();
@@ -139,7 +153,8 @@ try {
 // Ext mode opens a FRESH tab per run. Left open, every run adds a renderer to the operator's Chrome,
 // and a long session of agent runs accumulated dozens of tabs and gigabytes (measured 2026-10-22:
 // 8.7 GB across 70 renderers). Close this run's tab unless the caller asks to keep it.
-if (mode === "ext" && process.env.MCP_DRIVE_KEEP_TAB !== "1") {
+closing = true;
+if (extServer && process.env.MCP_DRIVE_KEEP_TAB !== "1") {
   try {
     await Promise.race([
       // browser_close only detaches in extension mode (measured: the tab stayed open), so close the

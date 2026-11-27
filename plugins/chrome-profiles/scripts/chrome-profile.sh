@@ -37,6 +37,18 @@ ROOT="${CHROME_USER_DATA_DIR:-$HOME/Library/Application Support/Google/Chrome}"
 CHROME_BIN="${CHROME_BIN:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 EXT_ID="mmlmfjhmonkocbjadbfplnigmagldckm"   # Microsoft's "Playwright Extension", Chrome Web Store
 EXT_URL="https://chromewebstore.google.com/detail/playwright-extension/$EXT_ID"
+# The extension's token page differs by version: up to 0.4.x status.html (window "Playwright Extension Status",
+# button "Generate new token"); from 0.6.0 manage.html (window "Playwright Extension", button "Rotate token").
+# Both keep the token in localStorage "auth-token". Pick by the version installed in the profile.
+ext_page() {   # $1 = profile folder name -> prints "<page> <window-title-prefix> <button>", tab-separated
+  local base="$ROOT/$1/Extensions/$EXT_ID" v
+  v=$(ls -1 "$base" 2>/dev/null | sort -V | tail -1)
+  if [ -n "$v" ] && [ -f "$base/$v/manage.html" ]; then
+    printf 'manage.html\tPlaywright Extension - Google Chrome - \tRotate token\n'
+  else
+    printf 'status.html\tPlaywright Extension Status - Google Chrome - \tGenerate new token\n'
+  fi
+}
 KC_SERVICE="playwright-extension-token"
 VAULT_SCOPE="chrome-extension-tokens"
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
@@ -230,16 +242,17 @@ case "$cmd" in
     hash_now() { token_from_profile "$ROOT/$dir" | shasum -a 256 | cut -c1-16; }
     old_h=$(hash_now)
     tabs_before=$(bun "$TABS" list --json | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))')
-    "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
+    IFS=$'\t' read -r page title_prefix button <<<"$(ext_page "$dir")"
+    "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/$page" >/dev/null 2>&1 &
     sleep 3
-    res=$(osascript -l JavaScript - "$email" <<'JXA' 2>&1 || true
+    res=$(osascript -l JavaScript - "$email" "$title_prefix" "$button" <<'JXA' 2>&1 || true
 function run(argv) {
-  const email = argv[0];
+  const [email, prefix, label] = argv;
   const p = Application("System Events").processes.byName("Google Chrome");
-  const ws = p.windows().filter(w => { const n = w.name(); return n.startsWith("Playwright Extension Status - Google Chrome - ") && n.endsWith("(" + email + ")"); });
-  if (ws.length !== 1) return "ABORT: " + ws.length + " status windows for " + email;
-  const b = ws[0].entireContents().filter(e => { try { return e.role() === "AXButton" && e.description() === "Generate new token"; } catch (x) { return false; } });
-  if (b.length !== 1) return "ABORT: " + b.length + " 'Generate new token' buttons";
+  const ws = p.windows().filter(w => { const n = w.name(); return n.startsWith(prefix) && n.endsWith("(" + email + ")"); });
+  if (ws.length !== 1) return "ABORT: " + ws.length + " token-page windows for " + email;
+  const b = ws[0].entireContents().filter(e => { try { return e.role() === "AXButton" && e.description() === label; } catch (x) { return false; } });
+  if (b.length !== 1) return "ABORT: " + b.length + " '" + label + "' buttons";
   b[0].actions.byName("AXPress").perform();
   return "pressed";
 }
@@ -249,11 +262,11 @@ JXA
     # Chrome flushes localStorage to disk lazily: measured ~15 s before the new token was readable (2026-10-27).
     new_h="$old_h"
     for _ in $(seq 1 20); do sleep 2; new_h=$(hash_now); [ "$new_h" != "$old_h" ] && break; done
-    [ "$new_h" != "$old_h" ] || die "rotate-token: pressed, but no new token reached disk within 40 s; run it again or check the status page"
+    [ "$new_h" != "$old_h" ] || die "rotate-token: pressed, but no new token reached disk within 40 s; run it again or check the token page"
     tok=$(token_from_profile "$ROOT/$dir"); token_put "$email" "$tok"; unset tok
     # token_get prefers the vault's Keychain mirror; a stale mirror would shadow what was just stored.
     [ "$(token_get "$email" | shasum -a 256 | cut -c1-16)" = "$new_h" ] || die "rotate-token: stored, but token_get still returns another value (a vault copy in scope $VAULT_SCOPE?) — update it: vault set $VAULT_SCOPE $(token_key "$email") --stdin"
-    for id in $(bun "$TABS" list --url-match "^chrome-extension://$EXT_ID/status\\.html" | cut -f2); do
+    for id in $(bun "$TABS" list --url-match "^chrome-extension://$EXT_ID/(status|manage)\\.html" | cut -f2); do
       case " $tabs_before " in *" $id "*) ;; *) bun "$TABS" close --id "$id" --allow-window-close >/dev/null ;; esac
     done
     say "token rotated and stored for $email (the old one no longer connects)" ;;
@@ -332,12 +345,13 @@ EOF
     fi
     unset cur
     if [ -z "$stored" ]; then
-      # Opening the status page makes the extension create its token; read it from the profile, and ask only when
+      # Opening the token page makes the extension create its token; read it from the profile, and ask only when
       # that fails. Only "not created yet" (exit 1) is worth waiting for. The page is closed again afterwards
       # (it used to stay open after every setup), unless the paste dialog needs it.
-      say "opening the extension's status page (it creates the token)"
+      IFS=$'\t' read -r page _ _ <<<"$(ext_page "$dir")"
+      say "opening the extension's token page, $page (it creates the token)"
       tabs_before=$(bun "$TABS" list --json 2>/dev/null | python3 -c 'import json,sys; print(" ".join(t["tabId"] for t in json.load(sys.stdin)))' 2>/dev/null || true)
-      "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/status.html" >/dev/null 2>&1 &
+      "$CHROME_BIN" --profile-directory="$dir" "chrome-extension://$EXT_ID/$page" >/dev/null 2>&1 &
       tok=""; rc=0
       for _ in 1 2 3 4 5 6; do
         sleep 2
@@ -355,14 +369,14 @@ EOF
           127) why="bun is not installed" ;;
           *)   why="the reader failed with exit $rc" ;;
         esac
-        say "could not read the token from the profile ($why): copy it from the status page into the dialog"
+        say "could not read the token from the profile ($why): copy it from the token page into the dialog"
         tok=$(prompt_hidden "Paste the Playwright Extension token for $email (the part after PLAYWRIGHT_MCP_EXTENSION_TOKEN= is enough):") || tok=""
       fi
       token_put "$email" "$tok"
       unset tok
       say "token stored in the login Keychain (service $KC_SERVICE)"
       if [ -n "$tabs_before" ]; then
-        for id in $(bun "$TABS" list --url-match "^chrome-extension://$EXT_ID/status\\.html" 2>/dev/null | cut -f2); do
+        for id in $(bun "$TABS" list --url-match "^chrome-extension://$EXT_ID/(status|manage)\\.html" 2>/dev/null | cut -f2); do
           case " $tabs_before " in *" $id "*) ;; *) bun "$TABS" close --id "$id" --allow-window-close >/dev/null 2>&1 || true ;; esac
         done
       fi
